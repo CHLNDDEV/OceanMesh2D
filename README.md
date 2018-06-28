@@ -16,7 +16,7 @@ OceanMesh2D is a set of open-source MATLAB functions built off approaches and id
 
 ## `Starting Out`
 
-After downloading and unzipping the current <a href="https://github.com/NDDEV/archive/master.zip">repository</a>, read the user guide avaiable here (click download PDF): 
+After downloading and unzipping the current <a href="https://github.com/CHLNDDEV/archive/master.zip">repository</a>, read the user guide avaiable here (click download PDF): 
 https://www.overleaf.com/read/hsqjhvtbkgvj#/54715995/
 
 The data for the following examples can be downloaded here: 
