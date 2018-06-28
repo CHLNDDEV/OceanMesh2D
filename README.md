@@ -6,7 +6,7 @@
 OceanMesh2D is a set of open-source MATLAB functions built off approaches and ideas from many prior works that are used to generate two-dimensional (2D) unstructured meshes for coastal circulation problems. These meshes are based on a variety of feature driven geometric--topographic mesh size functions that are generated according to user-defined parameters. Mesh generation is achieved through a force-balance algorithm combined with a number of topological improvement strategies aimed at improving the worst case triangle quality. The software embeds the mesh generation process into an object-orientated framework that contains pre- and post-processing workflows that make mesh generation flexible, reproducible, and scriptable. The objective of this paper is to introduce the functionality of the software.  
 
 ## `Code framework` 
-`OceanMesh2D`  consists of four standalone classes that are called in sequence. 
+`OceanMesh2D`  consists of four standalone classes that are called in sequence. It requires no paid toolboxes to build meshes and has been tested to work with a trial version of MATLAB.
 
     OceanMesh2D::
     ├── geodata -- process geospatial data.
