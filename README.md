@@ -28,8 +28,8 @@ and here: ftp://topex.ucsd.edu/pub/srtm15_plus/ (download the SRTM15_PLUS global
 ```
 Example_1_NZ.m %<- A simple mesh around South Island New Zealand that uses GSHHS shoreline. 
 Example_2_NY.m %<- A mesh around the Manhattan area that uses a DEM created from LiDAR data.  
-Example_3_ECGC.m %<- An example that builds a mesh for the western North Atlatnic with local nests around the mid-Atlantic.
-Example_4_JBAY.m %<- An extremely high-fidelity (15-m) mesh from LiDAR data around Jamaica Bay with CFL limiting.
+Example_3_ECGC.m %<- An example that builds a mesh for the western North Atlantic with local nests around the mid-Atlantic.
+Example_4_JBAY.m %<- An extremely high-fidelity (15-m) mesh from LiDAR data around Jamaica Bay with CFL-limiting.
 Example_5_GBAY.m %<- An example of the polyline/thalweg mesh size function along the Houston Ship Channel. 
 
 ```
