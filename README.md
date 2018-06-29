@@ -22,6 +22,9 @@ https://www.overleaf.com/read/hsqjhvtbkgvj#/54715995/
 The data for the following examples can be downloaded here: 
  https://drive.google.com/open?id=1LeQJFKaVCM2K59pKO9jDcB02yjTmJPmL
  
+and here: http://www.soest.hawaii.edu/pwessel/gshhg/ (download the GSHH global coastline ESRI shapefile zip archive)
+ 
+and here: ftp://topex.ucsd.edu/pub/srtm15_plus/ (download the SRTM15_PLUS global topobathy DEM "topo15_compressed.nc")
 ```
 Example_1_NZ.m %<- A simple mesh around South Island New Zealand that uses GSHHS shoreline. 
 Example_2_NY.m %<- A mesh around the Manhattan area that uses a DEM created from LiDAR data.  
