@@ -28,10 +28,10 @@ and here: http://www.soest.hawaii.edu/pwessel/gshhg/ (download the GSHH global c
  
 and here: ftp://topex.ucsd.edu/pub/srtm15_plus/ (download the SRTM15_PLUS global topobathy DEM "topo15_compressed.nc")
 ```
-Featured in  ├── Example_1_NZ.m %<- A simple mesh around South Island New Zealand that uses GSHHS shoreline. 
+Featured in  ┌╼ Example_1_NZ.m %<- A simple mesh around South Island New Zealand that uses GSHHS shoreline. 
 user guide   ├── Example_2_NY.m %<- A high-resolution mesh around the New York/Manhattan area that uses a DEM created from LiDAR data.  
              └── Example_3_ECGC.m %<- Builds a mesh for the western North Atlantic with a local high-resolution nest around New York
-Featured in         ├── Example_4_PRVI.m %<- Builds a mesh for the western North Atlantic with three high-resolution nests around Peurto Rico and US Virgin Islands
+Featured in         ┌╼ Example_4_PRVI.m %<- Builds a mesh for the western North Atlantic with three high-resolution nests around Peurto Rico and US Virgin Islands
 Geoscientific Model ├── Example_5_JBAY.m %<- An extremely high-fidelity (15-m) mesh from LiDAR data around Jamaica Bay with CFL-limiting.
 Development paper   └── Example_6_GBAY.m %<- An example of the polyline/thalweg mesh size function along the Houston Ship Channel. 
 
@@ -42,6 +42,8 @@ Development paper   └── Example_6_GBAY.m %<- An example of the polyline/th
 If you make use of `OceanMesh2D` please include a reference to the following:
 ```
 
-[1] - OceanMesh2D 1.0: MATLAB-based software for 2D mesh generation used in coastal circulation problems. Keith J. Roberts, William J. Pringle, Joannes J. Westerink, Geoscientifc Model Development (submitted July 2018). 
+[1] - Keith J. Roberts, William J. Pringle, Joannes J. Westerink. 
+      OceanMesh2D 1.0: MATLAB-based software for 2D mesh generation used in coastal circulation problems. 
+      Geoscientifc Model Development (submitted July 2018). 
 ```
 
