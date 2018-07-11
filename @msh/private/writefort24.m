@@ -15,12 +15,12 @@ for icon = 1: ntip
     fprintf('Writing SAL %s data \n', char(tipname)) ; 
     % The constituent details
     fprintf(fid,'%s \n',[char(tipname) ' SAL']) ;
-    fprintf(fid,'%17.15f \n',f24dat.tipotag(icon).val(2)) ;
+    fprintf(fid,'%17.15f \n',f24dat.omega(icon)) ;
     fprintf(fid,'%d \n',1) ;  
     fprintf(fid,'%s \n',char(tipname)) ;
-    fprintf(fid,'%d \t %12.6f  %12.6f \n',f24dat.Val(ntip,:));
+    fprintf(fid,'%d \t %12.6f  %12.6f \n',f24dat.Val(icon,:,:));
 end
-    
+  
 fclose(fid) ; 
 %EOF
 end

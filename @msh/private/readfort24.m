@@ -50,7 +50,7 @@ for i = 1: ncon
     if ( found )
         f24dat.omega(icon) = w ;
         f24dat.found(icon) = 1 ;
-        f24dat.salconext{icon} = char(salconext{icon}) ;
+        f24dat.tiponame{icon} = char(salconext{icon}) ;
         
         f24dat.samp(:,icon) = val(:,2) ;
         f24dat.sphs(:,icon) = val(:,3) ;

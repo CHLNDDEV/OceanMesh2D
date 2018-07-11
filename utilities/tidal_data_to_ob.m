@@ -59,18 +59,8 @@ I = find(lon_x < lon_min | lon_x > lon_max | ...
          lat_y < lat_min | lat_y > lat_max);
 lon_x(I) = []; lat_y(I) = []; 
 
-% Delete by range search
-% Krs = rangesearch([lon_x,lat_y],[b_lon, b_lat],0.25); % 0.25 deg radius
-for i = 1 : length(b_lon)
-[Krs{i}] = ourRangeSearch([lon_x,lat_y]',[b_lon(i),b_lat(i)]',0.25); 
-end
-LKd = 0; Kd = [];
-for i = 1:length(b_lon)
-   K = Krs{i};
-   J = LKd + 1:LKd + length(K);
-   Kd(J) = K; 
-   LKd = length(Kd);
-end
+% Get 20 nearest neighbours
+Kd = ourKNNsearch([lon_x,lat_y]',[b_lon, b_lat]',20);
 Kd = unique(Kd);
 
 % The new lon and lat vectors of data
