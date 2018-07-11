@@ -1,8 +1,10 @@
 function obj = Calc_Sponge(obj,W,generator,varargin)
 % obj = Calc_Sponge(obj,W,generator,varargin)
 % Adds the sponge information into the f13 struct in the msh class obj.
-% Must specify the width (W) of the sponge and if it is a generating-absorping
-% layer (generator = 1) or fully absorbing (generator = 0). 
+% Must specify the width (W) of the sponge and the sponge layer type:
+% = 1 -> generating-absorbing with tidal solutions (need fort.53001/54001)
+% = 0 -> fully absorbing sponge 
+% = -1 -> generating-absorbing with arbitrary solutions (need fort.2001)
 % Other inputs are optional.
 %
 % Default for other inputs are:
@@ -12,7 +14,7 @@ function obj = Calc_Sponge(obj,W,generator,varargin)
 % attenuated 20 fold (F)
 
 if isempty(obj.b)
-   error('This function requires bathymetry on the msh object (use Griddata)') 
+   error('This function requires bathymetry on the msh object (use interp)') 
 end
 
 %% Test optional arguments

@@ -283,6 +283,10 @@ if ~isempty(const) && ~isempty(tidal_database)
 
     % Do the interpolation to the boundaries
     obj = tidal_data_to_ob(obj,tidal_database,{obj.f15.bountag.name});
+    
+    I = cellfun(@isempty,({obj.f15.opealpha.name}));
+    obj.f15.opealpha(I) = []; obj.f15.bountag(I) = [];
+    obj.f15.nbfr = length(obj.f15.bountag);
 end
 % 
 if ~isempty(sta_database)

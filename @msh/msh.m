@@ -32,6 +32,7 @@ classdef msh
         f20 % A struct for the fort20 non-periodic flux/ele radiation bc
         f24 % A struct of the fort24 SAL values
         f2001 % A struct for the fort2001 non-periodic flux/ele sponge bc
+        f5354 % A struct for the fort53001/54001 tidal ele/flux sponge bc
     end
     
     methods
@@ -102,6 +103,9 @@ classdef msh
                 if ~isempty(obj.f24)
                     writefort24( obj.f24, [fname '.24'] );
                 end
+                if ~isempty(obj.f5354)
+                    writefort5354( obj.f5354, fname );
+                end
             else
                 if strcmp(type,'14')
                     if isempty(obj.p)
@@ -126,6 +130,8 @@ classdef msh
                     writefort19( obj.f2001, [fname '.2001'] );
                 elseif strcmp(type,'24') && ~isempty(obj.f24)
                     writefort24( obj.f24, [fname '.24'] );
+                elseif strcmp(type,'5354') && ~isempty(obj.f5354)
+                    writefort5354( obj.f5354, fname );
                 end
             end
         end
