@@ -181,13 +181,12 @@ if isempty(N_filename)
     % multiplied by C_it and calculate the full values inside of ADCIRC
     % using N from say HYCOM
     if strcmp(type,'nonlocal')
-        obj.f13.userval.Atr(NA).Val = [K repmat(F_it(K),1,4).*...
-                                       [obj.bx(K) obj.by(K) obj.dJ(K,:)]]';
+        obj.f13.userval.Atr(NA).Val = [K F_it(K) obj.bx(K) ...
+                                       obj.by(K) obj.dJ(K,:)]';
     elseif strcmp(type,'local_dir')
-        obj.f13.userval.Atr(NA).Val = [K repmat(F_it(K),1,2).*...
-                                      [obj.bx(K) obj.by(K)]]';
+        obj.f13.userval.Atr(NA).Val = [K F_it(K) obj.bx(K) obj.by(K)]';
     elseif strcmp(type,'local_sca')
-        obj.f13.userval.Atr(NA).Val = [K F_it(K).*H2_mesh(K)]';
+        obj.f13.userval.Atr(NA).Val = [K F_it(K) H2_mesh(K)]';
     end
 else
     % Provide the full coefficients

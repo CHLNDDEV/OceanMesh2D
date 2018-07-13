@@ -20,7 +20,7 @@ if isempty(obj.f15)
 end
 
 if nargin < 2
-   avisoloc = '.';
+   avisoloc = '';
 end
 if nargin < 3
    saldata = 'FES2014'; 
