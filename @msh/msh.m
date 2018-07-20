@@ -190,15 +190,24 @@ classdef msh
                         disp('bd is empty!');
                     end
                 case('b')
-                    cmap = cmocean('ice',256);
                     figure;
+                    cmap = cmocean('deep');
+                    numticks = 10;
+                    q = log10(obj.b); % plot on log scale
                     if proj
-                        m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),obj.b,cmap);
+                        m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),q,cmap);
                     else
-                        trisurf(obj.t,obj.p(:,1),obj.p(:,2),obj.b);
-                        colormap(cmap); view(2); shading interp;
+                        trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
+                        view(2); shading interp;
                     end
-                    cb=colorbar; ylabel(cb,'m below geoid');
+                    cmocean('deep',numticks-1); cb = colorbar;
+                    desiredTicks = round(10.^(linspace(min(q),max(q),numticks)));
+                    caxis([log10(min(desiredTicks)) log10(max(desiredTicks))]);
+                    cb.Ticks     = log10(desiredTicks);
+                    for i = 1 : length(desiredTicks)
+                        cb.TickLabels{i} = num2str(desiredTicks(i));
+                    end
+                    ylabel(cb,'m below geoid');
                 case('slp')
                     cmap = cmocean('thermal');
                     if proj
@@ -235,7 +244,7 @@ classdef msh
                     z = sum(cr(vtoe))./nne;
                     % scale by earth radius
                     Re = 6378.137e3; z = Re*z;
-                    q = log10((z)); % plot on log scale with base
+                    q = log10(z); % plot on log scale with base
                     if proj
                         figure;
                         m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);

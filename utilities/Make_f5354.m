@@ -124,9 +124,11 @@ for j = 1:obj.f5354.nfreq
         elseif loop == 2
             [amp_u, phs_u, amp_v, phs_v] = interp_u(tidalvel,k,Lx,Ly,...
                                        Iu,Iv,Kdu,Kdv,b_x,b_y,xu,xv,yu,yv);
-            % make amp into m/s by dividing by depth (limited to 10 m)
-            amp_u = amp_u./max(10,obj.b(nodes'));
-            amp_v = amp_v./max(10,obj.b(nodes'));
+            % make amp into m/s by dividing by depth (limited to 50 m to
+            % avoid issues with nearshore velocities that could cause
+            % instabilities
+            amp_u = amp_u./max(50,obj.b(nodes'));
+            amp_v = amp_v./max(50,obj.b(nodes'));
             obj.f5354.vel(j,:,:) = [amp_u'; phs_u'; amp_v'; phs_v']; 
         end
     end

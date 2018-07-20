@@ -288,6 +288,22 @@ if ~isempty(const) && ~isempty(tidal_database)
     obj.f15.opealpha(I) = []; obj.f15.bountag(I) = [];
     obj.f15.nbfr = length(obj.f15.bountag);
 end
+
+if ~isempty(const)
+   % Here for the SA tidal potential the equilibrium argument is now
+   % corrected to be referenced to the vernal equinox (subtract of about
+   % 77 deg). But the equilibrim argument for the boundary and the analysis
+   % is kept as referenced to the Calender year.
+   ii = find(startsWith({obj.f15.tipotag.name},'SA'));
+   if ~isempty(ii)
+       % need to refer to vernal equinox instead of calender year, 
+       % at least for the tidal potential (subtract about 76.9 deg);
+       obj.f15.tipotag(ii).val(5) = obj.f15.tipotag(ii).val(5) - 78/365*360;
+       if obj.f15.tipotag(ii).val(5) < 0
+          obj.f15.tipotag(ii).val(5) = obj.f15.tipotag(ii).val(5) + 360; 
+       end
+   end
+end
 % 
 if ~isempty(sta_database)
     % parse the station reader

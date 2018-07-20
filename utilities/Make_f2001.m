@@ -1,14 +1,14 @@
-function obj = Make_f2001(obj,File_Prefix,File_Suffixes,bathyfile,ETIMINC)
-% obj = Make_f2001(obj,File_Prefix,File_Suffixes,bathyfile,ETIMINC)
+function obj = Make_f2001(obj,filename,bathyfile)
+% obj = Make_f2001(obj,filename,bathyfile)
 % Input a msh class object get the values of the elevations and velocities
-% to put in the sponge for times between ts and te based on the 
-% File_Suffixes of the  input files (location is File_Prefix). 
+% to put in the sponge for times in the filename.
 % Bathyfile is the file of bathymetric values used to calculate fluxes from
 % the velocities before dividing by the msh class depths to get back to
 % velocities
 %
 %  Author:      William Pringle                                 
-%  Created:     May 15 2018                                      
+%  Created:     May 15 2018, 
+%               July 19 2018, Updated to do it just for one file                                      
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ii = find(contains({obj.f13.defval.Atr(:).AttrName},'sponge'));
 if isempty(ii)
@@ -28,11 +28,17 @@ m_proj(proj,'lon',[ min(sp_points(:,1))-0.25 max(sp_points(:,1))+0.25 ],...
 % Do projection
 [sp_x,sp_y] = m_ll2xy(sp_points(:,1),sp_points(:,2));   
 
-BZ = zeros(length(sp_x),length(File_Suffixes));
-BFX = zeros(length(sp_x),length(File_Suffixes));
-BFY = zeros(length(sp_x),length(File_Suffixes));
-for t = 1:length(File_Suffixes)
-    filename = strcat(File_Prefix,File_Suffixes(t),".nc");
+time = ncread(filename,'time');
+DT = median(diff(time))*3600; %[s]
+L = length(time);
+BZ = zeros(length(sp_x),L);
+BFX = zeros(length(sp_x),L);
+BFY = zeros(length(sp_x),L);
+disp(['Interpolating ' num2str(L) ' snaps'])
+for t = 1:L
+    if mod(t,100) == 0 
+        disp(['Snap #' num2str(t)])
+    end
     %% Read the grid and density data 
     if t == 1
         % read lon, lat and standard depths
@@ -61,17 +67,10 @@ for t = 1:length(File_Suffixes)
                  lat_y > max(sp_points(:,2))+0.25);
         lon_x(I) = []; lat_y(I) = []; 
 
-        % Delete by range search
-        Krs = rangesearch([lon_x,lat_y],sp_points,0.25); % 0.25 deg radius
-        LKd = 0; Kd = [];
-        for i = 1:length(sp_points)
-           K = Krs{i};
-           J = LKd + 1:LKd + length(K);
-           Kd(J) = K; 
-           LKd = length(Kd);
-        end
+        % Delete by our knnsearch
+        Kd = ourKNNsearch([lon_x,lat_y]',sp_points',20);
         Kd = unique(Kd);
-
+        
         % The new lon and lat vectors of data
         lon_x = lon_x(Kd); lat_y = lat_y(Kd);
 
@@ -80,7 +79,7 @@ for t = 1:length(File_Suffixes)
     end
     
     % surface elevations
-    zeta = ncread(filename,'surf_el');
+    zeta = ncread(filename,'surf_el',[1 1 t],[size(lon) 1]);
     Z = reshape(zeta,[],1);
     Z(I) = []; Z = Z(Kd);
     F = scatteredInterpolant(x(~isnan(Z)),y(~isnan(Z)),Z(~isnan(Z)),'natural');
@@ -107,18 +106,19 @@ for t = 1:length(File_Suffixes)
     qy = reshape(qy,[],1);
     qy(I) = []; qy = qy(Kd);
     % do interpolation and divide by our own depths to get velocities
-    F = scatteredInterpolant(x(~isnan(Z)),y(~isnan(Z)),qx(~isnan(Z)),'natural');
+    F = scatteredInterpolant(x(~isnan(Z)),y(~isnan(Z)),...
+                             qx(~isnan(Z)),'natural');
     BFX(:,t) = F(sp_x,sp_y)./sp_b;  
-    F = scatteredInterpolant(x(~isnan(Z)),y(~isnan(Z)),qy(~isnan(Z)),'natural');
+    F = scatteredInterpolant(x(~isnan(Z)),y(~isnan(Z)),...
+                             qy(~isnan(Z)),'natural');
     BFY(:,t) = F(sp_x,sp_y)./sp_b;  
 end
 
 %% Make into f2001 struct
-filename1 = strcat(File_Prefix,File_Suffixes(1),".nc");
-filename2 = strcat(File_Prefix,File_Suffixes(end),".nc");
-[~,n1] = fileparts(char(filename1)); [~,n2] = fileparts(char(filename2));
-obj.f2001.DataTitle = [n1 ' -> ' n2];
-obj.f2001.ETIMINC = ETIMINC;
+ts = datenum('2000-01-01') + time(1)/24;
+te = datenum('2000-01-01') + time(end)/24;
+obj.f19.DataTitle = [datestr(ts) ' -> ' datestr(te)];
+obj.f2001.ETIMINC = DT;
 obj.f2001.NumOfNodes = size(BZ,1);
 obj.f2001.NumOfTimes = size(BZ,2);
 obj.f2001.Val = [BZ(:) BFX(:) BFY(:)];

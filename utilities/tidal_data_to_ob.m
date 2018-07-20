@@ -100,7 +100,7 @@ for j = 1:obj.f15.nbfr
         %
     % Convert real and imaginary parts to amplitude and phase
     amp_b = abs(BZ);  
-    phs_b = angle(BZ)*180/pi;
+    phs_b = rad2deg(angle(BZ));
     % Convert to 0 to 360;
     % phs_b that is positive 0 - 180 stays same.
     % phs_b that is negative -180 - 0 becomes 180 - 360
