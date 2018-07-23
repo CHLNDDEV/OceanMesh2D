@@ -269,6 +269,10 @@ if ~isempty(const)
         % get only the frequencies, nodal factor and equilibrium argument
         obj.f15.harfreq(k).val = obj.f15.tipotag(k).val([2,4,5]);
     end
+    if obj.f15.ntip == 0
+        disp('Setting ntip = 1')
+        obj.f15.ntip = 1;
+    end
 end
 
 % Elevation Specified Boundary Conditions (tides)

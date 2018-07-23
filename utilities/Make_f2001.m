@@ -117,7 +117,7 @@ end
 %% Make into f2001 struct
 ts = datenum('2000-01-01') + time(1)/24;
 te = datenum('2000-01-01') + time(end)/24;
-obj.f19.DataTitle = [datestr(ts) ' -> ' datestr(te)];
+obj.f2001.DataTitle = [datestr(ts) ' -> ' datestr(te)];
 obj.f2001.ETIMINC = DT;
 obj.f2001.NumOfNodes = size(BZ,1);
 obj.f2001.NumOfTimes = size(BZ,2);

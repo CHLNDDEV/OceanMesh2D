@@ -123,5 +123,10 @@ for icon = 1: ntip
     % Put into the struct
     obj.f24.Val(icon,:,:) = [kvec'; amp'; phs']; 
 end
+
+if obj.f15.ntip ~= 2
+   disp('Setting ntip = 2')
+   obj.f15.ntip = 2;
+end
 %EOF
 end
