@@ -174,11 +174,11 @@ if strcmp(type,'slope') || strcmp(type,'all')
     by = NaN(length(K),1); 
     % Get the dx and dy of the dem in meters
     DELTA_X1 = m_idist(mean(obj.p(K,1)),mean(obj.p(K,2)),...
-                      mean(obj.p(K,1))+DELTA_X,mean(obj.p(K,2)));
+                       mean(obj.p(K,1))+DELTA_X,mean(obj.p(K,2)));
     DELTA_Y1 = m_idist(mean(obj.p(K,1)),mean(obj.p(K,2)),...
-                      mean(obj.p(K,1)),mean(obj.p(K,2))+DELTA_Y);             
+                       mean(obj.p(K,1)),mean(obj.p(K,2))+DELTA_Y);             
     [DEM_ZY,DEM_ZX] = gradient(DEM_Z,DELTA_Y1,DELTA_X1);
-    % New method of averaging the asbolute values 
+    % New method of averaging the absolute values 
     DEM_ZY = abs(DEM_ZY); DEM_ZX = abs(DEM_ZX);
 end
 if strcmp(type,'depth') || strcmp(type,'all')
@@ -227,34 +227,6 @@ if strcmp(interp,'CA')
             by(ii) = mean(reshape(DEM_ZY(IDXL(ii):IDXR(ii),IDXB(ii):IDXT(ii)),[],1),'omitnan');
         end
     end
-%     b1 = b; bx1 = bx; by1 = by;
-%     tic
-%     ny = size(DEM_X,1); nx = size(DEM_X,2);            
-%     Nx_un = unique(Nx);
-%     for Nxx = Nx_un' 
-%         Ny_un = unique(Ny(Nx == Nxx));
-%         for Nyy = Ny_un' 
-%             [ipos,jpos] = ind2sub(size(DEM_X),IDX(Nx == Nxx & Ny == Nyy));
-%             npos = zeros((Nxx+1)*(Nyy+1),length(ipos));
-%             nn = 0;
-%             for i = -ceil(Nyy/2):ceil(Nyy/2)
-%                 for j = -ceil(Nxx/2):ceil(Nxx/2)
-%                     nn = nn + 1;
-%                     npos(nn,:) = (jpos+j)*ny + max(1,min(ipos+i,nx));
-%                 end
-%             end     
-%             % make sure the values are not outside the DEM
-%             npos(npos <= 0 | npos > numel(DEM_X)) = length(DEM_Z);
-%             if strcmp(type,'depth') || strcmp(type,'all')
-%                 b(Nx == Nxx & Ny == Nyy) = mean(DEM_Z(npos));
-%             end
-%             if strcmp(type,'slope') || strcmp(type,'all')
-%                 bx(Nx == Nxx & Ny == Nyy) = mean(DEM_ZX(npos));
-%                 by(Nx == Nxx & Ny == Nyy) = mean(DEM_ZY(npos));
-%             end
-%         end
-%     end
-%     toc
 else
     %% Get gridded interpolant for non-CA interp
     disp(['Using griddedInterpolant with ' interp 'interp option'])

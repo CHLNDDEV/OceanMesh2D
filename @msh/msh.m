@@ -107,7 +107,7 @@ classdef msh
                     writefort5354( obj.f5354, fname );
                 end
             else
-                if strcmp(type,'14')
+                if any(contains(type,'14'))
                     if isempty(obj.p)
                         error('No mesh, cannot write.')
                     end
@@ -118,19 +118,26 @@ classdef msh
                     end
                     writefort14( [fname '.14'] , obj.t, obj.p, b_t, ...
                         obj.op , obj.bd ,obj.title ) ;
-                elseif strcmp(type,'11') && ~isempty(obj.f11)
+                end
+                if any(contains(type,'11')) && ~isempty(obj.f11)
                     writefort11( obj.f11, [fname '.11'] );
-                elseif strcmp(type,'13') && ~isempty(obj.f13)
+                end
+                if any(contains(type,'13')) && ~isempty(obj.f13)
                     writefort13( obj.f13, [fname '.13'] );
-                elseif strcmp(type,'15') && ~isempty(obj.f15)
+                end
+                if any(contains(type,'15')) && ~isempty(obj.f15)
                     writefort15( obj.f15, [fname '.15'], obj.bd );
-                elseif strcmp(type,'19') && ~isempty(obj.f19)
+                end
+                if any(contains(type,'19')) && ~isempty(obj.f19)
                     writefort19( obj.f19, [fname '.19'] );
-                elseif strcmp(type,'2001') && ~isempty(obj.f2001)
+                end
+                if any(contains(type,'2001')) && ~isempty(obj.f2001)
                     writefort19( obj.f2001, [fname '.2001'] );
-                elseif strcmp(type,'24') && ~isempty(obj.f24)
+                end
+                if any(contains(type,'24')) && ~isempty(obj.f24)
                     writefort24( obj.f24, [fname '.24'] );
-                elseif strcmp(type,'5354') && ~isempty(obj.f5354)
+                end
+                if any(contains(type,'5354')) && ~isempty(obj.f5354)
                     writefort5354( obj.f5354, fname );
                 end
             end
