@@ -271,7 +271,7 @@ classdef edgefx
             x_kp( prune ) = [];
             y_kp( prune ) = [];
             
-            [xg,yg]=CreateStructGrid(obj); 
+            [xg,yg] = CreateStructGrid(obj); 
 
             % Now get the feature size along the coastline
             % Use KD-tree
@@ -282,7 +282,10 @@ classdef edgefx
             % Feature_size is distance from medial axis plus distance to
             % coastline. min_el is then feature_size*2/R where R is
             % number of elements to model the feature
-            obj.fsd = (2*(dPOS-d))/obj.fs;
+            % WJP: d needs to be the absolute value because when we 
+            % include the floodplain since dPOS is not signed but d is, 
+            % they will cancel out producing really fine resolution
+            obj.fsd = 2*(dPOS+abs(d))/obj.fs;
             
             clear x_kp y_kp d d_fs dPOS 
         end

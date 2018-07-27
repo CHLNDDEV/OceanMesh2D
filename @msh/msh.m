@@ -200,7 +200,7 @@ classdef msh
                     figure;
                     cmap = cmocean('deep');
                     numticks = 10;
-                    q = log10(obj.b); % plot on log scale
+                    q = log10(max(1,abs(obj.b))); % plot on log scale
                     if proj
                         m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),q,cmap);
                     else
@@ -505,8 +505,10 @@ classdef msh
                     [~,poly_idx] = extdom_polygon(etbv,obj.p,1);
                     
                     % Get geodata outer and mainland polygons
-                    outer = gdat.outer(~isnan(gdat.outer(:,1)),:);
-                    main = gdat.mainland(~isnan(gdat.mainland(:,1)),:);
+                    outer = [gdat.outer(~isnan(gdat.outer(:,1)),:);
+                             gdat.inner(~isnan(gdat.inner(:,1)),:)];
+                    main = [gdat.mainland(~isnan(gdat.mainland(:,1)),:);
+                            gdat.inner(~isnan(gdat.inner(:,1)),:)];
                     
                     nope = 0; neta = 0; nbou  = 0; nvel  = 0;
                     % Find the polygon that is a combination of ocean
@@ -528,6 +530,10 @@ classdef msh
                     
                     % indices of switch
                     Cuts  = find(diff(mainland ~= 0));
+                    
+                    % Do not include open boundary that is smaller than 
+                    % 10 vertices across
+                    Cuts(diff(Cuts) < 10) = [];
                     
                     % Get length of largest island
                     % Delete the open boundary/mainland polygon
