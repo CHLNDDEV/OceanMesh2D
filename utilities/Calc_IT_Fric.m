@@ -82,6 +82,9 @@ end
 %% Calculate F_it from Nb, Nm, Jx, Jy, and H2_mesh or as reqd.
 if isempty(N_filename)
     F_it = C_it * ones(size(obj.b));
+    if strcmp(type(1:5),'local')
+        H2_mesh = obj.bx.^2 + obj.by.^2;
+    end
 else
     Nb_t = Nb;
     if strcmp(crit,'Nmw')
@@ -113,7 +116,7 @@ end
 F_it(obj.b < MinDepth) = 0;
 
 % Make zero for no slopes
-F_it(obj.bx == 0 & obj.bx == 0) = 0;
+F_it(obj.bx == 0 & obj.by == 0) = 0;
 if strcmp(type,'local_sca')
     F_it(H2_mesh == 0) = 0;
 elseif strcmp(type,'nonlocal')
@@ -153,9 +156,9 @@ if isempty(N_filename)
     % multiplied by C_it and calculate the full values inside of ADCIRC
     % using N from say HYCOM
     if strcmp(type,'nonlocal')
-        valpernode = 4;
+        valpernode = 5;
     elseif strcmp(type,'local_dir')
-        valpernode = 2;
+        valpernode = 3;
     elseif strcmp(type,'local_sca')
         valpernode = 1;
     end

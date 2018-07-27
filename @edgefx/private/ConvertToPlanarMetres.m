@@ -15,6 +15,10 @@ function [ hh_m ] = ConvertToPlanarMetres( xg, yg, hh_m )
 % HH_M : A grid the same size as XG and YG containing the edglength in
 %        planar metres assuming the edgelength is orientated in the x-direction at
 %        each (XG,YG) point. 
+
+% Ensure to remove problem at pole
+yg(yg > 89) = 89; yg(yg < -89) = -89;
+
 ptsx = xg(:)'; 
 ptsy = yg(:)'; 
 

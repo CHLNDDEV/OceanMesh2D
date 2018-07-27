@@ -14,6 +14,9 @@ function [ hh_m ] = ConvertToWGS84( yg, hh_m )
 %        WGS84 degrees assuming the edgelength is orientated in the x-direction at
 %        each (XG,YG) point. 
 
+% Ensure to remove problem at pole
+yg(yg > 89) = 89; yg(yg < -89) = -89;
+
 % Convert to projected coordinates 
 Re = 6378.137e3; % <-radius of Earth
 

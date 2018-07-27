@@ -45,5 +45,8 @@ If you make use of `OceanMesh2D` please include a reference to the following:
 [1] - Keith J. Roberts, William J. Pringle, Joannes J. Westerink. 
       OceanMesh2D 1.0: MATLAB-based software for 2D mesh generation used in coastal circulation problems. 
       Geoscientifc Model Development (submitted July 2018). 
+[2] - Keith J. Roberts and William J. Pringle, 2018. 
+      OceanMesh2D: User guide - Precise distance-based two-dimensional automated mesh generation toolbox intended for coastal ocean/shallow water. 
+      doi: 10.13140/RG.2.2.21840.61446/1.       
 ```
 

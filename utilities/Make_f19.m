@@ -1,10 +1,11 @@
-function obj = Make_f19(obj,File_Prefix,File_Suffixes,ETIMINC)
-% obj = Make_f19(obj,File_Prefix,File_Suffixes,ETIMINC)
-% Input a msh class object get the values of the elevations for times
-% between ts and te based on the file_prefix of the input files
+function obj = Make_f19(obj,filename)
+% obj = Make_f19(obj,filename)
+% Input a msh class object get the values of the elevations for all times
+% in the filename
 %
 %  Author:      William Pringle                                 
-%  Created:     March 30 2018                                      
+%  Created:     March 30 2018
+%               July 19 2018, Updated to do it just for one file                                  
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if isempty(obj.op)
@@ -32,9 +33,15 @@ end
 % Do projection
 [b_x,b_y] = m_ll2xy(b_lon,b_lat);   
 
-BZ = zeros(length(b_x),length(File_Suffixes));
-for t = 1:length(File_Suffixes)
-    filename = strcat(File_Prefix,File_Suffixes(t),".nc");
+time = ncread(filename,'time');
+DT = median(diff(time))*3600; %[s]
+L = length(time);
+BZ = zeros(length(b_x),L);
+disp(['Interpolating ' num2str(L) ' snaps'])
+for t = 1:L
+    if mod(t,100) == 0 
+        disp(['Snap #' num2str(t)])
+    end
     %% Read the grid and density data 
     if t == 1
         lon = ncread(filename,'lon');
@@ -50,14 +57,7 @@ for t = 1:length(File_Suffixes)
         lon_x(I) = []; lat_y(I) = []; 
 
         % Delete by range search
-        Krs = rangesearch([lon_x,lat_y],[b_lon, b_lat],0.25); % 0.25 deg radius
-        LKd = 0; Kd = [];
-        for i = 1:length(b_lon)
-           K = Krs{i};
-           J = LKd + 1:LKd + length(K);
-           Kd(J) = K; 
-           LKd = length(Kd);
-        end
+        Kd = ourKNNsearch([lon_x,lat_y]',[b_lon, b_lat]',20);
         Kd = unique(Kd);
 
         % The new lon and lat vectors of data
@@ -66,23 +66,18 @@ for t = 1:length(File_Suffixes)
         % Do the projection
         [x,y] = m_ll2xy(lon_x,lat_y);       
     end
-    zeta = ncread(filename,'surf_el');
+    zeta = ncread(filename,'surf_el',[1 1 t],[size(lon) 1]);
     Z = reshape(zeta,[],1);
     Z(I) = []; Z = Z(Kd);
     F = scatteredInterpolant(x(~isnan(Z)),y(~isnan(Z)),Z(~isnan(Z)),'natural');
     BZ(:,t) = F(b_x,b_y);  
-    
-%     scatter(b_lon,b_lat,[],BZ(:,t),'filled')
-%     caxis([-0.6 0.3])
-%     pause(0.1);
 end
 
 %% Make into f19 struct
-filename1 = strcat(File_Prefix,File_Suffixes(1),".nc");
-filename2 = strcat(File_Prefix,File_Suffixes(end),".nc");
-[~,n1] = fileparts(char(filename1)); [~,n2] = fileparts(char(filename2));
-obj.f19.DataTitle = [n1 ' -> ' n2];
-obj.f19.ETIMINC = ETIMINC;
+ts = datenum('2000-01-01') + time(1)/24;
+te = datenum('2000-01-01') + time(end)/24;
+obj.f19.DataTitle = [datestr(ts) ' -> ' datestr(te)];
+obj.f19.ETIMINC = DT;
 obj.f19.NumOfNodes = size(BZ,1);
 obj.f19.NumOfTimes = size(BZ,2);
 obj.f19.Val = BZ(:);

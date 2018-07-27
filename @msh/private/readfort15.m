@@ -44,7 +44,7 @@ line = fgetl(fid) ;
 f15dat.im = str2num(token) ;
 
 % IDEN
-if ( f15dat.im == 20 | f15dat.im == 30 ) 
+if ( f15dat.im == 20 || f15dat.im == 30 || f15dat.im == 511113 ) 
     line = fgetl(fid) ;
     [token,res] = strtok(line) ; 
     
@@ -119,11 +119,8 @@ token = readlinetoken( fid ) ;
 f15dat.reftim = str2num( token ) ; 
 
 % WTIMINC
-if ( ~mod(f15dat.nws - 1,10) | ... 
-       ~mod(f15dat.nws - 11,10) ) 
-  % token = readlinetoken( fid ) ; 
-  % f15dat.wtimnc = str2num( token ) ; 
-  f15dat.wtimnc = readlinevec( fid ) ;
+if f15dat.nws > 0
+   f15dat.wtimnc = readlinevec( fid ) ;
 end
   
 % RNDY

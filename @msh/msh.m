@@ -107,7 +107,7 @@ classdef msh
                     writefort5354( obj.f5354, fname );
                 end
             else
-                if strcmp(type,'14')
+                if any(contains(type,'14'))
                     if isempty(obj.p)
                         error('No mesh, cannot write.')
                     end
@@ -118,19 +118,26 @@ classdef msh
                     end
                     writefort14( [fname '.14'] , obj.t, obj.p, b_t, ...
                         obj.op , obj.bd ,obj.title ) ;
-                elseif strcmp(type,'11') && ~isempty(obj.f11)
+                end
+                if any(contains(type,'11')) && ~isempty(obj.f11)
                     writefort11( obj.f11, [fname '.11'] );
-                elseif strcmp(type,'13') && ~isempty(obj.f13)
+                end
+                if any(contains(type,'13')) && ~isempty(obj.f13)
                     writefort13( obj.f13, [fname '.13'] );
-                elseif strcmp(type,'15') && ~isempty(obj.f15)
+                end
+                if any(contains(type,'15')) && ~isempty(obj.f15)
                     writefort15( obj.f15, [fname '.15'], obj.bd );
-                elseif strcmp(type,'19') && ~isempty(obj.f19)
+                end
+                if any(contains(type,'19')) && ~isempty(obj.f19)
                     writefort19( obj.f19, [fname '.19'] );
-                elseif strcmp(type,'2001') && ~isempty(obj.f2001)
+                end
+                if any(contains(type,'2001')) && ~isempty(obj.f2001)
                     writefort19( obj.f2001, [fname '.2001'] );
-                elseif strcmp(type,'24') && ~isempty(obj.f24)
+                end
+                if any(contains(type,'24')) && ~isempty(obj.f24)
                     writefort24( obj.f24, [fname '.24'] );
-                elseif strcmp(type,'5354') && ~isempty(obj.f5354)
+                end
+                if any(contains(type,'5354')) && ~isempty(obj.f5354)
                     writefort5354( obj.f5354, fname );
                 end
             end
@@ -190,15 +197,24 @@ classdef msh
                         disp('bd is empty!');
                     end
                 case('b')
-                    cmap = cmocean('ice',256);
                     figure;
+                    cmap = cmocean('deep');
+                    numticks = 10;
+                    q = log10(obj.b); % plot on log scale
                     if proj
-                        m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),obj.b,cmap);
+                        m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),q,cmap);
                     else
-                        trisurf(obj.t,obj.p(:,1),obj.p(:,2),obj.b);
-                        colormap(cmap); view(2); shading interp;
+                        trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
+                        view(2); shading interp;
                     end
-                    cb=colorbar; ylabel(cb,'m below geoid');
+                    cmocean('deep',numticks-1); cb = colorbar;
+                    desiredTicks = round(10.^(linspace(min(q),max(q),numticks)));
+                    caxis([log10(min(desiredTicks)) log10(max(desiredTicks))]);
+                    cb.Ticks     = log10(desiredTicks);
+                    for i = 1 : length(desiredTicks)
+                        cb.TickLabels{i} = num2str(desiredTicks(i));
+                    end
+                    ylabel(cb,'m below geoid');
                 case('slp')
                     cmap = cmocean('thermal');
                     if proj
@@ -235,7 +251,7 @@ classdef msh
                     z = sum(cr(vtoe))./nne;
                     % scale by earth radius
                     Re = 6378.137e3; z = Re*z;
-                    q = log10((z)); % plot on log scale with base
+                    q = log10(z); % plot on log scale with base
                     if proj
                         figure;
                         m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
@@ -295,7 +311,6 @@ classdef msh
                 case('itfric')
                     if ~isempty(obj.f13)
                         ii = find(contains({obj.f13.defval.Atr(:).AttrName},'internal'));
-                        defval  = obj.f13.defval.Atr(ii).Val;
                         userval = obj.f13.userval.Atr(ii).Val;
                         values = max(userval(2:end,:)',[],2);
                         figure;

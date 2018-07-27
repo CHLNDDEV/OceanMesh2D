@@ -19,6 +19,7 @@ else
     t(in,:) = [];
 end
 [p1,t] = fixmesh(p,t);
-[~,~,ind] =  intersect(p1,p,'rows');
-obj.p = p1; obj.t = t; 
+[~,~,ind] =  intersect(p1,p,'rows','stable');
+obj.p = p1; obj.t = t;   
+obj.b = obj.b(ind); obj.bx = obj.bx(ind); obj.by = obj.by(ind);
 end
