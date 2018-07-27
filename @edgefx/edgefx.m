@@ -688,7 +688,7 @@ classdef edgefx
                     if ~isempty(hh_d)
                         % Convert hh_d to planar meters 
                         hh_d = ConvertToPlanarMetres(xg,yg,hh_d); 
-                        hh_d(tmpz > 0) = NaN;
+                        hh_d(hh_d < obj.h0) = obj.h0;
                         obj.dt = min(min(descfl*hh_d./u));
                         clear hh_d
                     else
