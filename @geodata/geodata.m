@@ -110,8 +110,8 @@ classdef geodata
             
             if size(obj.bbox,1) == 1
                 % get bbox from demfile
-                x = double(ncread(obj.demfile,'lon'));
-                y = double(ncread(obj.demfile,'lat'));
+                x = double(ncread(obj.demfile,'x'));
+                y = double(ncread(obj.demfile,'y'));
                 obj.bbox = [min(x) max(x); min(y) max(y)];
             end
             

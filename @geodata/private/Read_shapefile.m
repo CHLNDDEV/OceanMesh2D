@@ -122,7 +122,9 @@ for i = 1 : length(SG)
         new_main{j} = [points; NaN NaN];
     end
 end
-polygon_struct.inner = [polygon_struct.inner; cell2mat(new_island')];
+if k > 0
+    polygon_struct.inner = [polygon_struct.inner; cell2mat(new_island')];
+end
 polygon_struct.mainland = [polygon_struct.mainland; cell2mat(new_main')];
 polygon_struct.outer = [polygon_struct.outer; NaN NaN; polygon_struct.mainland];
 

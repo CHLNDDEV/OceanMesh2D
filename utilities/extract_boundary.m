@@ -124,7 +124,7 @@ if(~isempty(opendat) || ~isempty(boudat))
         nope = opendat.nope;
         nvdll= opendat.nvdll;
         neta = opendat.neta;
-        ibtype=opendat.ibtypee;
+        ibtype=opendat.ibtype;
         nbdv  = opendat.nbdv;
         
         for ii = 1 : length(poly)
