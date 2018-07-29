@@ -110,8 +110,13 @@ classdef geodata
             
             if size(obj.bbox,1) == 1
                 % get bbox from demfile
-                x = double(ncread(obj.demfile,'x'));
-                y = double(ncread(obj.demfile,'y'));
+                try
+                   x = double(ncread(obj.demfile,'lon'));
+                   y = double(ncread(obj.demfile,'lat'));
+                catch
+                   x = double(ncread(obj.demfile,'x'));
+                   y = double(ncread(obj.demfile,'y'));    
+                end
                 obj.bbox = [min(x) max(x); min(y) max(y)];
             end
             
@@ -220,8 +225,13 @@ classdef geodata
             end
             
             if ~isempty(obj.demfile)
-                x = double(ncread(obj.demfile,'lon'));
-                y = double(ncread(obj.demfile,'lat'));
+                try
+                   x = double(ncread(obj.demfile,'lon'));
+                   y = double(ncread(obj.demfile,'lat'));
+                catch
+                   x = double(ncread(obj.demfile,'x'));
+                   y = double(ncread(obj.demfile,'y'));    
+                end
                 % Read with Buffer
                 centroid  = mean(obj.bbox(2,:));
                 gridspace = abs(obj.h0)/(cosd(centroid)*111e3);
