@@ -345,6 +345,33 @@ classdef geodata
                 obj.inpoly_flip = mod(1,obj.inpoly_flip);
             end
         end
+
+        % close geometric countour vectors by clipping with a boubox 
+        % updates gdat.outer so that the meshing domain is correctly defined 
+        function obj = close(obj,seed)
+            % Clips the mainland segment with the boubox. 
+            % Performs a breadth-first search given a seed position
+            % of the piecewise-straight line graph (PSLG) that is used to define the meshing boundary.
+            % This returns back an updated geodata class instance with the outer boundary clipped with the boubox.
+            % kjr,und,chl 2018
+            
+            if(nargin < 2),error('Must supply coordinate seed to perform flood-fill'); end
+            
+            geom = [obj.mainland; obj.boubox] ;
+            
+            [NODE,PSLG]=getnan2(geom) ;
+            
+            [NODE2,PSLG2,PART2] = bfsgeo2(NODE,PSLG,seed) ;
+            
+            POLY = extdom_polygon(PSLG2(PART2{1},:),NODE2,-1) ;
+            
+            new_outer = cell2mat(POLY') ;
+            
+            obj.outer = new_outer ;
+            
+            % reset this to default
+            obj.inpoly_flip = 0 ;
+        end
         
         
         % plot shp object on projected map
