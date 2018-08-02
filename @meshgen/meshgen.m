@@ -19,30 +19,29 @@ classdef meshgen
     properties
         fd            % handle to distance function
         fh            % handle to edge function
-        fdi           % handle for initial point rejection distance function
         h0            % minimum edge length
         edgefx        % edgefx class
         bbox          % bounding box [xmin,ymin; xmax,ymax]
         pfix          % fixed node positions (nfix x 2 )
-        egfix          % edge constraints
+        egfix         % edge constraints
         plot_on       % flag to plot (def: 1) or not (0)
         nscreen       % how many it to plot and write temp files (def: 5)
         bou           % geodata class
         ef            % edgefx class
         itmax         % maximum number of iterations.
-        outer
-        inner
-        mainland
-        boubox
-        inpoly_flip
-        memory_gb    % memory in GB allowed to use for initial rejector
-        cleanup      % logical flag to trigger cleaning of topology (default on).
-        direc_smooth % logical flag to trigger direct smoothing of mesh in the cleanup
-        dj_cutoff    % the cutoff area fraction for disjoint portions to delete
-        grd = msh(); % create empty mesh class to return p and t in.
+        outer         % meshing boundary
+        inner         % island boundaries      
+        mainland      % the shoreline boundary 
+        boubox        % the bbox as a polygon 2-tuple
+        inpoly_flip   % used to flip the inpoly test to determine the signed distance.
+        memory_gb     % memory in GB allowed to use for initial rejector
+        cleanup       % logical flag to trigger cleaning of topology (default on).
+        direc_smooth  % logical flag to trigger direct smoothing of mesh in the cleanup
+        dj_cutoff     % the cutoff area fraction for disjoint portions to delete
+        grd = msh();  % create empty mesh class to return p and t in.
         big_mesh
-        ns_fix       % good spacing fix for nearshore elements?
-        qual         % mean, lower 3rd sigma, and the minimum geometric element quality.
+        ns_fix        % improve spacing for boundary vertices
+        qual          % mean, lower 3rd sigma, and the minimum element quality.
     end
     
     
@@ -57,7 +56,6 @@ classdef meshgen
             % add name/value pairs
             addOptional(p,'h0',defval);
             addOptional(p,'bbox',defval);
-            addOptional(p,'fdi',defval);
             addOptional(p,'fh',defval);
             addOptional(p,'pfix',defval);
             addOptional(p,'egfix',defval);
@@ -75,11 +73,20 @@ classdef meshgen
             addOptional(p,'dj_cutoff',0.25);
             addOptional(p,'big_mesh',defval);
             addOptional(p,'ns_fix',defval);
+         
             
             % parse the inputs
             parse(p,varargin{:});
             % store the inputs as a struct
             inp=p.Results;
+            % kjr...order these argument so they are processed in a predictable
+            % manner. Process the general opts first, then the OceanMesh
+            % classes...then basic non-critical options. 
+            inp = orderfields(inp,{'h0','bbox','fh','inner','outer','mainland',...
+                                   'bou','ef',... %<--OceanMesh classes come after
+                                   'egfix','pfix',...
+                                   'plot_on','nscreen','itmax','memory_gb','cleanup',...
+                                   'direc_smooth','dj_cutoff','big_mesh','ns_fix'});             
             % get the fieldnames of the edge functions
             fields = fieldnames(inp);
             % loop through and determine which args were passed.
@@ -90,17 +97,20 @@ classdef meshgen
                 switch type
                     % parse aux options first
                     case('h0')
-                        if isempty(obj.h0) || obj.h0(1) ==0
+                        tmp = inp.(fields{i});
+                        if tmp > 1 
                             obj.h0 = inp.(fields{i});
                             % min el can be always passed as planar meters.
                             centroid     = mean(feat.bbox(2,:));
                             obj.h0 = obj.h0/(cosd(centroid)*111e3);
+                        else 
+                            % then it must be in degrees already 
+                            obj.h0 = inp.(fields{i}); 
                         end
                     case('fh')
                         if isa(inp.(fields{i}),'function_handle')
                             obj.fh = inp.(fields{i});
-                        elseif isempty(obj.fh)
-                            error('No edge function specified!');
+      
                         end
                         % can't check for errors here yet.
                     case('bbox')
@@ -122,7 +132,7 @@ classdef meshgen
                         % if user didn't pass anything explicitly for
                         % bounding box make it empty so it can be populated
                         % from ef as a cell-array
-                        if iscell(obj.bbox)==0
+                        if obj.bbox(1)==0
                             obj.bbox = [];
                         end
                     case('pfix')
@@ -132,7 +142,6 @@ classdef meshgen
                         else
                             obj.pfix = [];
                         end
-                        
                     case('egfix')
                         obj.egfix= inp.(fields{i});
                         if obj.egfix(1)~=0
@@ -141,13 +150,23 @@ classdef meshgen
                             obj.egfix = [];
                         end
                     case('bou')
+                        % got it from user arg
+                        if obj.outer~=0, continue; end; 
+                        
+                        obj.outer = {} ; 
+                        obj.inner = {} ; 
+                        obj.mainland = {} ;
+                        
                         obj.bou = inp.(fields{i});
+                        
+                        % handle when not a cell
                         if ~iscell(obj.bou)
                             boutemp = obj.bou;
                             obj.bou = cell(1);
                             obj.bou{1} = boutemp;
                         end
-                        % then the geodata class was provide
+                        
+                        % then the geodata class was provide, unpack
                         for ee = 1:length(obj.bou)
                             try
                                 arg = obj.bou{ee} ;
@@ -176,19 +195,26 @@ classdef meshgen
                         end
                         
                     case('ef')
-                        obj.ef = inp.(fields{i});
+                        tmp = inp.(fields{i});
+                        if isa(tmp, 'function_handle')
+                            error('Please specify your edge function handle through the name/value pair fh'); 
+                        end
+                        obj.ef = tmp; 
+                        
+                        % handle when not a cell
                         if ~iscell(obj.ef)
                             eftemp = obj.ef;
                             obj.ef = cell(1);
                             obj.ef{1} = eftemp;
                         end
+                        
                         % Gather boxes from ef class.
                         for ii = 1 : length(obj.ef)
                             obj.bbox{ii} = obj.ef{ii}.bbox;
                         end
-                        % If user did not pass bbox
+                        
+                         % checking bbox extents
                         if isempty(obj.bbox)
-                            % checking bbox extents
                             ob_min = obj.bbox{1}(:,1);
                             ob_max = obj.bbox{1}(:,2);
                             for ii = 2:length(obj.bbox)
@@ -201,7 +227,7 @@ classdef meshgen
                             end
                         end
                         
-                        % kjr 2018 June: lets get h0 from edge functions
+                        % kjr 2018 June: get h0 from edge functions
                         for ii = 1:length(obj.ef)
                             centroid   = mean(obj.bou{ii}.bbox(2,:));
                             obj.h0(ii) = obj.ef{ii}.h0/(cosd(centroid)*111e3);
@@ -243,18 +269,18 @@ classdef meshgen
                             warning('No itmax specified, itmax set to 100');
                         end
                     case('inner')
-                        if ~isa(obj.bou,'geodata') && ~iscell(obj.bou)
+                        if ~isa(obj.bou,'geodata')
                             obj.inner = inp.(fields{i});
                         end
                     case('outer')
-                        if ~isa(obj.bou,'geodata') && ~iscell(obj.bou)
+                        if ~isa(obj.bou,'geodata')
                             obj.outer = inp.(fields{i});
                             if obj.inner(1)~=0
                                 obj.outer = [obj.outer; obj.inner];
                             end
                         end
                     case('mainland')
-                        if ~isa(obj.bou,'geodata') && ~iscell(obj.bou)
+                        if ~isa(obj.bou,'geodata') 
                             obj.mainland = inp.(fields{i});
                         end
                     case('memory_gb')
@@ -270,21 +296,33 @@ classdef meshgen
                 end
             end
             
+            % error checking
+            if isempty(obj.boubox)
+                % Make the bounding box 5 x 2 matrix in clockwise order if
+                % it isn't present. This case must be when the user is
+                % manually specifying the PSLG. 
+                obj.boubox{1} = [obj.bbox(1,1) obj.bbox(2,1);
+                    obj.bbox(1,1) obj.bbox(2,2); ...
+                    obj.bbox(1,2) obj.bbox(2,2);
+                    obj.bbox(1,2) obj.bbox(2,1); ...
+                    obj.bbox(1,1) obj.bbox(2,1); NaN NaN];
+            end
             if any(obj.h0==0), error('h0 was not correctly specified!'), end;
             if isempty(obj.outer), error('no outer boundary specified!'), end
             if isempty(obj.bbox), error('no bounding box specified!'), end
-            % default distance fx accepts p and pv (outer polygon).
-            obj.fd = @dpoly;
-            
+            obj.fd = @dpoly;  % <-default distance fx accepts p and pv (outer polygon).
+
         end
         
         function  obj = build(obj)
             %DISTMESH2D 2-D Mesh Generator using Distance Functions.
             % Checking existence of major inputs
             tic
-            it = 1 ; imp = 10; % number of iterations to do mesh improvements (delete/add)
+            it = 1 ;
+            imp = 10; % number of iterations to do mesh improvements (delete/add)
             geps=0.001*min(obj.h0); deps=sqrt(eps)*min(obj.h0);
             ttol=0.1; Fscale = 1.2; deltat = 0.1;
+            % unpack initial points.
             p = obj.grd.p;
             if isempty(p)
                 disp('Forming initial point distribution...');
@@ -405,7 +443,7 @@ classdef meshgen
                 mq_s = std(tq.qm);
                 mq_l3sig = mq_m - 3*mq_s;
                 obj.qual(it,:) = [mq_m,mq_l3sig,mq_l];
-                % termination quality, mesh quality reached is copacetic.
+                % Termination quality, mesh quality reached is copacetic.
                 if mod(it,imp) == 0
                     if mq_l3sig > 0.75
                         % Do the final elimination of small connectivity
@@ -456,8 +494,8 @@ classdef meshgen
                     hbars(inside) = feval(fh_l,ideal_bars(inside,:)); % Ideal lengths
                 end
                 
-                L0 = hbars*Fscale*median(L)/median(hbars);   % L0 = Desired lengths using ratio of medians scale factor
-                LN = L./L0;                                        % LN = Normalized bar lengths
+                L0 = hbars*Fscale*median(L)/median(hbars);             % L0 = Desired lengths using ratio of medians scale factor
+                LN = L./L0;                                             % LN = Normalized bar lengths
                 
                 % Mesh improvements (deleting addition)
                 if mod(it,imp) == 0
@@ -503,7 +541,7 @@ classdef meshgen
                     continue;
                 end
                 
-                F    = (1-LN.^4).*exp(-LN.^4)./LN;                 % Bossens-Heckbert edge force
+                F    = (1-LN.^4).*exp(-LN.^4)./LN;                 % Bessens-Heckbert edge force
                 Fvec = F*[1,1].*barvec;
                 
                 Ftot = full(sparse(bars(:,[1,1,2,2]),ones(size(F))*[1,2,1,2],[Fvec,-Fvec],N,2));

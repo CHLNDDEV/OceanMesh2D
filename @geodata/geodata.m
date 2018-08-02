@@ -75,7 +75,6 @@ classdef geodata
                         else
                             error('No h0 specified!');
                         end
-                        % obj.h0 = obj.h0/111e3;
                     case('shp')
                         obj.contourfile = inp.(fields{i});
                         if ischar(obj.contourfile) ==1
