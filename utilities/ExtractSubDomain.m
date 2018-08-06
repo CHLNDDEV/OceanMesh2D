@@ -8,10 +8,9 @@ end
 if nargin == 2
     keep_inverse = 0;
 end
-bcx  = (p(t(:,1),1) + p(t(:,2),1) + p(t(:,3),1))/3;
-bcy  = (p(t(:,1),2) + p(t(:,2),2) + p(t(:,3),2))/3;
-bcxy = [bcx,bcy];
-[in] = inpoly(bcxy,bou);
+bxy1 = p(t(:,1),:); bxy2 = p(t(:,2),:); bxy3 = p(t(:,3),:); 
+in1 = inpoly(bxy1,bou); in2 = inpoly(bxy2,bou); in3 = inpoly(bxy3,bou);
+in = in1 & in2 & in3;
 
 if keep_inverse == 0
     t(~in,:) = [];
@@ -20,6 +19,14 @@ else
 end
 [p1,t] = fixmesh(p,t);
 [~,~,ind] =  intersect(p1,p,'rows','stable');
-obj.p = p1; obj.t = t;   
-obj.b = obj.b(ind); obj.bx = obj.bx(ind); obj.by = obj.by(ind);
+obj.p = p1; obj.t = t;  
+if ~isempty(obj.b)
+    obj.b = obj.b(ind); 
+end
+if ~isempty(obj.bx)
+    obj.bx = obj.bx(ind); 
+end
+if ~isempty(obj.by)
+    obj.by = obj.by(ind);
+end
 end

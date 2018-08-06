@@ -144,17 +144,25 @@ classdef msh
         end
         
         % general plot function
-        function h = plot(obj,type,proj,projection)
+        function h = plot(obj,type,proj,projection,bou)
             if nargin < 3
                 proj = 1;
             end
+            if nargin == 5
+               % Get a subset given by bou
+               obj = ExtractSubDomain(obj,bou);
+            end
             if proj
-                if nargin < 4
+                if nargin < 4 || isempty(projection)
                     projection = 'Transverse Mercator';
                 end
                 m_proj(projection,...
                        'lon',[min(obj.p(:,1)),max(obj.p(:,1))],...
                        'lat',[min(obj.p(:,2)),max(obj.p(:,2)) ])  ;
+            end
+            logaxis = 0; numticks = 10;
+            if strcmp(type(end-2:end),'log')
+                logaxis = 1; type = type(1:end-3);
             end
             switch type
                 % parse aux options first
@@ -166,14 +174,11 @@ classdef msh
                     end
                 case('bd') 
                     if ~isempty(obj.bd)
-                        %[~,bpt]=extdom_edges2(obj.t,obj.p);
                         figure; hold on;
                         if proj
                             m_triplot(obj.p(:,1),obj.p(:,2),obj.t);
-                            %m_plot(bpt(:,1),bpt(:,2),'r.');
                         else
                             simpplot(obj.p,obj.t);
-                            %plot(bpt(:,1),bpt(:,2),'r.');
                         end
                         for nb = 1 : obj.bd.nbou
                             if proj
@@ -199,8 +204,11 @@ classdef msh
                 case('b')
                     figure;
                     cmap = cmocean('deep');
-                    numticks = 10;
-                    q = log10(max(1,abs(obj.b))); % plot on log scale
+                    if logaxis
+                        q = log10(max(1,abs(obj.b))); % plot on log scale
+                    else
+                        q = obj.b;
+                    end
                     if proj
                         m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),q,cmap);
                     else
@@ -208,13 +216,16 @@ classdef msh
                         view(2); shading interp;
                     end
                     cmocean('deep',numticks-1); cb = colorbar;
-                    desiredTicks = round(10.^(linspace(min(q),max(q),numticks)));
-                    caxis([log10(min(desiredTicks)) log10(max(desiredTicks))]);
-                    cb.Ticks     = log10(desiredTicks);
-                    for i = 1 : length(desiredTicks)
-                        cb.TickLabels{i} = num2str(desiredTicks(i));
+                    if logaxis
+                        desiredTicks = round(10.^(linspace(min(q),max(q),numticks)));
+                        caxis([log10(min(desiredTicks)) log10(max(desiredTicks))]);
+                        cb.Ticks     = log10(desiredTicks);
+                        for i = 1 : length(desiredTicks)
+                            cb.TickLabels{i} = num2str(desiredTicks(i));
+                        end
                     end
                     ylabel(cb,'m below geoid');
+                    title('mesh topo-bathy');
                 case('slp')
                     cmap = cmocean('thermal');
                     if proj
@@ -251,7 +262,11 @@ classdef msh
                     z = sum(cr(vtoe))./nne;
                     % scale by earth radius
                     Re = 6378.137e3; z = Re*z;
-                    q = log10(z); % plot on log scale with base
+                    if logaxis
+                       q = log10(z); % plot on log scale with base
+                    else
+                       q = z; 
+                    end
                     if proj
                         figure;
                         m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
@@ -261,17 +276,17 @@ classdef msh
                             'flat', 'edgecolor', 'none');
                         view(2); 
                     end
-                    cmocean('thermal',9); cb = colorbar;
-                    desiredTicks = round(10.^(linspace(min(q),max(q),10)));
-                    %desiredTicks = [ 50 100 250 500 1000 2e3 5e3 10e3 20e3];
-                    caxis([log10(min(desiredTicks)) log10(max(desiredTicks))]);
-                    cb.Ticks     = log10(desiredTicks);
-                    for i = 1 : length(desiredTicks)
-                        cb.TickLabels{i} = num2str(desiredTicks(i));
+                    cmocean('thermal',numticks-1); cb = colorbar;
+                    if logaxis
+                        desiredTicks = round(10.^(linspace(min(q),max(q),10)));
+                        caxis([log10(min(desiredTicks)) log10(max(desiredTicks))]);
+                        cb.Ticks     = log10(desiredTicks);
+                        for i = 1 : length(desiredTicks)
+                            cb.TickLabels{i} = num2str(desiredTicks(i));
+                        end
                     end
                     ylabel(cb,'element circumradius [m]','fontsize',15);
                     title('mesh resolution');
-                    
                 case('resodx')
                     TR = triangulation(obj.t,obj.p(:,1),obj.p(:,2));
                     [cc,cr] = circumcenter(TR);
