@@ -125,9 +125,10 @@ end
 if k > 0
     polygon_struct.inner = [polygon_struct.inner; cell2mat(new_island')];
 end
-polygon_struct.mainland = [polygon_struct.mainland; cell2mat(new_main')];
+if j > 0
+    polygon_struct.mainland = [polygon_struct.mainland; cell2mat(new_main')];
+end
 polygon_struct.outer = [polygon_struct.outer; NaN NaN; polygon_struct.mainland];
-
 %% Plot the map
 if plot_on >= 1 && ~isempty(polygon_struct)
     figure(1);
