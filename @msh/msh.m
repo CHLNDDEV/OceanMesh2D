@@ -161,7 +161,7 @@ classdef msh
                        'lat',[min(obj.p(:,2)),max(obj.p(:,2)) ])  ;
             end
             logaxis = 0; numticks = 10;
-            if strcmp(type(end-2:end),'log')
+            if strcmp(type(max(1,end-2):end),'log')
                 logaxis = 1; type = type(1:end-3);
             end
             switch type
