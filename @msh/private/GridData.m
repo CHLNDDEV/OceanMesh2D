@@ -70,8 +70,13 @@ end
 
 %% Let's read the LON LAT of DEM if not already geodata
 if ~isa(geodata,'geodata')
-    DEM_XA = double(ncread(geodata,'lon'));
-    DEM_YA = double(ncread(geodata,'lat'));
+    try
+        DEM_XA = double(ncread(geodata,'lon'));
+        DEM_YA = double(ncread(geodata,'lat'));
+    catch
+        DEM_XA = double(ncread(geodata,'x'));
+        DEM_YA = double(ncread(geodata,'y'));
+    end
     DELTA_X = mean(diff(DEM_XA));
     DELTA_Y = mean(diff(DEM_YA));
 else

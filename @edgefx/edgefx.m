@@ -578,6 +578,7 @@ classdef edgefx
         function Fh = finalize(obj,feat)
             % package the edge functions into a known order.
             counter = 0;
+            hh = zeros([obj.nx,obj.ny]);
             for i = 1 : numel(obj.used)
                 type = obj.used{i};
                 switch type
@@ -616,7 +617,7 @@ classdef edgefx
             hh_m = ConvertToPlanarMetres(xg,yg,hh_m) ; 
 
             % enforce all mesh resolution bounds,grade and enforce the CFL in planar metres
-            if(~isempty(obj.max_el_ns))
+            if(~isinf(obj.max_el_ns))
                 nearshore = abs(obj.boudist) < 0.01 ;
                 hh_m(nearshore & hh_m > obj.max_el_ns) = obj.max_el_ns;
             end
