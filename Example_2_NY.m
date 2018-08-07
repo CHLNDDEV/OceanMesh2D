@@ -13,7 +13,7 @@ grade     = 0.20; 	% Mesh grade in decimal percent.
 R         = 3;    	% Number of elements to resolve feature width.
 %% STEP 2: Specify geographical datasets and process the geographical data 
 %% to be used later with other OceanMesh classes.
-coastline = 'ECGC_3as_0m_LMSL';
+coastline = 'PostSandyNCEI';
 dem       = 'PostSandyNCEI.nc';
 gdat = geodata('shp',coastline,...
                'dem',dem,...
