@@ -62,29 +62,28 @@ end
 %% Pass your edgefx class objects along with some meshing options 
 %% and build the mesh... 
 % (note that the nested edgefxs will be smoothed together with this call)
-mshopts = meshgen('ef',fh,'bou',gdat,'nscreen',5,'plot_on',1,'itmax',50);  
+mshopts = meshgen('ef',fh,'bou',gdat,'plot_on',1,'itmax',50);  
                                                 
 % now build the mesh with your options and the edge function.
 mshopts = mshopts.build; 
 
-%% Get out the msh class from meshgen
+% Get out the msh class from meshgen
 m = mshopts.grd;
 
-%plot(m,'tri'); 
-
-%plot(m,'reso');
-
 %% Interpolate on the bathy and gradients (automatically loops over all data)
-% m = interp(m,gdat); 
+m = interp(m,gdat); 
 % % ensure max depth in domain is 1 m (we find this step useful for coastal
 % % meshes to help with connectivity through narrow channels)
-% m.b = max(m.b,1); 
-% 
-% plot(m,'b');
+m.b = max(m.b,1); 
 
+%% Make the nodestrings
+m = makens(m,'auto',gdat{1}); % make the nodestring boundary conditions
+
+%% Plot and save the msh class object/write to fort.14
+plot(m,'bd',1,'Sinusoidal'); % plot on Sinusoidal projection with nodestrings
+plot(m,'b',1,'Sinusoidal'); % plot the bathy on Sinusoidal projection
 % Save as a msh class
 save('PRVI_msh.mat','m');
-
 % Write an ADCIRC fort.14 compliant file to disk.
-%write(m,'PRVI_mesh')
+write(m,'PRVI_mesh')
 

@@ -1,4 +1,8 @@
-%Example_2_NY: Mesh the New York Jamaica bay (JBAY region in high resolution.
+% Example_5_JBAY: Mesh the New York Jamaica bay (JBAY) region in 
+% high resolution.
+
+clc; clearvars
+
 addpath(genpath('utilities/'));
 addpath(genpath('datasets/'));
 addpath(genpath('m_map/')); 
@@ -26,8 +30,13 @@ fh = edgefx('geodata',gdat,...
             'g',grade);
 %% STEP 4: Pass your edgefx class object along with some meshing options and
 % build the mesh...
-mshopts = meshgen('ef',{fh},'bou',{gdat},'plot_on',1);
+mshopts = meshgen('ef',fh,'bou',gdat,'plot_on',1);
 % now build the mesh with your options and the edge function.
 mshopts = mshopts.build; 
-%% STEP 5: Plot it 
-plot(mshopts.grd,'tri');
+%% STEP 5: Plot it and save the msh file
+% Get out the msh class and put on bathy and nodestrings
+m = mshopts.grd;
+m = interp(m,gdat); m.b = max(m.b,1); % interpolate bathy to the mesh
+m = makens(m,'auto',gdat); % make the nodestring boundary conditions
+plot(m,'bd'); plot(m,'blog'); % plot triangulation and bathy
+save('JBAY_HR.mat','m')

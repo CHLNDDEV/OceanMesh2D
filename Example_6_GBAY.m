@@ -1,6 +1,12 @@
+% Example_6_GBAY: Mesh the Galveston bay (GBAY) region in 
+% high resolution. 
+
+clearvars; clc;
+
 addpath(genpath('utilities/'))
 addpath(genpath('datasets/'))
 addpath(genpath('m_map/')) 
+
 %% STEP 1: set mesh extents and set parameters for mesh.
 bbox = [-95.40 -94.4;  
          29.14  30.09];
@@ -14,7 +20,7 @@ gdat = geodata('shp',coastline,...
                'dem',demfile,...
                'bbox',bbox,...
                'h0',min_el);
-load ECGC_Thalwegs.mat
+load ECGC_Thalwegs.mat % Load the Channel thalweg data
 %% STEP 3: create an edge function class
 fh = edgefx('geodata',gdat,...
             'fs',3,...
@@ -28,5 +34,8 @@ mshopts = meshgen('ef',fh,'bou',gdat,'plot_on',1);
 % now build the mesh with your options and the edge function.
 mshopts = mshopts.build; 
 %% STEP 5: Plot it and write a triangulation fort.14 compliant file to disk.
-plot(mshopts.grd,'tri',0);
-write(mshopts.grd,'HoustonShipChannel');
+m = mshopts.grd;
+m = interp(m,gdat); m.b = max(m.b,1); % interpolate bathy to the mesh
+m = makens(m,'auto',gdat); % make the nodestring boundary conditions
+plot(m,'bd'); plot(m,'blog'); % plot triangulation and bathy
+write(m,'HoustonShipChannel');

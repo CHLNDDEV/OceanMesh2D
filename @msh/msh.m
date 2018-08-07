@@ -203,7 +203,7 @@ classdef msh
                     end
                 case('b')
                     figure;
-                    cmap = cmocean('deep');
+                    cmap = cmocean('deep',numticks-1);
                     if logaxis
                         q = log10(max(1,abs(obj.b))); % plot on log scale
                     else
@@ -215,9 +215,9 @@ classdef msh
                         trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
                         view(2); shading interp;
                     end
-                    cmocean('deep',numticks-1); cb = colorbar;
+                    cb = colorbar;
                     if logaxis
-                        desiredTicks = round(10.^(linspace(min(q),max(q),numticks)));
+                        desiredTicks = round(10.^(linspace(min(q),max(q),numticks)),1);
                         caxis([log10(min(desiredTicks)) log10(max(desiredTicks))]);
                         cb.Ticks     = log10(desiredTicks);
                         for i = 1 : length(desiredTicks)
@@ -508,6 +508,10 @@ classdef msh
             if nargin < 2
                error('Needs type: one of auto, islands or outer') 
             end
+            trim = 0;
+            if strcmp(type(max(1,end-3):end),'trim')
+                type = type(1:end-4); trim = 1;
+            end
             switch type
                 case('auto')
                     if ~isa(dir,'geodata')
@@ -520,11 +524,7 @@ classdef msh
                     [~,poly_idx] = extdom_polygon(etbv,obj.p,1);
                     
                     % Get geodata outer and mainland polygons
-                    outer = [gdat.outer(~isnan(gdat.outer(:,1)),:);
-                             gdat.inner(~isnan(gdat.inner(:,1)),:)];
-                    main = [gdat.mainland(~isnan(gdat.mainland(:,1)),:);
-                            gdat.inner(~isnan(gdat.inner(:,1)),:)];
-                    
+                    outer = gdat.outer(~isnan(gdat.outer(:,1)),:);
                     nope = 0; neta = 0; nbou  = 0; nvel  = 0;
                     % Find the polygon that is a combination of ocean
                     % and mainland boundaries.
@@ -537,13 +537,23 @@ classdef msh
                             break;
                         end
                     end
+                    % Get geodata outer and mainland polygons
+                    outer = [gdat.outer(~isnan(gdat.outer(:,1)),:);
+                             gdat.inner(~isnan(gdat.inner(:,1)),:)];
+                    main = [gdat.mainland(~isnan(gdat.mainland(:,1)),:);
+                            gdat.inner(~isnan(gdat.inner(:,1)),:)];
+                    [~, d_out] = ourKNNsearch(outer',obj.p(idv,:)',1);    
                     [~, d_main] = ourKNNsearch(main',obj.p(idv,:)',1);
                     
                     % Mainland are nodes where shortest distance to
                     % mainland and outer are the same and where absolute
                     % distance to mainland is relatively small
-                    mainland = abs(d_out - d_main) < gdat.h0/111e3 & ...
-                               d_main < 5*gdat.h0/111e3;
+                    if trim
+                        mainland = abs(d_out - d_main) < gdat.h0/111e3 & ...
+                                   d_main < 5*gdat.h0/111e3;
+                    else
+                        mainland = abs(d_out - d_main) < gdat.h0/111e3; 
+                    end
                     
                     % indices of switch
                     Cuts  = find(diff(mainland ~= 0));

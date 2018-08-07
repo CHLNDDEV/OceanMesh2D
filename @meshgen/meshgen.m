@@ -307,7 +307,7 @@ classdef meshgen
                     obj.bbox(1,2) obj.bbox(2,1); ...
                     obj.bbox(1,1) obj.bbox(2,1); NaN NaN];
             end
-            if any(obj.h0==0), error('h0 was not correctly specified!'), end;
+            if any(obj.h0==0), error('h0 was not correctly specified!'), end
             if isempty(obj.outer), error('no outer boundary specified!'), end
             if isempty(obj.bbox), error('no bounding box specified!'), end
             obj.fd = @dpoly;  % <-default distance fx accepts p and pv (outer polygon).
@@ -681,6 +681,13 @@ classdef meshgen
                 % Perform the direct smoothing
                 [obj.grd.p,obj.grd.t] = direct_smoother_lur(obj.grd.p,...
                     obj.grd.t,obj.pfix,obj.nscreen);
+                tq = gettrimeshquan( obj.grd.p, obj.grd.t);
+                if min(tq.qm) < 0
+                    % Need to clean it again
+                    disp('Overlapping elements due to smoother, cleaning again')
+                    obj.grd = Make_Mesh_Boundaries_Traversable(...
+                                       obj.grd,obj.dj_cutoff,obj.nscreen);
+                end
             end
             
             % Checking and displaying element quality

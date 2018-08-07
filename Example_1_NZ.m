@@ -1,4 +1,5 @@
 % Example_1_NZ: Mesh the South Island of New Zealand
+clearvars; clc;
 addpath(genpath('utilities/'))
 addpath(genpath('datasets/'))
 addpath(genpath('m_map/'))
@@ -20,8 +21,12 @@ fh = edgefx('geodata',gdat,...
             'max_el',max_el,'g',grade);
 %% STEP 4: Pass your edgefx class object along with some meshing options and
 % build the mesh...
-mshopt = meshgen('ef',{fh},'bou',{gdat},'nscreen',5,'plot_on',1,'itmax',75);
-mshopt = mshopt.build; 
+mshopts = meshgen('ef',fh,'bou',gdat,'plot_on',1);
+mshopts = mshopts.build; 
+
 %% STEP 5: Plot it and write a triangulation fort.14 compliant file to disk.
-plot(mshopt.grd,'tri');
-write(mshopt.grd,'South_Island_NZ');
+% Get out the msh class and put on nodestrings
+m = mshopts.grd;
+m = makens(m,'auto',gdat); % make the nodestring boundary conditions
+plot(m,'bd');
+write(m,'South_Island_NZ');

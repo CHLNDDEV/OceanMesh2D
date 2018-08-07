@@ -6,14 +6,13 @@ global MAP_PROJECTION
 
 % Have to have initialized a map first
 
-if isempty(MAP_PROJECTION),
+if isempty(MAP_PROJECTION)
     disp('No Map Projection initialized - call M_PROJ first!');
     return;
-end;
-m_grid('linest','-');
+end
 
 [X,Y]=m_ll2xy(long,lat,'clip','on');
 colormap(cmap); 
-hold on; h=trisurf(tri,X,Y,z,'facecolor', 'flat', 'edgecolor', 'none');
-shading interp;
+hold on; h=trisurf(tri,X,Y,z,'facecolor', 'interp', 'edgecolor', 'none');
+m_grid('linest','-');
 end

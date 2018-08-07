@@ -7,7 +7,7 @@ addpath(genpath('m_map/'));
 
 %% STEP 1: set mesh extents and set parameters for mesh. 
 %% The greater US East Coast and Gulf of Mexico region
-bbox      = [-100 -50; 10  60]; % lon min lon max; lat min lat max
+bbox      = [-100 -50; 5  55];  % lon min lon max; lat min lat max
 min_el    = 1e3;  		        % minimum resolution in meters.
 max_el    = inf; 		        % maximum resolution in meters. 
 wl        = 60;                 % 60 elements resolve M2 wavelength.
@@ -44,12 +44,13 @@ fh2 = edgefx('geodata',gdat2,'fs',R,'wl',wl,...
                 
 %% STEP 4: Pass your edgefx class object along with some meshing options 
 %% and build the mesh...
-mshopts = meshgen('ef',{fh1 fh2},'bou',{gdat1 gdat2},...
-                 'nscreen',1,'plot_on',1,'itmax',50);
+mshopts = meshgen('ef',{fh1 fh2},'bou',{gdat1 gdat2},'plot_on',1);
 mshopts = mshopts.build; 
 
 %% Plot and save the msh class object/write to fort.14
 m = mshopts.grd; % get out the msh object
+m = interp(m,{gdat1 gdat2}); m.b = max(m.b,1); % interpolate bathy to the mesh
 m = makens(m,'auto',gdat1); % make the nodestring boundary conditions
 plot(m,'bd',1,'Mollweide'); % plot on Mollweide projection with nodestrings
+plot(m,'b',1,'Mollweide'); % plot bathy on Mollweide projection
 save('ECGC_w_NYHR.mat','m'); write(m,'ECGC_w_NYHR');
