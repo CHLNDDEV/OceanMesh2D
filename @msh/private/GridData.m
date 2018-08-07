@@ -95,8 +95,10 @@ if length(K) == length(obj.p)
     if isempty(obj.b)
         obj.b = obj.p(:,1)*NaN; 
     end
-    outside = obj.p(:,1) <= min(DEM_XA(:)) | obj.p(:,1) >= max(DEM_XA(:)) | ...
-              obj.p(:,2) <= min(DEM_YA(:)) | obj.p(:,2) >= max(DEM_YA(:));
+    outside = obj.p(:,1) < min(DEM_XA)-DELTA_X | ...
+              obj.p(:,1) > max(DEM_XA)+DELTA_X | ...
+              obj.p(:,2) < min(DEM_YA)-DELTA_Y | ...
+              obj.p(:,2) > max(DEM_YA)+DELTA_Y;
     K(outside) = [];
 end
 
@@ -108,8 +110,8 @@ lon_max = max(obj.p(K,1));
 lat_min = min(obj.p(K,2));
 lat_max = max(obj.p(K,2));
 
-I = find(DEM_XA > lon_min & DEM_XA < lon_max);
-J = find(DEM_YA > lat_min & DEM_YA < lat_max);
+I = find(DEM_XA >= lon_min & DEM_XA <= lon_max);
+J = find(DEM_YA >= lat_min & DEM_YA <= lat_max);
 % single or integer array
 L = length(I)*length(J)*4e-9;
 % larger than 2 GB

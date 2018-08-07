@@ -540,8 +540,10 @@ classdef msh
                     [~, d_main] = ourKNNsearch(main',obj.p(idv,:)',1);
                     
                     % Mainland are nodes where shortest distance to
-                    % mainland and outer are the same
-                    mainland = abs(d_out - d_main) < gdat.h0/111e3;
+                    % mainland and outer are the same and where absolute
+                    % distance to mainland is relatively small
+                    mainland = abs(d_out - d_main) < gdat.h0/111e3 & ...
+                               d_main < 5*gdat.h0/111e3;
                     
                     % indices of switch
                     Cuts  = find(diff(mainland ~= 0));
