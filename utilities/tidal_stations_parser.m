@@ -1,9 +1,9 @@
-function obj = tidal_stations_parser(obj,sta_databases,type)
-% obj = tidal_stations_parser(obj,ts,te,sta_database,type)
-% Input a msh class obj, read a sta_database and put the locations and
-% names into the f15 struct of the msh obj.
-% type is a vector of 1, 2, and/or 3 corresponding to elevation, vector,  
-% and met station outputs, respectively
+function obj = tidal_stations_parser(obj,sta_databases,type_cell)
+% obj = tidal_stations_parser(obj,ts,te,sta_databases,type_cell)
+% Input a msh class obj, read a string of sta_databases and puts the 
+% locations and names into the f15 struct of the msh obj.
+% type_cell is a cell of vectors where values 1, 2, and/or 3 correspond to 
+% elevation, velocity, and met station outputs, respectively
 % 
 % The sta_database is a string corresponding to a url link that will get 
 % stations from that database that fall within your mesh.  
@@ -13,26 +13,27 @@ function obj = tidal_stations_parser(obj,sta_databases,type)
 % Created by William Pringle March 16 2018
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Clearing any existing info
-if any(type == 1)
-    % elevation
-    obj.f15.nstae = 0; obj.f15.elvstaloc = []; obj.f15.elvstaname = [];
-end
-if any(type == 2)
-    % velocity
-    obj.f15.nstav = 0; obj.f15.velstaloc = []; obj.f15.velstaname = [];
-end
-if any(type == 3)
-    % met
-    obj.f15.nstam = 0; obj.f15.metstaloc = []; obj.f15.metstaname = [];
-end  
-
 %% Getting the boundary of the mesh
 %B  = boundary(obj.p(:,1),obj.p(:,2)); % can be slow 
 B  = convhull(obj.p(:,1),obj.p(:,2));
 
+nn = 0;
 %% Loop over and read the station databases info 
 for sta_database = sta_databases
+    nn = nn + 1;
+    type = type_cell{nn};
+    if any(type == 1)
+        % elevation
+        obj.f15.nstae = 0; obj.f15.elvstaloc = []; obj.f15.elvstaname = [];
+    end
+    if any(type == 2)
+        % velocity
+        obj.f15.nstav = 0; obj.f15.velstaloc = []; obj.f15.velstaname = [];
+    end
+    if any(type == 3)
+        % met
+        obj.f15.nstam = 0; obj.f15.metstaloc = []; obj.f15.metstaname = [];
+    end  
     if contains(sta_database,'csv')
         T = readtable(sta_database);
         Sta_num = height(T);
@@ -170,7 +171,7 @@ for sta_database = sta_databases
     %% Now put into f15 struct
     if any(type == 1)
         % elevation
-        obj.f15.nstae = obj.f15.nstae + numel(find(Sta_type(:,1)));
+        obj.f15.nstae = obj.f15.nstae + numel(find(Sta_type == 1));
         obj.f15.elvstaloc = [obj.f15.elvstaloc;
                              [Sta_lon(Sta_type(:,1) == 1) ...
                              Sta_lat(Sta_type(:,1) == 1)]];
@@ -180,23 +181,23 @@ for sta_database = sta_databases
     end
     if any(type == 2)
         % velocity
-        obj.f15.nstav = obj.f15.nstav + numel(find(Sta_type(:,2)));
+        obj.f15.nstav = obj.f15.nstav + numel(find(Sta_type == 2));
         obj.f15.velstaloc = [obj.f15.velstaloc;
-                             [Sta_lon(Sta_type(:,2) == 1) ...
-                             Sta_lat(Sta_type(:,2) == 1)]];
+                             [Sta_lon(Sta_type == 2) ...
+                             Sta_lat(Sta_type == 2)]];
         obj.f15.velstaname = [obj.f15.velstaname;
-                             strcat(Sta_name(Sta_type(:,2) == 1),' ID:',...
-                                    Sta_ID(Sta_type(:,2) == 1))];
+                             strcat(Sta_name(Sta_type == 2),' ID:',...
+                                    Sta_ID(Sta_type == 2))];
     end
     if any(type == 3)
         % met
-        obj.f15.nstam = obj.f15.nstam + numel(find(Sta_type(:,3)));
+        obj.f15.nstam = obj.f15.nstam + numel(find(Sta_type == 3));
         obj.f15.metstaloc = [obj.f15.metstaloc;
-                             [Sta_lon(Sta_type(:,3) == 1) ...
-                             Sta_lat(Sta_type(:,3) == 1)]];
+                             [Sta_lon(Sta_type == 3) ...
+                             Sta_lat(Sta_type == 3)]];
         obj.f15.metstaname = [obj.f15.metstaname;
-                             strcat(Sta_name(Sta_type(:,3) == 1),' ID:',...
-                                    Sta_ID(Sta_type(:,3) == 1))];
+                             strcat(Sta_name(Sta_type == 3),' ID:',...
+                                    Sta_ID(Sta_type == 3))];
     end    
 end
 

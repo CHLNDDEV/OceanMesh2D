@@ -105,17 +105,26 @@ else
         natb = obj.f13.nAttr;
     end
 end
+attrname = 'sponge_generator_layer' ; 
+
 % User-defined input
-obj.f13.userval.Atr(natb).AttrName = 'sponge_generator_layer' ; 
+obj.f13.userval.Atr(natb).AttrName = attrname ; 
 obj.f13.userval.Atr(natb).usernumnodes = length(idspg_node) ;
 obj.f13.userval.Atr(natb).Val = [ idspg_node'; sigma'; ...
                                   (sigma*0 + generator)' ] ;                          
 %                   
 % Default input
-obj.f13.defval.Atr(natb).AttrName =  'sponge_generator_layer' ; 
+obj.f13.defval.Atr(natb).AttrName =  attrname ; 
 obj.f13.defval.Atr(natb).Unit = 'unitless' ;
 obj.f13.defval.Atr(natb).ValuesPerNode = 2 ;
 obj.f13.defval.Atr(natb).Val = [0.0 0] ;
+
+if ~isempty(obj.f15)
+    % Change attribute in obj.f15
+    disp('Adding on sponge attribute name in fort.15 struct')
+    obj.f15.nwp = obj.f15.nwp + 1;
+    obj.f15.AttrName(obj.f15.nwp).name = attrname;
+end
 
 %EOF
 end
@@ -161,5 +170,6 @@ for op = 1:obj.op.nope
     sponge(op).H   = H;
     sponge(op).W   = W1;
 end
+
 %EOF
 end

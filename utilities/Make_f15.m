@@ -287,10 +287,6 @@ if ~isempty(const) && ~isempty(tidal_database)
 
     % Do the interpolation to the boundaries
     obj = tidal_data_to_ob(obj,tidal_database,{obj.f15.bountag.name});
-    
-    I = cellfun(@isempty,({obj.f15.opealpha.name}));
-    obj.f15.opealpha(I) = []; obj.f15.bountag(I) = [];
-    obj.f15.nbfr = length(obj.f15.bountag);
 end
 
 if ~isempty(const)
@@ -311,8 +307,8 @@ end
 % 
 if ~isempty(sta_database)
     % parse the station reader
-    obj = tidal_stations_parser(obj,string(sta_database(1:end-1)),...
-                                sta_database{end});
+    obj = tidal_stations_parser(obj,string(sta_database(1:2:end-1)),...
+                                sta_database(2:2:end));
 end
 % 
 % % NOUTGC

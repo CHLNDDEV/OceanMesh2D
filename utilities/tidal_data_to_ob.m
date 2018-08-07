@@ -70,12 +70,14 @@ lon_x = lon_x(Kd); lat_y = lat_y(Kd);
 [x,y] = m_ll2xy(lon_x,lat_y);        
 
 %% Now interpolate into f15 struct
+keep = true(obj.f15.nbfr,1);
 for j = 1:obj.f15.nbfr
     % Read the current consituent
     % For real part
     k = find(startsWith(string(const_t'),lower(const{j})));
     if isempty(k)
        disp(['No tidal data in file for constituent ' const{j}])
+       keep(j) = false;  
        continue
     end
     Re_now = ncread(tidal_database,'hRe',[1 1 k],[size(lon) 1]);
@@ -109,4 +111,9 @@ for j = 1:obj.f15.nbfr
     obj.f15.opealpha(j).name = const{j};
     obj.f15.opealpha(j).val = [amp_b phs_b]; 
     
+end
+obj.f15.nbfr = length(find(keep));
+obj.f15.opealpha = obj.f15.opealpha(keep);
+obj.f15.bountag = obj.f15.bountag(keep);
+%EOF
 end

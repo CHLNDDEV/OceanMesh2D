@@ -103,6 +103,7 @@ obj.f5354.vel = zeros(obj.f5354.nfreq,4,length(b_lon));
 obj.f5354.nodes = nodes;
 
 %% Now interpolate into f5354 struct
+keep = true(obj.f5354.nfreq,1);
 for j = 1:obj.f5354.nfreq
     % Read the current consituent
     % For real part
@@ -110,6 +111,7 @@ for j = 1:obj.f5354.nfreq
     if isempty(k)
        disp(['No tidal data in file for constituent ' ...
              obj.f15.bountag(1).name])
+       keep(j) = false;  
        continue
     end
     % Put freqinfo into the f5354 struct
@@ -133,6 +135,10 @@ for j = 1:obj.f5354.nfreq
         end
     end
 end
+obj.f5354.nfreq = length(find(keep));
+obj.f5354.ele = obj.f5354.ele(keep,:,:);
+obj.f5354.vel = obj.f5354.vel(keep,:,:);
+obj.f5354.freqinfo = obj.f5354.freqinfo(keep);
 %EOF
 end
 

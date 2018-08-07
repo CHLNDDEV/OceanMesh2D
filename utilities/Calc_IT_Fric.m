@@ -146,8 +146,10 @@ else
     end
 end
 
+attrname = 'internal_tide_friction';  
+
 % Default Values
-obj.f13.defval.Atr(NA).AttrName = 'internal_tide_friction';  
+obj.f13.defval.Atr(NA).AttrName = attrname;  
 % We can just put in the options here
 obj.f13.defval.Atr(NA).Unit = strcat(type,', C_it = ',num2str(C_it),...
                                ', ',num2str(crit),', D',num2str(MinDepth)); 
@@ -174,7 +176,7 @@ obj.f13.defval.Atr(NA).ValuesPerNode = valpernode ;
 obj.f13.defval.Atr(NA).Val = zeros(1,valpernode) ;
 
 % User Values
-obj.f13.userval.Atr(NA).AttrName = 'internal_tide_friction' ;
+obj.f13.userval.Atr(NA).AttrName = attrname;
 numnodes = length(find(F_it > 0));
 obj.f13.userval.Atr(NA).usernumnodes = numnodes ;
 % Print out list of nodes for each
@@ -211,8 +213,15 @@ else
             obj.f13.userval.Atr(NA).Val(ii,2:end) = [A(1,1) A(2,2) A(2,1)];
         end
         obj.f13.userval.Atr(NA).Val = obj.f13.userval.Atr(NA).Val';
-    end
+    end  
 end 
 
+if ~isempty(obj.f15)
+    % Change attribute in obj.f15
+    disp('Adding on itfric attribute name in fort.15 struct')
+    obj.f15.nwp = obj.f15.nwp + 1;
+    obj.f15.AttrName(obj.f15.nwp).name = attrname;
+end
 
-
+%EOF
+end

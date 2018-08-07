@@ -109,6 +109,13 @@ obj.f13.userval.Atr(NA).usernumnodes = numnodes ;
 % Print out list of nodes for each
 K = find(tau0 < default_val);
 obj.f13.userval.Atr(NA).Val = [K tau0(K)]';
+
+if ~isempty(obj.f15)
+    % Change attribute in obj.f15
+    disp('Adding on tau0 attribute name in fort.15 struct')
+    obj.f15.nwp = obj.f15.nwp + 1;
+    obj.f15.AttrName(obj.f15.nwp).name = attrname;
+end
 %EOF
 end 
 
