@@ -356,7 +356,7 @@ classdef geodata
             
             if(nargin < 2),error('Must supply coordinate seed to perform flood-fill'); end
             
-            geom = [obj.mainland; obj.boubox] ;
+            geom = [obj.mainland; obj.inner; obj.boubox] ;
             
             [NODE,PSLG]=getnan2(geom) ;
             
@@ -385,35 +385,42 @@ classdef geodata
                     m_proj('Mercator','long',[obj.bbox(1,1) - bufx, obj.bbox(1,2) + bufx],...
                         'lat',[obj.bbox(2,1) - bufy, obj.bbox(2,2) + bufy]);
                     if ~isempty(obj.mainland)
-                        m_plot(obj.mainland(:,1),obj.mainland(:,2),...
-                            'k-','linewi',2); hold on;
+                        h1 = m_plot(obj.mainland(:,1),obj.mainland(:,2),...
+                            'r-','linewi',2); hold on;
                     end
                     if ~isempty(obj.inner)
-                        m_plot(obj.inner(:,1),obj.inner(:,2),...
-                            'k-','linewi',2); hold on;
+                        h2 = m_plot(obj.inner(:,1),obj.inner(:,2),...
+                            'g-','linewi',2); hold on;
                     end
+                    legend([h1 h2],{'mainland' 'inner'})
                     m_plot(obj.boubox(:,1),obj.boubox(:,2),'k--','linewi',2,'MarkerSize',15);
                     m_grid('xtick',10,'tickdir','out','yaxislocation','left','fontsize',7);
                     %set(gcf, 'Units', 'Normalized', 'OuterPosition', [0 0 1 1]);
                 case('dem')
                     % interpolate DEM's bathy linearly onto our edgefunction grid.
-                    demz = obj.Fb.Values; 
-                    [demx,demy] = ndgrid(obj.Fb.GridVectors{1},obj.Fb.GridVectors{2});                     
+                    [demx,demy] = ndgrid(obj.x0y0(1):obj.h0/111e3:obj.bbox(1,2), ...
+                                     obj.x0y0(2):obj.h0/111e3:obj.bbox(2,2));
+                    demz = obj.Fb(demx,demy);                     
                     bufx = 0.2*(obj.bbox(1,2) - obj.bbox(1,1));
                     bufy = 0.2*(obj.bbox(2,2) - obj.bbox(2,1));
                     m_proj('Mercator','long',[obj.bbox(1,1) - bufx, obj.bbox(1,2) + bufx],...
                         'lat',[obj.bbox(2,1) - bufy, obj.bbox(2,2) + bufy]);
-                    hold on; m_pcolor(demx,demy,demz); shading interp; 
+                    edges = Get_poly_edges( obj.outer );
+                    in = inpoly([demx(:),demy(:)],obj.outer, edges);
+                    cmap = cmocean('deep');
+                    hold on; m_fastscatter(demx(in),demy(in),demz(in),cmap); 
                     if ~isempty(obj.mainland)
-                        m_plot(obj.mainland(:,1),obj.mainland(:,2),...
-                            'k-','linewi',2); hold on;
+                        h1 = m_plot(obj.mainland(:,1),obj.mainland(:,2),...
+                            'r-','linewi',1);
                     end
                     if ~isempty(obj.inner)
-                        m_plot(obj.inner(:,1),obj.inner(:,2),...
-                            'k-','linewi',2); hold on;
+                        h2 = m_plot(obj.inner(:,1),obj.inner(:,2),...
+                            'g-','linewi',1);
                     end
                     m_plot(obj.boubox(:,1),obj.boubox(:,2),'k--','linewi',2,'MarkerSize',15);
-                    m_grid('xtick',10,'tickdir','out','yaxislocation','left','fontsize',7);
+                    %m_grid('xtick',10,'tickdir','out','yaxislocation','left','fontsize',7);
+                    legend([h1 h2],{'mainland' 'inner'})
+                    cb = colorbar; ylabel(cb,'topo-bathy depth [m]')
             end
         end
         
