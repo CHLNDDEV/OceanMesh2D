@@ -203,19 +203,29 @@ classdef msh
                     end
                 case('b')
                     figure;
-                    cmap = cmocean('deep',numticks-1);
                     if logaxis
                         q = log10(max(1,abs(obj.b))); % plot on log scale
                     else
                         q = obj.b;
-                    end
+                    end 
                     if proj
-                        m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),q,cmap);
+                        if nargin == 5
+                            % Trick to full it out white space
+                            lon = linspace(min(bou(:,1)),max(bou(:,1)),500);
+                            lat = linspace(min(bou(:,2)),max(bou(:,2)),500);
+                            [lon,lat] = meshgrid(lon,lat);
+                            F = scatteredInterpolant(obj.p(:,1),obj.p(:,2),...
+                                                     q,'linear','nearest');
+                            V = F(lon,lat); V(25:end-25,25:end-25) = NaN;
+                            m_pcolor(lon,lat,V);
+                        end
+                        %m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
+                        m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
                     else
                         trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
                         view(2); shading interp;
                     end
-                    cb = colorbar;
+                    cmocean('deep',numticks-1); cb = colorbar;
                     if logaxis
                         desiredTicks = round(10.^(linspace(min(q),max(q),numticks)),1);
                         caxis([log10(min(desiredTicks)) log10(max(desiredTicks))]);
@@ -227,16 +237,15 @@ classdef msh
                     ylabel(cb,'m below geoid');
                     title('mesh topo-bathy');
                 case('slp')
-                    cmap = cmocean('thermal');
                     if proj
                         figure, h=m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),...
-                            hypot(obj.bx,obj.by),cmap); view(2);
+                            hypot(obj.bx,obj.by)); view(2);
                     else
                         figure, h=trisurf(obj.t,obj.p(:,1),obj.p(:,2),...
                             hypot(obj.bx,obj.by),'facecolor', 'flat', 'edgecolor', 'none');
                         view(2);
-                        colormap(cmap);
                     end
+                    colormap(cmocean('thermal'));
                     cb=colorbar; ylabel(cb,'slope');
                     caxis([0 0.25])
                 case('ob') % outer boundary of mesh
@@ -389,6 +398,7 @@ classdef msh
                     bOnTransect = F(transect) ;
                     subplot(2,1,2);
                     plot(-bOnTransect,'linewi',2) ;
+                    disp(mean(bOnTransect))
                     title('Bathymetry along transect');
                     ylabel('m below geoid');
                     xlabel('Points along transect')
@@ -486,7 +496,7 @@ classdef msh
         % interp bathy/slope
         function obj = interp(obj,geodata,varargin)
             % if give cell of geodata or dems then interpolate all
-            if iscell(geodata)
+            if iscell(geodata) || isstring(geodata)
                 for i = 1:length(geodata)
                     if isempty(varargin)
                         obj = GridData(geodata{i},obj);

@@ -14,8 +14,8 @@ function obj = Calc_IT_Fric(obj,N_filename,varargin)
 %               3) Optional name-value arguments:
 %               'type': 'local_dir' (default), 'local_sca', or 'nonlocal'
 %               'crit': 'Nb' (default), 'Nmw'`
-%               'Cit' : a multiplication factor (0.20 is default value 
-%               based loosely on Pringle et al. 2018 and further tests)
+%               'Cit' : a multiplication factor (2.75 is default value 
+%               based on Buijsman et al. (2016) and Pringle et al. (2018ab)
 %               'cutoff_depth': the depth which to cut off the
 %               internal_tide_friction below (100 [m] is the default)
 %
@@ -42,7 +42,7 @@ omega = 2*pi/(12.4206012*3600); % M2 tidal frequency
 % default
 type = 'local_dir';
 crit = 'Nb';
-C_it = 0.20;
+C_it = 2.75;
 MinDepth = 100; % m 
 if ~isempty(varargin)
     names = {'type','cutoff_depth','Cit','crit'};
@@ -80,6 +80,7 @@ if strcmp(type,'nonlocal')
 end
 
 %% Calculate F_it from Nb, Nm, Jx, Jy, and H2_mesh or as reqd.
+C_it = C_it / (4*pi); % Divide by 4pi here.
 if isempty(N_filename)
     F_it = C_it * ones(size(obj.b));
     if strcmp(type(1:5),'local')

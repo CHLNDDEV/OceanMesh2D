@@ -378,50 +378,45 @@ classdef geodata
             if nargin == 1
                 type = 'shp';
             end
+            bufx = 0.2*(obj.bbox(1,2) - obj.bbox(1,1));
+            bufy = 0.2*(obj.bbox(2,2) - obj.bbox(2,1));
+            m_proj('Transverse Mercator',...
+                   'long',[obj.bbox(1,1) - bufx, obj.bbox(1,2) + bufx],...
+                   'lat',[obj.bbox(2,1) - bufy, obj.bbox(2,2) + bufy]);
             switch type
-                case('shp')
-                    bufx = 0.2*(obj.bbox(1,2) - obj.bbox(1,1));
-                    bufy = 0.2*(obj.bbox(2,2) - obj.bbox(2,1));
-                    m_proj('Mercator','long',[obj.bbox(1,1) - bufx, obj.bbox(1,2) + bufx],...
-                        'lat',[obj.bbox(2,1) - bufy, obj.bbox(2,2) + bufy]);
-                    if ~isempty(obj.mainland)
-                        h1 = m_plot(obj.mainland(:,1),obj.mainland(:,2),...
-                            'r-','linewi',2); hold on;
-                    end
-                    if ~isempty(obj.inner)
-                        h2 = m_plot(obj.inner(:,1),obj.inner(:,2),...
-                            'g-','linewi',2); hold on;
-                    end
-                    legend([h1 h2],{'mainland' 'inner'})
-                    m_plot(obj.boubox(:,1),obj.boubox(:,2),'k--','linewi',2,'MarkerSize',15);
-                    m_grid('xtick',10,'tickdir','out','yaxislocation','left','fontsize',7);
-                    %set(gcf, 'Units', 'Normalized', 'OuterPosition', [0 0 1 1]);
                 case('dem')
                     % interpolate DEM's bathy linearly onto our edgefunction grid.
                     [demx,demy] = ndgrid(obj.x0y0(1):obj.h0/111e3:obj.bbox(1,2), ...
                                      obj.x0y0(2):obj.h0/111e3:obj.bbox(2,2));
                     demz = obj.Fb(demx,demy);                     
-                    bufx = 0.2*(obj.bbox(1,2) - obj.bbox(1,1));
-                    bufy = 0.2*(obj.bbox(2,2) - obj.bbox(2,1));
-                    m_proj('Mercator','long',[obj.bbox(1,1) - bufx, obj.bbox(1,2) + bufx],...
-                        'lat',[obj.bbox(2,1) - bufy, obj.bbox(2,2) + bufy]);
-                    edges = Get_poly_edges( obj.outer );
-                    in = inpoly([demx(:),demy(:)],obj.outer, edges);
+                    edges = Get_poly_edges( [obj.outer; obj.inner] );
+                    in = inpoly([demx(:),demy(:)],[obj.outer; obj.inner], edges);
                     cmap = cmocean('deep');
                     hold on; m_fastscatter(demx(in),demy(in),demz(in),cmap); 
-                    if ~isempty(obj.mainland)
-                        h1 = m_plot(obj.mainland(:,1),obj.mainland(:,2),...
-                            'r-','linewi',1);
-                    end
-                    if ~isempty(obj.inner)
-                        h2 = m_plot(obj.inner(:,1),obj.inner(:,2),...
-                            'g-','linewi',1);
-                    end
-                    m_plot(obj.boubox(:,1),obj.boubox(:,2),'k--','linewi',2,'MarkerSize',15);
-                    %m_grid('xtick',10,'tickdir','out','yaxislocation','left','fontsize',7);
-                    legend([h1 h2],{'mainland' 'inner'})
                     cb = colorbar; ylabel(cb,'topo-bathy depth [m]')
+                case('omega')
+                    % hatch the meshing domain, Omega
+                    [demx,demy] = ndgrid(obj.x0y0(1):obj.h0/111e3:obj.bbox(1,2), ...
+                                     obj.x0y0(2):obj.h0/111e3:obj.bbox(2,2));
+                    edges = Get_poly_edges( [obj.outer; obj.inner] ); 
+                    in = inpoly([demx(:),demy(:)],[obj.outer; obj.inner], edges);   
+                    long = demx(~in); lati = demy(~in);
+                    hold on; m_hatch(obj.boubox(1:end-1,1),...
+                    obj.boubox(1:end-1,2),'cross',45,0.05);
+                    m_plot(long,lati,'.','Color','white')
             end
+            if ~isempty(obj.mainland)
+                h1 = m_plot(obj.mainland(:,1),obj.mainland(:,2),...
+                    'r-','linewi',1); hold on;
+            end
+            if ~isempty(obj.inner)
+                h2 = m_plot(obj.inner(:,1),obj.inner(:,2),...
+                    'g-','linewi',1); hold on;
+            end
+            m_plot(obj.boubox(:,1),obj.boubox(:,2),'k--','linewi',2,'MarkerSize',15);
+            m_grid('xtick',10,'tickdir','out','yaxislocation','left','fontsize',10);
+            legend([h1 h2],{'mainland' 'inner'},'Location','NorthWest')
+            %set(gcf, 'Units', 'Normalized', 'OuterPosition', [0 0 1 1]);
         end
         
     end

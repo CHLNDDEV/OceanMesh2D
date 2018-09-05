@@ -1,4 +1,4 @@
-function [h]=m_trisurf(tri,long,lat,z)
+function [C,h] = m_tricontour(tri,p,z,N)
 %  M_CONTOURF Adds filled contours to a map
 %    M_CONTOUR(LONG,LAT,DATA,...)
 %
@@ -11,7 +11,7 @@ if isempty(MAP_PROJECTION)
     return;
 end
 
-[X,Y] = m_ll2xy(long,lat,'clip','on');
-hold on; h = trisurf(tri,X,Y,z,'facecolor', 'interp', 'edgecolor', 'none');
+[X,Y] = m_ll2xy(p(:,1),p(:,2),'clip','on');
+hold on; [C,h] = tricontour([X,Y],tri,z,N);
 m_grid('linest','-');
 end
