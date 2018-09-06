@@ -263,12 +263,19 @@ if ~isempty(const)
     obj = tide_fac(obj,ts,te,const);
     
     % Harmonic analysis stuff (copy in tidal potential)
-    obj.f15.nfreq = obj.f15.ntif;
+    obj.f15.nfreq = obj.f15.ntif; K = [];
     for k = 1: obj.f15.nfreq
         obj.f15.harfreq(k).name = obj.f15.tipotag(k).name;
         % get only the frequencies, nodal factor and equilibrium argument
         obj.f15.harfreq(k).val = obj.f15.tipotag(k).val([2,4,5]);
+        if isnan(obj.f15.tipotag(k).val(1))
+            % get rid of this constituent from potential
+            obj.f15.ntif = obj.f15.ntif - 1;
+            K(end+1) = k;
+        end
     end
+    obj.f15.tipotag(K) = [];
+    
     if obj.f15.ntip == 0
         disp('Setting ntip = 1')
         obj.f15.ntip = 1;
@@ -277,12 +284,12 @@ end
 
 % Elevation Specified Boundary Conditions (tides)
 if ~isempty(const) && ~isempty(tidal_database)
-    % copy in the potential stuff
-    obj.f15.nbfr = obj.f15.ntif;
+    % copy in the harmonic analysis stuff
+    obj.f15.nbfr = obj.f15.nfreq;
     for k = 1: obj.f15.nbfr
-        obj.f15.bountag(k).name = obj.f15.tipotag(k).name;
+        obj.f15.bountag(k).name = obj.f15.harfreq(k).name;
         % get only the frequencies, nodal factor and equilibrium argument
-        obj.f15.bountag(k).val = obj.f15.tipotag(k).val([2,4,5]);
+        obj.f15.bountag(k).val = obj.f15.harfreq(k).val;
     end
 
     % Do the interpolation to the boundaries

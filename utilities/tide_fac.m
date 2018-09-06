@@ -59,7 +59,11 @@ F = mean(F)'; % This is the average nodal factor
 phs = (mean(U)+V(1,:))'*360;  % This is the average nodal correction + 
                               % astronomical argument at beginning of
                               % simulation
-phs(phs<0) = phs(phs<0) + 360;
+                              
+% Make sure phase between 0 and 360 for aesthetic purposes
+while any(phs < 0)
+    phs(phs<0) = phs(phs<0) + 360;
+end
 
 obj.f15.ntif = length(cnstit.NR.name);
 for k = 1:obj.f15.ntif
