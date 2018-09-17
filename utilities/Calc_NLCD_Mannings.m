@@ -42,14 +42,14 @@ nlcd_class(97) = 0.045;   %Estuarine Emergent Wetland
 nlcd_class(98) = 0.015;   %Palustrine Aquatic Bed
 
 % The mannings name and default value
-attrname = 'Mannings';
+attrname = 'mannings_n_at_sea_floor';
 default_val = 0.02;
-
+dmy = msh();  dmy.p = obj.p; dmy.t = obj.t; 
 % Get NCLD values on dummy msh object using nearest neighbour
-obj1 = interp(obj,NLCD,'interp','nearest','type','depth');
-
+obj1 = interp(dmy,NLCD,'interp','nearest','type','depth');
+obj1.b(isnan(obj1.b),:)=11; % <--default value to NaN 
 % Convert to Mannings
-Man = nlcd_class(obj1.b);
+Man = nlcd_class(abs(obj1.b));
 
 %% Make into f13 struct
 if isempty(obj.f13)
@@ -88,7 +88,7 @@ numnodes = length(find(Man ~= default_val));
 obj.f13.userval.Atr(NA).usernumnodes = numnodes ;
 % Print out list of nodes for each
 K = find(Man ~= default_val);
-obj.f13.userval.Atr(NA).Val = [K Man(K)]';
+obj.f13.userval.Atr(NA).Val = [K ; Man(K)];
 %EOF
 end
 

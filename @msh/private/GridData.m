@@ -244,7 +244,7 @@ else
         by = Fy(obj.p(K,1),obj.p(K,2));
     end
     if strcmp(type,'depth') || strcmp(type,'all')
-        F = griddedInterpolant(DEM_X,DEM_Y,DEM_Z,interp);
+        F = griddedInterpolant(DEM_X,DEM_Y,DEM_Z,interp,'none');
         b = F(obj.p(K,1),obj.p(K,2));
     end
 end

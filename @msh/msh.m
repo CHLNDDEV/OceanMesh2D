@@ -217,10 +217,14 @@ classdef msh
                             F = scatteredInterpolant(obj.p(:,1),obj.p(:,2),...
                                                      q,'linear','nearest');
                             V = F(lon,lat); V(25:end-25,25:end-25) = NaN;
-                            m_pcolor(lon,lat,V);
+                            m_pcolor(lon,lat,V); shading interp
                         end
                         %m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
                         m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
+                        m_proj(projection,...
+                       'lon',[min(obj.p(:,1))+0.01,max(obj.p(:,1)-0.01)],...
+                       'lat',[min(obj.p(:,2))-0.01,max(obj.p(:,2)+0.01) ])  ;
+                        m_grid
                     else
                         trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
                         view(2); shading interp;
@@ -356,6 +360,21 @@ classdef msh
                         nouq = length(unique(values));
                         colormap(jet(nouq));
                         colorbar;
+                    else
+                        display('Fort13 structure is empty!');
+                    end
+                case('mann')
+                    if ~isempty(obj.f13)
+                        ii = find(contains({obj.f13.defval.Atr(:).AttrName},'mann'));
+                        defval  = obj.f13.defval.Atr(ii).Val;
+                        userval = obj.f13.userval.Atr(ii).Val;
+                        values = max(userval(2:end,:)',[],2);
+                        figure;
+                        fastscatter(obj.p(userval(1,:),1),obj.p(userval(1,:),2),values);
+                        nouq = length(unique(values));
+                        colormap(jet(nouq));
+                        colorbar;
+                        title('Manning n')
                     else
                         display('Fort13 structure is empty!');
                     end
