@@ -46,7 +46,11 @@ classdef msh
                 type = '14';
             end
             if any(contains(type,'14'))
-                [t,p,b,op,bd,title] = readfort14([fname '.14'],1);
+                bdflag = 1; 
+                if any(contains(type,'14nob'))
+                   bdflag = 0; 
+                end
+                [t,p,b,op,bd,title] = readfort14([fname '.14'],bdflag);
                 obj.p  = p;
                 obj.t  = t;
                 obj.b  = b;
@@ -149,6 +153,14 @@ classdef msh
                 proj = 1;
             end
             if nargin == 5
+               if numel(bou) == 4
+                    % i.e. is a bounding box
+                    bou = [bou(1,1) bou(2,1);
+                           bou(1,1) bou(2,2); ...
+                           bou(1,2) bou(2,2);
+                           bou(1,2) bou(2,1); ...
+                           bou(1,1) bou(2,1)]; 
+               end
                % Get a subset given by bou
                obj = ExtractSubDomain(obj,bou);
             end
@@ -158,7 +170,7 @@ classdef msh
                 end
                 m_proj(projection,...
                        'lon',[min(obj.p(:,1)),max(obj.p(:,1))],...
-                       'lat',[min(obj.p(:,2)),max(obj.p(:,2)) ])  ;
+                       'lat',[min(obj.p(:,2)),max(obj.p(:,2))])  ;
             end
             logaxis = 0; numticks = 10;
             if strcmp(type(max(1,end-2):end),'log')
@@ -219,8 +231,8 @@ classdef msh
                             V = F(lon,lat); V(25:end-25,25:end-25) = NaN;
                             m_pcolor(lon,lat,V);
                         end
-                        %m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
-                        m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
+                        m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
+                        %m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
                     else
                         trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
                         view(2); shading interp;
@@ -404,6 +416,10 @@ classdef msh
                     xlabel('Points along transect')
                 otherwise
                     error('Specified type is incorrect');
+            end
+            if proj
+                % now add the box
+                m_grid('box','fancy','FontSize',12);
             end
         end
         

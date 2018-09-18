@@ -12,5 +12,4 @@ end
 
 [X,Y]=m_ll2xy(long,lat,'clip','on');
 hold on; h=fastscatter(X,Y,z); 
-m_grid('linest','-');
 end

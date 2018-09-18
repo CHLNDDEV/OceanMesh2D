@@ -13,5 +13,5 @@ end
 
 [X,Y] = m_ll2xy(p(:,1),p(:,2),'clip','on');
 hold on; [C,h] = tricontour([X,Y],tri,z,N);
-m_grid('linest','-');
+
 end
