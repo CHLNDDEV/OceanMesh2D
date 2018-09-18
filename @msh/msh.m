@@ -220,22 +220,27 @@ classdef msh
                     else
                         q = obj.b;
                     end 
+%                     if nargin == 5
+%                         % Trick to full it out white space
+%                         lon = linspace(min(bou(:,1)),max(bou(:,1)),500);
+%                         lat = linspace(min(bou(:,2)),max(bou(:,2)),500);
+%                         [lon,lat] = meshgrid(lon,lat);
+%                         F = scatteredInterpolant(obj.p(:,1),obj.p(:,2),...
+%                                                  q,'linear','nearest');
+%                         V = F(lon,lat); V(25:end-25,25:end-25) = NaN;
+%                         if proj
+%                            m_pcolor(lon,lat,V); shading interp
+%                         else
+%                            pcolor(lon,lat,V); shading interp
+%                         end
+%                     end 
                     if proj
-                        if nargin == 5
-                            % Trick to full it out white space
-                            lon = linspace(min(bou(:,1)),max(bou(:,1)),500);
-                            lat = linspace(min(bou(:,2)),max(bou(:,2)),500);
-                            [lon,lat] = meshgrid(lon,lat);
-                            F = scatteredInterpolant(obj.p(:,1),obj.p(:,2),...
-                                                     q,'linear','nearest');
-                            V = F(lon,lat); V(25:end-25,25:end-25) = NaN;
-                            m_pcolor(lon,lat,V);
-                        end
                         m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
                         %m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
                     else
-                        trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
-                        view(2); shading interp;
+                        trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
+                        %trisurf(obj.t,obj.p(:,1),obj.p(:,2),q)
+                        %view(2); shading interp;
                     end
                     cmocean('deep',numticks-1); cb = colorbar;
                     if logaxis
@@ -368,6 +373,21 @@ classdef msh
                         nouq = length(unique(values));
                         colormap(jet(nouq));
                         colorbar;
+                    else
+                        display('Fort13 structure is empty!');
+                    end
+                case('mann')
+                    if ~isempty(obj.f13)
+                        ii = find(contains({obj.f13.defval.Atr(:).AttrName},'mann'));
+                        defval  = obj.f13.defval.Atr(ii).Val;
+                        userval = obj.f13.userval.Atr(ii).Val;
+                        values = max(userval(2:end,:)',[],2);
+                        figure;
+                        fastscatter(obj.p(userval(1,:),1),obj.p(userval(1,:),2),values);
+                        nouq = length(unique(values));
+                        colormap(jet(nouq));
+                        colorbar;
+                        title('Manning n')
                     else
                         display('Fort13 structure is empty!');
                     end
