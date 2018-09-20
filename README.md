@@ -45,7 +45,7 @@ If you make use of `OceanMesh2D` please include a reference to the following:
 
 [1] - Keith J. Roberts, William J. Pringle, Joannes J. Westerink. 
       OceanMesh2D 1.0: MATLAB-based software for two-dimensional unstructured mesh generation in coastal ocean modeling.
-      Geoscientifc Model Development (submitted August 2018). 
+      Geoscientific Model Development (submitted August 2018, Topical Editor has been assigned). 
 [2] - Keith J. Roberts and William J. Pringle, 2018. 
       OceanMesh2D: User guide - Precise distance-based two-dimensional automated mesh generation toolbox intended for coastal ocean/shallow water. 
       doi: 10.13140/RG.2.2.21840.61446/2.       
