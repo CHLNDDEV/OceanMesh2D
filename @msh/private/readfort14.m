@@ -136,6 +136,9 @@ if(read_bou)
                 nbvv(1:nvell(i),i) = val(1,:) ;
                 %otherwise
                 %    msgline = fgetl(fid) ;
+            case  94
+                val = fscanf(fid,'%d %d \n', [2 nvell(i)] ) ;
+                nbvv(1:nvell(i),1:2) = val' ;
         end
     end
     % toc

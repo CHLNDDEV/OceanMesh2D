@@ -52,6 +52,9 @@ if ~isempty(opedat)
         
         fprintf( fid, '%d \n', nonzeros(opedat.nbdv(:,i)) ) ;
     end
+else
+    fprintf(fid, '%d %s \n', 0, '= Number of open boundaries' ) ;
+    fprintf(fid, '%d %s \n', 0, '= Total number of open boundary nodes' ) ;
 end
 
 
@@ -106,6 +109,9 @@ if ~isempty(boudat)
                 % nbvv(1:nvell(i),i) = val(1,:) ;
                 %otherwise
                 %    msgline = fgetl(fid) ;
+            case 94
+                fprintf( fid, '%d %d \n' , boudat.nbvv(:,1:2)' ) ;
+                
         end
     end
     % case of no bou
