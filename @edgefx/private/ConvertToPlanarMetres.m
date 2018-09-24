@@ -16,8 +16,8 @@ function [ hh_m ] = ConvertToPlanarMetres( xg, yg, hh_m )
 %        planar metres assuming the edgelength is orientated in the x-direction at
 %        each (XG,YG) point. 
 
-% Ensure to remove problem at pole
-yg(yg > 89) = 89; yg(yg < -89) = -89;
+% Try to make constant min res below 75 deg.
+yg(yg > 75) = 75; yg(yg < -75) = -75;
 
 ptsx = xg(:)'; 
 ptsy = yg(:)'; 

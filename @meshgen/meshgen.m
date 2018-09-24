@@ -75,10 +75,14 @@ classdef meshgen
             addOptional(p,'ns_fix',defval);
          
             
+            
             % parse the inputs
             parse(p,varargin{:});
+            
+            %if isempty(varargin); return; end
             % store the inputs as a struct
-            inp=p.Results;
+            inp = p.Results;
+            
             % kjr...order these argument so they are processed in a predictable
             % manner. Process the general opts first, then the OceanMesh
             % classes...then basic non-critical options. 
@@ -110,7 +114,6 @@ classdef meshgen
                     case('fh')
                         if isa(inp.(fields{i}),'function_handle')
                             obj.fh = inp.(fields{i});
-      
                         end
                         % can't check for errors here yet.
                     case('bbox')
@@ -151,7 +154,7 @@ classdef meshgen
                         end
                     case('bou')
                         % got it from user arg
-                        if obj.outer~=0, continue; end; 
+                        if obj.outer~=0, continue; end
                         
                         obj.outer = {} ; 
                         obj.inner = {} ; 
@@ -209,12 +212,14 @@ classdef meshgen
                         end
                         
                         % Gather boxes from ef class.
-                        for ii = 1 : length(obj.ef)
-                            obj.bbox{ii} = obj.ef{ii}.bbox;
+                        for ee = 1 : length(obj.ef)
+                            if isa(obj.ef{ee},'edgefx')
+                                obj.bbox{ee} = obj.ef{ee}.bbox;
+                            end
                         end
                         
                          % checking bbox extents
-                        if isempty(obj.bbox)
+                        if iscell(obj.bbox)
                             ob_min = obj.bbox{1}(:,1);
                             ob_max = obj.bbox{1}(:,2);
                             for ii = 2:length(obj.bbox)
@@ -228,9 +233,11 @@ classdef meshgen
                         end
                         
                         % kjr 2018 June: get h0 from edge functions
-                        for ii = 1:length(obj.ef)
-                            centroid   = mean(obj.bou{ii}.bbox(2,:));
-                            obj.h0(ii) = obj.ef{ii}.h0/(cosd(centroid)*111e3);
+                        for ee = 1:length(obj.ef)
+                            if isa(obj.ef{ee},'edgefx')
+                                centroid   = mean(obj.bou{ee}.bbox(2,:));
+                                obj.h0(ee) = obj.ef{ee}.h0/(cosd(centroid)*111e3);
+                            end
                         end
                         
                         % kjr 2018 smooth the outer automatically
@@ -296,6 +303,9 @@ classdef meshgen
                 end
             end
             
+            % no need to check, we wanted to make a dummy input
+            if isempty(varargin); return; end
+            
             % error checking
             if isempty(obj.boubox)
                 % Make the bounding box 5 x 2 matrix in clockwise order if
@@ -320,6 +330,7 @@ classdef meshgen
             tic
             it = 1 ;
             imp = 10; % number of iterations to do mesh improvements (delete/add)
+            imp2 = imp;
             geps=0.001*min(obj.h0); deps=sqrt(eps)*min(obj.h0);
             ttol=0.1; Fscale = 1.2; deltat = 0.1;
             % unpack initial points.
@@ -368,6 +379,7 @@ classdef meshgen
                     end
                 end
             else
+                imp = 1; % number of iterations to do mesh improvements (delete/add)
                 h0_l = obj.h0(end); % finest h0 (in case of a restart of meshgen.build).
             end
             
@@ -431,7 +443,7 @@ classdef meshgen
                         end
                         plt = cell2mat(obj.boubox');
                         hold on ; axis manual
-                        plot(plt(:,1),plt(:,2),'g','linewi',2)
+                        %plot(plt(:,1),plt(:,2),'g','linewi',2)
                         drawnow
                     end
                 end
@@ -444,7 +456,7 @@ classdef meshgen
                 mq_l3sig = mq_m - 3*mq_s;
                 obj.qual(it,:) = [mq_m,mq_l3sig,mq_l];
                 % Termination quality, mesh quality reached is copacetic.
-                if mod(it,imp) == 0
+                if mod(it,imp2) == 0
                     if mq_l3sig > 0.75
                         % Do the final elimination of small connectivity
                         t = delaunay_elim(p,obj.fd,geps,1);
@@ -640,20 +652,25 @@ classdef meshgen
             
         end % end distmesh2d_plus
         
-        function obj = clean(obj)
+        function obj = clean(obj,db)
             % Fixing up the mesh automatically
             disp('Beginning mesh cleaning and smoothing operations...');
  
-            % Begin by just deleting poor mesh boundary elements
-            tq = gettrimeshquan(obj.grd.p,obj.grd.t);
-            % Get the elements that have a boundary bar
-            bdbars = extdom_edges2(obj.grd.t,obj.grd.p);
-            bdnodes = unique(bdbars(:));
-            vtoe = VertToEle(obj.grd.t);
-            bele = unique(vtoe(:,bdnodes)); bele(bele == 0) = [];
-            tqbou = tq.qm(bele);
-            % Delete those boundary elements with quality < 0.5
-            obj.grd.t(bele(tqbou < 0.5),:) = [];
+            if nargin == 1
+                db = 1;
+            end
+            if db
+                % Begin by just deleting poor mesh boundary elements
+                tq = gettrimeshquan(obj.grd.p,obj.grd.t);
+                % Get the elements that have a boundary bar
+                bdbars = extdom_edges2(obj.grd.t,obj.grd.p);
+                bdnodes = unique(bdbars(:));
+                vtoe = VertToEle(obj.grd.t);
+                bele = unique(vtoe(:,bdnodes)); bele(bele == 0) = [];
+                tqbou = tq.qm(bele);
+                % Delete those boundary elements with quality < 0.5
+                obj.grd.t(bele(tqbou < 0.5),:) = [];
+            end
             
             % Make mesh traversable
             obj.grd = Make_Mesh_Boundaries_Traversable(...

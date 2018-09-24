@@ -77,9 +77,7 @@ classdef geodata
                         end
                     case('shp')
                         obj.contourfile = inp.(fields{i});
-                        if ischar(obj.contourfile) ==1
-                            obj.contourfile = inp.(fields{i});
-                        else
+                        if ~iscell(obj.contourfile) && ~ischar(obj.contourfile)
                             obj.contourfile = [];
                         end
                     case('dem')
@@ -123,7 +121,7 @@ classdef geodata
                 centroid     = mean(obj.bbox(2,:));
                 gridspace =    abs(obj.h0)/(cosd(centroid)*111e3);
                 % Read polygon from shape file and make sure spacing is h0.;
-                polygon_struct = Read_shapefile( {obj.contourfile}, [], obj.bbox, ...
+                polygon_struct = Read_shapefile( obj.contourfile, [], obj.bbox, ...
                     gridspace, 0 );
                 obj.mainland = polygon_struct.mainland;
                 obj.outer    = polygon_struct.outer;
@@ -374,13 +372,16 @@ classdef geodata
         
         
         % plot shp object on projected map
-        function plot(obj,type)
+        function plot(obj,type,projection)
             if nargin == 1
                 type = 'shp';
             end
+            if nargin < 3
+                projection = 'Transverse Mercator';
+            end
             bufx = 0.2*(obj.bbox(1,2) - obj.bbox(1,1));
             bufy = 0.2*(obj.bbox(2,2) - obj.bbox(2,1));
-            m_proj('Transverse Mercator',...
+            m_proj(projection,...
                    'long',[obj.bbox(1,1) - bufx, obj.bbox(1,2) + bufx],...
                    'lat',[obj.bbox(2,1) - bufy, obj.bbox(2,2) + bufy]);
             switch type

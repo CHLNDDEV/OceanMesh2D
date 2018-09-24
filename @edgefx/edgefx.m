@@ -206,7 +206,7 @@ classdef edgefx
                         warning('Unexpected edge function name/value pairs.')
                 end
                 if i==numel(fields)
-                    obj.F = finalize(obj,feat);
+                    obj = finalize(obj,feat);
                     disp('Finalized edge function!');
                 end
             end
@@ -575,7 +575,7 @@ classdef edgefx
         
         %% Finalize edge function
         % Add grading, cfl limiting and bound enforcement.
-        function Fh = finalize(obj,feat)
+        function obj = finalize(obj,feat)
             % package the edge functions into a known order.
             counter = 0;
             hh = zeros([obj.nx,obj.ny]);
@@ -711,7 +711,7 @@ classdef edgefx
             % Convert back into WGS84 degrees 
             hh_m = ConvertToWGS84(yg,hh_m) ; 
             
-            Fh = griddedInterpolant(xg,yg,hh_m,'linear','nearest');
+            obj.F = griddedInterpolant(xg,yg,hh_m,'linear','nearest');
             
             clearvars xg yg
         end

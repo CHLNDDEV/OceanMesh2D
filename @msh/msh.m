@@ -194,13 +194,18 @@ classdef msh
                         end
                         for nb = 1 : obj.bd.nbou
                             if proj
-                                m_plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
-                                    obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'g-','linewi',1.2);  
+                                plot = @m_plot;
+                            end
+                            if obj.bd.ibtype(nb) == 94
+                                plot(obj.p(obj.bd.nbvv(:),1),...
+                                    obj.p(obj.bd.nbvv(:),2),'r.','linewi',1.2);  
                             else
                                 plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
                                     obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'g-','linewi',1.2);
                             end
                         end
+                    end
+                    if ~isempty(obj.op)
                         for nb = 1 : obj.op.nope
                             if proj
                                 m_plot(obj.p(obj.op.nbdv(1:obj.op.nvdll(nb),nb),1),...
@@ -210,8 +215,9 @@ classdef msh
                                     obj.p(obj.op.nbdv(1:obj.op.nvdll(nb),nb),2),'b-','linewi',1.2);
                             end
                         end
-                    else
-                        disp('bd is empty!');
+                    end
+                    if isempty(obj.bd) && isempty(obj.op)
+                        disp('bounbaries are empty!');
                     end
                 case('b')
                     figure;
@@ -554,7 +560,7 @@ classdef msh
             if nargin < 2
                error('Needs type: one of auto, islands or outer') 
             end
-            trim = 0;
+            trim = 0; periodic = 0;
             if strcmp(type(max(1,end-3):end),'trim')
                 type = type(1:end-4); trim = 1;
             end
@@ -565,6 +571,16 @@ classdef msh
                     else
                         gdat = dir;
                     end
+                    
+                    % Check for global mesh
+                    L = find(obj.p(:,1) < -179, 1);
+                    R = find(obj.p(:,1) > 179, 1);
+                    if ~isempty(L) && ~isempty(R)
+                        periodic = 1;
+                        disp(['Detected global mesh applying automatic' ...
+                              ' periodic BC fix'])
+                    end
+                    
                     % Get the boundaries
                     [etbv,~]  = extdom_edges2(obj.t,obj.p);
                     [~,poly_idx] = extdom_polygon(etbv,obj.p,1);
@@ -604,9 +620,11 @@ classdef msh
                     % indices of switch
                     Cuts  = find(diff(mainland ~= 0));
                     
-                    % Do not include open boundary that is smaller than 
-                    % 10 vertices across
-                    Cuts(diff(Cuts) < 10) = [];
+                    if ~periodic
+                        % Do not include open boundary that is smaller than 
+                        % 10 vertices across
+                        Cuts(diff(Cuts) < 10) = [];
+                    end
                     
                     % Get length of largest island
                     % Delete the open boundary/mainland polygon
@@ -682,6 +700,65 @@ classdef msh
                     obj.bd.ibtype = ibtype ;
                     obj.bd.nbvv = nbvv ;
                     
+                    if ~periodic; return; end
+                    
+                    %% For periodic Bcs below
+                    % Get open boundary points
+                    opp = obj.op.nbdv(:); opp(opp == 0) = []; 
+                    % Get the open boundary points on left side
+                    I = obj.p(opp,1) < -179;
+                    % ensure these are set to -180 correctly
+                    obj.p(opp(I),1) = -180;
+                    % use these as fixed points
+                    % on left side...
+                    pfixL = obj.p(opp(I),:);
+                    eeL = Get_poly_edges([pfixL; NaN NaN]);
+                    eeL(end,:) = [];
+                    % apply flipped to right side..
+                    pfixR = pfixL.* [-1, 1];
+                    eeR = Get_poly_edges([pfixR; NaN NaN]);
+                    eeR(end,:) = [];
+                    pfix = [pfixL; pfixR];
+                    ee = [eeL; eeR+length(pfixL)];
+                    % Make dummy meshopts with the geodata
+                    mshopts = meshgen();
+                    mshopts.pfix = pfix;
+                    mshopts.egfix = ee;
+
+                    % Make a new triangulation using obj.p;
+                    DT = delaunayTriangulation(obj.p);
+                    % Now delete off right hand side and add on left hand side flipped
+                    I  = find(DT.Points(:,1) > 179); DT.Points(I,:) = [];
+                    DT.Points = [DT.Points; ...
+                           DT.Points(DT.Points(:,1) < -179,:) .* [-1, 1]];
+
+                    % Make polygon to delete internal triangles
+                    bnde=extdom_edges2(obj.t,obj.p);
+                    poly=extdom_polygon(bnde,obj.p,-1);
+                    poly=cell2mat(poly');
+                    m2 = obj; m2.p = DT.Points; m2.t = DT.ConnectivityList;
+                    bc = baryc(m2);
+                    ee = Get_poly_edges(poly);
+                    in = inpoly(bc,poly,ee);
+                    m2.t(~in,:) = [];
+                    m2.b = []; m2.op = []; m2.bd = [];
+                    mshopts.grd = m2; % get out the msh object
+                    mshopts = clean(mshopts);
+
+                    % Get the new match and cleaned grid
+                    obj = mshopts.grd;
+
+                    % Now add in the periodic point list
+                    [I,d] = knnsearch(obj.p,obj.p+[360,0]);
+                    J = find(d < 1e-5);
+                    % list of points that are same on both sides
+                    periodic_bc_list = [I(J) J];    
+                    obj.bd.nbou = 1 ;
+                    obj.bd.nvel = length(periodic_bc_list) ;
+                    obj.bd.nvell = obj.bd.nvel ;
+                    obj.bd.ibtype = 94 ;
+                    obj.bd.nbvv = periodic_bc_list ;
+
                 case('islands')
                     [etbv,~]  = extdom_edges2(obj.t,obj.p);
                     [poly,poly_idx,max_ind] = extdom_polygon(etbv,obj.p,1);
@@ -738,7 +815,7 @@ classdef msh
                     
                     [~,~,obj.op,obj.bd] = extract_boundary(vstart,vend,bnde,obj.p,...
                         dir,obj.op,obj.bd); %<--updates op and bd.
-                    return;
+                return;
                     
             end
             function txt = myupdatefcn2(~,event_obj,myarray)

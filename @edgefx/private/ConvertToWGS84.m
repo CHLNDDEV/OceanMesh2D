@@ -15,7 +15,7 @@ function [ hh_m ] = ConvertToWGS84( yg, hh_m )
 %        each (XG,YG) point. 
 
 % Ensure to remove problem at pole
-yg(yg > 89) = 89; yg(yg < -89) = -89;
+yg(yg > 75) = 75; yg(yg < -75) = -75;
 
 % Convert to projected coordinates 
 Re = 6378.137e3; % <-radius of Earth
