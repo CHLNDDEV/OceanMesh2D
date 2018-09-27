@@ -45,9 +45,10 @@ nn = length(obj.p);
 K  = (1:nn)';        % K is all of the grid
 type = 'all';
 interp = 'CA';
+NaNs = 'ignore';
 if ~isempty(varargin)
     varargin=varargin{1} ; 
-    names = {'K','type','interp'};
+    names = {'K','type','interp','nan'};
     for ii = 1:length(names)
         ind = find(~cellfun(@isempty,strfind(varargin(1:2:end),names{ii})));
         if ~isempty(ind)
@@ -58,6 +59,8 @@ if ~isempty(varargin)
                 type = varargin{ind*2};
             elseif ii == 3
                 interp = varargin{ind*2};
+            elseif ii == 4
+                NaNs = varargin{ind*2};
             end
         end    
     end
@@ -69,6 +72,7 @@ if strcmp(type,'slope')
 end
 
 %% Let's read the LON LAT of DEM if not already geodata
+flipUD = 0;
 if ~isa(geodata,'geodata')
     try
         DEM_XA = double(ncread(geodata,'lon'));
@@ -79,6 +83,11 @@ if ~isa(geodata,'geodata')
     end
     DELTA_X = mean(diff(DEM_XA));
     DELTA_Y = mean(diff(DEM_YA));
+    if DELTA_Y < 0
+       flipUD = 1;
+       DEM_YA = flipud(DEM_YA);
+       DELTA_Y = mean(diff(DEM_YA));
+    end
 else
     DEM_XA = geodata.Fb.GridVectors{1};
     DEM_YA = geodata.Fb.GridVectors{2};
@@ -160,6 +169,9 @@ if ~isa(geodata,'geodata')
     lat_max = max(obj.p(K,2)) + BufferL(2);
     I = find(DEM_XA > lon_min & DEM_XA < lon_max);
     J = find(DEM_YA > lat_min & DEM_YA < lat_max);
+    if exist('DEM_X','var')
+        clear DEM_X DEM_Y DEM_Z
+    end
     [DEM_X,DEM_Y] = ndgrid(DEM_XA(I),DEM_YA(J));
     
     finfo = ncinfo(geodata);
@@ -171,6 +183,10 @@ if ~isa(geodata,'geodata')
     end
     DEM_Z = single(ncread(geodata,zvarname,...
                    [I(1) J(1)],[length(I) length(J)]));
+    if flipUD
+       DEM_Z = fliplr(DEM_Z);
+    end
+               
     % make into depths
     DEM_Z = -DEM_Z;
 end
@@ -183,7 +199,10 @@ if strcmp(type,'slope') || strcmp(type,'all')
     DELTA_X1 = m_idist(mean(obj.p(K,1)),mean(obj.p(K,2)),...
                        mean(obj.p(K,1))+DELTA_X,mean(obj.p(K,2)));
     DELTA_Y1 = m_idist(mean(obj.p(K,1)),mean(obj.p(K,2)),...
-                       mean(obj.p(K,1)),mean(obj.p(K,2))+DELTA_Y);             
+                       mean(obj.p(K,1)),mean(obj.p(K,2))+DELTA_Y);       
+    if exist('DEM_ZY','var')
+        clear DEM_ZY DEM_ZX
+    end
     [DEM_ZY,DEM_ZX] = gradient(DEM_Z,DELTA_Y1,DELTA_X1);
     % New method of averaging the absolute values 
     DEM_ZY = abs(DEM_ZY); DEM_ZX = abs(DEM_ZX);
@@ -226,12 +245,36 @@ if strcmp(interp,'CA')
         for ii = 1:length(K)
             b(ii) = mean(reshape(DEM_Z(IDXL(ii):IDXR(ii),IDXB(ii):IDXT(ii)),[],1),'omitnan');
         end
+        % Try and fill in the NaNs
+        if strcmp(NaNs,'fill')
+            if ~isempty(find(isnan(b),1))
+                localcoord = obj.p(K,:);
+                KI = knnsearch(localcoord(~isnan(b),:),localcoord(isnan(b),:));
+                bb = b(~isnan(b),:);
+                b(isnan(b)) = bb(KI); clear bb localcoord
+            end
+        end
     end
     % Average for the slopes
     if strcmp(type,'slope') || strcmp(type,'all')
         for ii = 1:length(K)
             bx(ii) = mean(reshape(DEM_ZX(IDXL(ii):IDXR(ii),IDXB(ii):IDXT(ii)),[],1),'omitnan');
             by(ii) = mean(reshape(DEM_ZY(IDXL(ii):IDXR(ii),IDXB(ii):IDXT(ii)),[],1),'omitnan');
+        end
+        if strcmp(NaNs,'fill')
+            % Try and fill in the NaNs
+            if ~isempty(find(isnan(bx),1))
+                localcoord = obj.p(K,:);
+                KI = knnsearch(localcoord(~isnan(bx),:),localcoord(isnan(bx),:));
+                bb = bx(~isnan(bx),:);
+                bx(isnan(bx)) = bb(KI); clear bb localcoord
+            end
+            if ~isempty(find(isnan(by),1))
+                localcoord = obj.p(K,:);
+                KI = knnsearch(localcoord(~isnan(by),:),localcoord(isnan(by),:));
+                bb = by(~isnan(by),:);
+                by(isnan(by)) = bb(KI); clear bb localcoord
+            end
         end
     end
 else
@@ -254,18 +297,19 @@ if strcmp(type,'depth') || strcmp(type,'all')
     if isempty(obj.b)
         obj.b = zeros(length(obj.p),1);
     end
-    obj.b(K) = b;
+    % Only overwrite non-nan values
+    obj.b(K(~isnan(b))) = b(~isnan(b));
 end
 if strcmp(type,'slope') || strcmp(type,'all')
     if isempty(obj.bx)
         obj.bx = zeros(length(obj.p),1);
     end 
-    obj.bx(K) = bx;
+    obj.bx(K(~isnan(bx))) = bx(~isnan(bx));
     % Put in the global array
     if isempty(obj.by)
         obj.by = zeros(length(obj.p),1);
     end
-    obj.by(K) = by;
+    obj.by(K(~isnan(by))) = by(~isnan(by));
 end
 end
 % New method of averaging asbolute values of slope before multiplying

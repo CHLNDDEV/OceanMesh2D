@@ -179,29 +179,39 @@ classdef msh
             switch type
                 % parse aux options first
                 case('tri')
+                    figure; 
                     if proj
-                        figure; m_triplot(obj.p(:,1),obj.p(:,2),obj.t);
+                        m_triplot(obj.p(:,1),obj.p(:,2),obj.t);
                     else
-                        figure; simpplot(obj.p,obj.t);
+                        simpplot(obj.p,obj.t);
                     end
                 case('bd') 
+                    figure; hold on;
+                    if proj
+                        m_triplot(obj.p(:,1),obj.p(:,2),obj.t);
+                    else
+                        simpplot(obj.p,obj.t); 
+                    end
                     if ~isempty(obj.bd)
-                        figure; hold on;
-                        if proj
-                            m_triplot(obj.p(:,1),obj.p(:,2),obj.t);
-                        else
-                            simpplot(obj.p,obj.t);
-                        end
                         for nb = 1 : obj.bd.nbou
-                            if proj
-                                plot = @m_plot;
-                            end
                             if obj.bd.ibtype(nb) == 94
-                                plot(obj.p(obj.bd.nbvv(:),1),...
-                                    obj.p(obj.bd.nbvv(:),2),'r.','linewi',1.2);  
+                                if proj 
+                                   m_plot(obj.p(obj.bd.nbvv(:),1),...
+                                          obj.p(obj.bd.nbvv(:),2),...
+                                          'r.','linewi',1.2); 
+                                else
+                                    plot(obj.p(obj.bd.nbvv(:),1),...
+                                         obj.p(obj.bd.nbvv(:),2),...
+                                         'r.','linewi',1.2); 
+                                end
                             else
-                                plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
+                                if proj
+                                    m_plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
                                     obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'g-','linewi',1.2);
+                                else
+                                    plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
+                                    obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'g-','linewi',1.2);
+                                end
                             end
                         end
                     end
@@ -246,7 +256,7 @@ classdef msh
                     else
                         trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
                         %trisurf(obj.t,obj.p(:,1),obj.p(:,2),q)
-                        %view(2); shading interp;
+                        view(2); %shading interp;
                     end
                     cmocean('deep',numticks-1); cb = colorbar;
                     if logaxis
@@ -737,9 +747,14 @@ classdef msh
                     poly=extdom_polygon(bnde,obj.p,-1);
                     poly=cell2mat(poly');
                     m2 = obj; m2.p = DT.Points; m2.t = DT.ConnectivityList;
+                    I1 = ourKNNsearch(m2.p(m2.t(:,1),:)',pfix',1);
+                    I2 = ourKNNsearch(m2.p(m2.t(:,2),:)',pfix',1);
+                    I3 = ourKNNsearch(m2.p(m2.t(:,3),:)',pfix',1);
                     bc = baryc(m2);
                     ee = Get_poly_edges(poly);
                     in = inpoly(bc,poly,ee);
+                    % make sure fpix triangles remain
+                    in(I1) = 1; in(I2) = 1; in(I3) = 1;
                     m2.t(~in,:) = [];
                     m2.b = []; m2.op = []; m2.bd = [];
                     mshopts.grd = m2; % get out the msh object
@@ -749,7 +764,7 @@ classdef msh
                     obj = mshopts.grd;
 
                     % Now add in the periodic point list
-                    [I,d] = knnsearch(obj.p,obj.p+[360,0]);
+                    [I,d] = ourKNNsearch(obj.p',obj.p'+[360;0],1);
                     J = find(d < 1e-5);
                     % list of points that are same on both sides
                     periodic_bc_list = [I(J) J];    
@@ -815,6 +830,17 @@ classdef msh
                     
                     [~,~,obj.op,obj.bd] = extract_boundary(vstart,vend,bnde,obj.p,...
                         dir,obj.op,obj.bd); %<--updates op and bd.
+                case('periodic')
+                    % Only add the periodic point list
+                    [I,d] = ourKNNsearch(obj.p',obj.p'+[360;0],1);
+                    J = find(d < 1e-5);
+                    % list of points that are same on both sides
+                    periodic_bc_list = [I(J) J];    
+                    obj.bd.nbou = 1 ;
+                    obj.bd.nvel = length(periodic_bc_list) ;
+                    obj.bd.nvell = obj.bd.nvel ;
+                    obj.bd.ibtype = 94 ;
+                    obj.bd.nbvv = periodic_bc_list ;
                 return;
                     
             end
@@ -1010,17 +1036,21 @@ classdef msh
             g      = 9.81;        % gravity
             R      = 6.3782064e6; % mean radius of earth
             % Convert lat-lon to radians
-            obj.p = obj.p*pi/180;
+            pp = deg2rad(obj.p);
             % Get centre point of CPP projection
-            Lon_C = mean(obj.p(:,1)); Lat_C = mean(obj.p(:,2));
+            Lon_C = mean(pp(:,1)); Lat_C = mean(pp(:,2));
             % Convert latitude-longtitude to metres
-            X(:,1) = R*(obj.p(:,1) - Lon_C)*cos(Lat_C);
-            X(:,2) = R*obj.p(:,2);
+            X(:,1) = R*(pp(:,1) - Lon_C)*cos(Lat_C);
+            X(:,2) = R*pp(:,2);
             % Get nearest two neighbours
-            [~,d]=ourKNNsearch(X',X',2) ;
-            %[~,d] = knnsearch(X,X, 'k', 2);
-            % Eliminate self-neighbour
-            d = d(:,2);
+            [idx,~] = ourKNNsearch(X',X',2) ;
+            idx2 = idx(:)*0;
+            % Rearrange to vector
+            for ii = 1:length(idx)
+               idx2(2*ii-1:2*ii) = idx(ii,:)'; 
+            end
+            d = m_lldist(obj.p(idx2,1),obj.p(idx2,2));
+            d = d(1:2:end)*1e3;
             
             %U = sqrt(g*max(obj.b,1));
             %U(obj.b <= 0) = 1; % <--assume 1 m/s overland velocity.

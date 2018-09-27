@@ -7,8 +7,8 @@ addpath(genpath('m_map/'));
 %% STEP 1: set mesh extents and set parameters for mesh. 
 %% The greater US East Coast and Gulf of Mexico region
 min_el    = 4e3;  	             % minimum resolution in meters.
-bbox      = [-180 180; -85  89.9]; % lon min lon max; lat min lat max
-max_el    = 50e3; 		         % maximum resolution in meters. 
+bbox      = [-180 180; -87  89]; % lon min lon max; lat min lat max
+max_el    = 15e3; 		         % maximum resolution in meters. 
 wl        = 30;                  % 30 elements resolve M2 wavelength.
 dt        = 0;                   % Only reduces res away from coast
 grade     = 0.25;                % mesh grade in decimal percent. 
