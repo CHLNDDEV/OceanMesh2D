@@ -121,6 +121,9 @@ classdef geodata
                 centroid     = mean(obj.bbox(2,:));
                 gridspace =    abs(obj.h0)/(cosd(centroid)*111e3);
                 % Read polygon from shape file and make sure spacing is h0.;
+                if ~iscell(obj.contourfile)
+                    obj.contourfile = {obj.contourfile};
+                end
                 polygon_struct = Read_shapefile( obj.contourfile, [], obj.bbox, ...
                     gridspace, 0 );
                 obj.mainland = polygon_struct.mainland;
