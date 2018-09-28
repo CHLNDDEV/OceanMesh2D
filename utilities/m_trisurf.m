@@ -13,5 +13,4 @@ end
 
 [X,Y] = m_ll2xy(long,lat,'clip','on');
 hold on; h = trisurf(tri,X,Y,z,'facecolor', 'interp', 'edgecolor', 'none');
-m_grid('linest','-');
 end

@@ -443,7 +443,7 @@ classdef meshgen
                         end
                         plt = cell2mat(obj.boubox');
                         hold on ; axis manual
-                        %plot(plt(:,1),plt(:,2),'g','linewi',2)
+                        plot(plt(:,1),plt(:,2),'g','linewi',2)
                         drawnow
                     end
                 end

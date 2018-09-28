@@ -33,6 +33,8 @@ end
 Nb = zeros(size(B)); Nm = zeros(size(B)); Nmw = zeros(size(B)); 
 % do the interpolation onto the mesh
 N_interp = cell(length(zcontour),1);
+
+zcontour = double(zcontour);
 %N = inpaintn(N);
 for zvalue = 1:length(zcontour)
     Nnow = squeeze(N(:,:,zvalue));
