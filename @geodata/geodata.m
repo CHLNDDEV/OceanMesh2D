@@ -384,9 +384,13 @@ classdef geodata
             end
             bufx = 0.2*(obj.bbox(1,2) - obj.bbox(1,1));
             bufy = 0.2*(obj.bbox(2,2) - obj.bbox(2,1));
-            m_proj(projection,...
-                   'long',[obj.bbox(1,1) - bufx, obj.bbox(1,2) + bufx],...
-                   'lat',[obj.bbox(2,1) - bufy, obj.bbox(2,2) + bufy]);
+            if startsWith(projection,'ste')
+                m_proj(projection,'lat',90,'radius',175.3);
+            else
+                m_proj(projection,...
+                      'long',[obj.bbox(1,1) - bufx, obj.bbox(1,2) + bufx],...
+                      'lat',[obj.bbox(2,1) - bufy, obj.bbox(2,2) + bufy]);
+            end
             switch type
                 case('dem')
                     % interpolate DEM's bathy linearly onto our edgefunction grid.

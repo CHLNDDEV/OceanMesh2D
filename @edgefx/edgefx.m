@@ -334,13 +334,13 @@ classdef edgefx
         %% Topographic length scale/slope edge function.
         function obj = slpfx(obj,feat)
 
-            [xg,yg]=CreateStructGrid(obj); 
+            [xg,yg] = CreateStructGrid(obj); 
 
             tmpz    = feat.Fb(xg,yg); 
             tmpz(tmpz > 50) = 50; % ensure no larger than 50 m above land
             % use a harvestine assumption
             Re = 6378.137e3;
-            dx = obj.gridspace*cosd(mean(yg(:)))*Re*pi/180; % for gradient function
+            dx = obj.gridspace*cosd(yg(1,:))*Re*pi/180; % for gradient function
             dy = obj.gridspace*Re*pi/180; % for gradient function
             % lets filter the bathy to get only relevant features
             % loop over each set of bandpass filter lengths
@@ -359,15 +359,15 @@ classdef edgefx
             for lambda = obj.fl'
                 if all(lambda ~= 0)
                     % do a bandpass filter
-                    tmpz_ft  = filt2(tmpz,dx,lambda,'bp') ;
+                    tmpz_ft  = filt2(tmpz,dy,lambda,'bp') ;
                 elseif lambda(2) == 0
                     % do a low pass filter
-                    tmpz_ft  = filt2(tmpz,dx,lambda(1),'lp') ;
+                    tmpz_ft  = filt2(tmpz,dy,lambda(1),'lp') ;
                 else
                     % highpass filter not recommended
                     warning(['Highpass filter on bathymetry in slope' ...
                         'edgelength function is not recommended'])
-                    tmpz_ft  = filt2(tmpz,dx,lambda(2),'hp') ;
+                    tmpz_ft  = filt2(tmpz,dy,lambda(2),'hp') ;
                 end
                 tmpz_f = tmpz_f + tmpz_ft;
             end
@@ -381,19 +381,19 @@ classdef edgefx
                 rosb = min(1000e3,sqrt(9.81*abs(tmpz))./f);
                 % autmatically divide into discrete bins
                 [~,edges] = histcounts(rosb);
-                tmpz_ft  = tmpz; dxb = dx; 
+                tmpz_ft  = tmpz; dyb = dy; 
                 % get slope from filtered bathy for the segment only
-                [by,bx] = gradient(tmpz_ft,dy,dx); % get slope in x and y directions
+                [by,bx] = EarthGradient(tmpz_ft,dy,dx); % get slope in x and y directions
                 tempbs  = sqrt(bx.^2 + by.^2); % get overall slope
                 for i = 1:length(edges)-1
                     sel = rosb >= edges(i) & rosb <= edges(i+1);
                     rosbylb = mean(edges(i:i+1));
-                    if rosbylb > 2*dxb
-                        disp(['i = ',num2str(i), ' rl/dx = ',num2str(rosbylb/dxb)])
-                        tmpz_ft  = filt2(tmpz_ft,dxb,rosbylb,'lp');
-                        dxb = rosbylb;
+                    if rosbylb > 2*dyb
+                        disp(['i = ',num2str(i), ' rl/dx = ',num2str(rosbylb/dyb)])
+                        tmpz_ft  = filt2(tmpz_ft,dyb,rosbylb,'lp');
+                        dyb = rosbylb;
                         % get slope from filtered bathy for the segment only
-                        [by,bx] = gradient(tmpz_ft,dy,dx); % get slope in x and y directions
+                        [by,bx] = EarthGradient(tmpz_ft,dy,dx); % get slope in x and y directions
                         tempbs  = sqrt(bx.^2 + by.^2); % get overall slope
                     else
                         % otherwise just use the same tempbs from before
@@ -404,8 +404,8 @@ classdef edgefx
             end
             
             if ~filtit
-                % get slope from filtered bathy
-                [by,bx] = gradient(tmpz_f,dy,dx); % get slope in x and y directions
+                % get slope from unfiltered bathy
+                [by,bx] = EarthGradient(tmpz_f,dy,dx); % get slope in x and y directions
                 bs      = sqrt(bx.^2 + by.^2); % get overall slope
             end
             clear bx by tmpz_f tmpz_ft
@@ -610,7 +610,7 @@ classdef edgefx
             [hh_m] = min(hh,[],3);
             clearvars hh 
             
-            [xg,yg]=CreateStructGrid(obj); 
+            [xg,yg] = CreateStructGrid(obj); 
 
             % KJR June 13, 2018 
             % Convert mesh size function currently in WGS84 degrees to planar metres. 
@@ -652,7 +652,8 @@ classdef edgefx
                     hfun(nn,1) = hh_m(ipos,jpos);
                 end
             end
-            [hfun,flag] = limgradStruct(obj.ny,obj.h0,hfun,obj.g,sqrt(length(hfun)));
+            [hfun,flag] = limgradStruct(obj.ny,obj.h0,hfun,...
+                                        obj.g,sqrt(length(hfun)));
             if flag == 1
                 disp('Gradient relaxing converged!');
             else
