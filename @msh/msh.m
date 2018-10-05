@@ -51,11 +51,8 @@ classdef msh
                    bdflag = 0; 
                 end
                 [t,p,b,op,bd,title] = readfort14([fname '.14'],bdflag);
-                obj.p  = p;
-                obj.t  = t;
-                obj.b  = b;
-                obj.bd = bd;
-                obj.op = op;
+                obj.p  = p; obj.t  = t; obj.b  = b;
+                obj.bd = bd; obj.op = op;
                 obj.title = title;
             end
             if any(contains(type,'13'))
@@ -111,7 +108,7 @@ classdef msh
                     writefort5354( obj.f5354, fname );
                 end
             else
-                if any(contains(type,'14'))
+                if any(contains(type,'14')) || any(contains(type,'ww3'))
                     if isempty(obj.p)
                         error('No mesh, cannot write.')
                     end
@@ -120,8 +117,14 @@ classdef msh
                     else
                         b_t = obj.b;
                     end
-                    writefort14( [fname '.14'] , obj.t, obj.p, b_t, ...
-                        obj.op , obj.bd ,obj.title ) ;
+                    if any(contains(type,'14'))
+                        writefort14( [fname '.14'] , obj.t, obj.p, b_t, ...
+                                     obj.op , obj.bd ,obj.title ) ;
+                    end
+                    if any(contains(type,'ww3'))
+                        writeww3( [fname '.ww3'] , obj.t, obj.p, b_t, ...
+                                     obj.op , obj.title ) ; 
+                    end
                 end
                 if any(contains(type,'11')) && ~isempty(obj.f11)
                     writefort11( obj.f11, [fname '.11'] );
