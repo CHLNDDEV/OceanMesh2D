@@ -4,7 +4,7 @@ addpath(genpath('utilities/'))
 addpath(genpath('datasets/'))
 addpath(genpath('m_map/'))
 %% STEP 1: set mesh extents and set parameters for mesh.
-bbox = [166 176 		% lon_min lon_max
+bbox = [166 176;		% lon_min lon_max
         -48 -40]; 		% lat_min lat_max
 min_el    = 250;  		% minimum resolution in meters.
 max_el    = 20e3; 		% maximum resolution in meters. 
@@ -21,7 +21,7 @@ fh = edgefx('geodata',gdat,...
             'max_el',max_el,'g',grade);
 %% STEP 4: Pass your edgefx class object along with some meshing options and
 % build the mesh...
-mshopts = meshgen('ef',fh,'bou',gdat,'plot_on',1);
+mshopts = meshgen('ef',fh,'bou',gdat,'plot_on',1,'nscreen',1);
 mshopts = mshopts.build; 
 
 %% STEP 5: Plot it and write a triangulation fort.14 compliant file to disk.

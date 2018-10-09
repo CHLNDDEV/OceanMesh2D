@@ -385,7 +385,9 @@ classdef geodata
             bufx = 0.2*(obj.bbox(1,2) - obj.bbox(1,1));
             bufy = 0.2*(obj.bbox(2,2) - obj.bbox(2,1));
             if startsWith(projection,'ste')
-                m_proj(projection,'lat',90,'radius',175.3);
+                m_proj(projection,'lat',min(obj.bbox(2,:)),...
+                       'long',mean(obj.bbox(1,:)),'radius',...
+                        min(179.9,1.01*max(diff(obj.bbox(2,:)))));
             else
                 m_proj(projection,...
                       'long',[obj.bbox(1,1) - bufx, obj.bbox(1,2) + bufx],...
@@ -423,7 +425,13 @@ classdef geodata
             end
             m_plot(obj.boubox(:,1),obj.boubox(:,2),'k--','linewi',2,'MarkerSize',15);
             m_grid('xtick',10,'tickdir','out','yaxislocation','left','fontsize',10);
-            legend([h1 h2],{'mainland' 'inner'},'Location','NorthWest')
+            if exist('h1','var') && exist('h2','var')
+                legend([h1 h2],{'mainland' 'inner'},'Location','NorthWest')
+            elseif exist('h1','var') 
+                legend(h1,'mainland','Location','NorthWest')
+            elseif exist('h2','var') 
+                legend(h2,'inner','Location','NorthWest')
+            end
             %set(gcf, 'Units', 'Normalized', 'OuterPosition', [0 0 1 1]);
         end
         

@@ -1,4 +1,4 @@
-function d = dpoly(p,obj,box_vec)
+function d = dpoly(p,obj,box_vec,project)
 % d = dpoly(p,obj,box_vec)
 %
 % p are the mesh points
@@ -12,6 +12,9 @@ function d = dpoly(p,obj,box_vec)
 % by Keith Roberts and William Pringle 2017-2018.
 
 %% Doing the distance calc
+if nargin < 4
+   project = 1; 
+end
 if nargin == 2
     box_vec = 1:length(obj.bbox);
 elseif isempty(box_vec)
@@ -51,12 +54,17 @@ for box_num = box_vec
     end
     
     if sum(inside)~=0
-        [~,d_l] = WrapperForKsearch(pv1', p(inside,:)');
+        [~,d_l] = WrapperForKsearch(pv1, p(inside,:),project);
     end
     
     %% Doing the inpoly check
     % If inpoly m file we need to get the edges to pass to it to avoid the
     % issues of NaNs
+%     if project
+%         [pt(:,1),pt(:,2)] = m_ll2xy(p(inside,1),p(inside,2));
+%         [outer(:,1),outer(:,2)] = m_ll2xy(outer(:,1),outer(:,2));
+%     end
+    
     edges = Get_poly_edges( outer );
     if sum(inside)~=0
         in    = inpoly(p(inside,:),outer,edges);
@@ -71,7 +79,7 @@ for box_num = box_vec
         d_l = (-1).^( in).*d_l;
     end
     
-    if sum(inside)==0; return; end;
+    if sum(inside)==0; return; end
         
     % IF OUTSIDE BUT APPEARS INSIDE
     bad = find((p(inside,1) < bbox(1,1) | p(inside,1) > bbox(1,2) | ...

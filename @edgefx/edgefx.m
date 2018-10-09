@@ -161,6 +161,11 @@ classdef edgefx
             obj.bbox     = feat.bbox;
             obj.boubox   = feat.boubox;
             
+            % WJP: Do stereographic projection
+            %m_proj('Transv','long',[lon_mi lon_ma],'lat',[lat_mi lat_ma]);
+            m_proj('stereo','lat',obj.bbox(2,1),'long',mean(obj.bbox(1,:)),...
+                   'radius',min(179.9,1.01*diff(obj.bbox(2,:))));
+            
             % now turn on the edge functions
             for i = 1 : numel(fields)
                 type = fields{i};
@@ -216,7 +221,7 @@ classdef edgefx
         function obj = distfx(obj,feat)
             [d,obj] = get_dis(obj,feat);
             obj.boudist = d; 
-            obj.hhd = obj.gridspace + obj.dis*abs(d);
+            obj.hhd = obj.h0 + obj.dis*abs(d);
         end
         %% Feature size function, approximates width of nearshore geo.
         function obj = featfx(obj,feat)
@@ -225,8 +230,14 @@ classdef edgefx
             % distance function!
             [d,obj] = get_dis(obj,feat);
             obj.boudist = d ; 
+            
+            [xg,yg] = CreateStructGrid(obj); 
+            % use a harvestine assumption
+            Re = 6378.137e3;
+            dx = obj.gridspace*cosd(yg(1,:))*Re*pi/180; % for gradient function
+            dy = obj.gridspace*Re*pi/180; % for gradient function
             % Calculate the gradient of the distance function.
-            [ddx,ddy] = gradient(d,obj.gridspace);
+            [ddy,ddx] = EarthGradient(d,dy,dx);
             d_fs = sqrt(ddx.^2 + ddy.^2);
             clearvars ddx ddy
             % WJP: This fix is to put a medial point in narrow channels 
@@ -250,7 +261,7 @@ classdef edgefx
             % sufficiently far away from the coastline to capture the
             % feature and thus aren't spurious.
             d_fs = reshape(d_fs,[],1); d = reshape(d,[],1);
-            lg = d_fs < 0.90  & d < -0.5*obj.gridspace ;
+            lg = d_fs < 0.90  & d < -0.5*obj.h0 ;
             [r,c] = ind2sub([obj.nx obj.ny],find(lg));       
             % create the coordinates using x0y0 + r*h0
             r = [r; rf']; c = [c; cf']; %WJP: add on "fixed points"
@@ -265,17 +276,17 @@ classdef edgefx
             % they are within about co*h0 distance from each other.
             % co is the cutoff distance = 2*sqrt(2) (two diagonal dist)
             co = 2*sqrt(2);
-            [~, dmed] = WrapperForKsearch([x_kp,y_kp]',[x_kp,y_kp]',4);
-            prune = dmed(:,2) > co*obj.gridspace | dmed(:,3) > 2*co*obj.gridspace| ...
-                dmed(:,4) > 3*co*obj.gridspace;
+            [~, dmed] = WrapperForKsearch([x_kp,y_kp],[x_kp,y_kp],4);
+            prune = dmed(:,2) > co*obj.h0 | dmed(:,3) > 2*co*obj.h0 | ...
+                dmed(:,4) > 3*co*obj.h0;
             x_kp( prune ) = [];
             y_kp( prune ) = [];
             
-            [xg,yg] = CreateStructGrid(obj); 
+            %[xg,yg] = CreateStructGrid(obj); 
 
             % Now get the feature size along the coastline
             % Use KD-tree
-            [~, dPOS] = WrapperForKsearch([x_kp,y_kp]',[xg(:),yg(:)]',1);
+            [~, dPOS] = WrapperForKsearch([x_kp,y_kp],[xg(:),yg(:)],1);
             clearvars xg yg
             % reshape back
             d = reshape(d,obj.nx,[]); dPOS = reshape(dPOS,obj.nx,[]);
@@ -322,9 +333,9 @@ classdef edgefx
                 period  = 12.42*3600; % M2 period in seconds
                 twld = period*sqrt(grav*abs(tmpz+eps))/wlp;
                 % limit the maximum to avoid problems in WGS84 conversion 
-                twld( twld > 1e6) = 1e6;
+                %twld( twld > 1e6) = 1e6;
                 % convert to decimal degrees from meters
-                twld = ConvertToWGS84(yg,twld) ; 
+                %twld = ConvertToWGS84(yg,twld) ; 
                 obj.wld(tmpz < dp1 & tmpz > dp2 ) = twld(tmpz < dp1 & tmpz > dp2);
                 clearvars twld 
             end
@@ -430,9 +441,9 @@ classdef edgefx
                 clearvars tslpd
             end
             % limit the maximum to avoid problems in WGS84 conversion 
-            obj.slpd(obj.slpd > 1e6) = 1e6;
+            %obj.slpd(obj.slpd > 1e6) = 1e6;
             % convert to decimal degrees from meters
-            obj.slpd = ConvertToWGS84(yg,obj.slpd) ; 
+            %obj.slpd = ConvertToWGS84(yg,obj.slpd) ; 
             clearvars xg yg 
         end
         
@@ -610,11 +621,11 @@ classdef edgefx
             [hh_m] = min(hh,[],3);
             clearvars hh 
             
-            [xg,yg] = CreateStructGrid(obj); 
+            %[xg,yg] = CreateStructGrid(obj); 
 
             % KJR June 13, 2018 
             % Convert mesh size function currently in WGS84 degrees to planar metres. 
-            hh_m = ConvertToPlanarMetres(xg,yg,hh_m) ; 
+            %hh_m = ConvertToPlanarMetres(xg,yg,hh_m) ; 
 
             % enforce all mesh resolution bounds,grade and enforce the CFL in planar metres
             if(~isinf(obj.max_el_ns))
@@ -670,6 +681,7 @@ classdef edgefx
             end
             clearvars hfun
             
+            [xg,yg] = CreateStructGrid(obj);
             % enforce the CFL if present
             % Limit CFL if dt >= 0, dt = 0 finds dt automatically.
             if obj.dt >= 0
@@ -710,8 +722,7 @@ classdef edgefx
 
             % KJR June 13, 2018 
             % Convert back into WGS84 degrees 
-            hh_m = ConvertToWGS84(yg,hh_m) ; 
-            
+            %hh_m = ConvertToWGS84(yg,hh_m) ; 
             obj.F = griddedInterpolant(xg,yg,hh_m,'linear','nearest');
             
             clearvars xg yg

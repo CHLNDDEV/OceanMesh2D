@@ -23,7 +23,27 @@ else
 end
 pv1 = pv; % dup for inpoly to work
 pv1(isnan(pv(:,1)),:) = [];
-[~,d] = WrapperForKsearch(pv1', p',1);
+
+[~,d] = WrapperForKsearch(pv1, p,1);
+% % Do some projection
+% lon_mi = min(min(pv1(:,1)),min(p(:,1)));
+% lon_ma = max(max(pv1(:,1)),max(p(:,1)));
+% lat_mi = min(min(pv1(:,2)),min(p(:,2)));
+% lat_ma = max(max(pv1(:,2)),max(p(:,2)));
+% m_proj('Transv','long',[lon_mi lon_ma],'lat',[lat_mi lat_ma]);
+% [pv1(:,1),pv1(:,2)] = m_ll2xy(pv1(:,1),pv1(:,2));
+% p1 = p;
+% [p1(:,1),p1(:,2)] = m_ll2xy(p(:,1),p(:,2));
+% 
+% % Find the nearest neighbors
+% idx = WrapperForKsearch(pv1', p1',1);
+% % The vector of long lat pairs
+% long = zeros(length(p)*2,1);
+% lat  = zeros(length(p)*2,1);
+% long(1:2:end) = p1(:,1); long(2:2:end) = pv1(idx,1);
+% lat(1:2:end) = p1(:,2); lat(2:2:end) = pv1(idx,2);
+% % Get spherical earth distances
+% d = m_xydist(long,lat); d = d(1:2:end)*1e3;
 
 %% Doing the inpoly check
 % If inpoly m file we need to get the edges to pass to it to avoid the

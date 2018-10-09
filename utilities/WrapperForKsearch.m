@@ -1,4 +1,4 @@
-function [idx, dst] = WrapperForKsearch(dataset,testset) 
+function [idx, dst] = WrapperForKsearch(dataset,testset,project) 
 % This wrapper is used because we cannot pass an ANN class object to
 % parfeval in MATLAB R2017A. 
 % See reference (https://www.cs.umd.edu/~mount/ANN/Files/1.1.2/ANNmanual_1.1.pdf) returns the squared distances 
@@ -7,9 +7,19 @@ function [idx, dst] = WrapperForKsearch(dataset,testset)
 % David M. Mount and Sunil Arya
 % Version 1.1.2
 % Release Date: Jan 27, 2010
-anno = ann(dataset); 
-[idx,~] = ksearch(anno, testset,1,0); 
+
+% Do some projection
+if nargin < 3
+   project = 0; 
+end
+if project
+    [dataset(:,1),dataset(:,2)] = m_ll2xy(dataset(:,1),dataset(:,2));
+    [testset(:,1),testset(:,2)] = m_ll2xy(testset(:,1),testset(:,2));
+    dataset(isnan(dataset(:,1)),:) = [];
+end
+anno = ann(dataset'); 
+[idx,~] = ksearch(anno, testset',1,0); 
 idx = idx'; 
-dst = sqrt((testset(1,:)'-dataset(1,idx)').^2 + (testset(2,:)'-dataset(2,idx)').^2);
+dst = sqrt((testset(:,1)-dataset(idx,1)).^2 + (testset(:,2)-dataset(idx,2)).^2);
 anno = close(anno); 
 end

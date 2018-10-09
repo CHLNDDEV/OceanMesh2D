@@ -7,13 +7,33 @@ function [idx, dst] = WrapperForKsearch(dataset,testset,k)
 % David M. Mount and Sunil Arya
 % Version 1.1.2
 % Release Date: Jan 27, 2010
-anno = ann(dataset); 
-[idx,~] = ksearch(anno, testset,k,0); 
+
+% Modified by William to automatically do a projection and get the meters
+% distance on a sphere
+[dataset(:,1),dataset(:,2)] = m_ll2xy(dataset(:,1),dataset(:,2));
+[testset(:,1),testset(:,2)] = m_ll2xy(testset(:,1),testset(:,2));
+dataset(isnan(dataset(:,1)),:) = [];
+% Find the nearest neighbors
+anno = ann(dataset'); 
+idx = ksearch(anno, testset',k,0); 
 idx = idx'; 
-datax = dataset(1,:)';
-datay = dataset(2,:)';
-testx = repmat(testset(1,:)',1,k);
-testy = repmat(testset(2,:)',1,k);
-dst = sqrt((testx-datax(idx)).^2 + (testy-datay(idx)).^2);
+%datax = dataset(1,:)';
+%datay = dataset(2,:)';
+%testx = repmat(testset(1,:)',1,k);
+%testy = repmat(testset(2,:)',1,k);
+%dst = sqrt((testx-datax(idx)).^2 + (testy-datay(idx)).^2);
 anno = close(anno); 
+
+% The vector of long lat pairs
+dst = zeros(length(testset),k);
+for kk = 1:k
+    long = zeros(length(testset)*2,1);
+    lat  = zeros(length(testset)*2,1);
+    long(1:2:end) = testset(:,1); long(2:2:end) = dataset(idx(:,kk),1);
+    lat(1:2:end) = testset(:,2); lat(2:2:end) = dataset(idx(:,kk),2);
+    % Get spherical earth distances
+    dt = m_xydist(long,lat); 
+    dst(:,kk) = dt(1:2:end)*1e3;
+end
+    
 end
