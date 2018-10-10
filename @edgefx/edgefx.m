@@ -153,18 +153,17 @@ classdef edgefx
             
             % kjr april 28, 2018-form mesh size grid on-the-fly
             obj.fd       = @dpoly;
-            obj.x0y0     = feat.x0y0+sqrt(eps); 
-            centroid     = mean(feat.bbox(2,:)); 
-            obj.gridspace  = obj.h0/(cosd(centroid)*111e3);
+            obj.x0y0     = feat.x0y0+sqrt(eps);  
+            obj.gridspace = obj.h0/111e3;
             obj.nx       = ceil((abs(feat.x0y0(1)-feat.bbox(1,2)))/obj.gridspace); 
             obj.ny       = ceil((abs(feat.x0y0(2)-feat.bbox(2,2)))/obj.gridspace); 
             obj.bbox     = feat.bbox;
             obj.boubox   = feat.boubox;
             
-            % WJP: Do stereographic projection
-            %m_proj('Transv','long',[lon_mi lon_ma],'lat',[lat_mi lat_ma]);
-            m_proj('stereo','lat',obj.bbox(2,1),'long',mean(obj.bbox(1,:)),...
-                   'radius',min(179.9,1.01*diff(obj.bbox(2,:))));
+            % WJP: Do Transverse Mercator projection for calculating 
+            % distances from shoreline
+            m_proj('trans','lat', [obj.bbox(2,1) obj.bbox(2,2)],...
+                           'long',[obj.bbox(1,1) obj.bbox(1,2)]);
             
             % now turn on the edge functions
             for i = 1 : numel(fields)
@@ -205,7 +204,8 @@ classdef edgefx
                             obj = chfx(obj,feat);
                             obj.used{end+1} = 'ch';
                         end
-                    case{'g','geodata','lmsl','max_el','min_el_ch','Channels','max_el_ns','h0','dt','fl'}
+                    case{'g','geodata','lmsl','max_el','min_el_ch',...
+                         'Channels','max_el_ns','h0','dt','fl'}
                         % dummy to avoid warning
                     otherwise
                         warning('Unexpected edge function name/value pairs.')
@@ -621,7 +621,7 @@ classdef edgefx
             [hh_m] = min(hh,[],3);
             clearvars hh 
             
-            %[xg,yg] = CreateStructGrid(obj); 
+            [xg,yg] = CreateStructGrid(obj); 
 
             % KJR June 13, 2018 
             % Convert mesh size function currently in WGS84 degrees to planar metres. 
@@ -663,7 +663,10 @@ classdef edgefx
                     hfun(nn,1) = hh_m(ipos,jpos);
                 end
             end
-            [hfun,flag] = limgradStruct(obj.ny,obj.h0,hfun,...
+            
+            dx = obj.h0*cosd(yg(1,:)); % for gradient function
+            dy = obj.h0; % for gradient function
+            [hfun,flag] = limgradStruct(obj.ny,dx,dy,hfun,...
                                         obj.g,sqrt(length(hfun)));
             if flag == 1
                 disp('Gradient relaxing converged!');
@@ -681,7 +684,6 @@ classdef edgefx
             end
             clearvars hfun
             
-            [xg,yg] = CreateStructGrid(obj);
             % enforce the CFL if present
             % Limit CFL if dt >= 0, dt = 0 finds dt automatically.
             if obj.dt >= 0

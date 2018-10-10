@@ -42,6 +42,7 @@ classdef meshgen
         big_mesh
         ns_fix        % improve spacing for boundary vertices
         qual          % mean, lower 3rd sigma, and the minimum element quality.
+        proj          % structure containing the m_map projection info
     end
     
     
@@ -73,8 +74,7 @@ classdef meshgen
             addOptional(p,'dj_cutoff',0.25);
             addOptional(p,'big_mesh',defval);
             addOptional(p,'ns_fix',defval);
-         
-            
+            addOptional(p,'proj',defval);
             
             % parse the inputs
             parse(p,varargin{:});
@@ -90,7 +90,8 @@ classdef meshgen
                                    'bou','ef',... %<--OceanMesh classes come after
                                    'egfix','pfix',...
                                    'plot_on','nscreen','itmax','memory_gb','cleanup',...
-                                   'direc_smooth','dj_cutoff','big_mesh','ns_fix'});             
+                                   'direc_smooth','dj_cutoff',...
+                                   'big_mesh','ns_fix','proj'});             
             % get the fieldnames of the edge functions
             fields = fieldnames(inp);
             % loop through and determine which args were passed.
@@ -101,16 +102,8 @@ classdef meshgen
                 switch type
                     % parse aux options first
                     case('h0')
-                        tmp = inp.(fields{i});
-                        if tmp > 1 
-                            obj.h0 = inp.(fields{i});
-                            % min el can be always passed as planar meters.
-                            centroid     = mean(feat.bbox(2,:));
-                            obj.h0 = obj.h0/(cosd(centroid)*111e3);
-                        else 
-                            % then it must be in degrees already 
-                            obj.h0 = inp.(fields{i}); 
-                        end
+                        % Provide in meters
+                        obj.h0 = inp.(fields{i});
                     case('fh')
                         if isa(inp.(fields{i}),'function_handle')
                             obj.fh = inp.(fields{i});
@@ -235,8 +228,7 @@ classdef meshgen
                         % kjr 2018 June: get h0 from edge functions
                         for ee = 1:length(obj.ef)
                             if isa(obj.ef{ee},'edgefx')
-                                centroid   = mean(obj.bou{ee}.bbox(2,:));
-                                obj.h0(ee) = obj.ef{ee}.h0/(cosd(centroid)*111e3);
+                                obj.h0(ee) = obj.ef{ee}.h0;
                             end
                         end
                         
@@ -300,6 +292,40 @@ classdef meshgen
                         obj.dj_cutoff = inp.(fields{i});
                     case('direc_smooth')
                         obj.direc_smooth = inp.(fields{i});
+                    case('proj')
+                        obj.proj = inp.(fields{i});
+                        % default CPP
+                        if obj.proj == 0; obj.proj = 'equi'; end
+                        if ~isempty(obj.bbox)
+                            lon_mi = obj.bbox{1}(1,1)-obj.h0/1110;
+                            lon_ma = obj.bbox{1}(1,2)+obj.h0/1110;
+                            lat_mi = obj.bbox{1}(2,1)-obj.h0/1110;
+                            lat_ma = obj.bbox{1}(2,2)+obj.h0/1110;
+                        else
+                            lon_mi = -180; lon_ma = 180; 
+                            lat_mi = -90; lat_ma = 90;
+                        end 
+                        if startsWith(obj.proj,'ster','IgnoreCase',true)
+                            if lat_ma < 0
+                                % center Antarctica
+                                m_proj(obj.proj,'lat',-90,...
+                                       'long',0.5*(lon_mi+lon_ma),...
+                                       'radius',lat_ma+90);
+                            else
+                                % center Arctic
+                                lat_mi = max(-88.0001,lat_mi); 
+                                if ~isempty(obj.bbox)
+                                    obj.bbox{1}(2,1) = ...
+                                                max(-88,obj.bbox{1}(2,1)); 
+                                end
+                                m_proj(obj.proj,'lat',90,...
+                                       'long',0.5*(lon_mi+lon_ma),...
+                                       'radius',90-lat_mi);
+                            end
+                        else
+                            obj.proj = m_proj(obj.proj,...
+                              'lon',[lon_mi lon_ma],'lat',[lat_mi lat_ma]);
+                        end
                 end
             end
             
@@ -307,20 +333,20 @@ classdef meshgen
             if isempty(varargin); return; end
             
             % error checking
-            if isempty(obj.boubox)
+            if isempty(obj.boubox) && ~isempty(obj.bbox)
                 % Make the bounding box 5 x 2 matrix in clockwise order if
                 % it isn't present. This case must be when the user is
                 % manually specifying the PSLG. 
                 obj.boubox{1} = [obj.bbox(1,1) obj.bbox(2,1);
-                    obj.bbox(1,1) obj.bbox(2,2); ...
-                    obj.bbox(1,2) obj.bbox(2,2);
-                    obj.bbox(1,2) obj.bbox(2,1); ...
-                    obj.bbox(1,1) obj.bbox(2,1); NaN NaN];
+                                 obj.bbox(1,1) obj.bbox(2,2); ...
+                                 obj.bbox(1,2) obj.bbox(2,2);
+                                 obj.bbox(1,2) obj.bbox(2,1); ...
+                                 obj.bbox(1,1) obj.bbox(2,1); NaN NaN];
             end
-            if any(obj.h0==0), error('h0 was not correctly specified!'), end
-            if isempty(obj.outer), error('no outer boundary specified!'), end
-            if isempty(obj.bbox), error('no bounding box specified!'), end
-            obj.fd = @dpoly;  % <-default distance fx accepts p and pv (outer polygon).
+            %if any(obj.h0==0), error('h0 was not correctly specified!'), end
+            %if isempty(obj.outer), error('no outer boundary specified!'), end
+            %if isempty(obj.bbox), error('no bounding box specified!'), end
+            %obj.fd = @dpoly;  % <-default distance fx accepts p and pv (outer polygon).
 
         end
         
@@ -332,8 +358,8 @@ classdef meshgen
             imp = 10; % number of iterations to do mesh improvements (delete/add)
             imp2 = imp;
             Re = 6378.137e3;
-            geps = 0.001*min(obj.h0)/Re; 
-            deps = sqrt(eps)*min(obj.h0);
+            geps = 1e-3*min(obj.h0)/Re; 
+            deps = sqrt(eps); %*min(obj.h0)/111e3;
             ttol=0.1; Fscale = 1.2; deltat = 0.1;
             % unpack initial points.
             p = obj.grd.p;
@@ -353,53 +379,56 @@ classdef meshgen
                         fh_l = obj.fh;
                     else
                         fh_l = obj.fh{box_num};
-                    end
-                    if box_num == 1
-                       % Create projection
-                       lon_mi = bbox_l(1,1); lon_ma = bbox_l(2,1);
-                       lat_mi = bbox_l(1,2); lat_ma = bbox_l(2,2);
-                       m_proj('stereo','lat',lat_mi,...
-                              'long',0.5*(lon_mi+lon_ma),...
-                              'radius',min(179.9,1.1*max(lat_ma-lat_mi)));
-                       m_proj('stereo','lat',0.5*(lat_mi+lat_ma),...
-                              'long',0.5*(lon_mi+lon_ma),...
-                              'radius',min(179.9,...
-                              0.6*max(lat_ma-lat_mi,lon_ma-lon_mi)));
-                       %m_proj('Transv','long',[lon_mi lon_ma],...
-                       %                 'lat',[lat_mi lat_ma]);
-                    end
-                    %[dataset(:,1),dataset(:,2)] = m_ll2xy(dataset(:,1),dataset(:,2));
-                    %[testset(:,1),testset(:,2)] = m_ll2xy(testset(:,1),testset(:,2));  
+                    end 
                     % Lets estimate the num_points the distribution will be
-                    num_points = ceil(2/sqrt(3)*prod(abs(diff(bbox_l)))/h0_l^2);
+                    num_points = ceil(2/sqrt(3)*prod(abs(diff(bbox_l)))...
+                                      /(h0_l/111e3)^2);
                     noblks = ceil(num_points*2*8/obj.memory_gb*1e-9);
                     len = abs(bbox_l(1,1)-bbox_l(2,1));
                     blklen = floor(len)/noblks;
-                    st = bbox_l(1,1) ; ed = st + blklen;
+                    st = bbox_l(1,1) ; ed = st + blklen; ns = 1;
                     %% 1. Create initial distribution in bounding box
                     %% (equilateral triangles)
                     for blk = 1 : noblks
                         if blk == noblks
                             ed = bbox_l(2,1);
                         end
-                        [ss(1,1),ss(1,2)] = m_ll2xy(st,bbox_l(1,2));
-                        [ee(1,1),ee(1,2)] = m_ll2xy(ed,bbox_l(2,2));
-                        [ss(2,1),ss(2,2)] = m_ll2xy(st,bbox_l(2,2));
-                        [ee(2,1),ee(2,2)] = m_ll2xy(ed,bbox_l(1,2));
-                        nnx = floor((bbox_l(2,1)-bbox_l(1,1))/h0_l);
-                        nny = floor((bbox_l(2,2)-bbox_l(1,2))/(h0_l*sqrt(3)/2));
-                        [x,y] = meshgrid(linspace(min(ss(:,1)),max(ee(:,1)),nnx),...
-                                         linspace(min(ss(:,2)),max(ee(:,2)),nny));
+                        ys = bbox_l(1,2);
+                        ny = floor(1e3*m_lldist(repmat(0.5*(st+ed),2,1),...
+                                   [ys;bbox_l(2,2)])/h0_l);   
+                        dy = diff(bbox_l(:,2))/ny;
+                        % start at lower left and make grid going up to
+                        % north latitude
+                        for ii = 1:ny
+                            if st*ed > 0 
+                                nx = floor(1e3*m_lldist([st;ed],...
+                                     [ys;ys])/(2/sqrt(3)*h0_l));
+                            else
+                                nx = floor(1e3*m_lldist([st;0],...
+                                     [ys;ys])/(2/sqrt(3)*h0_l)) + ...
+                                     floor(1e3*m_lldist([st;0],...
+                                     [ys;ys])/(2/sqrt(3)*h0_l));
+                            end
+                            ne = ns+nx-1;
+                            if mod(ii,2) == 0
+                                % no offset
+                                x(ns:ne) = linspace(st,ed,nx);
+                            else
+                                % offset
+                                dx = (ed-st)/nx;
+                                x(ns:ne) = linspace(st+0.5*dx,ed,nx);
+                            end
+                            y(ns:ne) = ys;
+                            ns = ne+1; ys = ys + dy;
+                        end
                         st = ed;
                         ed = st + blklen;
-                        mdx = x(1,2)-x(1,1); 
-                        x(2:2:end,:) = x(2:2:end,:) + mdx/2;                % Shift even rows
-                        [p1(:,1),p1(:,2)] = m_xy2ll(x(:),y(:));             % List of node coordinates
+                        p1 = [x(:) y(:)]; clear x y
+                         
                         %% 2. Remove points outside the region, apply the rejection method
                         p1 = p1(feval(obj.fd,p1,obj,box_num) < geps,:);     % Keep only d<0 points
                         r0 = 1./feval(fh_l,p1).^2;                          % Probability to keep point
-                        % max_r0 = 1/h0_l^2;     
-                        max_r0 = 1/obj.ef{box_num}.h0.^2;   
+                        max_r0 = 1/h0_l^2;     
                         p1 = p1(rand(size(p1,1),1) < r0/max_r0,:);          % Rejection method
                         p  = [p; p1];                                       % Adding p1 to p
                     end
@@ -435,9 +464,6 @@ classdef meshgen
             if ~isempty(obj.pfix); p = [obj.pfix; p]; end
             N = size(p,1); % Number of points N
             disp(['Number of initial points after rejection is ',num2str(N)]);
-            
-            %% Re-project back 
-            
             %% Iterate
             pold = inf;                                             % For first iteration
             if obj.plot_on >= 1
@@ -453,7 +479,7 @@ classdef meshgen
                 end
                 
                 % 3. Retriangulation by the Delaunay algorithm
-                if max(sqrt(sum((p-pold).^2,2))/h0_l) > ttol             % Any large movement?
+                if max(sqrt(sum((p-pold).^2,2))/h0_l*111e3) > ttol       % Any large movement?
                     p = fixmesh(p);                                      % Ensure only unique points.
                     N = size(p,1); pold = p;                             % Save current positions
                     t = delaunay_elim(p,obj.fd,geps,0);                  % Delaunay with elimination
@@ -466,15 +492,17 @@ classdef meshgen
                     if obj.plot_on >= 1 && (mod(it,obj.nscreen)==0 || it == 1)
                         cla,m_triplot(p(:,1),p(:,2),t)
                         m_grid
-                        %cla,patch('vertices',p,'faces',t,'edgecol','k','facecol',[.8,.9,1]);
+                        %cla,
+                        %patch('vertices',p,'faces',t,...
+                        %'edgecol','k','facecol',[.8,.9,1]);
                         title(['Iteration = ',num2str(it)]);
                         if ~isempty(obj.pfix)
                             hold on;
-                            plot(p(1:nfix,1),p(1:nfix,2),'r.')
+                            m_plot(p(1:nfix,1),p(1:nfix,2),'r.')
                         end
                         plt = cell2mat(obj.boubox');
                         hold on ; axis manual
-                        plot(plt(:,1),plt(:,2),'g','linewi',2)
+                        m_plot(plt(:,1),plt(:,2),'g','linewi',2)
                         drawnow
                     end
                 end
@@ -490,10 +518,11 @@ classdef meshgen
                 obj.qual(it,:) = [mq_m,mq_l3sig,mq_l];
                 % Termination quality, mesh quality reached is copacetic.
                 if mod(it,imp2) == 0
-                    if mq_l3sig > 0.75
+                    if mq_l3sig > 0.6 && ...
+                       mq_l3sig - obj.qual(max(1,it-imp2),2) < 0.01
+                    %if mq_l3sig > 0.75
                         % Do the final elimination of small connectivity
                         t = delaunay_elim(p,obj.fd,geps,1);
-                        p(nn,:) = [];
                         disp('Quality of mesh is good enough, exit')
                         close all;
                         break;
@@ -515,11 +544,13 @@ classdef meshgen
                 barvec = pt(bars(:,1),:)- pt(bars(:,2),:);      % List of bar vectors
                 long = zeros(length(bars)*2,1);
                 lat  = zeros(length(bars)*2,1);
-                long(1:2:end) = p(bars(:,1),1); long(2:2:end) = p(bars(:,2),1);
-                lat(1:2:end) = p(bars(:,1),2); lat(2:2:end) = p(bars(:,2),2);
-                % Get spherical earth distances
-                L = m_lldist(long,lat); L = L(1:2:end)*1e3;
-                %L = sqrt(sum(barvec.^2,2));                        % L = Bar lengths
+                long(1:2:end) = p(bars(:,1),1); 
+                long(2:2:end) = p(bars(:,2),1);
+                lat(1:2:end) = p(bars(:,1),2);  
+                lat(2:2:end) = p(bars(:,2),2);
+                %Get spherical earth distances
+                L = m_lldist(long,lat); L = L(1:2:end)*1e3;     % L = Bar lengths
+                %L = sqrt(sum(barvec.^2,2))*Re;                 % L = Bar lengths
                 ideal_bars = (p(bars(:,1),:) + p(bars(:,2),:))/2;
                 hbars = 0*ideal_bars(:,1);
                 for box_num = 1:length(obj.h0)
@@ -620,7 +651,6 @@ classdef meshgen
                 if ( it > obj.itmax )
                     % Do the final deletion of small connectivity
                     t = delaunay_elim(p,obj.fd,geps,1);
-                    p(nn,:) = [];
                     disp('too many iterations, exit')
                     close all;
                     break ;
@@ -659,7 +689,9 @@ classdef meshgen
             function t = delaunay_elim(p,fd,geps,final)
                 % Removing mean to reduce the magnitude of the points to
                 % help the convex calc
-                p_s  = p - repmat(mean(p),[N,1]);
+                if exist('pt1','var'); clear pt1; end
+                [pt1(:,1),pt1(:,2)] = m_ll2xy(p(:,1),p(:,2));
+                p_s  = pt1 - repmat(mean(pt1),[N,1]);
                 if isempty(obj.egfix)
                     TR   = delaunayTriangulation(p_s);
                 else
@@ -671,15 +703,13 @@ classdef meshgen
                         % generation algorithm
                         nn = get_small_connectivity(p,t);
                         TR.Points(nn,:) = [];
-                        p(nn,:) = [];
+                        p(nn,:) = []; pt1(nn,:) = [];
                     end
                     t = TR.ConnectivityList;
                     pmid = squeeze(mean(reshape(p(t,:),[],3,2),2)); % Compute centroids
                     t    = t(feval(fd,pmid,obj,[]) < -geps,:);  % Keep interior triangles
                     % deleting really straight triangles
-                    if exist('ptemp','var'); clear ptemp; end
-                    [ptemp(:,1),ptemp(:,2)] = m_ll2xy(p(:,1),p(:,2));
-                    tq_n = gettrimeshquan( ptemp, t);
+                    tq_n = gettrimeshquan( pt1, t);
                     bad_ele = any(tq_n.vang < 1*pi/180 | ...
                                   tq_n.vang > 179*pi/180,2);
                     t(bad_ele,:) = [];
@@ -743,13 +773,13 @@ classdef meshgen
             end
             
             % Now do the smoothing if required
-            if obj.direc_smooth
+            if obj.direc_smooth 
                 % Perform the direct smoothing
-                if exist('pt','var'); clear pt; end
-                [pt(:,1),pt(:,2)] = m_ll2xy(obj.grd.p(:,1),obj.grd.p(:,2)); 
-                [obj.grd.p,obj.grd.t] = direct_smoother_lur(pt,...
+                [obj.grd.p,obj.grd.t] = direct_smoother_lur(obj.grd.p,...
                                           obj.grd.t,obj.pfix,obj.nscreen);
-                tq = gettrimeshquan( obj.grd.p, obj.grd.t);
+                if exist('pt','var'); clear pt; end                      
+                [pt(:,1),pt(:,2)] = m_ll2xy(obj.grd.p(:,1),obj.grd.p(:,2));
+                tq = gettrimeshquan( pt, obj.grd.t);
                 if min(tq.qm) < 0
                     % Need to clean it again
                     disp('Overlapping elements due to smoother, cleaning again')
@@ -759,7 +789,9 @@ classdef meshgen
             end
             
             % Checking and displaying element quality
-            tq = gettrimeshquan( obj.grd.p, obj.grd.t);
+            if exist('pt','var'); clear pt; end
+            [pt(:,1),pt(:,2)] = m_ll2xy(obj.grd.p(:,1),obj.grd.p(:,2));
+            tq = gettrimeshquan( pt, obj.grd.t);
             mq_m = mean(tq.qm);
             mq_l = min(tq.qm);
             mq_s = std(tq.qm);
@@ -770,8 +802,6 @@ classdef meshgen
             disp(['mean quality is ' num2str(mq_m)])
             disp(['min quality is ' num2str(mq_l)])
             
-            [obj.grd.p(:,1),obj.grd.p(:,2)] = m_xy2ll(obj.grd.p(:,1),...
-                                                      obj.grd.p(:,2)); 
         end
         
         function obj = nearshorefix(obj)

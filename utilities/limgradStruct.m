@@ -1,4 +1,4 @@
-function [ffun,flag] = limgradStruct(ny,eglen,ffun,dfdx,imax)
+function [ffun,flag] = limgradStruct(ny,xeglen,yeglen,ffun,dfdx,imax)
 %LIMGRAD impose "gradient-limits" on a function defined over
 %an undirected graph.
 %   [FNEW] = LIMGRADStruct(NY,EGLEN,FFUN,DFDX,IMAX) computes a
@@ -34,8 +34,11 @@ aset = zeros(size(ffun,1),1) ;
 %----------------------------- exhaustive 'til all satisfied
 ftol = min(ffun) * sqrt(eps) ;
 
-% ------------------------ elen length is fixed in a structured graph.
-dgeglen = sqrt(eglen^2+eglen^2); rm = zeros(9,1); 
+% ------------------------ calculate hypotenuse eglen length
+dgeglen = sqrt(xeglen.^2+repmat(yeglen,1,ny).^2); 
+eglen   = 0.5*(xeglen+repmat(yeglen,1,ny)); 
+
+rm = zeros(9,1); 
 for iter = +1 : imax
     
     %------------------------- find "active" nodes this pass
@@ -72,15 +75,15 @@ for iter = +1 : imax
         
         % ------ populate elens
         nn = 1;
-        elens(nn) = eglen; nn=nn+1;
-        elens(nn) = eglen; nn=nn+1;
-        elens(nn) = eglen; nn=nn+1;
-        elens(nn) = eglen; nn=nn+1;
-        elens(nn) = eglen; nn=nn+1;
-        elens(nn) = dgeglen; nn=nn+1;
-        elens(nn) = dgeglen; nn=nn+1; 
-        elens(nn) = dgeglen; nn=nn+1; 
-        elens(nn) = dgeglen; 
+        elens(nn) = eglen(jpos);  nn=nn+1;
+        elens(nn) = xeglen(jpos); nn=nn+1;
+        elens(nn) = xeglen(jpos); nn=nn+1;
+        elens(nn) = yeglen; nn=nn+1;
+        elens(nn) = yeglen; nn=nn+1;
+        elens(nn) = dgeglen(jpos); nn=nn+1;
+        elens(nn) = dgeglen(jpos); nn=nn+1; 
+        elens(nn) = dgeglen(jpos); nn=nn+1; 
+        elens(nn) = dgeglen(jpos); 
         
         %----- handle boundary vertex adjs.
         rm = npos <= 0 | npos > size(ffun,1);

@@ -3,6 +3,16 @@ function [p,t] = direct_smoother_lur(p,t,pfix,nscreen)
 if nscreen
     disp('ALERT: beginning implicit smoothing of mesh..');
 end
+
+global MAP_PROJECTION 
+% Do some default CPP projection if none exist
+if isempty(MAP_PROJECTION)
+   m_proj('equi','lon',[min(p(:,1)),max(p(:,1))],...
+                 'lat',[min(p(:,2)),max(p(:,2))]) ;
+end
+% Do the transformation
+[p(:,1),p(:,2)] = m_ll2xy(p(:,1),p(:,2));
+
 % Set numerical smoothing parameters
 mu = 1;
 kinf = 10^12;
@@ -77,6 +87,8 @@ F = sparse(F);
 % Solve for new nodal positions and save to mesh points
 c = K\F;
 p(:,1:2) = reshape(c,[2,nnodes])';
+% Do the transformation back
+[p(:,1),p(:,2)] = m_xy2ll(p(:,1),p(:,2));
 if nscreen
     disp('ALERT: finished implicit smoothing of mesh..');
 end

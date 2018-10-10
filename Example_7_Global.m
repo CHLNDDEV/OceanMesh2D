@@ -7,7 +7,7 @@ addpath(genpath('m_map/'));
 %% STEP 1: set mesh extents and set parameters for mesh. 
 %% The greater US East Coast and Gulf of Mexico region
 min_el    = 4e3;  	             % minimum resolution in meters.
-bbox      = [-180 180; -90  -60]; % lon min lon max; lat min lat max
+bbox      = [-180 180; -88  90]; % lon min lon max; lat min lat max
 max_el    = 15e3; 		         % maximum resolution in meters. 
 wl        = 30;                  % 30 elements resolve M2 wavelength.
 dt        = 0;                   % Only reduces res away from coast
@@ -31,16 +31,16 @@ fh1 = edgefx('geodata',gdat1,...
                 
 %% STEP 4: Pass your edgefx class object along with some meshing options 
 %% and build the mesh...
-mshopts = meshgen('ef',fh1,'bou',gdat1,...
-                  'nscreen',5,'plot_on',1,'itmax',100);
+mshopts = meshgen('ef',fh1,'bou',gdat1,'nscreen',10,'plot_on',1,...
+                  'proj','stereo');
 mshopts = mshopts.build; 
 
 %% STEP 5: Match points and edges across boundary
 m = mshopts.grd; % get out the msh object 
 % make sure not above bbox (not at 90 deg)
-m.p(m.p(:,2) > bbox(2,2),2) = bbox(2,2);
+%m.p(m.p(:,2) > bbox(2,2),2) = bbox(2,2);
 
 % This makes sure we match left and right side and puts on the periodic bcs
-m = makens(m,'auto',gdat1);
-plot(m,'bd',0) %,'Mollweide');
-save([outname '.mat'],'m'); %write(m,outname);
+%m = makens(m,'auto',gdat1);
+%plot(m,'bd',0) %,'Mollweide');
+%save([outname '.mat'],'m'); %write(m,outname);

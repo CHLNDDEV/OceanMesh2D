@@ -69,10 +69,14 @@ etbv(end+1,:) = 1;
 % Loop until all the nodes only have two boundary edges
 %(the number of boundary edges will equal number of boundary nodes)
 
-% Do some projection
-m_proj('Transverse Mercator',...
-       'lon',[min(p(:,1)),max(p(:,1))],...
-       'lat',[min(p(:,2)),max(p(:,2))])  ;
+global MAP_PROJECTION 
+% Do some projection if none exist
+if isempty(MAP_PROJECTION)
+   m_proj('equi','lon',[min(p(:,1)),max(p(:,1))],...
+                 'lat',[min(p(:,2)),max(p(:,2))]) ;
+end
+% Do the transformation
+[p(:,1),p(:,2)] = m_ll2xy(p(:,1),p(:,2)); 
 
 while numel(etbv) > numel(vxe)
     
@@ -95,7 +99,8 @@ end
 disp('ALERT: finished cleaning up mesh..'); 
 % Turn warnings back on
 warning('on','all')
-% Put back into the msh object
+% Do the transformation and put back into the msh object
+[p(:,1),p(:,2)] = m_xy2ll(p(:,1),p(:,2)); 
 obj.p = p; obj.t = t;
 end
 % The sub-functions...
@@ -107,7 +112,7 @@ end
 function t = delete_exterior_elements(p,t,dj_cutoff,nscreen)
 L = size(t,1); 
 t1 = t; t = []; 
-[X,Y] = m_ll2xy(p(:,1),p(:,2));
+X = p(:,1); Y = p(:,2); 
 A = sum(polyarea(X(t1(:,1:3))',Y(t1(:,1:3))'));  An = A;
 if dj_cutoff >= 1
     Re2 = (6378.137)^2; An = Re2*An;

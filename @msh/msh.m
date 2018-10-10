@@ -171,10 +171,16 @@ classdef msh
                 if nargin < 4 || isempty(projection)
                     projection = 'Transverse Mercator';
                 end
-                if contains(projection,'ster')
-                    m_proj(projection,'lon',mean(obj.p(:,1)),...
-                           'lat',mean(obj.p(:,2)),...
-                           'radius',0.6*max(max(obj.p)-min(obj.p)))  ;                    
+                if startsWith(projection,'ster','IgnoreCase',true)
+                    if max(obj.p(:,2)) < 0
+                        % center Antarctica
+                        m_proj(projection,'lat',-90,'long',0,...
+                         'radius',min(179.9,1.01*max(max(obj.p(:,2))+90)));
+                    else
+                        % center Arctic
+                        m_proj(projection,'lat',90,'long',0,...
+                         'radius',min(179.9,1.01*max(90-min(obj.p(:,2)))));
+                    end                 
                 else
                     m_proj(projection,...
                            'lon',[min(obj.p(:,1)),max(obj.p(:,1))],...
@@ -598,6 +604,14 @@ classdef msh
                         periodic = 1;
                         disp(['Detected global mesh applying automatic' ...
                               ' periodic BC fix'])
+                        % start by deleting the elements that straddle the 
+                        % -180/180 boundary
+                        xt = [obj.p(obj.t(:,1),1) obj.p(obj.t(:,2),1) ...
+                              obj.p(obj.t(:,3),1) obj.p(obj.t(:,1),1)];
+                        dxt = diff(xt,[],2);
+                        I = abs(dxt(:,1)) > 180 | abs(dxt(:,2)) > 180 | ...
+                            abs(dxt(:,2)) > 180;
+                        obj.t(I,:) = [];
                     end
                     
                     % Get the boundaries
@@ -740,26 +754,26 @@ classdef msh
                     pfix = [pfixL; pfixR];
                     ee = [eeL; eeR+length(pfixL)];
                     % Make dummy meshopts with the geodata
-                    mshopts = meshgen();
+                    mshopts = meshgen('proj','ster');
                     mshopts.pfix = pfix;
                     mshopts.egfix = ee;
 
+                    [pt(:,1),pt(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2));
                     % Make a new triangulation using obj.p;
-                    DT = delaunayTriangulation(obj.p);
+                    DT = delaunayTriangulation(pt);
+                    m2 = obj; m2.t = DT.ConnectivityList;
                     % Now delete off right hand side and add on left hand side flipped
-                    I  = find(DT.Points(:,1) > 179); DT.Points(I,:) = [];
-                    DT.Points = [DT.Points; ...
-                           DT.Points(DT.Points(:,1) < -179,:) .* [-1, 1]];
-
-                    % Make polygon to delete internal triangles
-                    bnde=extdom_edges2(obj.t,obj.p);
-                    poly=extdom_polygon(bnde,obj.p,-1);
-                    poly=cell2mat(poly');
-                    m2 = obj; m2.p = DT.Points; m2.t = DT.ConnectivityList;
+                    I  = find(m2.p(:,1) > 179); m2.p(I,:) = [];
+                    m2.p = [m2.p; m2.p(m2.p(:,1) < -179,:) .* [-1, 1]];
                     I1 = ourKNNsearch(m2.p(m2.t(:,1),:)',pfix',1);
                     I2 = ourKNNsearch(m2.p(m2.t(:,2),:)',pfix',1);
                     I3 = ourKNNsearch(m2.p(m2.t(:,3),:)',pfix',1);
                     bc = baryc(m2);
+                    
+                    % Make polygon to delete internal triangles
+                    bnde=extdom_edges2(obj.t,obj.p);
+                    poly=extdom_polygon(bnde,obj.p,-1);
+                    poly=cell2mat(poly');
                     ee = Get_poly_edges(poly);
                     in = inpoly(bc,poly,ee);
                     % make sure fpix triangles remain

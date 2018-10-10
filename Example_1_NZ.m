@@ -21,7 +21,7 @@ fh = edgefx('geodata',gdat,...
             'max_el',max_el,'g',grade);
 %% STEP 4: Pass your edgefx class object along with some meshing options and
 % build the mesh...
-mshopts = meshgen('ef',fh,'bou',gdat,'plot_on',1,'nscreen',1);
+mshopts = meshgen('ef',fh,'bou',gdat,'plot_on',1,'nscreen',5,'proj','trans');
 mshopts = mshopts.build; 
 
 %% STEP 5: Plot it and write a triangulation fort.14 compliant file to disk.
