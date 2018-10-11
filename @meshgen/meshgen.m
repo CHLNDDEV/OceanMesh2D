@@ -346,7 +346,7 @@ classdef meshgen
             %if any(obj.h0==0), error('h0 was not correctly specified!'), end
             %if isempty(obj.outer), error('no outer boundary specified!'), end
             %if isempty(obj.bbox), error('no bounding box specified!'), end
-            %obj.fd = @dpoly;  % <-default distance fx accepts p and pv (outer polygon).
+            obj.fd = @dpoly;  % <-default distance fx accepts p and pv (outer polygon).
 
         end
         
@@ -465,7 +465,7 @@ classdef meshgen
             N = size(p,1); % Number of points N
             disp(['Number of initial points after rejection is ',num2str(N)]);
             %% Iterate
-            pold = inf;                                             % For first iteration
+            pold = inf;                                                    % For first iteration
             if obj.plot_on >= 1
                 clf,view(2),axis equal;
             end
@@ -479,22 +479,19 @@ classdef meshgen
                 end
                 
                 % 3. Retriangulation by the Delaunay algorithm
-                if max(sqrt(sum((p-pold).^2,2))/h0_l*111e3) > ttol       % Any large movement?
-                    p = fixmesh(p);                                      % Ensure only unique points.
-                    N = size(p,1); pold = p;                             % Save current positions
-                    t = delaunay_elim(p,obj.fd,geps,0);                  % Delaunay with elimination
+                if max(sqrt(sum((p-pold).^2,2))/h0_l*111e3) > ttol         % Any large movement?
+                    p = fixmesh(p);                                        % Ensure only unique points.
+                    N = size(p,1); pold = p;                               % Save current positions
+                    t = delaunay_elim(p,obj.fd,geps,0);                    % Delaunay with elimination
                     
                     % 4. Describe each bar by a unique pair of nodes.
-                    bars = [t(:,[1,2]); t(:,[1,3]); t(:,[2,3])];         % Interior bars duplicated
-                    bars = unique(sort(bars,2),'rows');                  % Bars as node pairs
+                    bars = [t(:,[1,2]); t(:,[1,3]); t(:,[2,3])];           % Interior bars duplicated
+                    bars = unique(sort(bars,2),'rows');                    % Bars as node pairs
                     
                     % 5. Graphical output of the current mesh
                     if obj.plot_on >= 1 && (mod(it,obj.nscreen)==0 || it == 1)
                         cla,m_triplot(p(:,1),p(:,2),t)
                         m_grid
-                        %cla,
-                        %patch('vertices',p,'faces',t,...
-                        %'edgecol','k','facecol',[.8,.9,1]);
                         title(['Iteration = ',num2str(it)]);
                         if ~isempty(obj.pfix)
                             hold on;
@@ -522,7 +519,7 @@ classdef meshgen
                        mq_l3sig - obj.qual(max(1,it-imp2),2) < 0.01
                     %if mq_l3sig > 0.75
                         % Do the final elimination of small connectivity
-                        t = delaunay_elim(p,obj.fd,geps,1);
+                        [t,p] = delaunay_elim(p,obj.fd,geps,1);
                         disp('Quality of mesh is good enough, exit')
                         close all;
                         break;
@@ -541,23 +538,23 @@ classdef meshgen
                 end
                 
                 % 6. Move mesh points based on bar lengths L and forces F
-                barvec = pt(bars(:,1),:)- pt(bars(:,2),:);      % List of bar vectors
-                long = zeros(length(bars)*2,1);
-                lat  = zeros(length(bars)*2,1);
+                barvec = pt(bars(:,1),:)- pt(bars(:,2),:);                 % List of bar vectors
+                long   = zeros(length(bars)*2,1);                          % 
+                lat    = zeros(length(bars)*2,1);
                 long(1:2:end) = p(bars(:,1),1); 
                 long(2:2:end) = p(bars(:,2),1);
-                lat(1:2:end) = p(bars(:,1),2);  
-                lat(2:2:end) = p(bars(:,2),2);
+                lat(1:2:end)  = p(bars(:,1),2);  
+                lat(2:2:end)  = p(bars(:,2),2);
                 %Get spherical earth distances
-                L = m_lldist(long,lat); L = L(1:2:end)*1e3;     % L = Bar lengths
-                %L = sqrt(sum(barvec.^2,2))*Re;                 % L = Bar lengths
-                ideal_bars = (p(bars(:,1),:) + p(bars(:,2),:))/2;
+                L = m_lldist(long,lat); L = L(1:2:end)*1e3;                % L = Bar lengths in meters
+                ideal_bars = (p(bars(:,1),:) + p(bars(:,2),:))/2;          % Used to determine what bars are in bbox
                 hbars = 0*ideal_bars(:,1);
-                for box_num = 1:length(obj.h0)
-                    if ~iscell(obj.bbox)
-                        bbox_l = obj.bbox; % <--we must tranpose this!
+                                
+                for box_num = 1:length(obj.h0)                             % For each bbox, find the bars that are in and calculate
+                    if ~iscell(obj.bbox)                                   % their ideal lengths.
+                        bbox_l = obj.bbox;         
                     else
-                        bbox_l = obj.bbox{box_num}; % <--tranpose!
+                        bbox_l = obj.bbox{box_num}; 
                     end
                     if ~iscell(obj.fh)
                         fh_l = obj.fh;
@@ -573,34 +570,34 @@ classdef meshgen
                     else
                         inside = true(size(hbars));
                     end
-                    hbars(inside) = feval(fh_l,ideal_bars(inside,:)); % Ideal lengths
+                    hbars(inside) = feval(fh_l,ideal_bars(inside,:));       % Ideal lengths
                 end
                 
-                L0 = hbars*Fscale*median(L)/median(hbars);             % L0 = Desired lengths using ratio of medians scale factor
-                LN = L./L0;                                             % LN = Normalized bar lengths
+                L0 = hbars*Fscale*median(L)/median(hbars);                  % L0 = Desired lengths using ratio of medians scale factor
+                LN = L./L0;                                                 % LN = Normalized bar lengths
                 
-                % Mesh improvements (deleting addition)
+                % Mesh improvements (deleting and addition)
                 if mod(it,imp) == 0
-                    % remove elements with small connectivity
+                    % Remove elements with small connectivity
                     nn = get_small_connectivity(p,t);
                     disp(['Deleting ' num2str(length(nn)) ' due to small connectivity'])
                     
-                    % remove points that are too close (< LN = 0.5)
+                    % Remove points that are too close (< LN = 0.5)
                     if any(LN < 0.5)
-                        % do not delete fix_p too close
+                        % Do not delete pfix too close.
                         nn1 = setdiff(reshape(bars(LN < 0.5,:),[],1),[(1:nfix)']);
                         disp(['Deleting ' num2str(length(nn1)) ' points too close together'])
                         nn = unique([nn; nn1]);
                     end
                     
-                    % split long edges however many times
-                    % produces an edgelength of 1
+                    % Split long edges however many times to
+                    % better lead to LN of 1
                     pst = [];
                     if any(LN > 2)
                         nsplit = floor(LN);
                         nsplit(nsplit < 1) = 1;
                         adding = 0;
-                        % probably we can just split once
+                        % Probably we can just split once?
                         for jj = 2:2
                             il = find(nsplit >= jj);
                             xadd = zeros(length(il),jj-1);
@@ -623,17 +620,17 @@ classdef meshgen
                     continue;
                 end
                 
-                F    = (1-LN.^4).*exp(-LN.^4)./LN;                 % Bessens-Heckbert edge force
+                F    = (1-LN.^4).*exp(-LN.^4)./LN;                         % Bessens-Heckbert edge force
                 Fvec = F*[1,1].*barvec;
                 
                 Ftot = full(sparse(bars(:,[1,1,2,2]),ones(size(F))*[1,2,1,2],[Fvec,-Fvec],N,2));
-                Ftot(1:nfix,:) = 0;                                % Force = 0 at fixed points
-                pt = pt + deltat*Ftot;                             % Update node positions
+                Ftot(1:nfix,:) = 0;                                        % Force = 0 at fixed points
+                pt = pt + deltat*Ftot;                                     % Update node positions
                 
                 [p(:,1),p(:,2)] = m_xy2ll(pt(:,1),pt(:,2));  
                 
                 %7. Bring outside points back to the boundary
-                d = feval(obj.fd,p,obj,[],0); ix = d>0; % Find points outside (d>0)
+                d = feval(obj.fd,p,obj,[],0); ix = d>0;                    % Find points outside (d>0)
                 ix(1:nfix)=0;
                 if sum(ix) > 0
                     dgradx = (feval(obj.fd,[p(ix,1)+deps,p(ix,2)],obj,[],0)...
@@ -650,7 +647,7 @@ classdef meshgen
                 
                 if ( it > obj.itmax )
                     % Do the final deletion of small connectivity
-                    t = delaunay_elim(p,obj.fd,geps,1);
+                    [t,p] = delaunay_elim(p,obj.fd,geps,1);
                     disp('too many iterations, exit')
                     close all;
                     break ;
@@ -686,7 +683,7 @@ classdef meshgen
             % Auxiliary subfunctions %
             %%%%%%%%%%%%%%%%%%%%%%%%%%
             
-            function t = delaunay_elim(p,fd,geps,final)
+            function [t,p] = delaunay_elim(p,fd,geps,final)
                 % Removing mean to reduce the magnitude of the points to
                 % help the convex calc
                 if exist('pt1','var'); clear pt1; end
@@ -702,13 +699,13 @@ classdef meshgen
                         % Perform the following below upon exit from the mesh
                         % generation algorithm
                         nn = get_small_connectivity(p,t);
-                        TR.Points(nn,:) = [];
+                        TR.Points(nn,:) = []; 
                         p(nn,:) = []; pt1(nn,:) = [];
                     end
                     t = TR.ConnectivityList;
-                    pmid = squeeze(mean(reshape(p(t,:),[],3,2),2)); % Compute centroids
-                    t    = t(feval(fd,pmid,obj,[]) < -geps,:);  % Keep interior triangles
-                    % deleting really straight triangles
+                    pmid = squeeze(mean(reshape(p(t,:),[],3,2),2));        % Compute centroids
+                    t    = t(feval(fd,pmid,obj,[]) < -geps,:);             % Keep interior triangles
+                    % Deleting very straight triangles
                     tq_n = gettrimeshquan( pt1, t);
                     bad_ele = any(tq_n.vang < 1*pi/180 | ...
                                   tq_n.vang > 179*pi/180,2);
@@ -723,7 +720,7 @@ classdef meshgen
                 bdbars = extdom_edges2(t, p);
                 bdnodes = unique(bdbars(:));
                 I = find(enum <= 4);
-                nn = setdiff(I',[(1:nfix)';bdnodes]); % and don't destroy fix_p or bnde!
+                nn = setdiff(I',[(1:nfix)';bdnodes]);                      % and don't destroy pfix or egfix!
                 return;
             end
             
