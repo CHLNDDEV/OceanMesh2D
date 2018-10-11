@@ -343,10 +343,10 @@ classdef meshgen
                                  obj.bbox(1,2) obj.bbox(2,1); ...
                                  obj.bbox(1,1) obj.bbox(2,1); NaN NaN];
             end
-            %if any(obj.h0==0), error('h0 was not correctly specified!'), end
-            %if isempty(obj.outer), error('no outer boundary specified!'), end
-            %if isempty(obj.bbox), error('no bounding box specified!'), end
-            %obj.fd = @dpoly;  % <-default distance fx accepts p and pv (outer polygon).
+            if any(obj.h0==0), error('h0 was not correctly specified!'), end
+            if isempty(obj.outer), error('no outer boundary specified!'), end
+            if isempty(obj.bbox), error('no bounding box specified!'), end
+            obj.fd = @dpoly;  % <-default distance fx accepts p and pv (outer polygon).
 
         end
         

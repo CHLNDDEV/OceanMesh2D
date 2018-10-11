@@ -8,7 +8,7 @@ addpath(genpath('m_map/'));
 %% The greater US East Coast and Gulf of Mexico region
 min_el    = 4e3;  	             % minimum resolution in meters.
 bbox      = [-180 180; -88  90]; % lon min lon max; lat min lat max
-max_el    = 15e3; 		         % maximum resolution in meters. 
+max_el    = 20e3; 		         % maximum resolution in meters. 
 wl        = 30;                  % 30 elements resolve M2 wavelength.
 dt        = 0;                   % Only reduces res away from coast
 grade     = 0.25;                % mesh grade in decimal percent. 
@@ -37,10 +37,9 @@ mshopts = mshopts.build;
 
 %% STEP 5: Match points and edges across boundary
 m = mshopts.grd; % get out the msh object 
-% make sure not above bbox (not at 90 deg)
-%m.p(m.p(:,2) > bbox(2,2),2) = bbox(2,2);
 
-% This makes sure we match left and right side and puts on the periodic bcs
-%m = makens(m,'auto',gdat1);
-%plot(m,'bd',0) %,'Mollweide');
+% This gets the bars that straddle the -180/180 line
+m = makens(m,'periodic');
+% Plotting the triangulation with the periodic BC nodes in red
+plot(m,'bd',1,'Robinson');
 %save([outname '.mat'],'m'); %write(m,outname);

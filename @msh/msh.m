@@ -167,10 +167,10 @@ classdef msh
                % Get a subset given by bou
                obj = ExtractSubDomain(obj,bou);
             end
+            if nargin < 4 || isempty(projection)
+                projection = 'Transverse Mercator';
+            end
             if proj
-                if nargin < 4 || isempty(projection)
-                    projection = 'Transverse Mercator';
-                end
                 if startsWith(projection,'ster','IgnoreCase',true)
                     if max(obj.p(:,2)) < 0
                         % center Antarctica
@@ -186,6 +186,15 @@ classdef msh
                            'lon',[min(obj.p(:,1)),max(obj.p(:,1))],...
                            'lat',[min(obj.p(:,2)),max(obj.p(:,2))])  ;
                 end
+            end
+            if ~startsWith(projection,'ster','IgnoreCase',true)
+                % This deletes any elements straddling the -180/180
+                % boundary for plotting purposes
+                xt = [obj.p(obj.t(:,1),1) obj.p(obj.t(:,2),1) ...
+                      obj.p(obj.t(:,3),1) obj.p(obj.t(:,1),1)];
+                dxt = diff(xt,[],2);
+                obj.t(abs(dxt(:,1)) > 180 | abs(dxt(:,2)) > 180 | ...
+                      abs(dxt(:,2)) > 180,:) = [];
             end
             logaxis = 0; numticks = 10;
             if strcmp(type(max(1,end-2):end),'log')
@@ -205,6 +214,7 @@ classdef msh
                     if proj
                         m_triplot(obj.p(:,1),obj.p(:,2),obj.t);
                     else
+                        
                         simpplot(obj.p,obj.t); 
                     end
                     if ~isempty(obj.bd)
@@ -469,8 +479,8 @@ classdef msh
                     error('Specified type is incorrect');
             end
             if proj
-                % now add the box
-                m_grid('box','fancy','FontSize',12);
+                % now add the projection axes/grid/labels
+                m_grid('fancy');
             end
         end
         
@@ -604,14 +614,6 @@ classdef msh
                         periodic = 1;
                         disp(['Detected global mesh applying automatic' ...
                               ' periodic BC fix'])
-                        % start by deleting the elements that straddle the 
-                        % -180/180 boundary
-                        xt = [obj.p(obj.t(:,1),1) obj.p(obj.t(:,2),1) ...
-                              obj.p(obj.t(:,3),1) obj.p(obj.t(:,1),1)];
-                        dxt = diff(xt,[],2);
-                        I = abs(dxt(:,1)) > 180 | abs(dxt(:,2)) > 180 | ...
-                            abs(dxt(:,2)) > 180;
-                        obj.t(I,:) = [];
                     end
                     
                     % Get the boundaries
@@ -739,7 +741,7 @@ classdef msh
                     % Get open boundary points
                     opp = obj.op.nbdv(:); opp(opp == 0) = []; 
                     % Get the open boundary points on left side
-                    I = obj.p(opp,1) < -179;
+                    I = obj.p(opp,2) < 89 & obj.p(opp,1) < 0;
                     % ensure these are set to -180 correctly
                     obj.p(opp(I),1) = -180;
                     % use these as fixed points
@@ -754,7 +756,7 @@ classdef msh
                     pfix = [pfixL; pfixR];
                     ee = [eeL; eeR+length(pfixL)];
                     % Make dummy meshopts with the geodata
-                    mshopts = meshgen('proj','ster');
+                    mshopts = meshgen();
                     mshopts.pfix = pfix;
                     mshopts.egfix = ee;
 
@@ -854,11 +856,15 @@ classdef msh
                     [~,~,obj.op,obj.bd] = extract_boundary(vstart,vend,bnde,obj.p,...
                         dir,obj.op,obj.bd); %<--updates op and bd.
                 case('periodic')
+                    % get elements that straddle the -180/180 boundary
+                    bars = [obj.t(:,[1,2]); obj.t(:,[1,3]); obj.t(:,[2,3])]; % Interior bars duplicated
+                    bars = unique(sort(bars,2),'rows');                  % Bars as node pairs
+                    dlon = obj.p(bars(:,1),1)- obj.p(bars(:,2),1);     % List of bar vectors
                     % Only add the periodic point list
-                    [I,d] = ourKNNsearch(obj.p',obj.p'+[360;0],1);
-                    J = find(d < 1e-5);
-                    % list of points that are same on both sides
-                    periodic_bc_list = [I(J) J];    
+                    %[I,d] = ourKNNsearch(obj.p',obj.p'+[360;0],1);
+                    %J = find(d < 1e-5);
+                    % list of points that straddle the -180/180 boundary
+                    periodic_bc_list = bars(abs(dlon) > 180,:);    
                     obj.bd.nbou = 1 ;
                     obj.bd.nvel = length(periodic_bc_list) ;
                     obj.bd.nvell = obj.bd.nvel ;
