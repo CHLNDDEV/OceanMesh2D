@@ -623,23 +623,17 @@ classdef edgefx
             
             [xg,yg] = CreateStructGrid(obj); 
 
-            % KJR June 13, 2018 
-            % Convert mesh size function currently in WGS84 degrees to planar metres. 
-            %hh_m = ConvertToPlanarMetres(xg,yg,hh_m) ; 
-
             % enforce all mesh resolution bounds,grade and enforce the CFL in planar metres
             if(~isinf(obj.max_el_ns))
-                nearshore = abs(obj.boudist) < 0.01 ;
+                nearshore = abs(obj.boudist) < 100;
                 hh_m(nearshore & hh_m > obj.max_el_ns) = obj.max_el_ns;
             end
             hh_m(hh_m < obj.h0 )    = obj.h0;
             for param = obj.max_el'
                 if numel(param)==1 && param~=0
                     mx   = obj.max_el(1);
-                    %limidx = hh_m > (mx/111e3) ;
                     limidx = hh_m > mx ;
                     
-                    %hh_m( limidx ) = (mx/111e3);
                     hh_m( limidx ) = mx;
                 else
                     mx  = param(1);
@@ -665,7 +659,7 @@ classdef edgefx
             end
             
             dx = obj.h0*cosd(yg(1,:)); % for gradient function
-            dy = obj.h0; % for gradient function
+            dy = obj.h0;               % for gradient function
             [hfun,flag] = limgradStruct(obj.ny,dx,dy,hfun,...
                                         obj.g,sqrt(length(hfun)));
             if flag == 1
@@ -687,7 +681,7 @@ classdef edgefx
             % enforce the CFL if present
             % Limit CFL if dt >= 0, dt = 0 finds dt automatically.
             if obj.dt >= 0
-                if(isempty(feat.Fb)); error('No DEM supplied.'); end 
+                if(isempty(feat.Fb)); error('No DEM supplied Can''t CFL limit.'); end 
                 tmpz    = feat.Fb(xg,yg);
                 grav = 9.807; descfl = 0.50;
                 % limit the minimum depth to 1 m
@@ -705,8 +699,6 @@ classdef edgefx
                         hh_d = [];
                     end
                     if ~isempty(hh_d)
-                        % Convert hh_d to planar meters 
-                        hh_d = ConvertToPlanarMetres(xg,yg,hh_d); 
                         hh_d(hh_d < obj.h0) = obj.h0;
                         obj.dt = min(min(descfl*hh_d./u));
                         clear hh_d
@@ -722,9 +714,6 @@ classdef edgefx
                 clear cfl dxn u hh_d;
             end
 
-            % KJR June 13, 2018 
-            % Convert back into WGS84 degrees 
-            %hh_m = ConvertToWGS84(yg,hh_m) ; 
             obj.F = griddedInterpolant(xg,yg,hh_m,'linear','nearest');
             
             clearvars xg yg
