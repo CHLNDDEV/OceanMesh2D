@@ -15,7 +15,7 @@ grade     = 0.25;                % mesh grade in decimal percent.
 R         = 3; 			         % Number of elements to resolve feature.
 slp       = 10;                  % slope of 10
 
-outname = 'Global_4km';
+outname = 'Global_4km_20km';
 
 %% STEP 2: specify geographical datasets and process the geographical data
 %% to be used later with other OceanMesh classes...

@@ -514,9 +514,7 @@ classdef meshgen
                 obj.qual(it,:) = [mq_m,mq_l3sig,mq_l];
                 % Termination quality, mesh quality reached is copacetic.
                 if mod(it,imp2) == 0
-                    if mq_l3sig > 0.6 && ...
-                       mq_l3sig - obj.qual(max(1,it-imp2),2) < 0.01
-                    %if mq_l3sig > 0.75
+                    if abs(mq_l3sig - obj.qual(max(1,it-imp2),2)) < 0.01
                         % Do the final elimination of small connectivity
                         [t,p] = delaunay_elim(p,obj.fd,geps,1);
                         disp('Quality of mesh is good enough, exit')
@@ -702,7 +700,8 @@ classdef meshgen
                         p(nn,:) = []; pt1(nn,:) = [];
                     end
                     t = TR.ConnectivityList;
-                    pmid = squeeze(mean(reshape(p(t,:),[],3,2),2));        % Compute centroids
+                    pmid = squeeze(mean(reshape(pt1(t,:),[],3,2),2));      % Compute centroids
+                    [pmid(:,1),pmid(:,2)] = m_xy2ll(pmid(:,1),pmid(:,2));  % Change back to lat lon
                     t    = t(feval(fd,pmid,obj,[]) < -geps,:);             % Keep interior triangles
                     % Deleting very straight triangles
                     tq_n = gettrimeshquan( pt1, t);
