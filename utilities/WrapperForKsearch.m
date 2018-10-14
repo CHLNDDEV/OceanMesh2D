@@ -16,6 +16,9 @@ if project
     [dataset(:,1),dataset(:,2)] = m_ll2xy(dataset(:,1),dataset(:,2));
     [testset(:,1),testset(:,2)] = m_ll2xy(testset(:,1),testset(:,2));
     dataset(isnan(dataset(:,1)),:) = [];
+    % This line removes the line that can appear in the center for
+    % steoreographic projection from the bbox
+    dataset(abs(dataset(:,1)) < 1e-6,:) = [];
 end
 anno = ann(dataset'); 
 [idx,~] = ksearch(anno, testset',1,0); 
