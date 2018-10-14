@@ -152,6 +152,7 @@ classdef msh
         
         % general plot function
         function h = plot(obj,type,proj,projection,bou)
+            np_g = length(obj.p) ; ne_g = length(obj.t) ; 
             if nargin < 3
                 proj = 1;
             end
@@ -165,7 +166,9 @@ classdef msh
                         bou(1,1) bou(2,1)];
                 end
                 % Get a subset given by bou
-                obj = ExtractSubDomain(obj,bou);
+                [obj,kept] = ExtractSubDomain(obj,bou);
+            else
+                kept = (1:length(obj.p))'; 
             end
             if nargin < 4 || isempty(projection)
                 projection = 'Transverse Mercator';
@@ -278,8 +281,8 @@ classdef msh
                         %m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
                         m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
                     else
-                        trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
-                        %trisurf(obj.t,obj.p(:,1),obj.p(:,2),q)
+                        %trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
+                        trisurf(obj.t,obj.p(:,1),obj.p(:,2),q)
                         view(2); %shading interp;
                     end
                     cmocean('deep',numticks-1); cb = colorbar;
@@ -428,11 +431,23 @@ classdef msh
                         defval  = obj.f13.defval.Atr(ii).Val;
                         userval = obj.f13.userval.Atr(ii).Val;
                         values = max(userval(2:end,:)',[],2);
-                        figure;
-                        fastscatter(obj.p(userval(1,:),1),obj.p(userval(1,:),2),values);
+                        alltogether = zeros(np_g,1)+0.025 ; 
+                        alltogether(userval(1,:)',1) = values;
+                        if proj
+                            figure;
+                            m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),alltogether(kept));
+                        else
+                            trisurf(obj.t,obj.p(:,1),obj.p(:,2),alltogether(kept));
+                        end
                         nouq = length(unique(values));
                         colormap(jet(nouq));
                         colorbar;
+%                         [~,bpt] = extdom_edges2(obj.t,obj.p);
+%                         if proj
+%                           hold on, m_plot(bpt(:,1),bpt(:,2),'r.');
+%                         else
+%                           hold on, plot(bpt(:,1),bpt(:,2),'r.');
+%                         end
                         title('Manning n')
                     else
                         display('Fort13 structure is empty!');
