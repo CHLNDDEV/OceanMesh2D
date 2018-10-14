@@ -46,9 +46,9 @@ classdef msh
                 type = '14';
             end
             if any(contains(type,'14'))
-                bdflag = 1; 
+                bdflag = 1;
                 if any(contains(type,'14nob'))
-                   bdflag = 0; 
+                    bdflag = 0;
                 end
                 [t,p,b,op,bd,title] = readfort14([fname '.14'],bdflag);
                 obj.p  = p; obj.t  = t; obj.b  = b;
@@ -119,11 +119,11 @@ classdef msh
                     end
                     if any(contains(type,'14'))
                         writefort14( [fname '.14'] , obj.t, obj.p, b_t, ...
-                                     obj.op , obj.bd ,obj.title ) ;
+                            obj.op , obj.bd ,obj.title ) ;
                     end
                     if any(contains(type,'ww3'))
                         writeww3( [fname '.ww3'] , obj.t, obj.p, b_t, ...
-                                     obj.op , obj.title ) ; 
+                            obj.op , obj.title ) ;
                     end
                 end
                 if any(contains(type,'11')) && ~isempty(obj.f11)
@@ -156,16 +156,16 @@ classdef msh
                 proj = 1;
             end
             if nargin == 5
-               if numel(bou) == 4
+                if numel(bou) == 4
                     % i.e. is a bounding box
                     bou = [bou(1,1) bou(2,1);
-                           bou(1,1) bou(2,2); ...
-                           bou(1,2) bou(2,2);
-                           bou(1,2) bou(2,1); ...
-                           bou(1,1) bou(2,1)]; 
-               end
-               % Get a subset given by bou
-               obj = ExtractSubDomain(obj,bou);
+                        bou(1,1) bou(2,2); ...
+                        bou(1,2) bou(2,2);
+                        bou(1,2) bou(2,1); ...
+                        bou(1,1) bou(2,1)];
+                end
+                % Get a subset given by bou
+                obj = ExtractSubDomain(obj,bou);
             end
             if proj
                 if nargin < 4 || isempty(projection)
@@ -175,16 +175,16 @@ classdef msh
                     if max(obj.p(:,2)) < 0
                         % center Antarctica
                         m_proj(projection,'lat',-90,'long',0,...
-                         'radius',min(179.9,1.01*max(max(obj.p(:,2))+90)));
+                            'radius',min(179.9,1.01*max(max(obj.p(:,2))+90)));
                     else
                         % center Arctic
                         m_proj(projection,'lat',90,'long',0,...
-                         'radius',min(179.9,1.01*max(90-min(obj.p(:,2)))));
-                    end                 
+                            'radius',min(179.9,1.01*max(90-min(obj.p(:,2)))));
+                    end
                 else
                     m_proj(projection,...
-                           'lon',[min(obj.p(:,1)),max(obj.p(:,1))],...
-                           'lat',[min(obj.p(:,2)),max(obj.p(:,2))])  ;
+                        'lon',[min(obj.p(:,1)),max(obj.p(:,1))],...
+                        'lat',[min(obj.p(:,2)),max(obj.p(:,2))])  ;
                 end
             end
             logaxis = 0; numticks = 10;
@@ -194,38 +194,38 @@ classdef msh
             switch type
                 % parse aux options first
                 case('tri')
-                    figure; 
+                    figure;
                     if proj
                         m_triplot(obj.p(:,1),obj.p(:,2),obj.t);
                     else
                         simpplot(obj.p,obj.t);
                     end
-                case('bd') 
+                case('bd')
                     figure; hold on;
                     if proj
                         m_triplot(obj.p(:,1),obj.p(:,2),obj.t);
                     else
-                        simpplot(obj.p,obj.t); 
+                        simpplot(obj.p,obj.t);
                     end
                     if ~isempty(obj.bd)
                         for nb = 1 : obj.bd.nbou
                             if obj.bd.ibtype(nb) == 94
-                                if proj 
-                                   m_plot(obj.p(obj.bd.nbvv(:),1),...
-                                          obj.p(obj.bd.nbvv(:),2),...
-                                          'r.','linewi',1.2); 
+                                if proj
+                                    m_plot(obj.p(obj.bd.nbvv(:),1),...
+                                        obj.p(obj.bd.nbvv(:),2),...
+                                        'r.','linewi',1.2);
                                 else
                                     plot(obj.p(obj.bd.nbvv(:),1),...
-                                         obj.p(obj.bd.nbvv(:),2),...
-                                         'r.','linewi',1.2); 
+                                        obj.p(obj.bd.nbvv(:),2),...
+                                        'r.','linewi',1.2);
                                 end
                             else
                                 if proj
                                     m_plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
-                                    obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'g-','linewi',1.2);
+                                        obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'g-','linewi',1.2);
                                 else
                                     plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
-                                    obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'g-','linewi',1.2);
+                                        obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'g-','linewi',1.2);
                                 end
                             end
                         end
@@ -234,7 +234,7 @@ classdef msh
                         for nb = 1 : obj.op.nope
                             if proj
                                 m_plot(obj.p(obj.op.nbdv(1:obj.op.nvdll(nb),nb),1),...
-                                    obj.p(obj.op.nbdv(1:obj.op.nvdll(nb),nb),2),'b-','linewi',1.2);
+                                    obj.p(obj.op.nbdv(1:obj.op.nvdll(nb),nb),2),'b-','linewi',3.2);
                             else
                                 plot(obj.p(obj.op.nbdv(1:obj.op.nvdll(nb),nb),1),...
                                     obj.p(obj.op.nbdv(1:obj.op.nvdll(nb),nb),2),'b-','linewi',1.2);
@@ -250,24 +250,24 @@ classdef msh
                         q = log10(max(1,abs(obj.b))); % plot on log scale
                     else
                         q = obj.b;
-                    end 
-%                     if nargin == 5
-%                         % Trick to full it out white space
-%                         lon = linspace(min(bou(:,1)),max(bou(:,1)),500);
-%                         lat = linspace(min(bou(:,2)),max(bou(:,2)),500);
-%                         [lon,lat] = meshgrid(lon,lat);
-%                         F = scatteredInterpolant(obj.p(:,1),obj.p(:,2),...
-%                                                  q,'linear','nearest');
-%                         V = F(lon,lat); V(25:end-25,25:end-25) = NaN;
-%                         if proj
-%                            m_pcolor(lon,lat,V); shading interp
-%                         else
-%                            pcolor(lon,lat,V); shading interp
-%                         end
-%                     end 
+                    end
+                    %                     if nargin == 5
+                    %                         % Trick to full it out white space
+                    %                         lon = linspace(min(bou(:,1)),max(bou(:,1)),500);
+                    %                         lat = linspace(min(bou(:,2)),max(bou(:,2)),500);
+                    %                         [lon,lat] = meshgrid(lon,lat);
+                    %                         F = scatteredInterpolant(obj.p(:,1),obj.p(:,2),...
+                    %                                                  q,'linear','nearest');
+                    %                         V = F(lon,lat); V(25:end-25,25:end-25) = NaN;
+                    %                         if proj
+                    %                            m_pcolor(lon,lat,V); shading interp
+                    %                         else
+                    %                            pcolor(lon,lat,V); shading interp
+                    %                         end
+                    %                     end
                     if proj
-                        m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
-                        %m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
+                        %m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
+                        m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
                     else
                         trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
                         %trisurf(obj.t,obj.p(:,1),obj.p(:,2),q)
@@ -299,7 +299,7 @@ classdef msh
                 case('ob') % outer boundary of mesh
                     [~,bpt] = extdom_edges2(obj.t,obj.p);
                     if proj
-                       figure, m_plot(bpt(:,1),bpt(:,2),'r.');
+                        figure, m_plot(bpt(:,1),bpt(:,2),'r.');
                     else
                         figure, plot(bpt(:,1),bpt(:,2),'r.');
                     end
@@ -320,18 +320,19 @@ classdef msh
                     % scale by earth radius
                     Re = 6378.137e3; z = Re*z;
                     if logaxis
-                       q = log10(z); % plot on log scale with base
+                        q = log10(z); % plot on log scale with base
                     else
-                       q = z; 
+                        q = z;
                     end
                     if proj
                         figure;
-                        m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
+                        % m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
+                        m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
                     else
                         figure;
                         trimesh(obj.t,obj.p(:,1),obj.p(:,2),q,'facecolor',...
                             'flat', 'edgecolor', 'none');
-                        view(2); 
+                        view(2);
                     end
                     cmocean('thermal',numticks-1); cb = colorbar;
                     if logaxis
@@ -386,11 +387,16 @@ classdef msh
                         userval = obj.f13.userval.Atr(ii).Val;
                         values = max(userval(2:end,:)',[],2);
                         figure;
-                        fastscatter(obj.p(userval(1,:),1),obj.p(userval(1,:),2),values);
+                        m_fastscatter(obj.p(userval(1,:),1),obj.p(userval(1,:),2),values);
                         colormap(cmocean('deep',10));
                         caxis([0 5e-5])
                         colorbar;
-                    else
+                        [~,bpt] = extdom_edges2(obj.t,obj.p);
+                        if proj
+                          hold on, m_plot(bpt(:,1),bpt(:,2),'r.');
+                        else
+                          hold on, plot(bpt(:,1),bpt(:,2),'r.');
+                        end
                         display('Fort13 structure is empty!');
                     end
                 case('cfvals')
@@ -435,8 +441,8 @@ classdef msh
                     %                     caxis([0 5e-5])
                     colorbar;
                 case('transect')
-                    if proj 
-                      error('To plot transects, you must plot with proj=0!'); 
+                    if proj
+                        error('To plot transects, you must plot with proj=0!');
                     end
                     cmap = cmocean('ice',256);
                     figure;
@@ -470,7 +476,7 @@ classdef msh
             end
             if proj
                 % now add the box
-                m_grid('box','fancy','FontSize',12);
+                m_grid('box','fancy','FontSize',16);
             end
         end
         
@@ -583,7 +589,7 @@ classdef msh
         % make nodestrings
         function obj = makens(obj,type,dir)
             if nargin < 2
-               error('Needs type: one of auto, islands or outer') 
+                error('Needs type: one of auto, islands or outer')
             end
             trim = 0; periodic = 0;
             if strcmp(type(max(1,end-3):end),'trim')
@@ -603,11 +609,11 @@ classdef msh
                     if ~isempty(L) && ~isempty(R)
                         periodic = 1;
                         disp(['Detected global mesh applying automatic' ...
-                              ' periodic BC fix'])
-                        % start by deleting the elements that straddle the 
+                            ' periodic BC fix'])
+                        % start by deleting the elements that straddle the
                         % -180/180 boundary
                         xt = [obj.p(obj.t(:,1),1) obj.p(obj.t(:,2),1) ...
-                              obj.p(obj.t(:,3),1) obj.p(obj.t(:,1),1)];
+                            obj.p(obj.t(:,3),1) obj.p(obj.t(:,1),1)];
                         dxt = diff(xt,[],2);
                         I = abs(dxt(:,1)) > 180 | abs(dxt(:,2)) > 180 | ...
                             abs(dxt(:,2)) > 180;
@@ -623,7 +629,7 @@ classdef msh
                     nope = 0; neta = 0; nbou  = 0; nvel  = 0;
                     % Find the polygon that is a combination of ocean
                     % and mainland boundaries.
-                    [~,idx] = sort(cellfun(@length,poly_idx),'descend');    
+                    [~,idx] = sort(cellfun(@length,poly_idx),'descend');
                     for op_ind = idx
                         % Get distance to outer
                         idv = poly_idx{op_ind};
@@ -634,10 +640,10 @@ classdef msh
                     end
                     % Get geodata outer and mainland polygons
                     outer = [gdat.outer(~isnan(gdat.outer(:,1)),:);
-                             gdat.inner(~isnan(gdat.inner(:,1)),:)];
+                        gdat.inner(~isnan(gdat.inner(:,1)),:)];
                     main = [gdat.mainland(~isnan(gdat.mainland(:,1)),:);
-                            gdat.inner(~isnan(gdat.inner(:,1)),:)];
-                    [~, d_out] = ourKNNsearch(outer',obj.p(idv,:)',1);    
+                        gdat.inner(~isnan(gdat.inner(:,1)),:)];
+                    [~, d_out] = ourKNNsearch(outer',obj.p(idv,:)',1);
                     [~, d_main] = ourKNNsearch(main',obj.p(idv,:)',1);
                     
                     % Mainland are nodes where shortest distance to
@@ -645,16 +651,16 @@ classdef msh
                     % distance to mainland is relatively small
                     if trim
                         mainland = abs(d_out - d_main) < gdat.h0/111e3 & ...
-                                   d_main < 5*gdat.h0/111e3;
+                            d_main < 5*gdat.h0/111e3;
                     else
-                        mainland = abs(d_out - d_main) < gdat.h0/111e3; 
+                        mainland = abs(d_out - d_main) < gdat.h0/111e3;
                     end
                     
                     % indices of switch
                     Cuts  = find(diff(mainland ~= 0));
                     
                     if ~periodic
-                        % Do not include open boundary that is smaller than 
+                        % Do not include open boundary that is smaller than
                         % 10 vertices across
                         Cuts(diff(Cuts) < 10) = [];
                     end
@@ -662,7 +668,7 @@ classdef msh
                     % Get length of largest island
                     % Delete the open boundary/mainland polygon
                     poly_idx(op_ind)= [];
-                    L = max(1e3,max(cellfun(@length,poly_idx)));  
+                    L = max(1e3,max(cellfun(@length,poly_idx)));
                     
                     if isempty(Cuts)
                         % if no mainland..
@@ -684,7 +690,7 @@ classdef msh
                             % Break up idv_temp into L chunks
                             N = ceil(length(idv_temp)/L);
                             LE = ceil(length(idv_temp)/N);
-                            ns = 1; 
+                            ns = 1;
                             for nn = 1:N
                                 ne = min(ns + LE - 1,length(idv_temp));
                                 idv_t = idv_temp(ns:ne);
@@ -737,7 +743,7 @@ classdef msh
                     
                     %% For periodic Bcs below
                     % Get open boundary points
-                    opp = obj.op.nbdv(:); opp(opp == 0) = []; 
+                    opp = obj.op.nbdv(:); opp(opp == 0) = [];
                     % Get the open boundary points on left side
                     I = obj.p(opp,1) < -179;
                     % ensure these are set to -180 correctly
@@ -757,7 +763,7 @@ classdef msh
                     mshopts = meshgen('proj','ster');
                     mshopts.pfix = pfix;
                     mshopts.egfix = ee;
-
+                    
                     [pt(:,1),pt(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2));
                     % Make a new triangulation using obj.p;
                     DT = delaunayTriangulation(pt);
@@ -782,21 +788,21 @@ classdef msh
                     m2.b = []; m2.op = []; m2.bd = [];
                     mshopts.grd = m2; % get out the msh object
                     mshopts = clean(mshopts);
-
+                    
                     % Get the new match and cleaned grid
                     obj = mshopts.grd;
-
+                    
                     % Now add in the periodic point list
                     [I,d] = ourKNNsearch(obj.p',obj.p'+[360;0],1);
                     J = find(d < 1e-5);
                     % list of points that are same on both sides
-                    periodic_bc_list = [I(J) J];    
+                    periodic_bc_list = [I(J) J];
                     obj.bd.nbou = 1 ;
                     obj.bd.nvel = length(periodic_bc_list) ;
                     obj.bd.nvell = obj.bd.nvel ;
                     obj.bd.ibtype = 94 ;
                     obj.bd.nbvv = periodic_bc_list ;
-
+                    
                 case('islands')
                     [etbv,~]  = extdom_edges2(obj.t,obj.p);
                     [poly,poly_idx,max_ind] = extdom_polygon(etbv,obj.p,1);
@@ -858,13 +864,13 @@ classdef msh
                     [I,d] = ourKNNsearch(obj.p',obj.p'+[360;0],1);
                     J = find(d < 1e-5);
                     % list of points that are same on both sides
-                    periodic_bc_list = [I(J) J];    
+                    periodic_bc_list = [I(J) J];
                     obj.bd.nbou = 1 ;
                     obj.bd.nvel = length(periodic_bc_list) ;
                     obj.bd.nvell = obj.bd.nvel ;
                     obj.bd.ibtype = 94 ;
                     obj.bd.nbvv = periodic_bc_list ;
-                return;
+                    return;
                     
             end
             function txt = myupdatefcn2(~,event_obj,myarray)
@@ -1070,7 +1076,7 @@ classdef msh
             idx2 = idx(:)*0;
             % Rearrange to vector
             for ii = 1:length(idx)
-               idx2(2*ii-1:2*ii) = idx(ii,:)'; 
+                idx2(2*ii-1:2*ii) = idx(ii,:)';
             end
             d = m_lldist(obj.p(idx2,1),obj.p(idx2,2));
             d = d(1:2:end)*1e3;

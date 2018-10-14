@@ -1,3 +1,4 @@
+
 classdef edgefx
     %   EDGEFX: Edgefunction class
     %   Constructs edgefunctions that are based on numerous geomteric and
@@ -641,7 +642,7 @@ classdef edgefx
                     dp2 = param(3);
 
                     limidx = (feat.Fb(xg,yg) < dp1 & ...
-                              feat.Fb(xg,yg) > dp2) & hh_m > mx;
+                              feat.Fb(xg,yg) > dp2)  & hh_m > mx;
 
                     hh_m( limidx ) = mx;
                 end
