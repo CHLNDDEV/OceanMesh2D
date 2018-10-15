@@ -297,10 +297,12 @@ classdef meshgen
                         % default CPP
                         if obj.proj == 0; obj.proj = 'equi'; end
                         if ~isempty(obj.bbox)
-                            lon_mi = obj.bbox{1}(1,1)-obj.h0/1110;
-                            lon_ma = obj.bbox{1}(1,2)+obj.h0/1110;
-                            lat_mi = obj.bbox{1}(2,1)-obj.h0/1110;
-                            lat_ma = obj.bbox{1}(2,2)+obj.h0/1110;
+                            % kjr Oct 2018 use outer coarsest box for
+                            % multiscale meshing
+                            lon_mi = obj.bbox{1}(1,1)-obj.h0(1)/1110;
+                            lon_ma = obj.bbox{1}(1,2)+obj.h0(1)/1110;
+                            lat_mi = obj.bbox{1}(2,1)-obj.h0(1)/1110;
+                            lat_ma = obj.bbox{1}(2,2)+obj.h0(1)/1110;
                         else
                             lon_mi = -180; lon_ma = 180; 
                             lat_mi = -90; lat_ma = 90;
@@ -323,13 +325,12 @@ classdef meshgen
                                        'radius',90-lat_mi);
                             end
                         else
-                            obj.proj = m_proj(obj.proj,...
+                             m_proj(obj.proj,...
                               'lon',[lon_mi lon_ma],'lat',[lat_mi lat_ma]);
                         end
                 end
             end
             
-            % no need to check, we wanted to make a dummy input
             if isempty(varargin); return; end
             
             % error checking
@@ -497,8 +498,10 @@ classdef meshgen
                             m_plot(p(1:nfix,1),p(1:nfix,2),'r.')
                         end
                         plt = cell2mat(obj.boubox');
+                        % reduce point spacing for asecthics
+                        [plt2(:,2),plt2(:,1)] = my_interpm(plt(:,2),plt(:,1),0.1) ; 
                         hold on ; axis manual
-                        m_plot(plt(:,1),plt(:,2),'g','linewi',2)
+                        m_plot(plt2(:,1),plt2(:,2),'g','linewi',2)
                         drawnow
                     end
                 end
@@ -560,6 +563,7 @@ classdef meshgen
                     end
                     h0_l = obj.h0(box_num);
                     if box_num > 1
+                        h0_l = h0_l/111e3;                                 % create buffer to evalulate fh between nests
                         inside = (ideal_bars(:,1) >= bbox_l(1,1) - h0_l & ...
                             ideal_bars(:,1) <= bbox_l(1,2) + h0_l & ...
                             ideal_bars(:,2) >= bbox_l(2,1) - h0_l & ...

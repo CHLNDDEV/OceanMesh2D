@@ -25,7 +25,8 @@
               'using #' num2str(find(found)) ' inner edgefxs']);
         hfun = zeros(numel(efs{ii}.F.Values),1);
         [xg,yg] = ndgrid(efs{ii}.F.GridVectors{1},efs{ii}.F.GridVectors{2});
-        hh_m = ConvertToPlanarMetres(xg,yg,hh_m) ; 
+        % kjr Oct 2018 already in planar meters!
+        % hh_m = ConvertToPlanarMetres(xg,yg,hh_m) ; 
         nn = 0;
         for ipos = 1 : efs{ii}.nx
             for jpos = 1 : efs{ii}.ny
@@ -33,8 +34,13 @@
                 hfun(nn,1) = hh_m(ipos,jpos);
             end
         end
-        [hfun,flag] = limgradStruct(efs{ii}.ny,efs{ii}.h0,hfun,...
+        % kjr  Oct 2018 consistent with default application of gradient limiting!
+        dx = efs{ii}.h0*cosd(yg(1,:)); 
+        dy = efs{ii}.h0;               
+        [hfun,flag] = limgradStruct(efs{ii}.ny,dx,dy,hfun,...
             efs{ii}.g,sqrt(length(hfun)));
+        %[hfun,flag] = limgradStruct(efs{ii}.ny,efs{ii}.h0,hfun,...
+        %    efs{ii}.g,sqrt(length(hfun)));
         if flag == 1
             disp('Gradient relaxing converged!');
         else
@@ -49,7 +55,7 @@
                 hh_m(ipos,jpos) = hfun(nn);
             end
         end
-        hh_m = ConvertToWGS84(yg,hh_m) ; 
+        %hh_m = ConvertToWGS84(yg,hh_m) ; 
         % Save it back into the interpolant
         efs{ii}.F.Values = hh_m;
     end
