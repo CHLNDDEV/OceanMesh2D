@@ -433,7 +433,7 @@ classdef meshgen
                     end
                 end
             else
-                imp = 1; % number of iterations to do mesh improvements (delete/add)
+                imp = 5; % number of iterations to do mesh improvements (delete/add)
                 h0_l = obj.h0(end); % finest h0 (in case of a restart of meshgen.build).
             end
             
@@ -732,10 +732,12 @@ classdef meshgen
                 db = 1;
             end
             
+            [obj.grd.p(:,1),obj.grd.p(:,2)] = ...
+                                   m_ll2xy(obj.grd.p(:,1),obj.grd.p(:,2)); 
             if db
                 % Begin by just deleting poor mesh boundary elements
-                [pt(:,1),pt(:,2)] = m_ll2xy(obj.grd.p(:,1),obj.grd.p(:,2)); 
-                tq = gettrimeshquan(pt,obj.grd.t);
+                %[pt(:,1),pt(:,2)] = m_ll2xy(obj.grd.p(:,1),obj.grd.p(:,2)); 
+                tq = gettrimeshquan(obj.grd.p,obj.grd.t);
                 % Get the elements that have a boundary bar
                 bdbars = extdom_edges2(obj.grd.t,obj.grd.p);
                 bdnodes = unique(bdbars(:));
@@ -772,9 +774,7 @@ classdef meshgen
                 % Perform the direct smoothing
                 [obj.grd.p,obj.grd.t] = direct_smoother_lur(obj.grd.p,...
                                           obj.grd.t,obj.pfix,obj.nscreen);
-                if exist('pt','var'); clear pt; end                      
-                [pt(:,1),pt(:,2)] = m_ll2xy(obj.grd.p(:,1),obj.grd.p(:,2));
-                tq = gettrimeshquan( pt, obj.grd.t);
+                tq = gettrimeshquan( obj.grd.p, obj.grd.t);
                 if min(tq.qm) < 0
                     % Need to clean it again
                     disp('Overlapping elements due to smoother, cleaning again')
@@ -784,9 +784,7 @@ classdef meshgen
             end
             
             % Checking and displaying element quality
-            if exist('pt','var'); clear pt; end
-            [pt(:,1),pt(:,2)] = m_ll2xy(obj.grd.p(:,1),obj.grd.p(:,2));
-            tq = gettrimeshquan( pt, obj.grd.t);
+            tq = gettrimeshquan( obj.grd.p, obj.grd.t);
             mq_m = mean(tq.qm);
             mq_l = min(tq.qm);
             mq_s = std(tq.qm);
@@ -796,7 +794,10 @@ classdef meshgen
             disp(['number of nodes is ' num2str(length(obj.grd.p))])
             disp(['mean quality is ' num2str(mq_m)])
             disp(['min quality is ' num2str(mq_l)])
-            
+           
+            % Do the transformation back
+            [obj.grd.p(:,1),obj.grd.p(:,2)] = ...
+                                   m_xy2ll(obj.grd.p(:,1),obj.grd.p(:,2));
         end
         
         function obj = nearshorefix(obj)

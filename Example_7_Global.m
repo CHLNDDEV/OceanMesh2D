@@ -42,4 +42,5 @@ m = mshopts.grd; % get out the msh object
 m = makens(m,'periodic');
 % Plotting the triangulation with the periodic BC nodes in red
 plot(m,'bd',1,'Robinson');
-%save([outname '.mat'],'m'); %write(m,outname);
+save([outname '.mat'],'m'); 
+%write(m,outname);

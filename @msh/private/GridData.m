@@ -112,7 +112,7 @@ if length(K) == length(obj.p)
 end
 
 % If the length of DEM_X and DEM_Y is too large then let's break it up by
-% using the K
+% using K 
 % test 
 lon_min = min(obj.p(K,1));
 lon_max = max(obj.p(K,1));
@@ -125,22 +125,30 @@ J = find(DEM_YA >= lat_min & DEM_YA <= lat_max);
 L = length(I)*length(J)*4e-9;
 % larger than 2 GB
 if L > 2
-    times = ceil(L/2); lon_l = lon_min; dl = (lon_max - lon_min)/times;
+    % divide by latitude
+    times = ceil(L/2); lat_l = lat_min; dl = (lat_max - lat_min)/times;
     for t = 1:times
-        lon_r = lon_l + dl;
+        lat_r = lat_l + dl;
         if t == times
-            lon_r = lon_max;
+            lat_r = lat_max;
         end
-        KK{t} = K(obj.p(K,1) >= lon_l & obj.p(K,1) <= lon_r);
-        lon_l = lon_r;
+        KK{t} = K(obj.p(K,2) >= lat_l & obj.p(K,2) <= lat_r);
+        lat_l = lat_r;
     end
 else
     times = 1;
     KK{1} = K;
 end
+% This deletes any elements straddling the -180/180 boundary 
+xt = [obj.p(obj.t(:,1),1) obj.p(obj.t(:,2),1) ...
+      obj.p(obj.t(:,3),1) obj.p(obj.t(:,1),1)];
+dxt = diff(xt,[],2);
+tt = obj.t;
+tt(abs(dxt(:,1)) > 180 | abs(dxt(:,2)) > 180 |  abs(dxt(:,2)) > 180,:) = [];
+
 % Do this once;
-vtoe_o = VertToEle(obj.t); %find connecting elements to each node
-pmid = squeeze(mean(reshape(obj.p(obj.t,:),[],3,2),2)); % get mid points of elements
+vtoe_o = VertToEle(tt); %find connecting elements to each node
+pmid = squeeze(mean(reshape(obj.p(tt,:),[],3,2),2)); % get mid points of elements
 pmid(end+1,:) = NaN;
 
 K_o = K; % save the original K
@@ -151,7 +159,7 @@ K = KK{t};
 % Get the subset 
 vtoe = vtoe_o(:,K);
 % make sure when vtoe is zero we just return a NaN
-vtoe(vtoe == 0) = length(obj.t) + 1;
+vtoe(vtoe == 0) = length(tt) + 1;
 % the connecting element centers
 pcon = reshape(pmid(vtoe,:),size(vtoe,1),[],2);
 % delta is max and min bounds of the connecting element centers (or if only
@@ -243,7 +251,8 @@ if strcmp(interp,'CA')
     % Average for the depths    
     if strcmp(type,'depth') || strcmp(type,'all')
         for ii = 1:length(K)
-            b(ii) = mean(reshape(DEM_Z(IDXL(ii):IDXR(ii),IDXB(ii):IDXT(ii)),[],1),'omitnan');
+            b(ii) = mean(reshape(DEM_Z(IDXL(ii):IDXR(ii),...
+                                       IDXB(ii):IDXT(ii)),[],1),'omitnan');
         end
         % Try and fill in the NaNs
         if strcmp(NaNs,'fill')
@@ -258,8 +267,10 @@ if strcmp(interp,'CA')
     % Average for the slopes
     if strcmp(type,'slope') || strcmp(type,'all')
         for ii = 1:length(K)
-            bx(ii) = mean(reshape(DEM_ZX(IDXL(ii):IDXR(ii),IDXB(ii):IDXT(ii)),[],1),'omitnan');
-            by(ii) = mean(reshape(DEM_ZY(IDXL(ii):IDXR(ii),IDXB(ii):IDXT(ii)),[],1),'omitnan');
+            bx(ii) = mean(reshape(DEM_ZX(IDXL(ii):IDXR(ii),...
+                                         IDXB(ii):IDXT(ii)),[],1),'omitnan');
+            by(ii) = mean(reshape(DEM_ZY(IDXL(ii):IDXR(ii),...
+                                         IDXB(ii):IDXT(ii)),[],1),'omitnan');
         end
         if strcmp(NaNs,'fill')
             % Try and fill in the NaNs
@@ -315,7 +326,7 @@ end
 % New method of averaging asbolute values of slope before multiplying
 % by the sign of the slope on unstructured grid
 if strcmp(type,'slope') || strcmp(type,'all')
-    [Hx,Hy] = Unstruc_Bath_Slope( obj.t,obj.p(:,1),obj.p(:,2),obj.b);
+    [Hx,Hy] = Unstruc_Bath_Slope( tt,obj.p(:,1),obj.p(:,2),obj.b);
     obj.bx(K_o) = sign(Hx(K_o)).*obj.bx(K_o); 
     obj.by(K_o) = sign(Hy(K_o)).*obj.by(K_o);
 end

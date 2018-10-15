@@ -69,15 +69,6 @@ etbv(end+1,:) = 1;
 % Loop until all the nodes only have two boundary edges
 %(the number of boundary edges will equal number of boundary nodes)
 
-global MAP_PROJECTION 
-% Do some projection if none exist
-if isempty(MAP_PROJECTION)
-   m_proj('equi','lon',[min(p(:,1)),max(p(:,1))],...
-                 'lat',[min(p(:,2)),max(p(:,2))]) ;
-end
-% Do the transformation
-[p(:,1),p(:,2)] = m_ll2xy(p(:,1),p(:,2)); 
-
 while numel(etbv) > numel(vxe)
     
     % Delete elements in the exterior of the mesh
@@ -99,8 +90,7 @@ end
 disp('ALERT: finished cleaning up mesh..'); 
 % Turn warnings back on
 warning('on','all')
-% Do the transformation and put back into the msh object
-[p(:,1),p(:,2)] = m_xy2ll(p(:,1),p(:,2)); 
+% Put back into the msh object
 obj.p = p; obj.t = t;
 end
 % The sub-functions...
@@ -111,8 +101,18 @@ end
 %    proportion of the total mesh area
 function t = delete_exterior_elements(p,t,dj_cutoff,nscreen)
 L = size(t,1); 
-t1 = t; t = []; 
-X = p(:,1); Y = p(:,2); 
+t1 = t; t = [];
+global MAP_PROJECTION
+if isempty(MAP_PROJECTION)
+    % need to project
+    m_proj('Azimuthal Equal-area','lon',[min(p(:,1)),max(p(:,1))],...
+           'lat',[min(p(:,2)),max(p(:,2))]) ;
+    % Do the transformation
+    [X,Y] = m_ll2xy(p(:,1),p(:,2)); 
+else
+    % already projected
+    X = p(:,1); Y = p(:,2);  
+end
 A = sum(polyarea(X(t1(:,1:3))',Y(t1(:,1:3))'));  An = A;
 if dj_cutoff >= 1
     Re2 = (6378.137)^2; An = Re2*An;
