@@ -1080,7 +1080,7 @@ classdef msh
             U = sqrt(g*max(obj.b,1)) + sqrt(g./max(obj.b,1));
             if nargin > 1
                 % Get CFL from input dt
-                CFL = dt*U./d;  % <-- from the wave celerity
+                CFL = dt*U(:)./d;  % <-- from the wave celerity
                 out1 = CFL;
             else
                 CFL = 1.0;
