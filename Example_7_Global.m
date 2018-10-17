@@ -38,9 +38,7 @@ mshopts = mshopts.build;
 %% STEP 5: Match points and edges across boundary
 m = mshopts.grd; % get out the msh object 
 
-% This gets the bars that straddle the -180/180 line
-m = makens(m,'periodic');
-% Plotting the triangulation with the periodic BC nodes in red
-plot(m,'bd',1,'Robinson');
+% Plotting the triangulation on Robinson
+plot(m,'tri',1,'Robinson');
 save([outname '.mat'],'m'); 
 %write(m,outname);
