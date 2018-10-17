@@ -160,10 +160,10 @@ classdef msh
                 if numel(bou) == 4
                     % i.e. is a bounding box
                     bou = [bou(1,1) bou(2,1);
-                        bou(1,1) bou(2,2); ...
-                        bou(1,2) bou(2,2);
-                        bou(1,2) bou(2,1); ...
-                        bou(1,1) bou(2,1)];
+                           bou(1,1) bou(2,2); ...
+                           bou(1,2) bou(2,2);
+                           bou(1,2) bou(2,1); ...
+                           bou(1,1) bou(2,1)];
                 end
                 % Get a subset given by bou
                 [obj,kept] = ExtractSubDomain(obj,bou);
@@ -283,7 +283,7 @@ classdef msh
                     else
                         %trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
                         trisurf(obj.t,obj.p(:,1),obj.p(:,2),q)
-                        view(2); %shading interp;
+                        view(2); shading interp;
                     end
                     cmocean('deep',numticks-1); cb = colorbar;
                     if logaxis
@@ -398,18 +398,18 @@ classdef msh
                         ii = find(contains({obj.f13.defval.Atr(:).AttrName},'internal'));
                         userval = obj.f13.userval.Atr(ii).Val;
                         values = max(userval(2:end,:)',[],2);
+                        [~,bpt] = extdom_edges2(obj.t,obj.p);
                         figure;
-                        m_fastscatter(obj.p(userval(1,:),1),obj.p(userval(1,:),2),values);
+                        if proj
+                            m_fastscatter(obj.p(userval(1,:),1),obj.p(userval(1,:),2),values);
+                            hold on, m_plot(bpt(:,1),bpt(:,2),'r.');
+                        else
+                            fastscatter(obj.p(userval(1,:),1),obj.p(userval(1,:),2),values);
+                            hold on, plot(bpt(:,1),bpt(:,2),'r.');
+                        end
                         colormap(cmocean('deep',10));
                         caxis([0 5e-5])
                         colorbar;
-                        [~,bpt] = extdom_edges2(obj.t,obj.p);
-                        if proj
-                          hold on, m_plot(bpt(:,1),bpt(:,2),'r.');
-                        else
-                          hold on, plot(bpt(:,1),bpt(:,2),'r.');
-                        end
-                        display('Fort13 structure is empty!');
                     end
                 case('cfvals')
                     if ~isempty(obj.f13)
@@ -1083,24 +1083,25 @@ classdef msh
         
         function out1 = CalcCFL(obj,dt)
             g      = 9.81;        % gravity
-            R      = 6.3782064e6; % mean radius of earth
-            % Convert lat-lon to radians
-            pp = deg2rad(obj.p);
-            % Get centre point of CPP projection
-            Lon_C = mean(pp(:,1)); Lat_C = mean(pp(:,2));
-            % Convert latitude-longtitude to metres
-            X(:,1) = R*(pp(:,1) - Lon_C)*cos(Lat_C);
-            X(:,2) = R*pp(:,2);
-            % Get nearest two neighbours
-            [idx,~] = ourKNNsearch(X',X',2) ;
-            idx2 = idx(:)*0;
-            % Rearrange to vector
-            for ii = 1:length(idx)
-                idx2(2*ii-1:2*ii) = idx(ii,:)';
-            end
-            d = m_lldist(obj.p(idx2,1),obj.p(idx2,2));
-            d = d(1:2:end)*1e3;
-            
+            bars = [obj.t(:,[1,2]); obj.t(:,[1,3]); obj.t(:,[2,3])]; % Interior bars duplicated
+            bars = unique(sort(bars,2),'rows');                      % Bars as node pairs
+            long   = zeros(length(bars)*2,1);        
+            lat    = zeros(length(bars)*2,1);
+            long(1:2:end) = obj.p(bars(:,1),1); 
+            long(2:2:end) = obj.p(bars(:,2),1);
+            lat(1:2:end)  = obj.p(bars(:,1),2);  
+            lat(2:2:end)  = obj.p(bars(:,2),2);
+            % Get spherical earth distances for bars
+            L = m_lldist(long,lat); L = L(1:2:end)*1e3;            % L = Bar lengths in meters
+            % sort bar lengths in ascending order
+            [L,IA] = sort(L,'ascend');
+            bars = bars(IA,:);
+            % get the minimum bar length for each node
+            [B1,IB] = unique(bars(:,1),'first');
+            [B2,IC] = unique(bars(:,2),'first');
+            d1 = NaN*obj.p(:,1); d2 = NaN*obj.p(:,1);
+            d1(B1) = L(IB); d2(B2) = L(IC);
+            d = min(d1,d2);
             %U = sqrt(g*max(obj.b,1));
             %U(obj.b <= 0) = 1; % <--assume 1 m/s overland velocity.
             
@@ -1151,7 +1152,8 @@ classdef msh
                 it = it + 1;
             end
             toc
-            disp(['Achieved max CFL of ',num2str(max(real(CFL))),' after ',num2str(it),' iterations.']);
+            disp(['Achieved max CFL of ',num2str(max(real(CFL))),...
+                  ' after ',num2str(it),' iterations.']);
             disp('Remove poor quality elements and fix connecitivity problems..');
             
             % Just delete really poor elements
@@ -1170,6 +1172,8 @@ classdef msh
             return;
             
             function obj = DecimateTria(obj,bad)
+                [obj.grd.p(:,1),obj.grd.p(:,2)] = ...
+                                   m_ll2xy(obj.grd.p(:,1),obj.grd.p(:,2)); 
                 obj = Make_Mesh_Boundaries_Traversable(obj,0.001,1);
                 % form outer polygon of mesh for cleaning up.
                 bnde=extdom_edges2(obj.t,obj.p);

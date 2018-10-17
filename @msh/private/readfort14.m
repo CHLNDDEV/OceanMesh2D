@@ -27,8 +27,6 @@ N = fscanf(fid,'%g %g',2) ;
 % Nov 15, 2012, improve reading efficiency
 Val = fscanf(fid,'%d %g %g %g \n', [4 N(2)])' ;
 
-%Val = Val(iv,:) ;
-
 % idx = zeros(N(1),5) ;
 %
 % for i = 1: N(1)
@@ -45,9 +43,14 @@ idx = fscanf(fid,'%d %d %d %d %d \n', [5 N(1)])' ;
 % EToV = zeros(N(1),3) ;
 
 % Arrange it to a Nodal DG input
-VX = Val(:,2:3) ;
-B  = Val(:,4) ;
+
 EToV = idx(:,3:5) ;
+
+VX = NaN(max(EToV(:)),2);
+B = NaN(max(EToV(:)),1);
+
+VX(Val(:,1),:) = Val(:,2:3) ;
+B(Val(:,1)) = Val(:,4) ;
 
 if(read_bou)
     % Read in boundary
