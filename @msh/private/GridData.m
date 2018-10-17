@@ -26,6 +26,9 @@ function obj = GridData(geodata,obj,varargin)
 %                         applies linear griddedInterpolant when the DEM
 %                         and grid sizes are similar. 
 %
+%          N (optional) - enlarge cell-averaging stencil by factor N (only 
+%                         relevant for CA interpolation method). 
+%                         default value N=1. 
 %      Output : obj     - A mesh class object with the following updated:
 %               b       - The depth or vertical difference from the datum
 %                         in the mesh if type is 'depth' or 'all'
@@ -46,9 +49,10 @@ K  = (1:nn)';        % K is all of the grid
 type = 'all';
 interp = 'CA';
 NaNs = 'ignore';
+N    = 1 ; 
 if ~isempty(varargin)
     varargin=varargin{1} ; 
-    names = {'K','type','interp','nan'};
+    names = {'K','type','interp','nan','N'};
     for ii = 1:length(names)
         ind = find(~cellfun(@isempty,strfind(varargin(1:2:end),names{ii})));
         if ~isempty(ind)
@@ -61,9 +65,15 @@ if ~isempty(varargin)
                 interp = varargin{ind*2};
             elseif ii == 4
                 NaNs = varargin{ind*2};
+            elseif ii == 5 
+                N = varargin{ind*2} ; 
             end
         end    
     end
+end
+
+if N > 1 
+   disp(['Enlarging CA stencil by factor ',num2str(N)]) ;  
 end
 
 if strcmp(type,'slope')
@@ -162,11 +172,18 @@ vtoe = vtoe_o(:,K);
 vtoe(vtoe == 0) = length(tt) + 1;
 % the connecting element centers
 pcon = reshape(pmid(vtoe,:),size(vtoe,1),[],2);
+
 % delta is max and min bounds of the connecting element centers (or if only
 % one connecting element then do difference with the vertex itself
+
+% kjr 10/17/2018 enlarge the cell-averaging stencil by a factor N 
 pcon_max = max(squeeze(max(pcon,[],1)),2*obj.p(K,:)-squeeze(min(pcon,[],1)));
 pcon_min = min(squeeze(min(pcon,[],1)),2*obj.p(K,:)-squeeze(max(pcon,[],1)));
 delta = pcon_max - pcon_min;
+
+pcon_max = N*pcon_max+(1-N)*obj.p(K,:) ;
+pcon_min = N*pcon_min+(1-N)*obj.p(K,:) ;
+                
 
 %% Now read the bathy (only what we need)
 if ~isa(geodata,'geodata')
@@ -264,6 +281,54 @@ if strcmp(interp,'CA')
             end
         end
     end
+    
+    % Floodplain interp kjr chl und, 2018,10,16
+    if strcmp(type,'depthsmooth')
+        GRADE = 0.15 ;
+        stride = 5 ;
+        DEM_X2 = DEM_X(1:stride:end,1:stride:end) ;
+        DEM_Y2 = DEM_Y(1:stride:end,1:stride:end) ;
+        DEM_Z2 = DEM_Z(1:stride:end,1:stride:end) ;
+        DEM_X = DEM_X2 ; DEM_Y = DEM_Y2 ; DEM_Z = DEM_Z2 ;
+        clearvars DEM_X2 DEM_Y2 DEM_Z2
+        %%%
+        DX = 111e3*abs(DEM_X(2)-DEM_X(1)) ;
+        [nx,ny] = size(DEM_X) ;
+        % Apply gradient limiting to seabed topography
+        disp('Relaxing the gradient of DEM tile');
+        % relax gradient
+        hfun = zeros(size(DEM_X,1)*size(DEM_X,2),1);
+        nn = 0;
+        for ipos = 1 : nx
+            for jpos = 1 : ny
+                nn = nn + 1;
+                hfun(nn,1) = DEM_Z(ipos,jpos);
+            end
+        end
+        dx = DX*cosd(DEM_Y(1,:)); % for gradient function
+        dy = DX;                 % for gradient function
+        [hfun2,flag] = limgradStruct(ny,dx,dy,hfun,...
+            GRADE,sqrt(length(hfun)));
+        if flag == 1
+            disp(['Gradient relaxing converged to ',num2str(100*GRADE) ,'% ']);
+        else
+            disp('Warning: Gradient relaxing did not converge try increasing the grade');
+        end
+        % reshape it back
+        nn = 0;
+        for ipos = 1 : nx
+            for jpos = 1 : ny
+                nn = nn+1;
+                DEM_Z2(ipos,jpos) = hfun2(nn);
+            end
+        end
+        clearvars hfun
+        % Use nearestneighbor interpolation
+        F  = griddedInterpolant(DEM_X,DEM_Y,DEM_Z2,'nearest','none');
+        obj.b  = F(obj.p(K,1),obj.p(K,2));
+        
+    end
+    
     % Average for the slopes
     if strcmp(type,'slope') || strcmp(type,'all')
         for ii = 1:length(K)
