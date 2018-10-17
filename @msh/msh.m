@@ -33,6 +33,9 @@ classdef msh
         f24 % A struct of the fort24 SAL values
         f2001 % A struct for the fort2001 non-periodic flux/ele sponge bc
         f5354 % A struct for the fort53001/54001 tidal ele/flux sponge bc
+        proj   % Description of projected space (m_mapv1.4)  
+        coord  % Description of projected space (m_mapv1.4) 
+        mapvar % Description of projected space (m_mapv1.4) 
     end
     
     methods
@@ -151,12 +154,12 @@ classdef msh
         end
         
         % general plot function
-        function h = plot(obj,type,proj,projection,bou)
+        function h = plot(obj,type,proj,bou)
             np_g = length(obj.p) ; ne_g = length(obj.t) ; 
             if nargin < 3
                 proj = 1;
             end
-            if nargin == 5
+            if nargin == 4
                 if numel(bou) == 4
                     % i.e. is a bounding box
                     bou = [bou(1,1) bou(2,1);
@@ -170,35 +173,22 @@ classdef msh
             else
                 kept = (1:length(obj.p))'; 
             end
-            if nargin < 4 || isempty(projection)
-                projection = 'Transverse Mercator';
-            end
+            
             if proj
-                if startsWith(projection,'ster','IgnoreCase',true)
-                    if max(obj.p(:,2)) < 0
-                        % center Antarctica
-                        m_proj(projection,'lat',-90,'long',0,...
-                            'radius',min(179.9,1.01*max(max(obj.p(:,2))+90)));
-                    else
-                        % center Arctic
-                        m_proj(projection,'lat',90,'long',0,...
-                            'radius',min(179.9,1.01*max(90-min(obj.p(:,2)))));
-                    end
+                if ~isempty(obj.coord)
+                    % kjr 2018,10,17; Set up projected space imported from msh class
+                    global MAP_PROJECTION MAP_VAR_LIST MAP_COORDS
+                    MAP_PROJECTION = obj.proj ;
+                    MAP_VAR_LIST   = obj.mapvar ;
+                    MAP_COORDS     = obj.coord ;
                 else
-                    m_proj(projection,...
-                        'lon',[min(obj.p(:,1)),max(obj.p(:,1))],...
-                        'lat',[min(obj.p(:,2)),max(obj.p(:,2))])  ;
+                    lon_mi = min(obj.p(:,1)); lon_ma = max(obj.p(:,1));
+                    lat_mi = min(obj.p(:,2)); lat_ma = max(obj.p(:,2));
+                    m_proj('Trans','lon',[lon_mi lon_ma],'lat',[lat_mi lat_ma]) ;
                 end
             end
-            if ~startsWith(projection,'ster','IgnoreCase',true)
-                % This deletes any elements straddling the -180/180
-                % boundary for plotting purposes
-                xt = [obj.p(obj.t(:,1),1) obj.p(obj.t(:,2),1) ...
-                      obj.p(obj.t(:,3),1) obj.p(obj.t(:,1),1)];
-                dxt = diff(xt,[],2);
-                obj.t(abs(dxt(:,1)) > 180 | abs(dxt(:,2)) > 180 | ...
-                      abs(dxt(:,2)) > 180,:) = [];
-            end
+            
+            
             logaxis = 0; numticks = 10;
             if strcmp(type(max(1,end-2):end),'log')
                 logaxis = 1; type = type(1:end-3);
@@ -263,20 +253,6 @@ classdef msh
                     else
                         q = obj.b;
                     end
-                    %                     if nargin == 5
-                    %                         % Trick to full it out white space
-                    %                         lon = linspace(min(bou(:,1)),max(bou(:,1)),500);
-                    %                         lat = linspace(min(bou(:,2)),max(bou(:,2)),500);
-                    %                         [lon,lat] = meshgrid(lon,lat);
-                    %                         F = scatteredInterpolant(obj.p(:,1),obj.p(:,2),...
-                    %                                                  q,'linear','nearest');
-                    %                         V = F(lon,lat); V(25:end-25,25:end-25) = NaN;
-                    %                         if proj
-                    %                            m_pcolor(lon,lat,V); shading interp
-                    %                         else
-                    %                            pcolor(lon,lat,V); shading interp
-                    %                         end
-                    %                     end
                     if proj
                         %m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
                         m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
@@ -442,12 +418,6 @@ classdef msh
                         nouq = length(unique(values));
                         colormap(jet(nouq));
                         colorbar;
-%                         [~,bpt] = extdom_edges2(obj.t,obj.p);
-%                         if proj
-%                           hold on, m_plot(bpt(:,1),bpt(:,2),'r.');
-%                         else
-%                           hold on, plot(bpt(:,1),bpt(:,2),'r.');
-%                         end
                         title('Manning n')
                     else
                         display('Fort13 structure is empty!');
@@ -1081,7 +1051,7 @@ classdef msh
             
         end
         
-        function out1 = CalcCFL(obj,dt)
+        function [out1,barlen,bars] = CalcCFL(obj,dt)
             g      = 9.81;        % gravity
             bars = [obj.t(:,[1,2]); obj.t(:,[1,3]); obj.t(:,[2,3])]; % Interior bars duplicated
             bars = unique(sort(bars,2),'rows');                      % Bars as node pairs
@@ -1092,15 +1062,15 @@ classdef msh
             lat(1:2:end)  = obj.p(bars(:,1),2);  
             lat(2:2:end)  = obj.p(bars(:,2),2);
             % Get spherical earth distances for bars
-            L = m_lldist(long,lat); L = L(1:2:end)*1e3;            % L = Bar lengths in meters
+            barlen = m_lldist(long,lat); barlen = barlen(1:2:end)*1e3;            % L = Bar lengths in meters
             % sort bar lengths in ascending order
-            [L,IA] = sort(L,'ascend');
+            [barlen,IA] = sort(barlen,'ascend');
             bars = bars(IA,:);
             % get the minimum bar length for each node
             [B1,IB] = unique(bars(:,1),'first');
             [B2,IC] = unique(bars(:,2),'first');
             d1 = NaN*obj.p(:,1); d2 = NaN*obj.p(:,1);
-            d1(B1) = L(IB); d2(B2) = L(IC);
+            d1(B1) = barlen(IB); d2(B2) = barlen(IC);
             d = min(d1,d2);
             %U = sqrt(g*max(obj.b,1));
             %U(obj.b <= 0) = 1; % <--assume 1 m/s overland velocity.
@@ -1127,6 +1097,7 @@ classdef msh
             % incrementally modifying the triangulation nearby each edge
             % that violates the CFL.
             % kjr, chl, und, 2017
+              % kjr, chl, und, 2018 <--updated for projected spaces 
             %%
             desCFL     = 0.50;    %<-- set desired cfl (generally less than 0.80 for stable).
             if nargin < 3
@@ -1135,13 +1106,25 @@ classdef msh
                 desIt = varargin{1};
             end
             %%
+            if ~isempty(obj.coord) 
+                % kjr 2018,10,17; Set up projected space imported from msh class
+                global MAP_PROJECTION MAP_VAR_LIST MAP_COORDS
+                MAP_PROJECTION = obj.proj ;
+                MAP_VAR_LIST   = obj.mapvar ;
+                MAP_COORDS     = obj.coord ;
+            else 
+                lon_mi = min(obj.p(:,1)); lon_ma = max(obj.p(:,1)); 
+                lat_mi = min(obj.p(:,2)); lat_ma = max(obj.p(:,2));
+                m_proj('Trans','lon',[lon_mi lon_ma],'lat',[lat_mi lat_ma]) ; 
+            end
+            %%
             F = scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.b,'linear','none');
             %%
             it  = 0;
             CFL = 999;
             tic
             while 1
-                CFL = CalcCFL(obj,dt);
+                [CFL,Ln,ee] = CalcCFL(obj,dt);
                 bad = real(CFL) > desCFL;
                 display(['Number of CFL violations ',num2str(sum(bad))]);
                 disp(['Max CFL is : ',num2str(max(real(CFL)))]);
@@ -1156,11 +1139,10 @@ classdef msh
                   ' after ',num2str(it),' iterations.']);
             disp('Remove poor quality elements and fix connecitivity problems..');
             
-            % Just delete really poor elements
-            %[obj.p,obj.t] = fixmesh(obj.p,obj.t);
-            %tq = gettrimeshquan(obj.p,obj.t);
-            %obj.t(abs(tq.qm) < 0.10,:) = [];
+             
+            [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2));
             obj = Make_Mesh_Boundaries_Traversable( obj, 0.25, 0 );
+            
             % Ensuring good numbering
             [obj.p,obj.t] = fixmesh(obj.p,obj.t);
             
@@ -1172,15 +1154,13 @@ classdef msh
             return;
             
             function obj = DecimateTria(obj,bad)
-                [obj.grd.p(:,1),obj.grd.p(:,2)] = ...
-                                   m_ll2xy(obj.grd.p(:,1),obj.grd.p(:,2)); 
+         
+                [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2));
+
                 obj = Make_Mesh_Boundaries_Traversable(obj,0.001,1);
                 % form outer polygon of mesh for cleaning up.
                 bnde=extdom_edges2(obj.t,obj.p);
-                poly1=extdom_polygon(bnde,obj.p,1);
-                for i = 1 : length(poly1)
-                    poly1{i} = [poly1{i} ; NaN NaN];
-                end
+                poly1=extdom_polygon(bnde,obj.p,-1);
                 poly_vec1=cell2mat(poly1');
                 [edges1]=Get_poly_edges(poly_vec1);
                 % delete the points that violate the cfl, locally retriangulate, and then locally smooth
