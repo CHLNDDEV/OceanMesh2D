@@ -348,8 +348,14 @@ classdef meshgen
             if isempty(obj.outer), error('no outer boundary specified!'), end
             if isempty(obj.bbox), error('no bounding box specified!'), end
             obj.fd = @dpoly;  % <-default distance fx accepts p and pv (outer polygon).
-        end
+            
+            global MAP_PROJECTION MAP_COORDS MAP_VAR_LIST
+            obj.grd.proj    = MAP_PROJECTION ; 
+            obj.grd.coord   = MAP_COORDS ; 
+            obj.grd.mapvar  = MAP_VAR_LIST ; 
         
+        end
+
         function  obj = build(obj)
             %DISTMESH2D 2-D Mesh Generator using Distance Functions.
             % Checking existence of major inputs

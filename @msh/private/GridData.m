@@ -29,6 +29,13 @@ function obj = GridData(geodata,obj,varargin)
 %          N (optional) - enlarge cell-averaging stencil by factor N (only 
 %                         relevant for CA interpolation method). 
 %                         default value N=1. 
+%
+%   mindepth (optional) - ensure the minimum depth is bounded in the 
+%                         interpolated region 
+%
+%   maxdepth (optional) - ensure the maximum depth is bounded in the 
+%                         interpolated region 
+%
 %      Output : obj     - A mesh class object with the following updated:
 %               b       - The depth or vertical difference from the datum
 %                         in the mesh if type is 'depth' or 'all'
@@ -39,8 +46,12 @@ function obj = GridData(geodata,obj,varargin)
 %
 %	Author: William Pringle, CHL, Notre Dame University
 %	Created: 2018-03-12
+%
 %   Edits by Keith Roberts, 2018-02-22 to avoid FillValue contaimation and
 %   to only interpolate data inside extent of DEM. 
+%
+%   Edits by Keith Roberts, 2018-10-18 to bound depth in interpolated
+%   regions
 
 %% Test optional arguments
 % default
@@ -50,9 +61,11 @@ type = 'all';
 interp = 'CA';
 NaNs = 'ignore';
 N    = 1 ; 
+mindepth = -inf ; 
+maxdepth = +inf ; 
 if ~isempty(varargin)
     varargin=varargin{1} ; 
-    names = {'K','type','interp','nan','N'};
+    names = {'K','type','interp','nan','N','mindepth','maxdepth'};
     for ii = 1:length(names)
         ind = find(~cellfun(@isempty,strfind(varargin(1:2:end),names{ii})));
         if ~isempty(ind)
@@ -67,6 +80,10 @@ if ~isempty(varargin)
                 NaNs = varargin{ind*2};
             elseif ii == 5 
                 N = varargin{ind*2} ; 
+            elseif ii ==6 
+              mindepth = varargin{ind*2} ; 
+            elseif ii ==7 
+              maxdepth = varargin{ind*2}  ; 
             end
         end    
     end
@@ -74,6 +91,12 @@ end
 
 if N > 1 
    disp(['Enlarging CA stencil by factor ',num2str(N)]) ;  
+end
+if mindepth > -inf 
+   disp(['Bounding minimum depth to ',num2str(mindepth), ' meters.']) ;  
+end
+if maxdepth < inf 
+   disp(['Bounding maximum depth to ',num2str(maxdepth), ' meters.']) ;  
 end
 
 if strcmp(type,'slope')
@@ -212,8 +235,14 @@ if ~isa(geodata,'geodata')
        DEM_Z = fliplr(DEM_Z);
     end
                
-    % make into depths
+    % make into depths (ADCIRC compliant) 
     DEM_Z = -DEM_Z;
+    
+    % bound all depths below mindepth 
+    DEM_Z(DEM_Z < mindepth) = mindepth ; 
+    
+    % bound all depths above maxdepth 
+    DEM_Z(DEM_Z > maxdepth) = maxdepth ; 
 end
 
 %% Make the new bx, by, b and calculate gradients if necessary
