@@ -174,6 +174,7 @@ classdef msh
                 kept = (1:length(obj.p))'; 
             end
             
+            del = 1;
             if proj
                 if ~isempty(obj.coord)
                     % kjr 2018,10,17; Set up projected space imported from msh class
@@ -181,14 +182,23 @@ classdef msh
                     MAP_PROJECTION = obj.proj ;
                     MAP_VAR_LIST   = obj.mapvar ;
                     MAP_COORDS     = obj.coord ;
+                    del = 0;
                 else
                     lon_mi = min(obj.p(:,1)); lon_ma = max(obj.p(:,1));
                     lat_mi = min(obj.p(:,2)); lat_ma = max(obj.p(:,2));
                     m_proj('Trans','lon',[lon_mi lon_ma],'lat',[lat_mi lat_ma]) ;
                 end
             end
-            
-            
+            if del
+                % This deletes any elements straddling the -180/180
+                % boundary for plotting purposes
+                xt = [obj.p(obj.t(:,1),1) obj.p(obj.t(:,2),1) ...
+                      obj.p(obj.t(:,3),1) obj.p(obj.t(:,1),1)];
+                dxt = diff(xt,[],2);
+                obj.t(abs(dxt(:,1)) > 180 | abs(dxt(:,2)) > 180 | ...
+                      abs(dxt(:,2)) > 180,:) = [];
+            end
+      
             logaxis = 0; numticks = 10;
             if strcmp(type(max(1,end-2):end),'log')
                 logaxis = 1; type = type(1:end-3);
@@ -254,8 +264,8 @@ classdef msh
                         q = obj.b;
                     end
                     if proj
-                        %m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
-                        m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
+                        m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
+                        %m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
                     else
                         %trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
                         trisurf(obj.t,obj.p(:,1),obj.p(:,2),q)
