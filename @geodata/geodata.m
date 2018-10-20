@@ -401,8 +401,10 @@ classdef geodata
                     demz = obj.Fb(demx,demy);                     
                     edges = Get_poly_edges( [obj.outer; obj.inner] );
                     in = inpoly([demx(:),demy(:)],[obj.outer; obj.inner], edges);
-                    cmap = cmocean('deep');
-                    hold on; m_fastscatter(demx(in),demy(in),demz(in),cmap); 
+                    if obj.inpoly_flip
+                       in = ~in;
+                    end
+                    hold on; m_fastscatter(demx(in),demy(in),demz(in)); 
                     cb = colorbar; ylabel(cb,'topo-bathy depth [m]')
                 case('omega')
                     % hatch the meshing domain, Omega

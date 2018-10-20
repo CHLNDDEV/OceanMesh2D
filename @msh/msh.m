@@ -174,6 +174,7 @@ classdef msh
                 kept = (1:length(obj.p))'; 
             end
             
+            del = 1;
             if proj
                  global MAP_PROJECTION MAP_VAR_LIST MAP_COORDS
                 if ~isempty(obj.coord)
@@ -181,6 +182,7 @@ classdef msh
                     MAP_PROJECTION = obj.proj ;
                     MAP_VAR_LIST   = obj.mapvar ;
                     MAP_COORDS     = obj.coord ;
+                    del = 0;
                 else
                     if isempty(MAP_COORDS)
                         % Projection wasn't set..lets see if it's a global
@@ -213,8 +215,16 @@ classdef msh
                     end
                 end
             end
-            
-            
+            if del
+                % This deletes any elements straddling the -180/180
+                % boundary for plotting purposes
+                xt = [obj.p(obj.t(:,1),1) obj.p(obj.t(:,2),1) ...
+                      obj.p(obj.t(:,3),1) obj.p(obj.t(:,1),1)];
+                dxt = diff(xt,[],2);
+                obj.t(abs(dxt(:,1)) > 180 | abs(dxt(:,2)) > 180 | ...
+                      abs(dxt(:,2)) > 180,:) = [];
+            end
+      
             logaxis = 0; numticks = 10;
             if strcmp(type(max(1,end-2):end),'log')
                 logaxis = 1; type = type(1:end-3);
@@ -280,8 +290,8 @@ classdef msh
                         q = obj.b;
                     end
                     if proj
-                        %m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
-                        m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
+                        m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
+                        %m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
                     else
                         %trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
                         trisurf(obj.t,obj.p(:,1),obj.p(:,2),q)
