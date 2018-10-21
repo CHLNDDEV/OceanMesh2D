@@ -908,10 +908,11 @@ classdef msh
             end
         end
         
-        function merge=plus(obj1,obj2,varargin)
-            % Merge 2-d simplex meshes compromised of np vertices and nt triangles
-            % contained in the msh obejcts obj1 and obj2. Uses matlab's
-            % implementation of the Boywer-Watson incremental triangulation.
+        function merge=plus(obj1,obj2)
+            % Merge together two meshes contained in the msh objects obj1 
+            % and obj2. Uses MATLAB's implementation of the Boywer-Watson
+            % incremental triangulation and then applies mesh cleaning 
+            % algorithms to "fix" the intersection zone between meshes. 
             %
             % INPUTS:
             % mesh1: msh() class of inset mesh.
@@ -921,32 +922,35 @@ classdef msh
             % a msh object with...
             % pm: np x 2 coordinates of vertices of the merged mesh.
             % tm: nt x 3 matrix representing the 2-d simplices.
+            %
             % kjr, und, chl, sept. 2017 Version 1.0.
-            %    kjr, und, chl, oct. 2018, Version 1.3
-            if nargin > 2
-                % for domains that are from ExtractSubdomain
-                scheme = 1;
-            else
-                scheme = 0;
-            end
+            %    UPDATED by kjr, und, chl, oct. 2018, Version 1.5
+            warning('off','all')
+
+            p1=obj1.p; t1=obj1.t; 
+            p2=obj2.p; t2=obj2.t;
+            
+            % assumes global mesh is mesh 2 
+            lat_mi = min(p2(:,2)) ; lat_ma = max(p2(:,2)) ; 
+            lon_mi = min(p2(:,1)) ; lon_ma = max(p2(:,1)) ; 
+            
+            % centered on Arctic in stereographic projection
+            lat_mi = max(-88.0001,lat_mi);
+            m_proj('stereo','lat',90,...
+                'long',0.5*(lon_mi+lon_ma),...
+                'radius',90-lat_mi);   
+            
+            % project both meshes into the space of the global mesh 
+            [p1(:,1),p1(:,2)]=m_ll2xy(p1(:,1),p1(:,2)) ;                       
+            [p2(:,1),p2(:,2)]=m_ll2xy(p2(:,1),p2(:,2)) ;
+                        
+            disp('Forming outer boundary for base mesh...')            
+            poly_vec2=cell2mat(extdom_polygon(extdom_edges2(t2,p2),p2,-1)');
+            PG2 = polyshape(poly_vec2(:,1), poly_vec2(:,2)) ;
             
             disp('Forming outer boundary for inset meshs...')
-            p1=obj1.p; t1=obj1.t;
-            % project meshes into space 
-            [p1(:,1),p1(:,2)]=m_ll2xy(p1(:,1),p1(:,2)) ; 
-            bnde=extdom_edges2(t1,p1);
-            poly1=extdom_polygon(bnde,p1,-1);
-            poly_vec1=cell2mat(poly1');
-            % convert polygonal boundary in to projected space 
+            poly_vec1=cell2mat(extdom_polygon(extdom_edges2(t1,p1),p1,-1)');
             PG = polyshape(poly_vec1(:,1),poly_vec1(:,2)); 
-            
-            disp('Forming outer boundary for base mesh...')
-            p2=obj2.p; t2=obj2.t;
-            [p2(:,1),p2(:,2)]=m_ll2xy(p2(:,1),p2(:,2)) ; 
-            bnde=extdom_edges2(t2,p2);
-            poly2=extdom_polygon(bnde,p2,-1);
-            poly_vec2=cell2mat(poly2');
-            PG2 = polyshape(poly_vec2(:,1), poly_vec2(:,2)) ;
             
             % Delete the region in the global mesh that is in the 
             % intersection with inset. 
@@ -956,54 +960,15 @@ classdef msh
             in1=inpoly(p2(t2(:,1),:),polyout2.Vertices,edges);
             in2=inpoly(p2(t2(:,2),:),polyout2.Vertices,edges);
             in3=inpoly(p2(t2(:,3),:),polyout2.Vertices,edges);
-            t2(in1 | in2 | in3,:)=[];
-            p2=unique(p2(t2(:),:),'rows');
-            
-            
-            disp('Cleaning up the intersection region between the meshes...');
-            % 1. Determine which triangles in the inset are on the boundary. 
-            [VToE]=VertToEle(t1);
-            [~,on]=inpoly(p1,polyout2.Vertices,edges);
-            connT = VToE(:,on);
-            connT = connT(:);
-            connT(connT==0,:)=[];
-            
-            % 2. For these boundary triangles, compute their circumcenters.
-            TR1 = triangulation(t1,p1(:,1),p1(:,2));
-            [cc,rc]=circumcenter(TR1,connT);
-            
-            % 3. Compute the tighest fitting alpha-shape around these
-            % circumcenters. 
-            xa = polyout2.Vertices(:,1) ;  ya = polyout2.Vertices(:,2) ; 
-            minx = min(xa); maxx = max(xa);  miny = min(ya); maxy = max(ya);
-            iboubox = [minx maxy; minx miny; maxx miny; maxx maxy; minx maxy];
-            % Enlarge it a little to delete circumcenters that are not in the neighborhood of
-            % the interesection between meshes. (supurious)*
-            dummy(:,1) = 2*iboubox(:,1)+(1-2)*nanmean(iboubox(1:end-1,1));
-            dummy(:,2) = 2*iboubox(:,2)+(1-2)*nanmean(iboubox(1:end-1,2));
-            in = inpoly(cc,dummy);
-            cc(~in,:) = []; rc(~in,:) = [];
-            [tempy,tempx] = scircle1(cc(:,2),cc(:,1),rc); % <--perhaps replace this with our own circle function
-            circpts = [tempx(:),tempy(:)];
-            shp = alphaShape(circpts(:,1),circpts(:,2));
-            
-            
-            % 4. Compute the boundary of this alpha shape and
-            % then remove any points in global mesh that are in the alphashape.
-            shppts = shp.Points;
-            k = boundary(shppts(:,1),shppts(:,2));
-            in =inpoly(p2,[shppts(k,1),shppts(k,2)]);
-            p2(in,:) = [];
-            
-            % 5. Now merge the two point sets using the Bowyer-Watson
-            % incremental Delaunay triangulation method. 
+            t2(in1 | in2 | in3,:)=[];  p2=unique(p2(t2(:),:),'rows');
+                  
             disp('Merging meshes...')
             DTbase = delaunayTriangulation(p1(:,1),p1(:,2));
             DTbase.Points(end+(1:length(p2)),:)=p2;
             pm=DTbase.Points; tm=DTbase.ConnectivityList;
             
             % Prune triangles outside both domains.
-            disp('Pruning outer triangles...')
+            disp('Pruning...')
             pmid = (pm(tm(:,1),:)+pm(tm(:,2),:)+pm(tm(:,3),:))/3;
             
             % in1 is inside the inset boundary polygon
@@ -1014,28 +979,26 @@ classdef msh
             [edges2]=Get_poly_edges(poly_vec2);
             in2=inpoly(pmid,poly_vec2,edges2);
             
-            % in3 is in intersection region.
-            in3=inpoly(pmid,[iboubox(:,1),iboubox(:,2)]);
+            % remove triangles that aren't in the global mesh or aren't in
+            % the inset mesh 
+            tm((~in1 & ~in2),:)=[];
             
-            % keep geographical "set difference" of the two meshes.
-            if(scheme==1)
-                tm((~in1 & ~in2),:)=[];
-            else
-                % DEFAULT 
-                % Not in the global and not in the inset (must be in the region you aren't meshing). 
-                % OR
-                % not in the intersection and not in the inset (artifact
-                % from the merger or members of the global inside the
-                % inset).
-                tm((~in1 & ~in2) | (in3 & ~in1),:)=[];
-            end
+            merge = msh() ; merge.p=pm; merge.t=tm ;
             
-            merge = msh() ; merge.p=pm; merge.t=tm ; 
+            % perform clearning operations 
             merge = Make_Mesh_Boundaries_Traversable(merge,1,0.1);
             
-            merge = bound_con_int(merge,9) ; 
-             
-            [merge.p,merge.t] = direct_smoother_lur(merge.p,merge.t,[],1); 
+            merge = bound_con_int(merge,9) ;
+            
+            [merge.p,merge.t] = direct_smoother_lur(merge.p,merge.t,[],1);
+            
+            global MAP_PROJECTION MAP_COORDS MAP_VAR_LIST
+            merge.proj    = MAP_PROJECTION ;
+            merge.coord   = MAP_COORDS ;
+            merge.mapvar  = MAP_VAR_LIST ;
+            
+            % Turn warnings back on
+            warning('on','all')
         end
         
         function [out1,barlen,bars] = CalcCFL(obj,dt)
