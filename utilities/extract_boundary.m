@@ -98,7 +98,7 @@ end
 for ii = 1 : p
     hold on; plot(poly{ii}(:,1),poly{ii}(:,2),'r-','linewi',2);
 end
-type = input('What kind of boundary is this, 1 (land) or 2 (ocean)?'); 
+type = input('What kind of boundary is this, 1 (flux) or 2 (elevation)?'); 
 if(~isempty(opendat) || ~isempty(boudat))
     if(type==1)
         
@@ -107,12 +107,13 @@ if(~isempty(opendat) || ~isempty(boudat))
         nvell= boudat.nvell;
         nbvv = boudat.nbvv;
         ibtype = boudat.ibtype;
+        type2 = input('What kind of flux boundary is it, 20(island),2(River)?'); 
         for ii = 1 : length(poly)
             nbou = nbou + 1;
             nvell(nbou) = length(poly{ii}(:,1));
             nvel = nvel + nvell(nbou);
             nbvv(1:nvell(nbou),nbou) = poly_idx{ii}(:);
-            ibtype(nbou) = 20;
+            ibtype(nbou) = type2;
         end
         boudat.nbou = nbou ;
         boudat.nvel = nvel ;

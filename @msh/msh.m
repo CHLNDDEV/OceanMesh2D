@@ -170,8 +170,12 @@ classdef msh
                 end
                 % Get a subset given by bou
                 [obj,kept] = ExtractSubDomain(obj,bou);
+                % Default to Transverse Mercator
+                lon_mi = min(obj.p(:,1)); lon_ma = max(obj.p(:,1));
+                lat_mi = min(obj.p(:,2)); lat_ma = max(obj.p(:,2));
+                m_proj('Trans','lon',[lon_mi lon_ma],'lat',[lat_mi lat_ma]) ;
             else
-                kept = (1:length(obj.p))'; 
+                kept = (1:length(obj.p))';
             end
             
             del = 1;
@@ -867,6 +871,8 @@ classdef msh
                     
                     % use this to figure out the vstart and vend
                     figure, plot(bpts(:,1),bpts(:,2),'k.');
+                    %hold on; fastscatter(obj.p(:,1),obj.p(:,2),obj.b) ; 
+                    caxis([-10 10]) ; axis equal ; 
                     title('use data cursor to identify vstart and vend');
                     dcm_obj = datacursormode(gcf);
                     set(dcm_obj,'UpdateFcn',{@myupdatefcn2,bpts})
@@ -944,17 +950,17 @@ classdef msh
             [p1(:,1),p1(:,2)]=m_ll2xy(p1(:,1),p1(:,2)) ;                       
             [p2(:,1),p2(:,2)]=m_ll2xy(p2(:,1),p2(:,2)) ;
                         
-            disp('Forming outer boundary for base mesh...')            
+            disp('Forming outer boundary for base...')            
             poly_vec2=cell2mat(extdom_polygon(extdom_edges2(t2,p2),p2,-1)');
             PG2 = polyshape(poly_vec2(:,1), poly_vec2(:,2)) ;
             
-            disp('Forming outer boundary for inset meshs...')
+            disp('Forming outer boundary for inset...')
             poly_vec1=cell2mat(extdom_polygon(extdom_edges2(t1,p1),p1,-1)');
             PG = polyshape(poly_vec1(:,1),poly_vec1(:,2)); 
             
             % Delete the region in the global mesh that is in the 
             % intersection with inset. 
-            disp('Calculating the intersection between the meshes...');
+            disp('Calculating intersection...');
             polyout2 = intersect(PG,PG2) ; 
             [edges]=Get_poly_edges([polyout2.Vertices; NaN NaN]);
             in1=inpoly(p2(t2(:,1),:),polyout2.Vertices,edges);
@@ -962,7 +968,7 @@ classdef msh
             in3=inpoly(p2(t2(:,3),:),polyout2.Vertices,edges);
             t2(in1 | in2 | in3,:)=[];  p2=unique(p2(t2(:),:),'rows');
                   
-            disp('Merging meshes...')
+            disp('Merging...')
             DTbase = delaunayTriangulation(p1(:,1),p1(:,2));
             DTbase.Points(end+(1:length(p2)),:)=p2;
             pm=DTbase.Points; tm=DTbase.ConnectivityList;
@@ -979,9 +985,13 @@ classdef msh
             [edges2]=Get_poly_edges(poly_vec2);
             in2=inpoly(pmid,poly_vec2,edges2);
             
+            % in3 is inside the inset
+            [edges2]=Get_poly_edges([polyout2.Vertices;NaN NaN]);
+            in3=inpoly(pmid,[polyout2.Vertices;NaN NaN],edges2);
+            
             % remove triangles that aren't in the global mesh or aren't in
             % the inset mesh 
-            tm((~in1 & ~in2),:)=[];
+            tm((~in1 & ~in2) | (in3 & ~in1),:)=[];
             
             merge = msh() ; merge.p=pm; merge.t=tm ;
             
