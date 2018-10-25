@@ -64,7 +64,8 @@ for box_num = box_vec
 %         [pt(:,1),pt(:,2)] = m_ll2xy(p(inside,1),p(inside,2));
 %         [outer(:,1),outer(:,2)] = m_ll2xy(outer(:,1),outer(:,2));
 %     end
-    
+    firstNaN = find(isnan(outer(:,1)),1,'first') ; 
+    in1 = inpoly(p(inside,:),outer(1:firstNaN-1,:)) ; 
     edges = Get_poly_edges( outer );
     if sum(inside)~=0
         in    = inpoly(p(inside,:),outer,edges);
@@ -74,19 +75,19 @@ for box_num = box_vec
     
     % d is negative if inside polygon and vice versa.
     if inpoly_flip
-        d_l = (-1).^(~in).*d_l;
+        d_l = (-1).^(~in & ~in1).*d_l;
     else
-        d_l = (-1).^( in).*d_l;
+        d_l = (-1).^( in & in1).*d_l;
     end
     
     if sum(inside)==0; return; end
         
-    % IF OUTSIDE BUT APPEARS INSIDE
-    bad = find((p(inside,1) < bbox(1,1) | p(inside,1) > bbox(1,2) | ...
-        p(inside,2) < bbox(2,1) | p(inside,2) > bbox(2,2)) & d_l < 0);
-    if nnz(bad) > 0
-        d_l(bad) = -d_l(bad);
-    end
+%     % IF OUTSIDE BUT APPEARS INSIDE
+%     bad = find((p(inside,1) < bbox(1,1) | p(inside,1) > bbox(1,2) | ...
+%         p(inside,2) < bbox(2,1) | p(inside,2) > bbox(2,2)) & d_l < 0);
+%     if nnz(bad) > 0
+%         d_l(bad) = -d_l(bad);
+%     end
     d(inside) = d_l;
 end
 %EOF
