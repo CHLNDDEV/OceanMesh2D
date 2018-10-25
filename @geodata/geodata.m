@@ -30,6 +30,7 @@ classdef geodata
         fp
         Fb  % linear gridded interpolant of DEM
         x0y0 % bottom left of structure grid or position (0,0)
+        nonrect % mesh a non rectangular box 
     end
     
     methods
@@ -47,7 +48,10 @@ classdef geodata
             addOptional(p,'fp',defval);
             addOptional(p,'outer',defval);
             addOptional(p,'mainland',defval);
-            
+            addOptional(p,'nonrect',defval);
+            addOptional(p,'boubox',defval);
+
+
             % parse the inputs
             parse(p,varargin{:});
             % store the inputs as a struct
@@ -57,6 +61,7 @@ classdef geodata
             % loop through and determine which args were passed.
             % also, assign reasonable default values if some options were
             % not assigned.
+            obj.boubox = [] ; 
             for i = 1 : numel(fields)
                 type = fields{i};
                 switch type
@@ -65,8 +70,8 @@ classdef geodata
                         obj.bbox = inp.(fields{i});
                         if any(obj.bbox ~=0)
                             obj.bbox = inp.(fields{i});
-                        elseif ~ischar(inp.(fields{contains(fields,'dem')}))
-                            error('No bbox specified!');
+                        %elseif ~ischar(inp.(fields{contains(fields,'dem')}))
+                        %    error('No bbox specified!');
                         end
                     case('h0')
                         obj.h0= inp.(fields{i});
@@ -102,9 +107,20 @@ classdef geodata
                         if obj.mainland(1) ~=0
                             obj.mainland = inp.(fields{i});
                         end
+                    case('nonrect') 
+                        obj.nonrect = inp.(fields{i}) ; 
+                    case('boubox') 
+                        obj.boubox = inp.(fields{i}) ; 
                 end
             end
             
+            if obj.nonrect
+                if obj.boubox(1) == 0 
+                    error('FATAL: you must supply a boubox when using the option nonrect!');
+                end
+                obj.bbox = [min(obj.boubox(:,1)) max(obj.boubox(:,1))
+                    min(obj.boubox(:,2)) max(obj.boubox(:,2))] ;
+            end
             if size(obj.bbox,1) == 1
                 % get bbox from demfile
                 try
@@ -127,7 +143,14 @@ classdef geodata
                 polygon_struct = Read_shapefile( obj.contourfile, [], obj.bbox, ...
                     gridspace, 0 );
                 obj.mainland = polygon_struct.mainland;
-                obj.outer    = polygon_struct.outer;
+                if obj.nonrect==0
+                    obj.outer    = polygon_struct.outer;
+                else
+                    obj.outer = [] ;
+                    [la,lo]=my_interpm(obj.boubox(:,2),obj.boubox(:,1),gridspace/2) ; 
+                    obj.boubox = [] ; obj.boubox = [lo,la] ; 
+                    obj.outer = [obj.boubox;obj.mainland];
+                end
                 obj.inner    = polygon_struct.inner;
                 
                 % for mainland
@@ -165,16 +188,19 @@ classdef geodata
                 obj = check_connectedness_inpoly(obj);
                 
                 % Make the bounding box 5 x 2 matrix in clockwise order
-                obj.boubox = [obj.bbox(1,1) obj.bbox(2,1);
-                    obj.bbox(1,1) obj.bbox(2,2); ...
-                    obj.bbox(1,2) obj.bbox(2,2);
-                    obj.bbox(1,2) obj.bbox(2,1); ...
-                    obj.bbox(1,1) obj.bbox(2,1); NaN NaN];
+                if obj.nonrect==0
+                    obj.boubox = [obj.bbox(1,1) obj.bbox(2,1);
+                        obj.bbox(1,1) obj.bbox(2,2); ...
+                        obj.bbox(1,2) obj.bbox(2,2);
+                        obj.bbox(1,2) obj.bbox(2,1); ...
+                        obj.bbox(1,1) obj.bbox(2,1); NaN NaN];
+                end
+                
                 iboubox = obj.boubox;
                 iboubox(:,1) = 1.10*iboubox(:,1)+(1-1.10)*mean(iboubox(1:end-1,1));
                 iboubox(:,2) = 1.10*iboubox(:,2)+(1-1.10)*mean(iboubox(1:end-1,2));
                 
-                % KJR: May 13, 2018 coarsen portions of outer, mainland 
+                % KJR: May 13, 2018 coarsen portions of outer, mainland
                 % and inner outside bbox (made into function WP)
                 obj.outer = coarsen_polygon(obj.outer,iboubox);
               

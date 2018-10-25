@@ -152,77 +152,51 @@ classdef msh
                 end
             end
         end
-        
+
         % general plot function
-        function h = plot(obj,type,proj,bou)
-            np_g = length(obj.p) ; ne_g = length(obj.t) ; 
-            if nargin < 3
-                proj = 1;
+        function h = plot(obj,type,proj,projtype,bou)
+            if nargin == 2 
+              proj = 1 ;
+              projtype =[] ; 
             end
-            if nargin == 4
-                if numel(bou) == 4
-                    % i.e. is a bounding box
-                    bou = [bou(1,1) bou(2,1);
-                           bou(1,1) bou(2,2); ...
-                           bou(1,2) bou(2,2);
-                           bou(1,2) bou(2,1); ...
-                           bou(1,1) bou(2,1)];
-                end
-                % Get a subset given by bou
-                [obj,kept] = ExtractSubDomain(obj,bou);
-                % Default to Transverse Mercator
-                lon_mi = min(obj.p(:,1)); lon_ma = max(obj.p(:,1));
-                lat_mi = min(obj.p(:,2)); lat_ma = max(obj.p(:,2));
-                m_proj('Trans','lon',[lon_mi lon_ma],'lat',[lat_mi lat_ma]) ;
-            else
-                kept = (1:length(obj.p))';
+            if nargin == 3 
+               projtype = [] ;  
             end
+            np_g = length(obj.p) ;
+
             
-            del = 1;
-            if proj
-                 global MAP_PROJECTION MAP_VAR_LIST MAP_COORDS
+            % kjr default behavior, just use what's in the .mat file
+            if proj && isempty(projtype)
+                global MAP_PROJECTION MAP_VAR_LIST MAP_COORDS
                 if ~isempty(obj.coord)
                     % kjr 2018,10,17; Set up projected space imported from msh class
                     MAP_PROJECTION = obj.proj ;
                     MAP_VAR_LIST   = obj.mapvar ;
                     MAP_COORDS     = obj.coord ;
                     del = 0;
-                else
-                    if isempty(MAP_COORDS)
-                        % Projection wasn't set..lets see if it's a global
-                        % mesh from title
-                        if strcmpi(obj.title,'GLOBAL')
-                            lon_mi = min(obj.p(:,1)); lon_ma = max(obj.p(:,1));
-                            lat_mi = min(obj.p(:,2)); lat_ma = max(obj.p(:,2));
-                            if lat_ma < 0
-                                % center Antarctica
-                                m_proj('stereo','lat',-90,...
-                                    'long',0.5*(lon_mi+lon_ma),...
-                                    'radius',lat_ma+90);
-                            else
-                                % center Arctic
-                                lat_mi = max(-88.0001,lat_mi);
-                                m_proj('stereo','lat',90,...
-                                    'long',0.5*(lon_mi+lon_ma),...
-                                    'radius',90-lat_mi);
-                            end
-                        else
-                            % Default to Transverse Mercator
-                            lon_mi = min(obj.p(:,1)); lon_ma = max(obj.p(:,1));
-                            lat_mi = min(obj.p(:,2)); lat_ma = max(obj.p(:,2));
-                            m_proj('Trans','lon',[lon_mi lon_ma],'lat',[lat_mi lat_ma]) ;
-                        end
-                        
-                    else
-                        disp('Setting projection space. Using...');
-                        % Default to Transverse Mercator
-                        lon_mi = min(obj.p(:,1)); lon_ma = max(obj.p(:,1));
-                        lat_mi = min(obj.p(:,2)); lat_ma = max(obj.p(:,2));
-                        m_proj('Trans','lon',[lon_mi lon_ma],'lat',[lat_mi lat_ma]) ;
-                        m_proj('get') ;
-                    end
+                    projtype = MAP_PROJECTION.name; 
                 end
             end
+            
+            % Handle user specified subdomain
+            if nargin == 5
+                if numel(bou) == 4
+                    % i.e. is a bounding box
+                    bou = [bou(1,1) bou(2,1);
+                        bou(1,1) bou(2,2); ...
+                        bou(1,2) bou(2,2);
+                        bou(1,2) bou(2,1); ...
+                        bou(1,1) bou(2,1)];
+                end
+                % Get a subset given by bou
+                [obj,kept] = ExtractSubDomain(obj,bou);
+            else
+                kept = (1:length(obj.p))';
+            end
+            
+            % Set up projected space 
+            del = setProj(obj,proj,projtype) ;
+           
             if del
                 % This deletes any elements straddling the -180/180
                 % boundary for plotting purposes
@@ -514,7 +488,7 @@ classdef msh
             end
             if proj
                 % now add the box
-                m_grid('box','fancy','FontSize',16);
+                m_grid('box','none','FontSize',16);
             end
         end
         
@@ -872,7 +846,7 @@ classdef msh
                     
                 case('delete')
                     % have the user select the nodestring '
-                    plot(obj,'bd',0) ;
+                    plot(obj,'bd') ;
                     temp = obj.bd.nbvv; 
                     bounodes=obj.bd.nbvv ;
                     idx=sum(bounodes~=0);
@@ -890,11 +864,11 @@ classdef msh
                     title('use data cursor to select nodestring to be deleted');
                     pause
                     c_info = getCursorInfo(dcm_obj);
+                    [tmp(:,1),tmp(:,2)]=m_ll2xy(boupts(:,1),boupts(:,2)); 
                     idx3 = ourKNNsearch(boupts',c_info.Position',1)  ; 
                     del = bounodes(idx3,2) ;  %<- get the nodestring index 
                     pltid = temp(:,del) ; pltid(pltid==0)=[] ; 
-                    hold on; plot(obj.p(pltid,1),obj.p(pltid,2),'r-','linewi',2) ; 
-                    axis([min(obj.p(pltid,1))-0.2,max(obj.p(pltid,1))+0.2 min(obj.p(pltid,2))-0.2 max(obj.p(pltid,2))+0.2]); 
+                    hold on; m_plot(obj.p(pltid,1),obj.p(pltid,2),'r-','linewi',2) ; 
                     disp(['Delete boundary with index ',num2str(del),'?']) ;
                     pause 
                     obj.bd.nbvv(:,del)=[]; 

@@ -307,27 +307,11 @@ classdef meshgen
                             lon_mi = -180; lon_ma = 180; 
                             lat_mi = -90; lat_ma = 90;
                         end 
-                        if startsWith(obj.proj,'ster','IgnoreCase',true)
-                            if lat_ma < 0
-                                % center Antarctica
-                                m_proj(obj.proj,'lat',-90,...
-                                       'long',0.5*(lon_mi+lon_ma),...
-                                       'radius',lat_ma+90);
-                            else
-                                % center Arctic
-                                lat_mi = max(-88.0001,lat_mi); 
-                                if ~isempty(obj.bbox)
-                                    obj.bbox{1}(2,1) = ...
-                                                max(-88,obj.bbox{1}(2,1)); 
-                                end
-                                m_proj(obj.proj,'lat',90,...
-                                       'long',0.5*(lon_mi+lon_ma),...
-                                       'radius',90-lat_mi);
-                            end
-                        else
-                             m_proj(obj.proj,...
-                              'lon',[lon_mi lon_ma],'lat',[lat_mi lat_ma]);
-                        end
+                        % Set up projected space 
+                        dmy = msh() ; 
+                        dmy.p(:,1) = [lon_mi; lon_ma];
+                        dmy.p(:,2) = [lat_mi; lat_ma];
+                        del = setProj(dmy,1,obj.proj) ;
                 end
             end
             
@@ -430,7 +414,6 @@ classdef meshgen
                         st = ed;
                         ed = st + blklen;
                         p1 = [x(:) y(:)]; clear x y
-                         
                         %% 2. Remove points outside the region, apply the rejection method
                         p1 = p1(feval(obj.fd,p1,obj,box_num) < geps,:);     % Keep only d<0 points
                         r0 = 1./feval(fh_l,p1).^2;                          % Probability to keep point
