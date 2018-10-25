@@ -214,7 +214,11 @@ classdef msh
                         end
                         
                     else
-                        disp('Projection space already set. Using...');
+                        disp('Setting projection space. Using...');
+                        % Default to Transverse Mercator
+                        lon_mi = min(obj.p(:,1)); lon_ma = max(obj.p(:,1));
+                        lat_mi = min(obj.p(:,2)); lat_ma = max(obj.p(:,2));
+                        m_proj('Trans','lon',[lon_mi lon_ma],'lat',[lat_mi lat_ma]) ;
                         m_proj('get') ;
                     end
                 end
@@ -623,7 +627,7 @@ classdef msh
         % make nodestrings
         function obj = makens(obj,type,dir)
             if nargin < 2
-                error('Needs type: one of auto, islands or outer')
+                error('Needs type: one of auto, islands, delete, or outer')
             end
             trim = 0; periodic = 0;
             if strcmp(type(max(1,end-3):end),'trim')
@@ -866,6 +870,40 @@ classdef msh
                     obj.bd.ibtype = ibtype ;
                     obj.bd.nbvv = nbvv ;
                     
+                case('delete')
+                    % have the user select the nodestring '
+                    plot(obj,'bd',0) ;
+                    temp = obj.bd.nbvv; 
+                    bounodes=obj.bd.nbvv ;
+                    idx=sum(bounodes~=0);
+                    bounodes=bounodes(:) ;
+                    bounodes(bounodes==0)=[] ;
+                    boupts = obj.p(bounodes,:) ; 
+                    idx2=[0,cumsum(idx)]'+1;
+                    k = 0 ;
+                    for i = 1 : length(idx2)-1 
+                        k = k + 1 ;
+                        bounodes(idx2(i):idx2(i+1)-1,2) = k ; 
+                    end
+                    
+                    dcm_obj = datacursormode(gcf);
+                    title('use data cursor to select nodestring to be deleted');
+                    pause
+                    c_info = getCursorInfo(dcm_obj);
+                    idx3 = ourKNNsearch(boupts',c_info.Position',1)  ; 
+                    del = bounodes(idx3,2) ;  %<- get the nodestring index 
+                    pltid = temp(:,del) ; pltid(pltid==0)=[] ; 
+                    hold on; plot(obj.p(pltid,1),obj.p(pltid,2),'r-','linewi',2) ; 
+                    axis([min(obj.p(pltid,1))-0.2,max(obj.p(pltid,1))+0.2 min(obj.p(pltid,2))-0.2 max(obj.p(pltid,2))+0.2]); 
+                    disp(['Delete boundary with index ',num2str(del),'?']) ;
+                    pause 
+                    obj.bd.nbvv(:,del)=[]; 
+                    num_delnodes = idx(del) ; 
+                    obj.bd.nbou = obj.bd.nbou - 1 ; 
+                    obj.bd.nvell(del)=[] ; 
+                    obj.bd.ibtype(del)=[] ; 
+                    obj.bd.nvel = obj.bd.nvel - num_delnodes ; 
+                    
                 case('outer')
                     [bnde,bpts]=extdom_edges2(obj.t,obj.p);
                     
@@ -985,7 +1023,7 @@ classdef msh
             [edges2]=Get_poly_edges(poly_vec2);
             in2=inpoly(pmid,poly_vec2,edges2);
             
-            % in3 is inside the inset
+            % in3 is inside the intersection
             [edges2]=Get_poly_edges([polyout2.Vertices;NaN NaN]);
             in3=inpoly(pmid,[polyout2.Vertices;NaN NaN],edges2);
             
@@ -1006,6 +1044,9 @@ classdef msh
             merge.proj    = MAP_PROJECTION ;
             merge.coord   = MAP_COORDS ;
             merge.mapvar  = MAP_VAR_LIST ;
+            
+            % convert back to lat-lon wgs84
+            [merge.p(:,1),merge.p(:,2)]=m_xy2ll(merge.p(:,1),merge.p(:,2)); 
             
             % Turn warnings back on
             warning('on','all')

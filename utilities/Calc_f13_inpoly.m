@@ -31,7 +31,7 @@ elseif strcmpi(attribute,'EV')
     default_val = 0.2; % Default smagorinsky eddy viscosity
 elseif strcmpi(attribute,'mannings_n_at_sea_floor') 
     attrname = 'mannings_n_at_sea_floor'; 
-    default_val = 0.0025; 
+    default_val = 0.0020; 
 else
     error(['Attribute ' attribute ' not currently supported'])
 end
