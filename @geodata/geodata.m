@@ -186,7 +186,12 @@ classdef geodata
                     obj.mainland = coarsen_polygon(obj.mainland,iboubox);
                 end
                 
-                disp(['Read in contourfile ',obj.contourfile]);
+                if numel(obj.contourfile)>1
+                    fprintf('Read in contourfiles\n');
+                    fprintf('   %s\n',obj.contourfile{:});
+                else
+                    fprintf('Read in contourfile %s\n',obj.contourfile{1});
+                end
                 
             else
                 % then user defined file passed
