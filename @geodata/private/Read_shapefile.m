@@ -22,20 +22,23 @@ function polygon_struct = Read_shapefile( finputname, polygon, bbox, ...
 % Edits by Keith Roberts, July 2018. 
 %% Loop over all the filenames and get the shapefile within bbox
 SG = [];
-if (size(finputname,1)~=0)
-    for fname = finputname
+finputfile = cellstr(finputname);
+if ~isempty(finputfile)
+    for i = 1:numel(finputname)
+        fname = finputname{i};
+        fprintf('%s: loading %s\n',mfilename,fname);
         % The shaperead is much faster if it is available
         if exist('shaperead','file')
-            disp('Reading coastline with shaperead')
+            disp('Reading shapefile with shaperead')
             % Read the structure
-            S = shaperead(fname{1},'BoundingBox',bbox');
+            S = shaperead(fname,'BoundingBox',bbox');
             % Get rid of unwanted components;
             D = struct2cell(S);
             S = cell2struct(D(3:4,:)',{'X','Y'},2);
         else
-            disp('Reading coastline with m_shaperead')
+            disp('Reading shapefile with m_shaperead')
             % This uses m_map (slower but free)
-            S = m_shaperead(fname{1},bbox(:)');
+            S = m_shaperead(fname,bbox(:)');
             % Let's just keep the x-y data
             D = S.ncst;
             S = cell2struct(D','points',1);
