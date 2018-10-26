@@ -30,7 +30,6 @@ classdef geodata
         fp  % deprecated but kept for backwards capability 
         Fb  % linear gridded interpolant of DEM
         x0y0 % bottom left of structure grid or position (0,0)
-        nonrect % mesh a non rectangular box 
     end
     
     methods
@@ -48,7 +47,6 @@ classdef geodata
             addOptional(p,'fp',defval);
             addOptional(p,'outer',defval);
             addOptional(p,'mainland',defval);
-            addOptional(p,'nonrect',defval);
             addOptional(p,'boubox',defval);
             addOptional(p,'window',defval);
 
@@ -107,8 +105,6 @@ classdef geodata
                         if obj.mainland(1) ~=0
                             obj.mainland = inp.(fields{i});
                         end
-                    case('nonrect') 
-                        obj.nonrect = inp.(fields{i}) ; 
                     case('boubox') 
                         obj.boubox = inp.(fields{i}) ; 
                     case('window') 
@@ -118,15 +114,6 @@ classdef geodata
                             obj.window = 5;
                         end
                 end
-            end
-            
-            % Handle non-rectangular regions 
-            if obj.nonrect
-                if obj.boubox(1) == 0 
-                    error('FATAL: you must supply a boubox when using the option nonrect!');
-                end
-                obj.bbox = [min(obj.boubox(:,1)) max(obj.boubox(:,1))
-                            min(obj.boubox(:,2)) max(obj.boubox(:,2))] ;
             end
             
             % Get bbox information from demfile if not supplied 
@@ -140,33 +127,43 @@ classdef geodata
                 end
                 obj.bbox = [min(x) max(x); min(y) max(y)];
             end
+
+            if size(obj.bbox,1) == 2
+                % Typical square bbox type
+                % Make the bounding box 5 x 2 matrix in clockwise order
+                obj.boubox = [obj.bbox(1,1) obj.bbox(2,1);
+                              obj.bbox(1,1) obj.bbox(2,2); ...
+                              obj.bbox(1,2) obj.bbox(2,2);
+                              obj.bbox(1,2) obj.bbox(2,1); ...
+                              obj.bbox(1,1) obj.bbox(2,1); NaN NaN];
+            else
+                % Handle non-square bbox type regions
+                obj.boubox = obj.bbox;
+                if ~isnan(obj.boubox(end,1))
+                    obj.boubox(end+1,:) = [NaN NaN];
+                end
+                obj.bbox = [min(obj.boubox(:,1)) max(obj.boubox(:,1))
+                            min(obj.boubox(:,2)) max(obj.boubox(:,2))] ;
+            end
+            
+            % Turn the h0 into smallest lat/lon gridspace
+            gridspace    = abs(obj.h0)/111e3;
             
             % Read in the geometric contour information 
             if ~isempty(obj.contourfile)
-                gridspace    = abs(obj.h0)/111e3;
+                
                 if ~iscell(obj.contourfile)
                     obj.contourfile = {obj.contourfile};
                 end
                 
                 polygon_struct = Read_shapefile( obj.contourfile, [], ...
-                                 obj.bbox, gridspace, 0 );
+                                 obj.bbox, gridspace, obj.boubox, 0 );
                 
                 % unpack data from function Read_Shapefile()s 
+                obj.outer    = polygon_struct.outer;
                 obj.mainland = polygon_struct.mainland;
                 obj.inner    = polygon_struct.inner;
-
-                % Create the outer polygon mesh boundary
-                if obj.nonrect==0
-                    % default box case 
-                    obj.outer    = polygon_struct.outer;
-                else
-                    % non-rectangular case 
-                    obj.outer = [] ;
-                    [la,lo]=my_interpm(obj.boubox(:,2),obj.boubox(:,1),gridspace/2) ; 
-                    obj.boubox = [] ; obj.boubox = [lo,la] ; 
-                    obj.outer = [obj.boubox;obj.mainland];
-                end
-                                
+                    
                 % Make sure the shoreline components have spacing of gridspace/2
                 [la,lo]=my_interpm(obj.outer(:,2),obj.outer(:,1),gridspace/2);
                 obj.outer = [];  obj.outer(:,1) = lo; obj.outer(:,2) = la;
@@ -202,15 +199,6 @@ classdef geodata
                 % WJP: Jan 25, 2018 check the polygon
                 obj = check_connectedness_inpoly(obj);
                 
-                % Make the bounding box 5 x 2 matrix in clockwise order
-                if obj.nonrect==0
-                    obj.boubox = [obj.bbox(1,1) obj.bbox(2,1);
-                        obj.bbox(1,1) obj.bbox(2,2); ...
-                        obj.bbox(1,2) obj.bbox(2,2);
-                        obj.bbox(1,2) obj.bbox(2,1); ...
-                        obj.bbox(1,1) obj.bbox(2,1); NaN NaN];
-                end
-                
                 % KJR: May 13, 2018 coarsen portions of outer, mainland
                 % and inner outside bbox (made into function WP)
                 iboubox = obj.boubox;
@@ -230,9 +218,7 @@ classdef geodata
                 disp(['Read in contourfile ',obj.contourfile]);
                 
             else
-                % Hanlde the case for user defined mesh boundary information
-                centroid     = mean(obj.bbox(2,:));
-                gridspace =    abs(obj.h0)/(cosd(centroid)*111e3);
+                % Handle the case for user defined mesh boundary information
                 
                 % make sure it has equal spacing of h0/2
                 [la,lo]=my_interpm(obj.outer(:,2),obj.outer(:,1),gridspace/2);
@@ -258,12 +244,6 @@ classdef geodata
                 end
                 clearvars lo la
                 
-                % Make the bounding box 5 x 2 matrix in clockwise order
-                obj.boubox = [obj.bbox(1,1) obj.bbox(2,1);
-                    obj.bbox(1,1) obj.bbox(2,2); ...
-                    obj.bbox(1,2) obj.bbox(2,2);
-                    obj.bbox(1,2) obj.bbox(2,1); ...
-                    obj.bbox(1,1) obj.bbox(2,1); NaN NaN];
             end
             
             % Process the DEM
@@ -275,13 +255,8 @@ classdef geodata
                    x = double(ncread(obj.demfile,'x'));
                    y = double(ncread(obj.demfile,'y'));    
                 end
-                % Read with a buffer arund the meshing domain 
-                centroid  = mean(obj.bbox(2,:));
-                gridspace = abs(obj.h0)/(cosd(centroid)*111e3);
-                I = find(x >= obj.bbox(1,1) & ...
-                         x <= obj.bbox(1,2));
-                J = find(y >= obj.bbox(2,1) & ...
-                         y <= obj.bbox(2,2));
+                I = find(x >= obj.bbox(1,1) & x <= obj.bbox(1,2));
+                J = find(y >= obj.bbox(2,1) & y <= obj.bbox(2,2));
                 x = x(I); y = y(J);
                 % Find name of z value (use one that has 2 dimensions)
                 finfo = ncinfo(obj.demfile);
@@ -352,9 +327,7 @@ classdef geodata
         %      whether to flip the inpoly result to ensure meshing
         %      on the coastal side of the polygon
         function obj = check_connectedness_inpoly(obj)
-            centroid     = mean(obj.bbox(2,:));
-            gridspace =    abs(obj.h0)/(cosd(centroid)*111e3);
-            
+            gridspace =    abs(obj.h0)/111e3;
             obj.inpoly_flip = 0;
             % return if outer polygon is connected
             shpEnd = find(isnan(obj.outer(:,1)));
@@ -368,7 +341,7 @@ classdef geodata
             % outer polygon is not connected, check for inpoly goodness
             % read the GSHHS checker
             ps = Read_shapefile( {'GSHHS_l_L1'}, [], ...
-                obj.bbox, gridspace, 0 );
+                                 obj.bbox, gridspace, obj.boubox, 0 );
             
             % make a fake tester grid
             x = linspace(obj.bbox(1,1),obj.bbox(1,2),100);

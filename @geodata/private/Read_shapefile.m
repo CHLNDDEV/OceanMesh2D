@@ -1,5 +1,5 @@
 function polygon_struct = Read_shapefile( finputname, polygon, bbox, ...
-    h0, plot_on )
+                                          h0, boubox, plot_on )
 % Read_shapefile: Reads a shapefile or a NaN-delimited vector
 % containing polygons and/or segments in the the desired region
 % of interest. Classifies the vector data as either a
@@ -58,11 +58,7 @@ else
     end
 end
 % If we don't have an outer polygon already then make it by bbox
-polygon_struct.outer = [bbox(1,1) bbox(2,1);
-    bbox(1,1) bbox(2,2);
-    bbox(1,2) bbox(2,2);
-    bbox(1,2) bbox(2,1);
-    bbox(1,1) bbox(2,1)];
+polygon_struct.outer = boubox;
 % Densify the outer polygon (fills gaps larger than half min edgelength).
 [latout,lonout] = my_interpm(polygon_struct.outer(:,2),...
     polygon_struct.outer(:,1),h0/2);
@@ -75,8 +71,7 @@ polygon_struct.outer(:,2) = latout;
 disp('Partitioning the boundary into islands, mainland, ocean')
 polygon_struct.inner = [];
 polygon_struct.mainland = [];
-edges = Get_poly_edges( [polygon_struct.outer; NaN NaN] );
-
+edges = Get_poly_edges( polygon_struct.outer );
 
 if exist('shaperead','file')
     tmpM = [[SG.X]',[SG.Y]'] ; % MAT 
@@ -90,7 +85,7 @@ else
 end
 % Get current polygon
 % Check proportion of polygon that is within bbox
-tmpIn = inpoly(tmpM,[polygon_struct.outer; NaN NaN], edges);
+tmpIn = inpoly(tmpM,polygon_struct.outer, edges);
 tmpInC = mat2cell(tmpIn,cellfun(@length,tmpC));
 
 j = 0 ; k = 0 ; 
@@ -128,7 +123,7 @@ end
 if j > 0
     polygon_struct.mainland = [polygon_struct.mainland; cell2mat(new_main')];
 end
-polygon_struct.outer = [polygon_struct.outer; NaN NaN; polygon_struct.mainland];
+polygon_struct.outer = [polygon_struct.outer; polygon_struct.mainland];
 %% Plot the map
 if plot_on >= 1 && ~isempty(polygon_struct)
     figure(1);
