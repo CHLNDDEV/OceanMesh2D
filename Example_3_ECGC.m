@@ -9,18 +9,21 @@ addpath(genpath('m_map/'));
 %% The greater US East Coast and Gulf of Mexico region
 bbox      = [-100 -50; 5  55];  % lon min lon max; lat min lat max
 min_el    = 1e3;  		        % minimum resolution in meters.
-max_el    = inf; 		        % maximum resolution in meters. 
-wl        = 60;                 % 60 elements resolve M2 wavelength.
-dt        = 2;                  % Try to ensure mesh is stable at a 2 s timestep.
-grade     = 0.20;               % mesh grade in decimal percent. 
+max_el    = 50e3; 		        % maximum resolution in meters. 
+wl        = 30;                 % 60 elements resolve M2 wavelength.
+dt        = 0;                  % Try to ensure mesh is stable at a 2 s timestep.
+grade     = 0.35;               % mesh grade in decimal percent. 
 R         = 3; 			        % Number of elements to resolve feature.
+
+bbox = [-71.6 42.7; -64 30; -80 24; -85 38; -71.6 42.7];
+     
 
 %% STEP 2: specify geographical datasets and process the geographical data
 %% to be used later with other OceanMesh classes...
 dem       = 'topo15_compressed.nc';
 coastline = 'GSHHS_f_L1';
-gdat1 = geodata('shp',coastline,'dem',dem,...
-                'bbox',bbox,'h0',min_el);
+gdat1 = geodata('shp',coastline,'dem',dem,'h0',min_el,...
+                'bbox',bbox);
             
 %% STEP 3: create an edge function class
 fh1 = edgefx('geodata',gdat1,...
@@ -44,13 +47,14 @@ fh2 = edgefx('geodata',gdat2,'fs',R,'wl',wl,...
                 
 %% STEP 4: Pass your edgefx class object along with some meshing options 
 %% and build the mesh...
-mshopts = meshgen('ef',{fh1 fh2},'bou',{gdat1 gdat2},'plot_on',1);
+mshopts = meshgen('ef',{fh1 fh2},'bou',{gdat1 gdat2},...
+                  'plot_on',1,'proj','merc');
 mshopts = mshopts.build; 
 
 %% Plot and save the msh class object/write to fort.14
 m = mshopts.grd; % get out the msh object
 m = interp(m,{gdat1 gdat2}); m.b = max(m.b,1); % interpolate bathy to the mesh
 m = makens(m,'auto',gdat1); % make the nodestring boundary conditions
-plot(m,'bd',1,'Mollweide'); % plot on Mollweide projection with nodestrings
-plot(m,'b',1,'Mollweide'); % plot bathy on Mollweide projection
+plot(m,'bd',1); % plot on native projection with nodestrings
+plot(m,'b',1); % plot bathy on native projection
 save('ECGC_w_NYHR.mat','m'); write(m,'ECGC_w_NYHR');
