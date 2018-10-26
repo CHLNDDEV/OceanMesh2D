@@ -7,51 +7,39 @@
             lat_mea = mean(obj.p(:,2));lon_mea = mean(obj.p(:,1));
             
             del = 0 ;
-            if proj==0
+            if proj == 0
                 % normal geographic coordinates
-                m_proj('equidist','lat',[lat_mi lat_ma],'long',[lon_mi lon_ma]) ;
+                m_proj('equi','lat',[lat_mi lat_ma],'long',[lon_mi lon_ma]) ;
             else
-                switch projtype
-                    case('stereo')
-                        del = 1 ;
-                        if lat_ma < 0
-                            % center Antarctica
-                            m_proj('stereo','lat',-90,...
-                                'long',0.5*(lon_mi+lon_ma),...
-                                'radius',lat_ma+90);
-                        else
-                            % center Arctic
-                            lat_mi = max(-88.0001,lat_mi);
-                            m_proj('stereo','lat',90,...
-                                'long',0.5*(lon_mi+lon_ma),...
-                                'radius',90-lat_mi);
-                        end
-                        m_proj('get') ;
-                        del = 1 ;
-                    case('trans')
-                        disp('INFO: Default projected space...') ;
-                        m_proj('Trans','lon',[lon_mi lon_ma],'lat',[lat_mi lat_ma]) ;
-                        m_proj('get') ;
-                    case('robinson')
-                        m_proj('robinson')
-                        m_proj('get') ;
-                        del = 1 ; 
-                    case('miller')
-                        m_proj('miller','lat',[lat_mi lat_ma],'lon',[lon_mi lon_ma]);
-                        m_proj('get') ;
-                        del = 1 ; 
-                    case('ortho')
-                        m_proj('ortho','lat',[lat_mea],'long',[lon_mea]);
-                        m_proj('get') ;
-                    case('lambert')
-                        m_proj('lambert','lon',[lon_mi lon_ma],'lat',[lat_mi lat_ma]);
-                        m_proj('get') ;
-                    otherwise
-                        fprintf(1, [ ...
-                            ' Unrecognized projected space. Available options are  \n', ...
-                            ' Sterographic (stereo), Transverse Mercator (trans), Miller (miller) \n', ...
-                            ' Lambet Conformal (lambert), Orthographic (ortho)\n', ...
-                            ] ) ;
+                if startsWith(projtype,'ste','IgnoreCase',true)
+                    % Special treatment of Stereographic projection
+                    del = 1 ;
+                    if lat_ma < 0
+                        % center Antarctica
+                        m_proj(projtype,'lat',-90,...
+                              'long',0.5*(lon_mi+lon_ma),...
+                              'radius',lat_ma+90);
+                    else
+                        % center Arctic
+                        lat_mi = max(-88.0001,lat_mi);
+                        m_proj(projtype,'lat',90,...
+                              'long',0.5*(lon_mi+lon_ma),...
+                              'radius',90-lat_mi);
+                    end
+                    m_proj('get') ;
+                    del = 1 ;
+                elseif startsWith(projtype,'ort','IgnoreCase',true) || ...
+                       startsWith(projtype,'gno','IgnoreCase',true) || ...
+                       startsWith(projtype,'azi','IgnoreCase',true) || ...
+                       startsWith(projtype,'sat','IgnoreCase',true)
+                    % Azimuthal type projections
+                    m_proj(projtype,'lat',lat_mea,'long',lon_mea);
+                    m_proj('get') ;
+                else
+                    % Cylindrical, Conic or Global type projections
+                    m_proj(projtype,'lon',[lon_mi lon_ma],...
+                                    'lat',[lat_mi lat_ma]) ;
+                    m_proj('get') ;
                 end
             end
         end

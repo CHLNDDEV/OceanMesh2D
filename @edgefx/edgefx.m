@@ -234,9 +234,8 @@ classdef edgefx
             
             [xg,yg] = CreateStructGrid(obj); 
             % use a harvestine assumption
-            Re = 6378.137e3;
-            dx = obj.gridspace*cosd(yg(1,:))*Re*pi/180; % for gradient function
-            dy = obj.gridspace*Re*pi/180; % for gradient function
+            dx = obj.h0*cosd(yg(1,:)); % for gradient function
+            dy = obj.h0;               % for gradient function
             % Calculate the gradient of the distance function.
             [ddy,ddx] = EarthGradient(d,dy,dx);
             d_fs = sqrt(ddx.^2 + ddy.^2);
@@ -283,12 +282,18 @@ classdef edgefx
             x_kp( prune ) = [];
             y_kp( prune ) = [];
             
-            %[xg,yg] = CreateStructGrid(obj); 
-
             % Now get the feature size along the coastline
-            % Use KD-tree
-            [~, dPOS] = WrapperForKsearch([x_kp,y_kp],[xg(:),yg(:)],1);
-            clearvars xg yg
+            if ~isempty(x_kp)
+                % Use KD-tree
+                [~, dPOS] = WrapperForKsearch([x_kp,y_kp],[xg(:),yg(:)],1);
+            else
+                % No medial points so use distance function using grade
+                warning('No medial points, resorting to distance function')
+                d = reshape(d,obj.nx,[]);
+                obj.fsd = obj.h0 + obj.g*abs(d);
+                clear x_kp y_kp d d_fs dPOS xg yg
+                return
+            end
             % reshape back
             d = reshape(d,obj.nx,[]); dPOS = reshape(dPOS,obj.nx,[]);
             % Feature_size is distance from medial axis plus distance to
@@ -299,7 +304,7 @@ classdef edgefx
             % they will cancel out producing really fine resolution
             obj.fsd = 2*(dPOS+abs(d))/obj.fs;
             
-            clear x_kp y_kp d d_fs dPOS 
+            clear x_kp y_kp d d_fs dPOS xg yg
         end
         
         function [d,obj] = get_dis(obj,feat)

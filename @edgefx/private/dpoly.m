@@ -28,11 +28,11 @@ pv1(isnan(pv(:,1)),:) = [];
 
 %% Doing the inpoly check
 if ~isempty(obj.lmsl)
-   edges = Get_poly_edges( [obj.lmsl.outer; obj.lmsl.inner] );
-   in = inpoly(p,[obj.lmsl.outer; obj.lmsl.inner],edges);
+    edges = Get_poly_edges( [obj.lmsl.outer; obj.lmsl.inner] );
+    in = inpoly(p,[obj.lmsl.outer; obj.lmsl.inner],edges);
 else
     edges = Get_poly_edges( [feat.outer; feat.inner] );
-    [in] = inpoly(p,[feat.outer; feat.inner],edges);
+    in = inpoly(p,[feat.outer; feat.inner],edges);
 end
 % d is negative if inside polygon and vice versa.
 if feat.inpoly_flip

@@ -26,7 +26,7 @@ classdef geodata
         contourfile %  cell-array of shapefile
         demfile     % filename of dem
         h0          % min. edgelength.
-        window=5    % smoothing window on boundary (default 5 points)
+        window      % smoothing window on boundary (default 5 points)
         fp  % deprecated but kept for backwards capability 
         Fb  % linear gridded interpolant of DEM
         x0y0 % bottom left of structure grid or position (0,0)
@@ -113,6 +113,10 @@ classdef geodata
                         obj.boubox = inp.(fields{i}) ; 
                     case('window') 
                         obj.window = inp.(fields{i}) ; 
+                        if obj.window == 0
+                            % Default value
+                            obj.window = 5;
+                        end
                 end
             end
             
@@ -122,7 +126,7 @@ classdef geodata
                     error('FATAL: you must supply a boubox when using the option nonrect!');
                 end
                 obj.bbox = [min(obj.boubox(:,1)) max(obj.boubox(:,1))
-                    min(obj.boubox(:,2)) max(obj.boubox(:,2))] ;
+                            min(obj.boubox(:,2)) max(obj.boubox(:,2))] ;
             end
             
             % Get bbox information from demfile if not supplied 
@@ -139,14 +143,13 @@ classdef geodata
             
             % Read in the geometric contour information 
             if ~isempty(obj.contourfile)
-                centroid     = mean(obj.bbox(2,:));
-                gridspace =    abs(obj.h0)/(cosd(centroid)*111e3);
+                gridspace    = abs(obj.h0)/111e3;
                 if ~iscell(obj.contourfile)
                     obj.contourfile = {obj.contourfile};
                 end
                 
-                polygon_struct = Read_shapefile( obj.contourfile, [], obj.bbox, ...
-                    gridspace, 0 );
+                polygon_struct = Read_shapefile( obj.contourfile, [], ...
+                                 obj.bbox, gridspace, 0 );
                 
                 % unpack data from function Read_Shapefile()s 
                 obj.mainland = polygon_struct.mainland;
@@ -180,14 +183,20 @@ classdef geodata
                 clearvars lo la
                 
                 % Smooth the coastline (apply moving average filter).
-                if ~isempty(obj.outer)
-                    obj.outer = smooth_coastline(obj.outer,obj.window,0);
-                end
-                if ~isempty(obj.mainland)
-                    obj.mainland = smooth_coastline(obj.mainland,obj.window,0);
-                end
-                if ~isempty(obj.inner)
-                    obj.inner = smooth_coastline(obj.inner,obj.window,0);
+                if obj.window > 1
+                    disp(['Smoothing coastline with ' ...
+                           num2str(obj.window) ' point window'])
+                    if ~isempty(obj.outer)
+                        obj.outer = smooth_coastline(obj.outer,obj.window,0);
+                    end
+                    if ~isempty(obj.mainland)
+                        obj.mainland = smooth_coastline(obj.mainland,obj.window,0);
+                    end
+                    if ~isempty(obj.inner)
+                        obj.inner = smooth_coastline(obj.inner,obj.window,0);
+                    end
+                else
+                    disp('No smoothing of coastline enabled')
                 end
                 
                 % WJP: Jan 25, 2018 check the polygon
