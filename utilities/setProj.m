@@ -35,6 +35,17 @@
                     % Azimuthal type projections
                     m_proj(projtype,'lat',lat_mea,'long',lon_mea);
                     m_proj('get') ;
+                elseif startsWith(projtype,'obl','IgnoreCase',true)
+                    % Oblique Mercator projection
+                    asp = (lon_ma-lon_mi)/(lat_ma - lat_mi);
+                    dir = 'hor';
+                    if asp > 1 
+                        asp = 1./asp; dir = 'ver';
+                    end
+                    m_proj(projtype,'lon',[lon_mi lon_ma],...
+                                    'lat',[lat_mi lat_ma],...
+                                    'aspect',asp,'dir',dir) ;
+                    m_proj('get') ;
                 else
                     % Cylindrical, Conic or Global type projections
                     m_proj(projtype,'lon',[lon_mi lon_ma],...
