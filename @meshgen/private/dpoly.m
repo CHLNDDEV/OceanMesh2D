@@ -1,19 +1,19 @@
 function d = dpoly(p,obj,box_vec,project)
-% d = dpoly(p,obj,box_vec)
-%
+% INPUTS:
 % p are the mesh points
-% and obj is the meshgen object input where we use...
+% obj is the meshgen object input from which we use...
 % outer is the bounding polygon
 % bbox is the bounding box
 % inpoly_flip is whether to flip the inpoly result or not
-
+%
+% OUTPUTS:
 % d is the distance from point p to closest point on polygon outer.
 % (d is  negative if inside the bounded polygon outer and positive if outside it).
 % by Keith Roberts and William Pringle 2017-2018.
 
 %% Doing the distance calc
 if nargin < 4
-   project = 1; 
+    project = 1;
 end
 if nargin == 2
     box_vec = 1:length(obj.bbox);
@@ -28,8 +28,6 @@ for box_num = box_vec
         pv1 = outer;
         pv1(isnan(obj.outer(:,1)),:) = [];
         inpoly_flip = obj.inpoly_flip;
-        bbox = obj.bbox;
-        %h0_l = obj.h0;
         inside = true(size(d));
     else
         outer = obj.outer{box_num};
@@ -58,19 +56,15 @@ for box_num = box_vec
     end
     
     %% Doing the inpoly check
-    % If inpoly m file we need to get the edges to pass to it to avoid the
-    % issues of NaNs
-%     if project
-%         [pt(:,1),pt(:,2)] = m_ll2xy(p(inside,1),p(inside,2));
-%         [outer(:,1),outer(:,2)] = m_ll2xy(outer(:,1),outer(:,2));
-%     end
-    firstNaN = find(isnan(outer(:,1)),1,'first') ; 
-    in1 = inpoly(p(inside,:),outer(1:firstNaN-1,:)) ; 
+    % the boubox is prepended when forming outer.
+    % first check if the points are in this boubox and only
+    firstNaN = find(isnan(outer(:,1)),1,'first') ;
+    in1 = inpoly(p(inside,:),outer(1:firstNaN-1,:)) ;
     edges = Get_poly_edges( outer );
     if sum(inside)~=0
         in    = inpoly(p(inside,:),outer,edges);
     else
-        in    = d_l*0; 
+        in    = d_l*0;
     end
     
     % d is negative if inside polygon and vice versa.
@@ -81,14 +75,7 @@ for box_num = box_vec
     end
     
     if sum(inside)==0; return; end
-        
-%     % IF OUTSIDE BUT APPEARS INSIDE
-%     bad = find((p(inside,1) < bbox(1,1) | p(inside,1) > bbox(1,2) | ...
-%         p(inside,2) < bbox(2,1) | p(inside,2) > bbox(2,2)) & d_l < 0);
-%     if nnz(bad) > 0
-%         d_l(bad) = -d_l(bad);
-%     end
+    
     d(inside) = d_l;
 end
-%EOF
 end

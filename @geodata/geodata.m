@@ -25,9 +25,9 @@ classdef geodata
         inpoly_flip
         contourfile %  cell-array of shapefile
         demfile     % filename of dem
-        h0 % min. edgelength.
-        window=5 % smoothing window on boundary
-        fp
+        h0          % min. edgelength.
+        window=5    % smoothing window on boundary (default 5 points)
+        fp  % deprecated but kept for backwards capability 
         Fb  % linear gridded interpolant of DEM
         x0y0 % bottom left of structure grid or position (0,0)
         nonrect % mesh a non rectangular box 
@@ -50,7 +50,7 @@ classdef geodata
             addOptional(p,'mainland',defval);
             addOptional(p,'nonrect',defval);
             addOptional(p,'boubox',defval);
-
+            addOptional(p,'window',defval);
 
             % parse the inputs
             parse(p,varargin{:});
@@ -111,9 +111,12 @@ classdef geodata
                         obj.nonrect = inp.(fields{i}) ; 
                     case('boubox') 
                         obj.boubox = inp.(fields{i}) ; 
+                    case('window') 
+                        obj.window = inp.(fields{i}) ; 
                 end
             end
             
+            % Handle non-rectangular regions 
             if obj.nonrect
                 if obj.boubox(1) == 0 
                     error('FATAL: you must supply a boubox when using the option nonrect!');
@@ -121,8 +124,9 @@ classdef geodata
                 obj.bbox = [min(obj.boubox(:,1)) max(obj.boubox(:,1))
                     min(obj.boubox(:,2)) max(obj.boubox(:,2))] ;
             end
+            
+            % Get bbox information from demfile if not supplied 
             if size(obj.bbox,1) == 1
-                % get bbox from demfile
                 try
                    x = double(ncread(obj.demfile,'lon'));
                    y = double(ncread(obj.demfile,'lat'));
@@ -133,47 +137,49 @@ classdef geodata
                 obj.bbox = [min(x) max(x); min(y) max(y)];
             end
             
+            % Read in the geometric contour information 
             if ~isempty(obj.contourfile)
                 centroid     = mean(obj.bbox(2,:));
                 gridspace =    abs(obj.h0)/(cosd(centroid)*111e3);
-                % Read polygon from shape file and make sure spacing is h0.;
                 if ~iscell(obj.contourfile)
                     obj.contourfile = {obj.contourfile};
                 end
+                
                 polygon_struct = Read_shapefile( obj.contourfile, [], obj.bbox, ...
                     gridspace, 0 );
+                
+                % unpack data from function Read_Shapefile()s 
                 obj.mainland = polygon_struct.mainland;
+                obj.inner    = polygon_struct.inner;
+
+                % Create the outer polygon mesh boundary
                 if obj.nonrect==0
+                    % default box case 
                     obj.outer    = polygon_struct.outer;
                 else
+                    % non-rectangular case 
                     obj.outer = [] ;
                     [la,lo]=my_interpm(obj.boubox(:,2),obj.boubox(:,1),gridspace/2) ; 
                     obj.boubox = [] ; obj.boubox = [lo,la] ; 
                     obj.outer = [obj.boubox;obj.mainland];
                 end
-                obj.inner    = polygon_struct.inner;
+                                
+                % Make sure the shoreline components have spacing of gridspace/2
+                [la,lo]=my_interpm(obj.outer(:,2),obj.outer(:,1),gridspace/2);
+                obj.outer = [];  obj.outer(:,1) = lo; obj.outer(:,2) = la;
                 
-                % for mainland
                 if ~isempty(obj.mainland)
                     [la,lo]=my_interpm(obj.mainland(:,2),obj.mainland(:,1),gridspace/2);
-                    obj.mainland = [];
-                    obj.mainland(:,1) = lo; obj.mainland(:,2) = la;
+                    obj.mainland = []; obj.mainland(:,1) = lo; obj.mainland(:,2) = la;
                 end
-                
-                % make sure it has equal spacing of h0/2
-                [la,lo]=my_interpm(obj.outer(:,2),obj.outer(:,1),gridspace/2);
-                obj.outer = [];
-                obj.outer(:,1) = lo; obj.outer(:,2) = la;
-                
-                % for islands
+              
                 if ~isempty(obj.inner)
                     [la,lo]=my_interpm(obj.inner(:,2),obj.inner(:,1),gridspace/2);
-                    obj.inner = [];
-                    obj.inner(:,1) = lo; obj.inner(:,2) = la;
+                    obj.inner = []; obj.inner(:,1) = lo; obj.inner(:,2) = la;
                 end
                 clearvars lo la
                 
-                % smooth coastline
+                % Smooth the coastline (apply moving average filter).
                 if ~isempty(obj.outer)
                     obj.outer = smooth_coastline(obj.outer,obj.window,0);
                 end
@@ -196,12 +202,12 @@ classdef geodata
                         obj.bbox(1,1) obj.bbox(2,1); NaN NaN];
                 end
                 
+                % KJR: May 13, 2018 coarsen portions of outer, mainland
+                % and inner outside bbox (made into function WP)
                 iboubox = obj.boubox;
                 iboubox(:,1) = 1.10*iboubox(:,1)+(1-1.10)*mean(iboubox(1:end-1,1));
                 iboubox(:,2) = 1.10*iboubox(:,2)+(1-1.10)*mean(iboubox(1:end-1,2));
-                
-                % KJR: May 13, 2018 coarsen portions of outer, mainland
-                % and inner outside bbox (made into function WP)
+               
                 obj.outer = coarsen_polygon(obj.outer,iboubox);
               
                 if ~isempty(obj.inner)
@@ -215,16 +221,17 @@ classdef geodata
                 disp(['Read in contourfile ',obj.contourfile]);
                 
             else
-                % then user defined file passed
+                % Hanlde the case for user defined mesh boundary information
                 centroid     = mean(obj.bbox(2,:));
                 gridspace =    abs(obj.h0)/(cosd(centroid)*111e3);
+                
                 % make sure it has equal spacing of h0/2
                 [la,lo]=my_interpm(obj.outer(:,2),obj.outer(:,1),gridspace/2);
-                obj.outer = [];
-                obj.outer(:,1) = lo; obj.outer(:,2) = la;
+                obj.outer = []; obj.outer(:,1) = lo; obj.outer(:,2) = la;
                 if isempty(obj.outer)
                     error('Outer segment is required to mesh!');
                 end
+                
                 % for mainland
                 if ~isempty(obj.mainland)
                     [la,lo]=my_interpm(obj.mainland(:,2),obj.mainland(:,1),gridspace/2);
@@ -233,6 +240,7 @@ classdef geodata
                 else
                     error('Mainland segment is required to mesh!');
                 end
+                
                 % for islands
                 if ~isempty(obj.inner)
                     [la,lo]=my_interpm(obj.inner(:,2),obj.inner(:,1),gridspace/2);
@@ -247,9 +255,9 @@ classdef geodata
                     obj.bbox(1,2) obj.bbox(2,2);
                     obj.bbox(1,2) obj.bbox(2,1); ...
                     obj.bbox(1,1) obj.bbox(2,1); NaN NaN];
-                
             end
             
+            % Process the DEM
             if ~isempty(obj.demfile)
                 try
                    x = double(ncread(obj.demfile,'lon'));
@@ -258,7 +266,7 @@ classdef geodata
                    x = double(ncread(obj.demfile,'x'));
                    y = double(ncread(obj.demfile,'y'));    
                 end
-                % Read with Buffer
+                % Read with a buffer arund the meshing domain 
                 centroid  = mean(obj.bbox(2,:));
                 gridspace = abs(obj.h0)/(cosd(centroid)*111e3);
                 I = find(x >= obj.bbox(1,1) & ...
@@ -266,7 +274,7 @@ classdef geodata
                 J = find(y >= obj.bbox(2,1) & ...
                          y <= obj.bbox(2,2));
                 x = x(I); y = y(J);
-                % Find name of z value (use first one that has 2 dimensions
+                % Find name of z value (use one that has 2 dimensions)
                 finfo = ncinfo(obj.demfile);
                 for ii = 1:length(finfo.Variables)
                     if length(finfo.Variables(ii).Size) == 2
@@ -279,14 +287,17 @@ classdef geodata
                 obj.Fb   = griddedInterpolant({x,y},demz,...
                     'linear','nearest');
                 obj.x0y0 = [x(1),y(1)];
+                % clear data from memory 
                 clear x y demz
+                
                 disp(['Read in demfile ',obj.demfile]);
             end
             
-            % then no dem
+            % Handle the case of no dem
             if isempty(obj.x0y0)
                 obj.x0y0 = [obj.bbox(1,1), obj.bbox(2,1)];
             end
+            
             
             function polyobj = coarsen_polygon(polyobj,iboubox)
                 % coarsen a polygon object
@@ -346,7 +357,6 @@ classdef geodata
             end
             disp('Warning: Shapefile is unconnected... continuing anyway')
             % outer polygon is not connected, check for inpoly goodness
-            
             % read the GSHHS checker
             ps = Read_shapefile( {'GSHHS_l_L1'}, [], ...
                 obj.bbox, gridspace, 0 );
@@ -371,6 +381,7 @@ classdef geodata
                 obj.inpoly_flip = mod(1,obj.inpoly_flip);
             end
         end
+        
 
         % close geometric countour vectors by clipping with a boubox 
         % updates gdat.outer so that the meshing domain is correctly defined 
@@ -400,11 +411,13 @@ classdef geodata
         end
         
         
-        % plot shp object on projected map
+        
+        % Plot mesh boundary 
         function plot(obj,type,projection)
             if nargin == 1
                 type = 'shp';
             end
+            
             if nargin < 3
                 projection = 'Transverse Mercator';
             end
@@ -419,6 +432,7 @@ classdef geodata
                       'long',[obj.bbox(1,1) - bufx, obj.bbox(1,2) + bufx],...
                       'lat',[obj.bbox(2,1) - bufy, obj.bbox(2,2) + bufy]);
             end
+            
             switch type
                 case('dem')
                     % interpolate DEM's bathy linearly onto our edgefunction grid.
