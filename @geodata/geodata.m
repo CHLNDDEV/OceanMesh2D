@@ -25,6 +25,7 @@ classdef geodata
         weirs % weir crestlines
         weirPfix % boundaries of weir
         weirEgfix % edges of weir
+        ibconn_pts % cell-array of paired weir nodes
         inpoly_flip % reverse the notion of "in"
         contourfile %  cell-array of shapefile
         demfile % filename of dem
@@ -126,7 +127,7 @@ classdef geodata
                             for ii = 1 : noWeirs
                                 crestlines = obj.weirs{ii}(:,1:2) ;
                                 width      = obj.weirs{ii}(1,3) ;
-                                [tempPfix,tmpEgfix] = GenerateWeirGeometry(crestlines,width,2*(obj.h0/111e3),0) ;
+                                [tempPfix,tmpEgfix,obj.ibconn_pts{ii}] = GenerateWeirGeometry(crestlines,width,2*(obj.h0/111e3),0) ;
                                 [tmpEgfix]=renumberEdges(tmpEgfix) ;
                                 weirLength(ii) = length(tempPfix) ;
                                 if ii~=1

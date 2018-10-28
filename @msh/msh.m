@@ -33,9 +33,9 @@ classdef msh
         f24 % A struct of the fort24 SAL values
         f2001 % A struct for the fort2001 non-periodic flux/ele sponge bc
         f5354 % A struct for the fort53001/54001 tidal ele/flux sponge bc
-        proj   % Description of projected space (m_mapv1.4)  
-        coord  % Description of projected space (m_mapv1.4) 
-        mapvar % Description of projected space (m_mapv1.4) 
+        proj   % Description of projected space (m_mapv1.4)
+        coord  % Description of projected space (m_mapv1.4)
+        mapvar % Description of projected space (m_mapv1.4)
     end
     
     methods
@@ -152,18 +152,18 @@ classdef msh
                 end
             end
         end
-
+        
         % general plot function
         function h = plot(obj,type,proj,projtype,bou)
-            if nargin == 2 
-              proj = 1 ;
-              projtype =[] ; 
+            if nargin == 2
+                proj = 1 ;
+                projtype =[] ;
             end
-            if nargin == 3 
-               projtype = [] ;  
+            if nargin == 3
+                projtype = [] ;
             end
             np_g = length(obj.p) ;
-
+            
             
             % kjr default behavior, just use what's in the .mat file
             if proj && isempty(projtype)
@@ -174,7 +174,7 @@ classdef msh
                     MAP_VAR_LIST   = obj.mapvar ;
                     MAP_COORDS     = obj.coord ;
                     del = 0;
-                    projtype = MAP_PROJECTION.name; 
+                    projtype = MAP_PROJECTION.name;
                 end
             end
             
@@ -194,19 +194,19 @@ classdef msh
                 kept = (1:length(obj.p))';
             end
             
-            % Set up projected space 
+            % Set up projected space
             del = setProj(obj,proj,projtype) ;
-           
+            
             if del
                 % This deletes any elements straddling the -180/180
                 % boundary for plotting purposes
                 xt = [obj.p(obj.t(:,1),1) obj.p(obj.t(:,2),1) ...
-                      obj.p(obj.t(:,3),1) obj.p(obj.t(:,1),1)];
+                    obj.p(obj.t(:,3),1) obj.p(obj.t(:,1),1)];
                 dxt = diff(xt,[],2);
                 obj.t(abs(dxt(:,1)) > 180 | abs(dxt(:,2)) > 180 | ...
-                      abs(dxt(:,2)) > 180,:) = [];
+                    abs(dxt(:,2)) > 180,:) = [];
             end
-      
+            
             logaxis = 0; numticks = 10;
             if strcmp(type(max(1,end-2):end),'log')
                 logaxis = 1; type = type(1:end-3);
@@ -238,6 +238,23 @@ classdef msh
                                     plot(obj.p(obj.bd.nbvv(:),1),...
                                         obj.p(obj.bd.nbvv(:),2),...
                                         'r.','linewi',1.2);
+                                end
+                                % internal weirs
+                            elseif obj.bd.ibtype(nb)  == 24
+                                if proj
+                                    % plot front facing
+                                    m_plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
+                                        obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'g-','linewi',1.2);
+                                    % plot back facing
+                                    m_plot(obj.p(obj.bd.ibconn(1:obj.bd.nvell(nb),nb),1),...
+                                        obj.p(obj.bd.ibconn(1:obj.bd.nvell(nb),nb),2),'g-','linewi',1.2);
+                                else
+                                    % plot front facing
+                                    plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
+                                        obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'g-','linewi',1.2);
+                                    % plot back facing
+                                    m_plot(obj.p(obj.bd.ibconn(1:obj.bd.ibconn(nb),nb),1),...
+                                        obj.p(obj.bd.ibconn(1:obj.bd.nvell(nb),nb),2),'g','linewi',1.2);
                                 end
                             else
                                 if proj
@@ -425,7 +442,7 @@ classdef msh
                         defval  = obj.f13.defval.Atr(ii).Val;
                         userval = obj.f13.userval.Atr(ii).Val;
                         values = max(userval(2:end,:)',[],2);
-                        alltogether = zeros(np_g,1)+0.025 ; 
+                        alltogether = zeros(np_g,1)+0.025 ;
                         alltogether(userval(1,:)',1) = values;
                         if proj
                             figure;
@@ -552,12 +569,13 @@ classdef msh
             end
             
             if ~isempty(obj.bd)
-                disp('Renumbering the no flux boundary nodestrings...');
+                disp('Renumbering the flux boundary nodestrings...');
                 for ib = 1 : obj.bd.nbou
                     tempcell{ib} = obj.bd.nbvv(1:obj.bd.nvell(ib),ib);
                 end
                 temp = cell2mat(tempcell');
-                temp = perm_inv(temp)';
+                ex   = find(temp~=0) ;
+                temp(ex) = perm_inv(temp(ex))';
                 temp = mat2cell(temp,cellfun(@length,tempcell));
                 nbvv = zeros(size(obj.bd.nbvv,1),size(obj.bd.nbvv,2));
                 for ib = 1 : obj.bd.nbou
@@ -566,6 +584,76 @@ classdef msh
                     end
                 end
                 obj.bd.nbvv = nbvv;
+                
+                % renumber the various components of the weir connectivity
+                if isfield(obj.bd,'ibconn')
+                    for ib = 1 : obj.bd.nbou
+                        tempcell{ib} = obj.bd.ibconn(1:obj.bd.nvell(ib),ib);
+                    end
+                    temp = cell2mat(tempcell');
+                    ex   = find(temp~=0) ;
+                    temp(ex) = perm_inv(temp(ex))';
+                    temp = mat2cell(temp,cellfun(@length,tempcell));
+                    ibconn = zeros(size(obj.bd.nbvv,1),size(obj.bd.nbvv,2));
+                    for ib = 1 : obj.bd.nbou
+                        for iv = 1 : obj.bd.nvell(ib)
+                            ibconn(iv,ib) = temp{ib}(iv,:);
+                        end
+                    end
+                    obj.bd.ibconn = ibconn;
+                end
+                
+                if isfield(obj.bd,'barinht')
+                    for ib = 1 : obj.bd.nbou
+                        tempcell{ib} = obj.bd.barinht(1:obj.bd.nvell(ib),ib);
+                    end
+                    temp = cell2mat(tempcell');
+                    ex   = find(temp~=0) ;
+                    temp(ex) = perm_inv(temp(ex))';
+                    temp = mat2cell(temp,cellfun(@length,tempcell));
+                    barinht = zeros(size(obj.bd.nbvv,1),size(obj.bd.nbvv,2));
+                    for ib = 1 : obj.bd.nbou
+                        for iv = 1 : obj.bd.nvell(ib)
+                            barinht(iv,ib) = temp{ib}(iv,:);
+                        end
+                    end
+                    obj.bd.barinht = barinht;
+                end
+                
+                if isfield(obj.bd,'barincfsb')
+                    for ib = 1 : obj.bd.nbou
+                        tempcell{ib} = obj.bd.barincfsb(1:obj.bd.nvell(ib),ib);
+                    end
+                    temp = cell2mat(tempcell');
+                    ex   = find(temp~=0) ;
+                    temp(ex) = perm_inv(temp(ex))';
+                    temp = mat2cell(temp,cellfun(@length,tempcell));
+                    barincfsb = zeros(size(obj.bd.nbvv,1),size(obj.bd.nbvv,2));
+                    for ib = 1 : obj.bd.nbou
+                        for iv = 1 : obj.bd.nvell(ib)
+                            barincfsb(iv,ib) = temp{ib}(iv,:);
+                        end
+                    end
+                    obj.bd.barincfsb = barincfsb;
+                end
+                
+                if isfield(obj.bd,'barincfsp')
+                    for ib = 1 : obj.bd.nbou
+                        tempcell{ib} = obj.bd.barincfsp(1:obj.bd.nvell(ib),ib);
+                    end
+                    temp = cell2mat(tempcell');
+                    ex   = find(temp~=0) ;
+                    temp(ex) = perm_inv(temp(ex))';
+                    temp = mat2cell(temp,cellfun(@length,tempcell));
+                    barincfsp = zeros(size(obj.bd.nbvv,1),size(obj.bd.nbvv,2));
+                    for ib = 1 : obj.bd.nbou
+                        for iv = 1 : obj.bd.nvell(ib)
+                            barincfsp(iv,ib) = temp{ib}(iv,:);
+                        end
+                    end
+                    obj.bd.barincfsb = barincfsp;
+                end
+                
             end
             
             if ~isempty(obj.f13)
@@ -621,7 +709,7 @@ classdef msh
                     if ~isempty(L) && ~isempty(R)
                         periodic = 1;
                         disp(['Detected global mesh applying automatic' ...
-                              ' periodic BC fix'])
+                            ' periodic BC fix'])
                     end
                     
                     % Get the boundaries
@@ -743,6 +831,7 @@ classdef msh
                     obj.bd.ibtype = ibtype ;
                     obj.bd.nbvv = nbvv ;
                     
+                    
                     if ~periodic; return; end
                     
                     %% For periodic Bcs below
@@ -847,44 +936,44 @@ classdef msh
                 case('delete')
                     % have the user select the nodestring '
                     plot(obj,'bd') ;
-                    temp = obj.bd.nbvv; 
+                    temp = obj.bd.nbvv;
                     bounodes=obj.bd.nbvv ;
                     idx=sum(bounodes~=0);
                     bounodes=bounodes(:) ;
                     bounodes(bounodes==0)=[] ;
-                    boupts = obj.p(bounodes,:) ; 
+                    boupts = obj.p(bounodes,:) ;
                     idx2=[0,cumsum(idx)]'+1;
                     k = 0 ;
-                    for i = 1 : length(idx2)-1 
+                    for i = 1 : length(idx2)-1
                         k = k + 1 ;
-                        bounodes(idx2(i):idx2(i+1)-1,2) = k ; 
+                        bounodes(idx2(i):idx2(i+1)-1,2) = k ;
                     end
                     
                     dcm_obj = datacursormode(gcf);
                     title('use data cursor to select nodestring to be deleted');
                     pause
                     c_info = getCursorInfo(dcm_obj);
-                    [tmp(:,1),tmp(:,2)]=m_ll2xy(boupts(:,1),boupts(:,2)); 
-                    idx3 = ourKNNsearch(boupts',c_info.Position',1)  ; 
-                    del = bounodes(idx3,2) ;  %<- get the nodestring index 
-                    pltid = temp(:,del) ; pltid(pltid==0)=[] ; 
-                    hold on; m_plot(obj.p(pltid,1),obj.p(pltid,2),'r-','linewi',2) ; 
+                    [tmp(:,1),tmp(:,2)]=m_ll2xy(boupts(:,1),boupts(:,2));
+                    idx3 = ourKNNsearch(boupts',c_info.Position',1)  ;
+                    del = bounodes(idx3,2) ;  %<- get the nodestring index
+                    pltid = temp(:,del) ; pltid(pltid==0)=[] ;
+                    hold on; m_plot(obj.p(pltid,1),obj.p(pltid,2),'r-','linewi',2) ;
                     disp(['Delete boundary with index ',num2str(del),'?']) ;
-                    pause 
-                    obj.bd.nbvv(:,del)=[]; 
-                    num_delnodes = idx(del) ; 
-                    obj.bd.nbou = obj.bd.nbou - 1 ; 
-                    obj.bd.nvell(del)=[] ; 
-                    obj.bd.ibtype(del)=[] ; 
-                    obj.bd.nvel = obj.bd.nvel - num_delnodes ; 
+                    pause
+                    obj.bd.nbvv(:,del)=[];
+                    num_delnodes = idx(del) ;
+                    obj.bd.nbou = obj.bd.nbou - 1 ;
+                    obj.bd.nvell(del)=[] ;
+                    obj.bd.ibtype(del)=[] ;
+                    obj.bd.nvel = obj.bd.nvel - num_delnodes ;
                     
                 case('outer')
                     [bnde,bpts]=extdom_edges2(obj.t,obj.p);
                     
                     % use this to figure out the vstart and vend
                     figure, plot(bpts(:,1),bpts(:,2),'k.');
-                    %hold on; fastscatter(obj.p(:,1),obj.p(:,2),obj.b) ; 
-                    caxis([-10 10]) ; axis equal ; 
+                    %hold on; fastscatter(obj.p(:,1),obj.p(:,2),obj.b) ;
+                    caxis([-10 10]) ; axis equal ;
                     title('use data cursor to identify vstart and vend');
                     dcm_obj = datacursormode(gcf);
                     set(dcm_obj,'UpdateFcn',{@myupdatefcn2,bpts})
@@ -908,7 +997,7 @@ classdef msh
                     %[I,d] = ourKNNsearch(obj.p',obj.p'+[360;0],1);
                     %J = find(d < 1e-5);
                     % list of points that straddle the -180/180 boundary
-                    periodic_bc_list = bars(abs(dlon) > 180,:);    
+                    periodic_bc_list = bars(abs(dlon) > 180,:);
                     obj.bd.nbou = 1 ;
                     obj.bd.nvel = length(periodic_bc_list) ;
                     obj.bd.nvell = obj.bd.nvel ;
@@ -916,7 +1005,131 @@ classdef msh
                     obj.bd.nbvv = periodic_bc_list ;
                     return;
                     
+                case('weirs')
+                    if ~isa(dir,'geodata')
+                        error('The third input must be a geodata class object you used create the mesh with.')
+                    else
+                        gdat = dir;
+                    end
+                    
+                    % identifying and adding internal weir type boundaries (ibtype=24)
+                    for ii = 1 : length(gdat.ibconn_pts) % for each weir
+                        [front_nn, d1] = ourKNNsearch(obj.p',gdat.ibconn_pts{ii}(:,1:2)',1);
+                        [back_nn,  d2] = ourKNNsearch(obj.p',gdat.ibconn_pts{ii}(:,3:4)',1);
+                        rm = d1 > 1e-9 & d2 > 1e-9;
+                        front_nn(rm) = [] ; back_nn(rm) = [] ;
+                        nn = [front_nn,back_nn] ;
+                        for iii = 1 : length(nn)
+                            rm2(iii,1)=length(unique(nn(iii,:)))~=2 ;
+                        end
+                        front_nn(rm2) = [] ; back_nn(rm2) = [] ;
+                        clearvars rm2 ;
+                        %                         % visualize node pairs
+                        %                         plot(obj,'tri',0) ;
+                        %                         hold on; plot(obj.p(front_nn,1),obj.p(front_nn,2),'r.') ;
+                        %                         hold on; plot(obj.p(back_nn,1),obj.p(back_nn,2),'gs') ;
+                        
+                        % add to the boundary struct
+                        if  ~isempty(obj.bd)
+                            % unpack current boundaries
+                            nbou   = obj.bd.nbou;
+                            nvel   = obj.bd.nvel;
+                            nvell  = obj.bd.nvell;
+                            nbvv   = obj.bd.nbvv;
+                            ibtype = obj.bd.ibtype;
+                            
+                            % append on the weir
+                            nbou = nbou + 1;
+                            nvell(nbou) = length(front_nn) ; % only list front facing nodes in nbvv for barriers
+                            nvel = nvel + nvell(nbou);
+                            nbvv(1:nvell(nbou),nbou) = front_nn;
+                            ibtype(nbou) = 24;
+                            
+                            % repackage it
+                            obj.bd.nbou   = nbou ;
+                            obj.bd.nvel   = nvel ;
+                            obj.bd.nvell  = nvell ;
+                            obj.bd.ibtype = ibtype ;
+                            obj.bd.nbvv   = nbvv ;
+                        else
+                            % create a new boundary struct
+                            % initialize arrays
+                            nbou  = 0 ;
+                            nvel  = 0 ;
+                            nvell = [] ;
+                            ibtype= [] ;
+                            nbvv  = [] ;
+                            
+                            % append on the weir
+                            nbou = nbou + 1;
+                            nvell(nbou) = length(front_nn) ; % only list front facing nodes in nbvv for barriers
+                            nvel = nvel + nvell(nbou);
+                            nbvv(1:nvell(nbou),nbou) = front_nn;
+                            ibtype(nbou) = 24;
+                            
+                            % package it
+                            obj.bd.nbou   = nbou ;
+                            obj.bd.nvel   = nvel ;
+                            obj.bd.nvell  = nvell ;
+                            obj.bd.ibtype = ibtype ;
+                            obj.bd.nbvv   = nbvv ;
+                        end
+                        
+                        % either append or create new weir connectivity tables
+                        if isfield(obj.bd,'ibconn')
+                            % then append
+                            ibconn    = obj.bd.ibconn ;
+                            barinht   = obj.bd.barinht ;
+                            barincfsb = obj.bd.barincfsb ;
+                            barincfsp = obj.bd.barincfsp ;
+                            ibconn(1:nvell(nbou),nbou) = back_nn ; % only list back facing nodes in ibconn for barriers
+                            % Opt 1) ask the user for a dataset to give the
+                            % crestline (barinht) ;
+                            ar = input('Type 1 to enter weir crest height or type 2 to specify dataset...') ;
+                            if ar==1
+                                % fixed value for weir crests
+                                ht = input('Enter value in meters ABOVE the geoid for the height of the weir...') ;
+                                disp('-----------------------------------------------------------') ;
+                            elseif ar==2
+                                % working on it !
+                                %
+                                error('NOT WORKING YET')
+                            end
+                            barinht(1:nvell(nbou),nbou) =  ht ;
+                            barincfsb(1:nvell(nbou),nbou) = 1 ; % these are standard values
+                            barincfsp(1:nvell(nbou),nbou) = 1 ; % these are standard values
+                        else
+                            % then create new
+                            ibconn = nbvv*0 ;
+                            ibconn(1:nvell(nbou),nbou) = back_nn ;  % only list back facing nodes in ibconn for barriers
+                            barinht =  [] ;
+                            barincfsb = [];
+                            barincfsp = [] ;
+                            % Opt 1) ask the user for a dataset to give the crestline
+                            % height (barinht)
+                            ar = input('Type 1 to enter weir crest height or type 2 to specify dataset...') ;
+                            if ar==1
+                                % fixed value for weir crests
+                                ht = input('Enter value in meters ABOVE the geoid for the height of the weir...') ;
+                                disp('-----------------------------------------------------------') ;
+                            elseif ar==2
+                                % working on it !
+                                %
+                                error('NOT WORKING YET')
+                            end
+                            barinht(1:nvell(nbou),nbou)   = ht ;
+                            barincfsb(1:nvell(nbou),nbou) = 1 ; % these are standard values
+                            barincfsp(1:nvell(nbou),nbou) = 1 ; % these are standard values
+                        end
+                        % now add them back
+                        obj.bd.ibconn    = ibconn ;
+                        obj.bd.barinht   = barinht ;
+                        obj.bd.barincfsb = barincfsb ;
+                        obj.bd.barincfsp = barincfsp ;
+                    end
             end
+            
+            
             function txt = myupdatefcn2(~,event_obj,myarray)
                 pos = get(event_obj,'Position');
                 ind = find(abs(myarray(:,1)-pos(1))<eps & abs(myarray(:,2)-pos(2))<eps);
@@ -927,10 +1140,10 @@ classdef msh
         end
         
         function merge=plus(obj1,obj2)
-            % Merge together two meshes contained in the msh objects obj1 
+            % Merge together two meshes contained in the msh objects obj1
             % and obj2. Uses MATLAB's implementation of the Boywer-Watson
-            % incremental triangulation and then applies mesh cleaning 
-            % algorithms to "fix" the intersection zone between meshes. 
+            % incremental triangulation and then applies mesh cleaning
+            % algorithms to "fix" the intersection zone between meshes.
             %
             % INPUTS:
             % mesh1: msh() class of inset mesh.
@@ -944,42 +1157,42 @@ classdef msh
             % kjr, und, chl, sept. 2017 Version 1.0.
             %    UPDATED by kjr, und, chl, oct. 2018, Version 1.5
             warning('off','all')
-
-            p1=obj1.p; t1=obj1.t; 
+            
+            p1=obj1.p; t1=obj1.t;
             p2=obj2.p; t2=obj2.t;
             
-            % assumes global mesh is mesh 2 
-            lat_mi = min(p2(:,2)) ; lat_ma = max(p2(:,2)) ; 
-            lon_mi = min(p2(:,1)) ; lon_ma = max(p2(:,1)) ; 
+            % assumes global mesh is mesh 2
+            lat_mi = min(p2(:,2)) ; lat_ma = max(p2(:,2)) ;
+            lon_mi = min(p2(:,1)) ; lon_ma = max(p2(:,1)) ;
             
             % centered on Arctic in stereographic projection
             lat_mi = max(-88.0001,lat_mi);
             m_proj('stereo','lat',90,...
                 'long',0.5*(lon_mi+lon_ma),...
-                'radius',90-lat_mi);   
+                'radius',90-lat_mi);
             
-            % project both meshes into the space of the global mesh 
-            [p1(:,1),p1(:,2)]=m_ll2xy(p1(:,1),p1(:,2)) ;                       
+            % project both meshes into the space of the global mesh
+            [p1(:,1),p1(:,2)]=m_ll2xy(p1(:,1),p1(:,2)) ;
             [p2(:,1),p2(:,2)]=m_ll2xy(p2(:,1),p2(:,2)) ;
-                        
-            disp('Forming outer boundary for base...')            
+            
+            disp('Forming outer boundary for base...')
             poly_vec2=cell2mat(extdom_polygon(extdom_edges2(t2,p2),p2,-1)');
             PG2 = polyshape(poly_vec2(:,1), poly_vec2(:,2)) ;
             
             disp('Forming outer boundary for inset...')
             poly_vec1=cell2mat(extdom_polygon(extdom_edges2(t1,p1),p1,-1)');
-            PG = polyshape(poly_vec1(:,1),poly_vec1(:,2)); 
+            PG = polyshape(poly_vec1(:,1),poly_vec1(:,2));
             
-            % Delete the region in the global mesh that is in the 
-            % intersection with inset. 
+            % Delete the region in the global mesh that is in the
+            % intersection with inset.
             disp('Calculating intersection...');
-            polyout2 = intersect(PG,PG2) ; 
+            polyout2 = intersect(PG,PG2) ;
             [edges]=Get_poly_edges([polyout2.Vertices; NaN NaN]);
             in1=inpoly(p2(t2(:,1),:),polyout2.Vertices,edges);
             in2=inpoly(p2(t2(:,2),:),polyout2.Vertices,edges);
             in3=inpoly(p2(t2(:,3),:),polyout2.Vertices,edges);
             t2(in1 | in2 | in3,:)=[];  p2=unique(p2(t2(:),:),'rows');
-                  
+            
             disp('Merging...')
             DTbase = delaunayTriangulation(p1(:,1),p1(:,2));
             DTbase.Points(end+(1:length(p2)),:)=p2;
@@ -1002,12 +1215,12 @@ classdef msh
             in3=inpoly(pmid,[polyout2.Vertices;NaN NaN],edges2);
             
             % remove triangles that aren't in the global mesh or aren't in
-            % the inset mesh 
+            % the inset mesh
             tm((~in1 & ~in2) | (in3 & ~in1),:)=[];
             
             merge = msh() ; merge.p=pm; merge.t=tm ;
             
-            % perform clearning operations 
+            % perform clearning operations
             merge = Make_Mesh_Boundaries_Traversable(merge,1,0.1);
             
             merge = bound_con_int(merge,9) ;
@@ -1020,7 +1233,7 @@ classdef msh
             merge.mapvar  = MAP_VAR_LIST ;
             
             % convert back to lat-lon wgs84
-            [merge.p(:,1),merge.p(:,2)]=m_xy2ll(merge.p(:,1),merge.p(:,2)); 
+            [merge.p(:,1),merge.p(:,2)]=m_xy2ll(merge.p(:,1),merge.p(:,2));
             
             % Turn warnings back on
             warning('on','all')
@@ -1030,11 +1243,11 @@ classdef msh
             g      = 9.81;        % gravity
             bars = [obj.t(:,[1,2]); obj.t(:,[1,3]); obj.t(:,[2,3])]; % Interior bars duplicated
             bars = unique(sort(bars,2),'rows');                      % Bars as node pairs
-            long   = zeros(length(bars)*2,1);        
+            long   = zeros(length(bars)*2,1);
             lat    = zeros(length(bars)*2,1);
-            long(1:2:end) = obj.p(bars(:,1),1); 
+            long(1:2:end) = obj.p(bars(:,1),1);
             long(2:2:end) = obj.p(bars(:,2),1);
-            lat(1:2:end)  = obj.p(bars(:,1),2);  
+            lat(1:2:end)  = obj.p(bars(:,1),2);
             lat(2:2:end)  = obj.p(bars(:,2),2);
             % Get spherical earth distances for bars
             barlen = m_lldist(long,lat); barlen = barlen(1:2:end)*1e3;            % L = Bar lengths in meters
@@ -1072,7 +1285,7 @@ classdef msh
             % incrementally modifying the triangulation nearby each edge
             % that violates the CFL.
             % kjr, chl, und, 2017
-              % kjr, chl, und, 2018 <--updated for projected spaces 
+            % kjr, chl, und, 2018 <--updated for projected spaces
             %%
             desCFL     = 0.50;    %<-- set desired cfl (generally less than 0.80 for stable).
             if nargin < 3
@@ -1081,16 +1294,16 @@ classdef msh
                 desIt = varargin{1};
             end
             %%
-            if ~isempty(obj.coord) 
+            if ~isempty(obj.coord)
                 % kjr 2018,10,17; Set up projected space imported from msh class
                 global MAP_PROJECTION MAP_VAR_LIST MAP_COORDS
                 MAP_PROJECTION = obj.proj ;
                 MAP_VAR_LIST   = obj.mapvar ;
                 MAP_COORDS     = obj.coord ;
-            else 
-                lon_mi = min(obj.p(:,1)); lon_ma = max(obj.p(:,1)); 
+            else
+                lon_mi = min(obj.p(:,1)); lon_ma = max(obj.p(:,1));
                 lat_mi = min(obj.p(:,2)); lat_ma = max(obj.p(:,2));
-                m_proj('Trans','lon',[lon_mi lon_ma],'lat',[lat_mi lat_ma]) ; 
+                m_proj('Trans','lon',[lon_mi lon_ma],'lat',[lat_mi lat_ma]) ;
             end
             %%
             F = scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.b,'linear','none');
@@ -1111,10 +1324,10 @@ classdef msh
             end
             toc
             disp(['Achieved max CFL of ',num2str(max(real(CFL))),...
-                  ' after ',num2str(it),' iterations.']);
+                ' after ',num2str(it),' iterations.']);
             disp('Remove poor quality elements and fix connecitivity problems..');
             
-             
+            
             [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2));
             obj = Make_Mesh_Boundaries_Traversable( obj, 0.25, 0 );
             
@@ -1129,9 +1342,9 @@ classdef msh
             return;
             
             function obj = DecimateTria(obj,bad)
-         
+                
                 [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2));
-
+                
                 obj = Make_Mesh_Boundaries_Traversable(obj,0.001,1);
                 % form outer polygon of mesh for cleaning up.
                 bnde=extdom_edges2(obj.t,obj.p);

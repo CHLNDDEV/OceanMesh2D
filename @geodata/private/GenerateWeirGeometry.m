@@ -1,4 +1,4 @@
-function [weirPfix,weirEgfix] = GenerateWeirGeometry(crestline,width,spacing,plot_on)
+function [weirPfix,weirEgfix,ibconn_pts] = GenerateWeirGeometry(crestline,width,spacing,plot_on)
 % Builds weir(d) island geometries from a weir
 % crestline polyline and returns the points in a order that define the
 % boundary.
@@ -18,7 +18,9 @@ function [weirPfix,weirEgfix] = GenerateWeirGeometry(crestline,width,spacing,plo
 % weirPoints: points of the weir faux island boundary
 %
 % weirEdges:  edges that index into weirPoints defining the connections
-%             between points on the weir faux island boundary
+%             between points on the weir island boundary
+%
+% ibconn_pts: This array tells you the coordinates that form a pair of points.  
 %
 % AUTHOR: KJR, OCT 26. 2018, CHL,UND
 
@@ -46,6 +48,8 @@ u=v./norm(v) ;
 new_above=crestline + width*u ;
 new_below=crestline - width*u ;
 
+% create ibconn_pts 
+ibconn_pts = [new_above new_below] ; 
 % hold on; plot(new_above(:,1),new_above(:,2),'r-s') ;
 % hold on; plot(new_below(:,1),new_below(:,2),'g-s') ;
 
