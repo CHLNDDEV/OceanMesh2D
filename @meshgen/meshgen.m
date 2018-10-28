@@ -138,12 +138,18 @@ classdef meshgen
                         else
                             obj.pfix = [];
                         end
+                        if  ~isempty(obj.bou{1}.weirPfix)
+                           obj.pfix = [obj.pfix ; obj.bou{1}.weirPfix];
+                        end
                     case('egfix')
                         obj.egfix= inp.(fields{i});
                         if obj.egfix(1)~=0
                             obj.egfix = inp.(fields{i});
                         else
                             obj.egfix = [];
+                        end
+                         if ~isempty(obj.bou{1}.weirEgfix)
+                           obj.egfix = [obj.egfix ; obj.bou{1}.weirEgfix+length(obj.egfix)];
                         end
                     case('bou')
                         % got it from user arg
@@ -180,7 +186,7 @@ classdef meshgen
                                 obj.boubox{ee} = obj.bou{ee}.boubox;
                                 obj.inpoly_flip{ee} = obj.bou{ee}.inpoly_flip;
                                 if obj.big_mesh
-                                    % release gdats
+                                    % release gdat's
                                     obj.bou{ee}.mainland= [];
                                     obj.bou{ee}.outer= [];
                                     if ~isempty(obj.bou{ee}.inner)
@@ -343,6 +349,9 @@ classdef meshgen
         function  obj = build(obj)
             %DISTMESH2D 2-D Mesh Generator using Distance Functions.
             % Checking existence of major inputs
+            %%
+            warning('off','all')
+            %%
             tic
             it = 1 ;
             imp = 10; % number of iterations to do mesh improvements (delete/add)
@@ -644,6 +653,9 @@ classdef meshgen
                 end
                 toc
             end
+            %%
+            warning('on','all')
+            %%
             disp('Finished iterating...');
             fprintf(1,' ------------------------------------------------------->\n') ;
             
@@ -652,8 +664,10 @@ classdef meshgen
             % Put the mesh class into the grd part of meshgen
             obj.grd.p = p; obj.grd.t = t;
             % Clean up the mesh if specified
-            if obj.cleanup
-                obj = obj.clean();
+            if obj.cleanup && isempty(obj.pfix) 
+                obj = clean(obj,0);
+            else
+                obj = clean(obj,1) ; 
             end
             
             if obj.plot_on
