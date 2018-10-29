@@ -1,6 +1,6 @@
 function [poly,poly_idx,opendat,boudat] = extract_boundary(v_start,v_end,bnde,pts,order,opendat,boudat)
-% DESCRIPTION: Given a set of boundary edges and a starting and ending index 
-%              of a singly- or multi-polygonal region, organize them in a 
+% DESCRIPTION: Given a set of boundary edges and a starting and ending index
+%              of a singly- or multi-polygonal region, organize them in a
 %              winding order and/or add them to an existing opendat/boudat
 %              structure. The program breaks up the boundary so that it
 %              will never exceed 100,000 nodes to avoid memory allocation
@@ -38,26 +38,26 @@ active = true(size(bnde,1),1);
 p = 0;
 
 [rt,dmy] = find(v_start==bnde);
-if isempty(rt), disp('v_start does not exist on boundary, check numbering'); return; end 
+if isempty(rt), disp('v_start does not exist on boundary, check numbering'); return; end
 r  = rt(order+1); % change this only here to from 1 to 2 or 2 to 1 to go left or right
-tsel = bnde(r,:); 
+tsel = bnde(r,:);
 sel  = tsel(tsel~=v_start);
-v_next = sel; 
+v_next = sel;
 active(r) = 0;
 % cut up boundary so land boundary never exceeds 100k nodes.
 cut = true;
-while cut 
+while cut
     p = p + 1;
     if(p > 1 )
         [rt,dmy] = find(v_next==bnde & active);
-        r  = rt(1); 
+        r  = rt(1);
         tsel = bnde(r,:);
         sel  = tsel(tsel~=v_next);
         v_next = sel;
         active(r) = 0;
     end
-        
-    temp = []; 
+    
+    temp = [];
     temp2= [];
     
     temp  = pts(bnde(r,:)',:);
@@ -98,16 +98,18 @@ end
 for ii = 1 : p
     hold on; plot(poly{ii}(:,1),poly{ii}(:,2),'r-','linewi',2);
 end
-type = input('What kind of boundary is this, 1 (flux) or 2 (elevation)?'); 
-if(~isempty(opendat) || ~isempty(boudat))
+
+type = input('What kind of boundary is this, 1 (flux) or 2 (elevation)?');
+
+% if populated
+if ~isempty(boudat)
     if(type==1)
-        
         nbou = boudat.nbou;
         nvel = boudat.nvel;
         nvell= boudat.nvell;
         nbvv = boudat.nbvv;
         ibtype = boudat.ibtype;
-        type2 = input('What kind of flux boundary is it, 20(island),2(River)?'); 
+        type2 = input('What kind of flux boundary is it, 20(island),22(River)?');
         for ii = 1 : length(poly)
             nbou = nbou + 1;
             nvell(nbou) = length(poly{ii}(:,1));
@@ -120,8 +122,12 @@ if(~isempty(opendat) || ~isempty(boudat))
         boudat.nvell = nvell ;
         boudat.ibtype = ibtype ;
         boudat.nbvv = nbvv ;
-        
-    elseif(type==2)
+    end
+end
+
+% if populated 
+if ~isempty(opendat)
+    if type==2
         nope = opendat.nope;
         nvdll= opendat.nvdll;
         neta = opendat.neta;
@@ -142,8 +148,49 @@ if(~isempty(opendat) || ~isempty(boudat))
         opendat.ibtype = ibtype ;
         opendat.nbdv = nbdv ;
         
-    else
-        disp('Wrong input: must be either 1 or 2');
+    end
+end
+
+% if empty 
+if isempty(opendat)
+    if(type==2)
+        % nothing populated
+        nope = 0 ; 
+        nvdll = []  ; 
+        neta = 0 ; 
+        nbdv = [] ; 
+        for ii = 1 : length(poly)
+            nope = nope + 1;
+            nvdll(nope) = length(poly_idx{ii}(:,1));
+            neta = neta + nvdll(nope);
+            ibtype(nope) = 0;
+            nbdv(1:nvdll(nope),nope) = poly_idx{ii}(:,1);
+        end
+        % ocean boundary
+        opendat.nope = nope ;
+        opendat.neta = neta ;
+        opendat.nvdll = nvdll ;
+        opendat.ibtype = ibtype ;
+        opendat.nbdv = nbdv ;
+    end
+end
+
+% if empty 
+if isempty(boudat)
+    if(type==1)
+        type2 = input('What kind of flux boundary is it, 20(island),2(River)?');
+        for ii = 1 : length(poly)
+            nbou = nbou + 1;
+            nvell(nbou) = length(poly{ii}(:,1));
+            nvel = nvel + nvell(nbou);
+            nbvv(1:nvell(nbou),nbou) = poly_idx{ii}(:);
+            ibtype(nbou) = type2;
+        end
+        boudat.nbou = nbou ;
+        boudat.nvel = nvel ;
+        boudat.nvell = nvell ;
+        boudat.ibtype = ibtype ;
+        boudat.nbvv = nbvv ;
     end
 end
 

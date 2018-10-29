@@ -665,9 +665,9 @@ classdef meshgen
             obj.grd.p = p; obj.grd.t = t;
             % Clean up the mesh if specified
             if obj.cleanup && isempty(obj.pfix) 
-                obj = clean(obj,0);
+                obj = clean(obj,1);
             else
-                obj = clean(obj,1) ; 
+                obj = clean(obj,0) ; 
             end
             
             if obj.plot_on

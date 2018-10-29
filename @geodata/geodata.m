@@ -119,6 +119,7 @@ classdef geodata
                             obj.window = 5;
                         end
                     case('weirs')
+                        if ~iscell(inp.(fields{i})), continue; end 
                         obj.weirs = inp.(fields{i}) ;
                         noWeirs   = length(obj.weirs) ;
                         disp(['INFO: User has passed ',num2str(noWeirs),' weir crestlines.']) ;
@@ -258,11 +259,12 @@ classdef geodata
                 % Handle the case for user defined mesh boundary information
                 
                 % make sure it has equal spacing of h0/2
-                [la,lo]=my_interpm(obj.outer(:,2),obj.outer(:,1),gridspace/2);
-                obj.outer = []; obj.outer(:,1) = lo; obj.outer(:,2) = la;
                 if isempty(obj.outer)
                     error('Outer segment is required to mesh!');
                 end
+                [la,lo]=my_interpm(obj.outer(:,2),obj.outer(:,1),gridspace/2);
+                obj.outer = []; obj.outer(:,1) = lo; obj.outer(:,2) = la;
+         
                 
                 % for mainland
                 if ~isempty(obj.mainland)
@@ -273,6 +275,18 @@ classdef geodata
                     error('Mainland segment is required to mesh!');
                 end
                 
+                % kjr Oct. 27 2018, add the weir faux islands to the inner geometry
+                if ~isempty(obj.weirPfix)
+                    idx = [0; cumsum(weirLength)']+1 ;
+                    tmp = [] ;
+                    for ii = 1 : noWeirs
+                        tmp =  [tmp;
+                            [obj.weirPfix(idx(ii):idx(ii+1)-1,:)
+                            obj.weirPfix(idx(ii),:)]
+                            NaN NaN] ;
+                    end
+                    obj.inner = [obj.inner ; NaN NaN ;  tmp ] ;
+                end
                 % for islands
                 if ~isempty(obj.inner)
                     [la,lo]=my_interpm(obj.inner(:,2),obj.inner(:,1),gridspace/2);
