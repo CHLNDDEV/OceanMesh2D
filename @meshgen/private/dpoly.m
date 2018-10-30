@@ -58,8 +58,16 @@ for box_num = box_vec
     %% Doing the inpoly check
     % the boubox is prepended when forming outer.
     % first check if the points are in this boubox and only
-    firstNaN = find(isnan(outer(:,1)),1,'first') ;
-    in1 = inpoly(p(inside,:),outer(1:firstNaN-1,:)) ;
+    if box_num ==1
+        firstNaN = find(isnan(outer(:,1)),1,'first') ;
+        in1 = inpoly(p(inside,:),outer(1:firstNaN-1,:)) ;
+    else
+        if inpoly_flip
+            in1 = d_l*0 ;
+        else
+            in1 = d_l*1 ;
+        end
+    end
     edges = Get_poly_edges( outer );
     if sum(inside)~=0
         in    = inpoly(p(inside,:),outer,edges);
