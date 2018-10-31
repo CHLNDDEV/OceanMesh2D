@@ -463,7 +463,7 @@ classdef edgefx
             for jj=1:length(obj.Channels)
                 pts{jj} = obj.Channels{jj};
                 dp{jj} = feat.Fb(pts{jj});                                   % depth at x,y channel locations
-                radii{jj}=(tand(ang_of_reslope)*abs(dp{jj}))/111e3;         % estimate of channel's width in degrees at x,y locations ASSUMING angle of reslope
+                radii{jj}=(tand(ang_of_reslope)*abs(dp{jj}));         % estimate of channel's width in degrees at x,y locations ASSUMING angle of reslope
                 tempbb{jj} = feat.boubox;
             end
             
@@ -511,8 +511,8 @@ classdef edgefx
             end
 
             obj.chd(obj.chd < obj.min_el_ch) = obj.min_el_ch;
-            centroid     = mean(feat.bbox(2,:)); 
-            obj.chd = obj.chd/(cosd(centroid)*111e3);
+%             centroid     = mean(feat.bbox(2,:)); 
+%             obj.chd = obj.chd/(cosd(centroid)*111e3);
             clearvars Fb pts dp radii tempbb xg yg 
         end
         
