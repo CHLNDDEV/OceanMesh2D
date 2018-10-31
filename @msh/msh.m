@@ -1327,8 +1327,6 @@ classdef msh
                 ' after ',num2str(it),' iterations.']);
             disp('Remove poor quality elements and fix connecitivity problems..');
             
-            
-            [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2));
             obj = Make_Mesh_Boundaries_Traversable( obj, 0.25, 0 );
             
             % Ensuring good numbering
@@ -1342,9 +1340,7 @@ classdef msh
             return;
             
             function obj = DecimateTria(obj,bad)
-                
-                [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2));
-                
+                                
                 obj = Make_Mesh_Boundaries_Traversable(obj,0.001,1);
                 % form outer polygon of mesh for cleaning up.
                 bnde=extdom_edges2(obj.t,obj.p);
