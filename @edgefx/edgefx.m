@@ -163,9 +163,9 @@ classdef edgefx
             
             % WJP: Do Transverse Mercator projection for calculating 
             % distances from shoreline
-            m_proj('trans','lat', [obj.bbox(2,1) obj.bbox(2,2)],...
-                           'long',[obj.bbox(1,1) obj.bbox(1,2)]);
-            
+            m_proj('mercator','lat', [-89.9 89.9],...
+                             'long',[-180 180]); 
+             
             % now turn on the edge functions
             for i = 1 : numel(fields)
                 type = fields{i};
