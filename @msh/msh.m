@@ -687,12 +687,15 @@ classdef msh
         end
         
         % make nodestrings
-        function obj = makens(obj,type,dir,cutlim)
+        function obj = makens(obj,type,dir,cutlim,depthlim)
             if nargin < 2
                 error('Needs type: one of auto, islands, delete, or outer')
             end
             if nargin < 4
               cutlim = 10 ; 
+            end
+            if nargin < 5
+              depthlim = 10 ; 
             end
             trim = 0; periodic = 0;
             if strcmp(type(max(1,end-3):end),'trim')
@@ -754,10 +757,10 @@ classdef msh
                     % distance to mainland is relatively small
                     if trim
                         mainland = (abs(d_out - d_main) < gdat.h0/111e3 ...
-                                 & d_main < 5*gdat.h0/111e3) | zvalue > -1;
+                                 & d_main < 5*gdat.h0/111e3) | zvalue > -depthlim;
                     else
                         mainland = abs(d_out - d_main) < gdat.h0/111e3 ...
-                                 | zvalue > -1;
+                                 | zvalue > -depthlim;
                     end
                     
                     % indices of switch
