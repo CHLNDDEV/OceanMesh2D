@@ -687,9 +687,12 @@ classdef msh
         end
         
         % make nodestrings
-        function obj = makens(obj,type,dir)
+        function obj = makens(obj,type,dir,cutlim)
             if nargin < 2
                 error('Needs type: one of auto, islands, delete, or outer')
+            end
+            if nargin < 4
+              cutlim = 10 ; 
             end
             trim = 0; periodic = 0;
             if strcmp(type(max(1,end-3):end),'trim')
@@ -754,13 +757,14 @@ classdef msh
                     if ~periodic
                         % Do not include open boundary that is smaller than
                         % 10 vertices across
-                        Cuts(diff(Cuts) < 10) = [];
+                        Cuts(diff(Cuts) < cutlim) = [];
                     end
                     
                     % Get length of largest island
                     % Delete the open boundary/mainland polygon
                     poly_idx(op_ind)= [];
-                    L = max(1e3,max(cellfun(@length,poly_idx)));
+                    %L = max(1e3,max(cellfun(@length,poly_idx)));
+                    L = 1e3 ; 
                     
                     if isempty(Cuts)
                         % if no mainland..
