@@ -437,7 +437,7 @@ classdef geodata
             
             new_outer = cell2mat(POLY') ;
             
-            [la,lo] = my_interpm(new_outer(:,2),new_outer(:,1),(obj.gridspace/2*111e3)) ; 
+            [la,lo] = my_interpm(new_outer(:,2),new_outer(:,1),((obj.h0/2)/111e3))  ; 
             
             new_outer = [lo la] ; 
             
