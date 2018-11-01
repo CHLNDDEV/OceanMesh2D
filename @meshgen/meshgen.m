@@ -739,6 +739,10 @@ classdef meshgen
                 db = 1;
             end
             
+            % transform pfix to projected coordinates 
+            if ~isempty(obj.pfix)
+              [obj.pfix(:,1),obj.pfix(:,2)]=m_ll2xy(obj.pfix(:,1),obj.pfix(:,2)); 
+            end
             [obj.grd.p(:,1),obj.grd.p(:,2)] = ...
                                    m_ll2xy(obj.grd.p(:,1),obj.grd.p(:,2)); 
             if db
@@ -805,6 +809,9 @@ classdef meshgen
             % Do the transformation back
             [obj.grd.p(:,1),obj.grd.p(:,2)] = ...
                                    m_xy2ll(obj.grd.p(:,1),obj.grd.p(:,2));
+            if ~isempty(obj.pfix)
+             [obj.pfix(:,1),obj.pfix(:,2)]=m_xy2ll(obj.pfix(:,1),obj.pfix(:,2)); 
+            end
         end
         
         function obj = nearshorefix(obj)
