@@ -741,14 +741,23 @@ classdef msh
                     [~, d_out] = ourKNNsearch(outer',obj.p(idv,:)',1);
                     [~, d_main] = ourKNNsearch(main',obj.p(idv,:)',1);
                     
+                    % Check for overland areas if DEM exists in gdat
+                    if ~isempty(gdat.Fb)
+                        zvalue = gdat.Fb(obj.p(idv,:));
+                    else
+                        % Dummy all underwater
+                        zvalue = 0*obj.p(idv,1) - 1000;
+                    end
+                    
                     % Mainland are nodes where shortest distance to
                     % mainland and outer are the same and where absolute
                     % distance to mainland is relatively small
                     if trim
-                        mainland = abs(d_out - d_main) < gdat.h0/111e3 & ...
-                            d_main < 5*gdat.h0/111e3;
+                        mainland = (abs(d_out - d_main) < gdat.h0/111e3 ...
+                                 & d_main < 5*gdat.h0/111e3) | zvalue > -1;
                     else
-                        mainland = abs(d_out - d_main) < gdat.h0/111e3;
+                        mainland = abs(d_out - d_main) < gdat.h0/111e3 ...
+                                 | zvalue > -1;
                     end
                     
                     % indices of switch
@@ -762,9 +771,11 @@ classdef msh
                     
                     % Get length of largest island
                     % Delete the open boundary/mainland polygon
-                    poly_idx(op_ind)= [];
-                    %L = max(1e3,max(cellfun(@length,poly_idx)));
+                    poly_idx(op_ind) = [];
                     L = 1e3 ; 
+                    if ~isempty(poly_idx)
+                        L = max(L,max(cellfun(@length,poly_idx)));
+                    end
                     
                     if isempty(Cuts)
                         % if no mainland..
