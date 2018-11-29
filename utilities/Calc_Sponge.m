@@ -163,7 +163,7 @@ for op = 1:obj.op.nope
     I = find(obj.p(:,2) <= ymax & obj.p(:,2) >= ymin & ...
              obj.p(:,1) <= xmax & obj.p(:,1) >= xmin);   
     % Do dsegment on all the I nodes to get distance to the OB
-    [~,d] = knnsearch(obj.p(nodes,:),obj.p(I,:));
+    [~,d] = ourKNNsearch(obj.p(nodes,:)',obj.p(I,:)',1);
     idx = I(d < W1);
     sponge(op).idx = idx;
     sponge(op).d   = W1 - d( d < W1);

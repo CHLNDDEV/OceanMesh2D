@@ -13,7 +13,6 @@
             else
                 if startsWith(projtype,'ste','IgnoreCase',true)
                     % Special treatment of Stereographic projection
-                    del = 1 ;
                     if lat_ma < 0
                         % center Antarctica
                         m_proj(projtype,'lat',-90,...
@@ -27,7 +26,6 @@
                               'radius',90-lat_mi);
                     end
                     m_proj('get') ;
-                    del = 1 ;
                 elseif startsWith(projtype,'ort','IgnoreCase',true) || ...
                        startsWith(projtype,'gno','IgnoreCase',true) || ...
                        startsWith(projtype,'azi','IgnoreCase',true) || ...
@@ -35,6 +33,7 @@
                     % Azimuthal type projections
                     m_proj(projtype,'lat',lat_mea,'long',lon_mea);
                     m_proj('get') ;
+                    del = 1;
                 elseif startsWith(projtype,'obl','IgnoreCase',true)
                     % Oblique Mercator projection
                     asp = (lon_ma-lon_mi)/(lat_ma - lat_mi);
@@ -46,8 +45,10 @@
                                     'lat',[lat_mi lat_ma],...
                                     'aspect',asp,'dir',dir) ;
                     m_proj('get') ;
+                    del = 1;
                 else
                     % Cylindrical, Conic or Global type projections
+                    del = 1;
                     m_proj(projtype,'lon',[lon_mi lon_ma],...
                                     'lat',[lat_mi lat_ma]) ;
                     m_proj('get') ;

@@ -526,15 +526,19 @@ classdef edgefx
             div = ceil(numel(xgrid)*8*24*1e-9);
             if nargin == 1
                 figure;
-                m_proj('Mercator','long',[obj.bbox(1,1) obj.bbox(1,2)],...
+                m_proj('Transverse Mercator','long',[obj.bbox(1,1) obj.bbox(1,2)],...
                     'lat',[obj.bbox(2,1) obj.bbox(2,2)])
-                m_contourf(xgrid(1:div:end,1:div:end),...
-                           ygrid(1:div:end,1:div:end),...
-                  obj.F.Values(1:div:end,1:div:end),50,'Linestyle','none');
-                shading interp
-                cb = colorbar; ylabel(cb,'edgelength in degrees');
+                hold on; m_fastscatter(xgrid(obj.boudist < 0),ygrid(obj.boudist < 0),...
+                        obj.F.Values(obj.boudist < 0));
+                cb = colorbar; ylabel(cb,'topo-bathy depth [m]')
+                
+                %m_contourf(xgrid(1:div:end,1:div:end),...
+                %           ygrid(1:div:end,1:div:end),...
+                %  obj.F.Values(1:div:end,1:div:end),50,'Linestyle','none');
+                %shading interp
+                cb = colorbar; ylabel(cb,'edgelength in meters');
                 caxis([prctile(obj.F.Values(:),10) prctile(obj.F.Values(:),90)])
-                m_grid('xtick',10,'tickdir','out','yaxislocation','left','fontsize',7);
+                %m_grid('xtick',10,'tickdir','out','yaxislocation','left','fontsize',7);
                 title('Total EdgeLength Function');
                 return;
             end

@@ -664,10 +664,8 @@ classdef meshgen
             % Put the mesh class into the grd part of meshgen
             obj.grd.p = p; obj.grd.t = t;
             % Clean up the mesh if specified
-            if obj.cleanup && isempty(obj.pfix) 
-                obj = clean(obj,1);
-            else
-                obj = clean(obj,0) ; 
+            if obj.cleanup 
+                obj = clean(obj);
             end
             
             if obj.plot_on
@@ -741,13 +739,13 @@ classdef meshgen
             
             % transform pfix to projected coordinates 
             if ~isempty(obj.pfix)
-              [obj.pfix(:,1),obj.pfix(:,2)]=m_ll2xy(obj.pfix(:,1),obj.pfix(:,2)); 
+               [obj.pfix(:,1),obj.pfix(:,2)] = ...
+                                     m_ll2xy(obj.pfix(:,1),obj.pfix(:,2)); 
             end
             [obj.grd.p(:,1),obj.grd.p(:,2)] = ...
                                    m_ll2xy(obj.grd.p(:,1),obj.grd.p(:,2)); 
             if db
                 % Begin by just deleting poor mesh boundary elements
-                %[pt(:,1),pt(:,2)] = m_ll2xy(obj.grd.p(:,1),obj.grd.p(:,2)); 
                 tq = gettrimeshquan(obj.grd.p,obj.grd.t);
                 % Get the elements that have a boundary bar
                 bdbars = extdom_edges2(obj.grd.t,obj.grd.p);
@@ -786,7 +784,7 @@ classdef meshgen
                 [obj.grd.p,obj.grd.t] = direct_smoother_lur(obj.grd.p,...
                                           obj.grd.t,obj.pfix,obj.nscreen);
                 tq = gettrimeshquan( obj.grd.p, obj.grd.t);
-                if min(tq.qm) < 0
+                if min(tq.qm) < 0.1
                     % Need to clean it again
                     disp('Overlapping elements due to smoother, cleaning again')
                     obj.grd = Make_Mesh_Boundaries_Traversable(...

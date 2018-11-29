@@ -154,16 +154,17 @@ classdef msh
         end
         
         % general plot function
-        function h = plot(obj,type,proj,projtype,bou)
-            if nargin == 2
+        function h = plot(obj,type,proj,projtype,bou,numticks)
+            if nargin < 3
                 proj = 1 ;
-                projtype =[] ;
             end
-            if nargin == 3
+            if nargin < 4
                 projtype = [] ;
             end
             np_g = length(obj.p) ;
-            
+            if nargin < 7
+                numticks = 10;
+            end
             
             % kjr default behavior, just use what's in the .mat file
             if proj && isempty(projtype)
@@ -179,7 +180,9 @@ classdef msh
             end
             
             % Handle user specified subdomain
-            if nargin == 5
+            if nargin < 5
+                kept = (1:length(obj.p))';
+            else
                 if numel(bou) == 4
                     % i.e. is a bounding box
                     bou = [bou(1,1) bou(2,1);
@@ -190,8 +193,6 @@ classdef msh
                 end
                 % Get a subset given by bou
                 [obj,kept] = ExtractSubDomain(obj,bou);
-            else
-                kept = (1:length(obj.p))';
             end
             
             % Set up projected space
@@ -207,7 +208,7 @@ classdef msh
                     abs(dxt(:,2)) > 180,:) = [];
             end
             
-            logaxis = 0; numticks = 10;
+            logaxis = 0;
             if strcmp(type(max(1,end-2):end),'log')
                 logaxis = 1; type = type(1:end-3);
             end
@@ -286,7 +287,11 @@ classdef msh
                     if logaxis
                         q = log10(max(1,abs(obj.b))); % plot on log scale
                     else
-                        q = obj.b;
+                        if exist('demcmap','file')
+                            q = -obj.b;
+                        else
+                            q = obj.b;
+                        end
                     end
                     if proj
                         m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
@@ -296,7 +301,12 @@ classdef msh
                         trisurf(obj.t,obj.p(:,1),obj.p(:,2),q)
                         view(2); shading interp;
                     end
-                    cmocean('deep',numticks-1); cb = colorbar;
+                    if exist('demcmap','file')
+                        demcmap(q)
+                    else
+                        cmocean('deep',numticks-1); 
+                    end
+                    cb = colorbar;
                     if logaxis
                         desiredTicks = round(10.^(linspace(min(q),max(q),numticks)),1);
                         caxis([log10(min(desiredTicks)) log10(max(desiredTicks))]);
@@ -442,7 +452,7 @@ classdef msh
                         defval  = obj.f13.defval.Atr(ii).Val;
                         userval = obj.f13.userval.Atr(ii).Val;
                         values = max(userval(2:end,:)',[],2);
-                        alltogether = zeros(np_g,1)+0.025 ;
+                        alltogether = zeros(np_g,1)+defval ;
                         alltogether(userval(1,:)',1) = values;
                         if proj
                             figure;
@@ -505,7 +515,7 @@ classdef msh
             end
             if proj
                 % now add the box
-                m_grid('box','none','FontSize',16);
+                m_grid(); %'box','none') %,'FontSize',12);
             end
         end
         
@@ -1323,14 +1333,18 @@ classdef msh
                 lat_mi = min(obj.p(:,2)); lat_ma = max(obj.p(:,2));
                 m_proj('Trans','lon',[lon_mi lon_ma],'lat',[lat_mi lat_ma]) ;
             end
-            %%
+            %% Project..
+            [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2)); 
+            %% Make bathy interpolant
             F = scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.b,'linear','none');
-            %%
+            %% Delete CFL violations
             it  = 0;
             CFL = 999;
             tic
             while 1
+                [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
                 [CFL,Ln,ee] = CalcCFL(obj,dt);
+                [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2)); 
                 bad = real(CFL) > desCFL;
                 display(['Number of CFL violations ',num2str(sum(bad))]);
                 disp(['Max CFL is : ',num2str(max(real(CFL)))]);
@@ -1349,9 +1363,20 @@ classdef msh
             
             % Ensuring good numbering
             [obj.p,obj.t] = fixmesh(obj.p,obj.t);
-            
+           
+            % Display stats
+            tq = gettrimeshquan( obj.p, obj.t);
+            mq_m = mean(tq.qm);
+            mq_l = min(tq.qm);
+            disp(['number of nodes is ' num2str(length(obj.p))])
+            disp(['mean quality is ' num2str(mq_m)])
+            disp(['min quality is ' num2str(mq_l)])
+           
             % add bathy back on
             obj.b = F(obj.p(:,1),obj.p(:,2));
+            
+            % Do the transformation back
+            [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
             
             disp('Deleting boundary information...please renumber mesh');
             obj.bd = []; obj.op = [];
@@ -1361,24 +1386,38 @@ classdef msh
                                 
                 obj = Make_Mesh_Boundaries_Traversable(obj,0.001,1);
                 % form outer polygon of mesh for cleaning up.
-                bnde=extdom_edges2(obj.t,obj.p);
-                poly1=extdom_polygon(bnde,obj.p,-1);
-                poly_vec1=cell2mat(poly1');
-                [edges1]=Get_poly_edges(poly_vec1);
+                bnde = extdom_edges2(obj.t,obj.p);
+                poly1 = extdom_polygon(bnde,obj.p,-1);
+                poly_vec1 = cell2mat(poly1');
+                [edges1]  = Get_poly_edges(poly_vec1);
                 % delete the points that violate the cfl, locally retriangulate, and then locally smooth
                 DTbase = delaunayTriangulation(obj.p(:,1),obj.p(:,2));
                 DTbase.Points(find(bad),:) = [];
-                pm = DTbase.Points; tm = DTbase.ConnectivityList;
+                pm   = DTbase.Points; tm = DTbase.ConnectivityList;
                 pmid = (pm(tm(:,1),:)+pm(tm(:,2),:)+pm(tm(:,3),:))/3;
-                in1=inpoly(pmid,poly_vec1,edges1);
-                tm(~in1,:)=[];
-                [pm,tm]=fixmesh(pm,tm);
+                in1  = inpoly(pmid,poly_vec1,edges1);
+                tm(~in1,:) = []; [pm,tm] = fixmesh(pm,tm);
+                % Delete shitty boundary elements iteratively
+                badbound = 1;
+                while ~isempty(find(badbound, 1))
+                    tq1 = gettrimeshquan(pm,tm);
+                    % Get the elements that have a boundary bar
+                    bnde = extdom_edges2(tm,pm);
+                    bdnodes = unique(bnde(:));
+                    vtoe = VertToEle(tm);
+                    bele = unique(vtoe(:,bdnodes)); bele(bele == 0) = [];
+                    tqbou = tq1.qm(bele); 
+                    badbound = bele(tqbou < 0.5);
+                    % Delete those boundary elements with quality < 0.5
+                    tm(badbound,:) = [];
+                end
+                [pm,tm] = fixmesh(pm,tm);
                 if sum(bad) < 100e3
                     % find all the points nearby each "bad" point.
                     idx = ourKNNsearch(pm',obj.p(find(bad),:)',12) ;
                     idx = idx(:);
                     idx = unique(idx);
-                    constr=setdiff((1:length(pm))',idx);
+                    constr = setdiff((1:length(pm))',idx);
                     [pm,tm]=smoothmesh(pm,tm,constr,50,0.01);
                 else
                     error('Adapation would result in potentially catastrophic lose of connectivity, try adapting to a smaller timestep');
