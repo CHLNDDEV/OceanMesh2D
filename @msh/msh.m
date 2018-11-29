@@ -1336,7 +1336,8 @@ classdef msh
             %% Project..
             [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2)); 
             %% Make bathy interpolant
-            F = scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.b,'linear','none');
+            F = scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.b,...
+                                     'linear','nearest');
             %% Delete CFL violations
             it  = 0;
             CFL = 999;
@@ -1375,6 +1376,11 @@ classdef msh
             % add bathy back on
             obj.b = F(obj.p(:,1),obj.p(:,2));
             
+            % find nans
+            if ~isempty(find(isnan(obj.b), 1))
+               warning('NaNs in bathy found')
+            end
+                
             % Do the transformation back
             [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
             
