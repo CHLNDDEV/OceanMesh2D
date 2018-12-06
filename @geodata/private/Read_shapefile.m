@@ -22,27 +22,43 @@ function polygon_struct = Read_shapefile( finputname, polygon, bbox, ...
 % Edits by Keith Roberts, July 2018. 
 %% Loop over all the filenames and get the shapefile within bbox
 SG = [];
+if bbox(1,2) > 180
+    % bbox straddles 180/-180 line
+    loop = 2;
+else
+    loop = 1;
+end
 if (size(finputname,1)~=0)
     for fname = finputname
-        % The shaperead is much faster if it is available
-        if exist('shaperead','file')
-            disp('Reading shapefile with shaperead')
-            % Read the structure
-            S = shaperead(fname{1},'BoundingBox',bbox');
-            % Get rid of unwanted components;
-            D = struct2cell(S);
-            S = cell2struct(D(3:4,:)',{'X','Y'},2);
-        else
-            disp('Reading shapefile with m_shaperead')
-            % This uses m_map (slower but free)
-            S = m_shaperead(fname{1},bbox(:)');
-            % Let's just keep the x-y data
-            D = S.ncst;
-            S = cell2struct(D','points',1);
-        end
-        if ~isempty(S)
-            % Keep the following polygons
-            SG = [SG; S];
+        for nn = 1:loop
+            bboxt = bbox';
+            if loop == 2
+                if nn == 1
+                    bboxt(2,1) = 180;
+                else
+                    bboxt(1,1) = -180; bboxt(2,1) = bboxt(2,1) - 360;
+                end
+            end
+            % The shaperead is much faster if it is available
+            if exist('shaperead','file')
+                disp('Reading shapefile with shaperead')
+                % Read the structure
+                S = shaperead(fname{1},'BoundingBox',bboxt);
+                % Get rid of unwanted components;
+                D = struct2cell(S);
+                S = cell2struct(D(3:4,:)',{'X','Y'},2);
+            else
+                disp('Reading shapefile with m_shaperead')
+                % This uses m_map (slower but free)
+                S = m_shaperead(fname{1},bboxt(:));
+                % Let's just keep the x-y data
+                D = S.ncst;
+                S = cell2struct(D','points',1);
+            end
+            if ~isempty(S)
+                % Keep the following polygons
+                SG = [SG; S];
+            end
         end
     end
 else
@@ -96,6 +112,12 @@ for i = 1 : length(SG)
     else
         points = tmpC{i}(1:end,:) ;
         In     = tmpInC{i}(1:end) ;
+    end
+    if bbox(1,2) > 180
+       lond = abs(diff(points(:,1)));
+       if any(lond > 350)
+           points(points(:,1) > 180,1) = 0;
+       end
     end
     % lets calculate the area of the
     % feature using the shoelace algorithm and decided whether to keep or

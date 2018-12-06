@@ -306,9 +306,6 @@ classdef geodata
                     x = double(ncread(obj.demfile,'x'));
                     y = double(ncread(obj.demfile,'y'));
                 end
-                I = find(x >= obj.bbox(1,1) & x <= obj.bbox(1,2));
-                J = find(y >= obj.bbox(2,1) & y <= obj.bbox(2,2));
-                x = x(I); y = y(J);
                 % Find name of z value (use one that has 2 dimensions)
                 finfo = ncinfo(obj.demfile);
                 for ii = 1:length(finfo.Variables)
@@ -317,10 +314,44 @@ classdef geodata
                         break
                     end
                 end
-                demz = single(ncread(obj.demfile,zvarname,...
-                    [I(1) J(1)],[length(I) length(J)]));
+                if obj.bbox(1,2) > 180
+                    % bbox straddles 180/-180 line
+                    loop = 2;
+                else
+                    loop = 1;
+                end
+                J = find(y >= obj.bbox(2,1) & y <= obj.bbox(2,2));
+                I = []; demz = [];
+                for nn = 1:loop
+                    bboxt = obj.bbox;
+                    if loop == 2
+                        if nn == 1
+                            bboxt(1,2) = 180;
+                        else
+                            bboxt(1,1) = -180; 
+                            bboxt(1,2) = bboxt(1,2) - 360;
+                        end
+                    end
+                    It = find(x >= bboxt(1,1) & x <= bboxt(1,2));
+                    I = [I; It];  
+                    demzt = single(ncread(obj.demfile,zvarname,...
+                                   [It(1) J(1)],[length(It) length(J)]));
+                    if isempty(demz)
+                        demz = demzt;
+                    else
+                        demz = cat(1,demz,demzt);
+                    end
+                end
+                x = x(I); y = y(J); 
+                if obj.bbox(1,2) > 180
+                    x(x < 0) = x(x < 0) + 360;
+                    [x1,IA] = unique(x);
+                    if length(x) > length(x1)
+                       x = x1; demz = demz(IA,:); 
+                    end
+                end
                 obj.Fb   = griddedInterpolant({x,y},demz,...
-                    'linear','nearest');
+                                              'linear','nearest');
                 obj.x0y0 = [x(1),y(1)];
                 % clear data from memory
                 clear x y demz
