@@ -91,6 +91,9 @@ edges = Get_poly_edges( polygon_struct.outer );
 
 if exist('shaperead','file')
     tmpM = [[SG.X]',[SG.Y]'] ; % MAT 
+    if bbox(1,2) > 180
+        tmpM(tmpM(:,1) < 0,1) =  tmpM(tmpM(:,1) < 0,1) + 360;
+    end
     for i = 1 : length(SG) 
        dims(i) = length(SG(i).X) ; 
     end
