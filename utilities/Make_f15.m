@@ -126,8 +126,10 @@ if isempty(obj.f15)
     % Normal flow external boundary condition (needs to be fixed)
     ibtype = [2 12 22 32 52] ;
     sm = 0 ;
-    for k = 1: length(ibtype)
-        sm = sm + sum(~(obj.bd.ibtype - ibtype(k))) ;
+    if ~isempty(obj.bd)
+        for k = 1: length(ibtype)
+            sm = sm + sum(~(obj.bd.ibtype - ibtype(k))) ;
+        end
     end
     if ( sm > 0 ) 
         f15dat.nffr = 0 ;
