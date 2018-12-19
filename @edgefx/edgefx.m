@@ -161,11 +161,13 @@ classdef edgefx
             obj.bbox     = feat.bbox;
             obj.boubox   = feat.boubox;
             
-            % WJP: Do Transverse Mercator projection for calculating 
+            % WJP: Do Mercator projection for calculating 
             % distances from shoreline
-            m_proj('mercator','lat', [-89.9 89.9],...
-                             'long',[-180 180]); 
-             
+            if feat.bbox(1,2) > 180
+                m_proj('mercator','lat', [-89.9 89.9], 'long',[0 360]); 
+            else
+                m_proj('mercator','lat', [-89.9 89.9],'long',[-180 180]); 
+            end
             % now turn on the edge functions
             for i = 1 : numel(fields)
                 type = fields{i};
