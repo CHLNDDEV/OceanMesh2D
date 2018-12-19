@@ -51,6 +51,7 @@ classdef geodata
             addOptional(p,'fp',defval);
             addOptional(p,'outer',defval);
             addOptional(p,'weirs',defval);
+            addOptional(p,'inner',defval);
             addOptional(p,'mainland',defval);
             addOptional(p,'boubox',defval);
             addOptional(p,'window',defval);
@@ -109,6 +110,11 @@ classdef geodata
                         obj.mainland = inp.(fields{i});
                         if obj.mainland(1) ~=0
                             obj.mainland = inp.(fields{i});
+                        end
+                    case('inner')
+                        obj.inner = inp.(fields{i});
+                        if obj.inner(1) ~=0
+                            obj.inner = inp.(fields{i});
                         end
                     case('boubox')
                         obj.boubox = inp.(fields{i}) ;
@@ -259,20 +265,21 @@ classdef geodata
                 % Handle the case for user defined mesh boundary information
                 
                 % make sure it has equal spacing of h0/2
-                if isempty(obj.outer)
-                    error('Outer segment is required to mesh!');
+                if obj.outer(1)==0
+                    warning('Warning: creating outer polygon from bbox!')
+                    obj.outer = obj.boubox; 
                 end
                 [la,lo]=my_interpm(obj.outer(:,2),obj.outer(:,1),gridspace/2);
                 obj.outer = []; obj.outer(:,1) = lo; obj.outer(:,2) = la;
          
                 
                 % for mainland
-                if ~isempty(obj.mainland)
+                if obj.mainland(1)~=0
                     [la,lo]=my_interpm(obj.mainland(:,2),obj.mainland(:,1),gridspace/2);
                     obj.mainland = [];
                     obj.mainland(:,1) = lo; obj.mainland(:,2) = la;
                 else
-                    error('Mainland segment is required to mesh!');
+                    warning('Warning: No mainland segment was passed!');
                 end
                 
                 % kjr Oct. 27 2018, add the weir faux islands to the inner geometry
@@ -288,7 +295,7 @@ classdef geodata
                     obj.inner = [obj.inner ; NaN NaN ;  tmp ] ;
                 end
                 % for islands
-                if ~isempty(obj.inner)
+                if obj.inner(1)~=0 
                     [la,lo]=my_interpm(obj.inner(:,2),obj.inner(:,1),gridspace/2);
                     obj.inner = [];
                     obj.inner(:,1) = lo; obj.inner(:,2) = la;
@@ -495,11 +502,11 @@ classdef geodata
                         obj.boubox(1:end-1,2),'cross',45,0.05);
                     m_plot(long,lati,'.','Color','white')
             end
-            if ~isempty(obj.mainland)
+            if obj.mainland(1)~=0
                 h1 = m_plot(obj.mainland(:,1),obj.mainland(:,2),...
                     'r-','linewi',1); hold on;
             end
-            if ~isempty(obj.inner)
+            if obj.inner(1)~=0 
                 h2 = m_plot(obj.inner(:,1),obj.inner(:,2),...
                     'g-','linewi',1); hold on;
             end
