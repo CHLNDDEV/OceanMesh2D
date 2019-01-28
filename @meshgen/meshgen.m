@@ -262,8 +262,7 @@ classdef meshgen
                             obj.nscreen = inp.(fields{i});
                             obj.plot_on = 1;
                         else
-                            obj.nscreen = 5;
-                            obj.plot_on = 1; % plot the mesh by default
+                            obj.nscreen = 5; % default
                         end
                     case('itmax')
                         obj.itmax= inp.(fields{i});

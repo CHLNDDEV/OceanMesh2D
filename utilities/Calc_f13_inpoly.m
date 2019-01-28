@@ -1,5 +1,5 @@
 function obj = Calc_f13_inpoly(obj,attribute,polys,cfvals,inverse,Cf_val_on_mesh)
-% obj = Calc_f13_inpoly(obj,attribute,polys,cfvals,Cf_val_on_mesh)
+% obj = Calc_f13_inpoly(obj,attribute,polys,cfvals,inverse,Cf_val_on_mesh)
 % Input a msh class object with bathy data and get back the specified
 % attribute in a f13 structure of the obj
 %

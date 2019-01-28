@@ -8,6 +8,13 @@ end
 if nargin == 2
     keep_inverse = 0;
 end
+if size(bou,1) == 2
+     bou = [bou(1,1) bou(2,1);
+            bou(1,1) bou(2,2); ...
+            bou(1,2) bou(2,2);
+            bou(1,2) bou(2,1); ...
+            bou(1,1) bou(2,1)];
+end
 bxy1 = p(t(:,1),:); bxy2 = p(t(:,2),:); bxy3 = p(t(:,3),:); 
 in1 = inpoly(bxy1,bou); in2 = inpoly(bxy2,bou); in3 = inpoly(bxy3,bou);
 in = in1 & in2 & in3;

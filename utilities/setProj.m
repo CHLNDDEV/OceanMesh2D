@@ -10,6 +10,7 @@
             if proj == 0
                 % normal geographic coordinates
                 m_proj('equi','lat',[lat_mi lat_ma],'long',[lon_mi lon_ma]) ;
+                del = 1;
             else
                 if startsWith(projtype,'ste','IgnoreCase',true)
                     % Special treatment of Stereographic projection
@@ -31,7 +32,8 @@
                        startsWith(projtype,'azi','IgnoreCase',true) || ...
                        startsWith(projtype,'sat','IgnoreCase',true)
                     % Azimuthal type projections
-                    m_proj(projtype,'lat',lat_mea,'long',lon_mea);
+                    m_proj(projtype,'lat',lat_mea,'long',lon_mea,...
+                           'radius',50);
                     m_proj('get') ;
                     del = 1;
                 elseif startsWith(projtype,'obl','IgnoreCase',true)

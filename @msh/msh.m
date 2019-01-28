@@ -202,7 +202,7 @@ classdef msh
                 % This deletes any elements straddling the -180/180
                 % boundary for plotting purposes
                 xt = [obj.p(obj.t(:,1),1) obj.p(obj.t(:,2),1) ...
-                    obj.p(obj.t(:,3),1) obj.p(obj.t(:,1),1)];
+                     obj.p(obj.t(:,3),1) obj.p(obj.t(:,1),1)];
                 dxt = diff(xt,[],2);
                 obj.t(abs(dxt(:,1)) > 180 | abs(dxt(:,2)) > 180 | ...
                     abs(dxt(:,2)) > 180,:) = [];
