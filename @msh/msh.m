@@ -297,9 +297,10 @@ classdef msh
                         m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
                         %m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
                     else
-                        %trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
-                        trisurf(obj.t,obj.p(:,1),obj.p(:,2),q)
-                        view(2); shading interp;
+                        trimesh(obj.t,obj.p(:,1),obj.p(:,2),q,'facecolor','none');
+                        %trisurf(obj.t,obj.p(:,1),obj.p(:,2),q)
+                        view(2); 
+                        %shading interp;
                     end
                     if exist('demcmap','file')
                         demcmap(q)
@@ -693,6 +694,33 @@ classdef msh
                 else
                     obj = GridData(geodata,obj,varargin);
                 end
+            end
+        end
+        
+        function obj = lim_bathy_slope(obj,dfdx,overland)
+            if nargin < 3
+                overland  = 0;
+            end
+            % Limit to topo or bathymetric slope to dfdx on the edges
+            imax = 100;
+            [edge,elen] = GetBarLengths(obj);  
+            bt = obj.b; 
+            if overland
+                I = bt > 0; 
+                word = 'topographic';
+            else
+                I = bt < 0; 
+                word = 'bathymetric';
+            end
+            bt(I) = 0;
+            [bnew,flag] = limgrad(edge,elen,bt,dfdx,imax);
+            if flag
+               obj.b(~I) = bnew(~I);
+               disp(['Successfully limited ' word ' slope to ' ...
+                      num2str(dfdx) ' in limgrad function']) 
+            else
+               warning(['Could not limit ' word ' slope to ' ...
+                        num2str(dfdx) ' in limgrad function']) 
             end
         end
         
@@ -1269,16 +1297,7 @@ classdef msh
         
         function [out1,barlen,bars] = CalcCFL(obj,dt)
             g      = 9.81;        % gravity
-            bars = [obj.t(:,[1,2]); obj.t(:,[1,3]); obj.t(:,[2,3])]; % Interior bars duplicated
-            bars = unique(sort(bars,2),'rows');                      % Bars as node pairs
-            long   = zeros(length(bars)*2,1);
-            lat    = zeros(length(bars)*2,1);
-            long(1:2:end) = obj.p(bars(:,1),1);
-            long(2:2:end) = obj.p(bars(:,2),1);
-            lat(1:2:end)  = obj.p(bars(:,1),2);
-            lat(2:2:end)  = obj.p(bars(:,2),2);
-            % Get spherical earth distances for bars
-            barlen = m_lldist(long,lat); barlen = barlen(1:2:end)*1e3;            % L = Bar lengths in meters
+            [bars,barlen] = GetBarLengths(obj);
             % sort bar lengths in ascending order
             [barlen,IA] = sort(barlen,'ascend');
             bars = bars(IA,:);
@@ -1305,6 +1324,18 @@ classdef msh
             end
         end
         
+        function [bars,barlen] = GetBarLengths(obj)
+            bars = [obj.t(:,[1,2]); obj.t(:,[1,3]); obj.t(:,[2,3])]; % Interior bars duplicated
+            bars = unique(sort(bars,2),'rows');                         % Bars as node pairs
+            long   = zeros(length(bars)*2,1);
+            lat    = zeros(length(bars)*2,1);
+            long(1:2:end) = obj.p(bars(:,1),1);
+            long(2:2:end) = obj.p(bars(:,2),1);
+            lat(1:2:end)  = obj.p(bars(:,1),2);
+            lat(2:2:end)  = obj.p(bars(:,2),2);
+            % Get spherical earth distances for bars
+            barlen = m_lldist(long,lat); barlen = barlen(1:2:end)*1e3;  % L = Bar lengths in meters
+        end
         
         function obj = CheckTimestep(obj,dt,varargin)
             %% Decimate mesh to achieve CFL condition for stability.
