@@ -1,4 +1,4 @@
-function [C,h] = m_tricontour(tri,p,z,N)
+function H = m_tricontour(tri,p,z,N,C)
 %  M_CONTOURF Adds filled contours to a map
 %    M_CONTOUR(LONG,LAT,DATA,...)
 %
@@ -12,6 +12,6 @@ if isempty(MAP_PROJECTION)
 end
 
 [X,Y] = m_ll2xy(p(:,1),p(:,2),'clip','on');
-hold on; [C,h] = tricontour([X,Y],tri,z,N);
+hold on; H = tricontour(tri,X,Y,z,N,C);
 
 end

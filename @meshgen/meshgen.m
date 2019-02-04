@@ -659,13 +659,22 @@ classdef meshgen
             fprintf(1,' ------------------------------------------------------->\n') ;
             
             %% Doing the final cleaning and fixing to the mesh...
-            [p,t] = fixmesh(p,t);
-            % Put the mesh class into the grd part of meshgen
-            obj.grd.p = p; obj.grd.t = t;
             % Clean up the mesh if specified
             if obj.cleanup 
+                % Put the mesh class into the grd part of meshgen
+                obj.grd.p = p; obj.grd.t = t;
                 obj = clean(obj);
+            else
+                % Fix mesh on the projected space
+                [p1(:,1),p1(:,2)] = m_ll2xy(p(:,1),p(:,2)); 
+                [p,t1] = fixmesh(p1,t);
+                % Put the mesh class into the grd part of meshgen
+                obj.grd.p = p; obj.grd.t = t1;
             end
+            
+            % Check element order, important for the global meshes crossing
+            % -180/180 boundary
+            obj.grd = CheckElementOrder(obj.grd);
             
             if obj.plot_on
                 figure; plot(obj.qual,'linewi',2);
@@ -741,8 +750,10 @@ classdef meshgen
                [obj.pfix(:,1),obj.pfix(:,2)] = ...
                                      m_ll2xy(obj.pfix(:,1),obj.pfix(:,2)); 
             end
+            % transform coordinates to projected space and "fix"
             [obj.grd.p(:,1),obj.grd.p(:,2)] = ...
                                    m_ll2xy(obj.grd.p(:,1),obj.grd.p(:,2)); 
+            [obj.grd.p,obj.grd.t] = fixmesh(obj.grd.p,obj.grd.t);                   
             if db
                 % Begin by just deleting poor mesh boundary elements
                 tq = gettrimeshquan(obj.grd.p,obj.grd.t);
@@ -807,7 +818,8 @@ classdef meshgen
             [obj.grd.p(:,1),obj.grd.p(:,2)] = ...
                                    m_xy2ll(obj.grd.p(:,1),obj.grd.p(:,2));
             if ~isempty(obj.pfix)
-             [obj.pfix(:,1),obj.pfix(:,2)]=m_xy2ll(obj.pfix(:,1),obj.pfix(:,2)); 
+                [obj.pfix(:,1),obj.pfix(:,2)] = ...
+                                     m_xy2ll(obj.pfix(:,1),obj.pfix(:,2)); 
             end
         end
         

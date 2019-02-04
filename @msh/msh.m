@@ -1295,6 +1295,47 @@ classdef msh
             warning('on','all')
         end
         
+        function obj = CheckElementOrder(obj,proj)
+            if nargin == 1
+               proj = 0; 
+            end
+            vx = obj.p(:,1); vy = obj.p(:,2);
+            xt = [vx(obj.t(:,1)) vx(obj.t(:,2)) ...
+                  vx(obj.t(:,3)) vx(obj.t(:,1))];
+            yt = [vy(obj.t(:,1)) vy(obj.t(:,2)) ...
+                  vy(obj.t(:,3)) vy(obj.t(:,1))];
+            dxt = diff(xt,[],2);
+            dyt = diff(yt,[],2);
+            for ii = 1:3
+                iii = ii - 1; if iii == 0; iii = 3; end
+                I = abs(dxt(:,ii)) > 180 & abs(dxt(:,iii)) > 180;
+                xt(I,ii) = xt(I,ii) + 360*sign(dxt(I,ii)); 
+            end
+            xt(:,end) = xt(:,1);
+            % Get new diff
+            dxt = diff(xt,[],2);
+            Area = dxt(:,3).*-dyt(:,2) + dxt(:,2).*dyt(:,3);
+            if ~isempty(find(Area < 0, 1))
+                disp([num2str(sum(Area < 0)) ...
+                 ' elements found that are not in counterclockwise order'])
+                if proj
+                    global MAP_PROJECTION MAP_VAR_LIST MAP_COORDS
+                    % kjr 2018,10,17; Set up projected space imported from msh class
+                    MAP_PROJECTION = obj.proj ;
+                    MAP_VAR_LIST   = obj.mapvar ;
+                    MAP_COORDS     = obj.coord ;
+                    [pt(:,1),pt(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2));
+                else
+                    pt = obj.p;
+                end
+                [~,tt] = fixmesh(pt,obj.t);
+                obj.t(Area < 0,:) = tt(Area < 0,:);
+                obj = CheckElementOrder(obj,~proj);
+            else
+                disp('All elements now in counterclockwise order')
+            end
+        end
+            
         function [out1,barlen,bars] = CalcCFL(obj,dt)
             g      = 9.81;        % gravity
             [bars,barlen] = GetBarLengths(obj);
