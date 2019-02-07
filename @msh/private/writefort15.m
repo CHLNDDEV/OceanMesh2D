@@ -158,8 +158,10 @@ fprintf( fid, '%g   \t \t ! ANGINN \n', f15dat.anginn ) ;
 ibtype = [2 12 22 32 52] ;
 sm = 0 ;
 
-for k = 1: length(ibtype)
-    sm = sm + sum(~(boudat.ibtype - ibtype(k))) ;
+if ~isempty(boudat)
+    for k = 1: length(ibtype)
+        sm = sm + sum(~(boudat.ibtype - ibtype(k))) ;
+    end
 end
 if ( sm > 0 ) 
     fprintf( fid, '%d  \t \t ! NFFR \n', f15dat.nffr ) ;
