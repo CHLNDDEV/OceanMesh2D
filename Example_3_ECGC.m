@@ -5,8 +5,12 @@ addpath(genpath('utilities/'));
 addpath(genpath('datasets/'));
 addpath(genpath('m_map/'));
 
+% WJP: 08/02/2019: Updated to demonstrate using non-box 
+% (arbitrary polygon's) bbox's in both outer and inner meshes
+
 %% STEP 1: set mesh extents and set parameters for mesh. 
 %% The greater US East Coast and Gulf of Mexico region
+
 bbox = [-71.6 42.7; -64 30; -80 24; -85 38; -71.6 42.7]; %polygon boubox
 min_el    = 1e3;  		        % minimum resolution in meters.
 max_el    = 50e3; 		        % maximum resolution in meters. 
@@ -35,8 +39,9 @@ max_el_ns = 240;  		% maximum resolution nearshore.
 coastline = 'PostSandyNCEI'; 
 dem       = 'PostSandyNCEI.nc';
 
-% Bounding box is automatically taken from the DEM file
-gdat2 = geodata('shp',coastline,'dem',dem,'h0',min_el);
+%polygon boubox
+bbox2 = [-74.25 40.5; -73.75 40.55; -73.75 41; -74 41; -74.25 40.5]; 
+gdat2 = geodata('shp',coastline,'dem',dem,'h0',min_el,'bbox',bbox2);
 
 fh2 = edgefx('geodata',gdat2,'fs',R,'wl',wl,...
              'max_el',max_el,'max_el_ns',max_el_ns,...
