@@ -1195,7 +1195,7 @@ classdef msh
             end
         end
         
-        function merge=plus(obj1,obj2)
+        function merge = plus(obj1,obj2)
             % Merge together two meshes contained in the msh objects obj1
             % and obj2. Uses MATLAB's implementation of the Boywer-Watson
             % incremental triangulation and then applies mesh cleaning
@@ -1212,10 +1212,9 @@ classdef msh
             %
             % kjr, und, chl, sept. 2017 Version 1.0.
             %    UPDATED by kjr, und, chl, oct. 2018, Version 1.5
-            warning('off','all')
             
-            p1=obj1.p; t1=obj1.t;
-            p2=obj2.p; t2=obj2.t;
+            p1 = obj1.p; t1 = obj1.t;
+            p2 = obj2.p; t2 = obj2.t;
             
             % assumes global mesh is mesh 2
             lat_mi = min(p2(:,2)) ; lat_ma = max(p2(:,2)) ;
@@ -1224,77 +1223,86 @@ classdef msh
             % centered on Arctic in stereographic projection
             lat_mi = max(-88.0001,lat_mi);
             m_proj('stereo','lat',90,...
-                'long',0.5*(lon_mi+lon_ma),...
-                'radius',90-lat_mi);
+                   'long',0.5*(lon_mi+lon_ma),...
+                   'radius',90-lat_mi);
             
             % project both meshes into the space of the global mesh
-            [p1(:,1),p1(:,2)]=m_ll2xy(p1(:,1),p1(:,2)) ;
-            [p2(:,1),p2(:,2)]=m_ll2xy(p2(:,1),p2(:,2)) ;
+            [p1(:,1),p1(:,2)] = m_ll2xy(p1(:,1),p1(:,2)) ;
+            [p2(:,1),p2(:,2)] = m_ll2xy(p2(:,1),p2(:,2)) ;
             
             disp('Forming outer boundary for base...')
-            poly_vec2=cell2mat(extdom_polygon(extdom_edges2(t2,p2),p2,-1)');
-            PG2 = polyshape(poly_vec2(:,1), poly_vec2(:,2)) ;
-            
+            poly_vec2 = cell2mat(extdom_polygon(extdom_edges2(t2,p2),p2,-1)');
+                        
             disp('Forming outer boundary for inset...')
-            poly_vec1=cell2mat(extdom_polygon(extdom_edges2(t1,p1),p1,-1)');
-            PG = polyshape(poly_vec1(:,1),poly_vec1(:,2));
-            
+            poly_vec1 = cell2mat(extdom_polygon(extdom_edges2(t1,p1),p1,-1)');
+
             % Delete the region in the global mesh that is in the
             % intersection with inset.
             disp('Calculating intersection...');
-            polyout2 = intersect(PG,PG2) ;
-            [edges]=Get_poly_edges([polyout2.Vertices; NaN NaN]);
-            in1=inpoly(p2(t2(:,1),:),polyout2.Vertices,edges);
-            in2=inpoly(p2(t2(:,2),:),polyout2.Vertices,edges);
-            in3=inpoly(p2(t2(:,3),:),polyout2.Vertices,edges);
-            t2(in1 | in2 | in3,:)=[];  p2=unique(p2(t2(:),:),'rows');
+            if exist('polyshape','builtin')
+                PG = polyshape(poly_vec1(:,1),poly_vec1(:,2));
+                PG2 = polyshape(poly_vec2(:,1), poly_vec2(:,2)) ;
+                polyout2 = intersect(PG,PG2) ;
+                poly_vec3 = polyout2.Vertices;
+            else
+                [poly_vec3(:,1),poly_vec3(:,2)] = polybool(...
+                                        'intersection',...
+                                         poly_vec1(:,1),poly_vec1(:,2),...
+                                         poly_vec2(:,1),poly_vec2(:,2));                    
+            end
+            [edges3]  = Get_poly_edges([poly_vec3; NaN NaN]);
+            in1 = inpoly(p2(t2(:,1),:),poly_vec3,edges3);
+            in2 = inpoly(p2(t2(:,2),:),poly_vec3,edges3);
+            in3 = inpoly(p2(t2(:,3),:),poly_vec3,edges3);
+            t2(in1 & in2 & in3,:) = []; 
+            % We need to delete straggling elements that are generated
+            % through the above deletion step
+            pruned2 = msh() ; pruned2.p = p2; pruned2.t = t2;
+            pruned2 = Make_Mesh_Boundaries_Traversable(pruned2,0.25,1);
+            t2 = pruned2.t; p2 = pruned2.p;
+            % get new poly_vec2
+            poly_vec2 = cell2mat(extdom_polygon(extdom_edges2(t2,p2),p2,-1)');
             
             disp('Merging...')
             DTbase = delaunayTriangulation(p1(:,1),p1(:,2));
-            DTbase.Points(end+(1:length(p2)),:)=p2;
-            pm=DTbase.Points; tm=DTbase.ConnectivityList;
+            DTbase.Points(end+(1:length(p2)),:) = p2;
+            pm = DTbase.Points; tm = DTbase.ConnectivityList;
             
             % Prune triangles outside both domains.
             disp('Pruning...')
             pmid = (pm(tm(:,1),:)+pm(tm(:,2),:)+pm(tm(:,3),:))/3;
             
             % in1 is inside the inset boundary polygon
-            [edges1]=Get_poly_edges(poly_vec1);
-            in1=inpoly(pmid,poly_vec1,edges1);
+            [edges1] = Get_poly_edges(poly_vec1);
+            in1 = inpoly(pmid,poly_vec1,edges1);
             
             % in2 is inside the global boundary polygon
-            [edges2]=Get_poly_edges(poly_vec2);
-            in2=inpoly(pmid,poly_vec2,edges2);
+            [edges2] = Get_poly_edges(poly_vec2);
+            in2 = inpoly(pmid,poly_vec2,edges2);
             
             % in3 is inside the intersection
-            [edges2]=Get_poly_edges([polyout2.Vertices;NaN NaN]);
-            in3=inpoly(pmid,[polyout2.Vertices;NaN NaN],edges2);
+            in3 = inpoly(pmid,poly_vec3,edges3);
             
             % remove triangles that aren't in the global mesh or aren't in
             % the inset mesh
-            tm((~in1 & ~in2) | (in3 & ~in1),:)=[];
+            tm((~in1 & ~in2) | ~in1 & in3,:) = [];
             
-            merge = msh() ; merge.p=pm; merge.t=tm ;
+            merge = msh() ; merge.p = pm; merge.t = tm ;
+ 
+            % convert back to lat-lon wgs84
+            [merge.p(:,1),merge.p(:,2)] = ...
+                                        m_xy2ll(merge.p(:,1),merge.p(:,2));
             
-            % perform clearning operations
-            merge = Make_Mesh_Boundaries_Traversable(merge,1,0.1);
-            
-            merge = bound_con_int(merge,9) ;
-            
-            [merge.p,merge.t] = direct_smoother_lur(merge.p,merge.t,[],1);
+            % Clean up the new mesh
+            merge = clean(merge);
             
             global MAP_PROJECTION MAP_COORDS MAP_VAR_LIST
             merge.proj    = MAP_PROJECTION ;
             merge.coord   = MAP_COORDS ;
             merge.mapvar  = MAP_VAR_LIST ;
             
-            % convert back to lat-lon wgs84
-            [merge.p(:,1),merge.p(:,2)]=m_xy2ll(merge.p(:,1),merge.p(:,2));
-            
-            % Turn warnings back on
-            warning('on','all')
         end
-        
+      
         function obj = CheckElementOrder(obj,proj)
             if nargin == 1
                proj = 0; 

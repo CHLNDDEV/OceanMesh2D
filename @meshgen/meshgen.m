@@ -661,9 +661,13 @@ classdef meshgen
             %% Doing the final cleaning and fixing to the mesh...
             % Clean up the mesh if specified
             if obj.cleanup 
-                % Put the mesh class into the grd part of meshgen
+                % Put the mesh class into the grd part of meshgen and clean
                 obj.grd.p = p; obj.grd.t = t;
-                obj = clean(obj);
+                db = 1;   %delete bad boundaries
+                con = 9;  %reduce connectivity to max of 9
+                [obj.grd,qout] = clean(obj.grd,db,obj.direc_smooth,con,...
+                                       obj.dj_cutoff,obj.nscreen,obj.pfix);
+                obj.qual(end+1,:) = qout;
             else
                 % Fix mesh on the projected space
                 [p1(:,1),p1(:,2)] = m_ll2xy(p(:,1),p(:,2)); 
@@ -736,92 +740,6 @@ classdef meshgen
             end
             
         end % end distmesh2d_plus
-        
-        function obj = clean(obj,db)
-            % Fixing up the mesh automatically
-            disp('Beginning mesh cleaning and smoothing operations...');
- 
-            if nargin == 1
-                db = 1;
-            end
-            
-            % transform pfix to projected coordinates 
-            if ~isempty(obj.pfix)
-               [obj.pfix(:,1),obj.pfix(:,2)] = ...
-                                     m_ll2xy(obj.pfix(:,1),obj.pfix(:,2)); 
-            end
-            % transform coordinates to projected space and "fix"
-            [obj.grd.p(:,1),obj.grd.p(:,2)] = ...
-                                   m_ll2xy(obj.grd.p(:,1),obj.grd.p(:,2)); 
-            [obj.grd.p,obj.grd.t] = fixmesh(obj.grd.p,obj.grd.t);                   
-            if db
-                % Begin by just deleting poor mesh boundary elements
-                tq = gettrimeshquan(obj.grd.p,obj.grd.t);
-                % Get the elements that have a boundary bar
-                bdbars = extdom_edges2(obj.grd.t,obj.grd.p);
-                bdnodes = unique(bdbars(:));
-                vtoe = VertToEle(obj.grd.t);
-                bele = unique(vtoe(:,bdnodes)); bele(bele == 0) = [];
-                tqbou = tq.qm(bele);
-                % Delete those boundary elements with quality < 0.5
-                obj.grd.t(bele(tqbou < 0.5),:) = [];
-            end
-            
-            % Make mesh traversable
-            obj.grd = Make_Mesh_Boundaries_Traversable(...
-                                        obj.grd,obj.dj_cutoff,obj.nscreen);
-            
-            % Delete elements with single edge connectivity
-            obj.grd = Fix_single_connec_edge_elements(obj.grd,obj.nscreen);
-            
-            % Reduce the mesh connectivity to maximum of 8
-            obj.grd = renum(obj.grd);
-            % May always work without error
-            try
-                obj.grd = bound_con_int(obj.grd,9);
-            catch
-                warning('Could not reduce connectivity mesh');
-            end
-            
-            % Try to fix spacing on the coastline
-            if obj.ns_fix && negfix == 0
-                obj = nearshorefix(obj);
-            end
-            
-            % Now do the smoothing if required
-            if obj.direc_smooth 
-                % Perform the direct smoothing
-                [obj.grd.p,obj.grd.t] = direct_smoother_lur(obj.grd.p,...
-                                          obj.grd.t,obj.pfix,obj.nscreen);
-                tq = gettrimeshquan( obj.grd.p, obj.grd.t);
-                if min(tq.qm) < 0.1
-                    % Need to clean it again
-                    disp('Overlapping elements due to smoother, cleaning again')
-                    obj.grd = Make_Mesh_Boundaries_Traversable(...
-                                       obj.grd,obj.dj_cutoff,obj.nscreen);
-                end
-            end
-            
-            % Checking and displaying element quality
-            tq = gettrimeshquan( obj.grd.p, obj.grd.t);
-            mq_m = mean(tq.qm);
-            mq_l = min(tq.qm);
-            mq_s = std(tq.qm);
-            mq_l3sig = mq_m - 3*mq_s;
-            obj.qual(end+1,:) = [mq_m,mq_l3sig,mq_l];
-            
-            disp(['number of nodes is ' num2str(length(obj.grd.p))])
-            disp(['mean quality is ' num2str(mq_m)])
-            disp(['min quality is ' num2str(mq_l)])
-           
-            % Do the transformation back
-            [obj.grd.p(:,1),obj.grd.p(:,2)] = ...
-                                   m_xy2ll(obj.grd.p(:,1),obj.grd.p(:,2));
-            if ~isempty(obj.pfix)
-                [obj.pfix(:,1),obj.pfix(:,2)] = ...
-                                     m_xy2ll(obj.pfix(:,1),obj.pfix(:,2)); 
-            end
-        end
         
         function obj = nearshorefix(obj)
             %% kjr make sure boundaries have good spacing on boundary.
