@@ -36,17 +36,24 @@ for box_num = box_vec
         inpoly_flip  = obj.inpoly_flip{box_num};
         bbox = obj.bbox{box_num};
         if box_num > 1
-            inside = (p(:,1) >= bbox(1,1) & p(:,1) <= bbox(1,2) & ...
-                p(:,2) >= bbox(2,1) & p(:,2) <= bbox(2,2) );
+            pt=obj.boubox{box_num}; 
+            ee=Get_poly_edges(pt);
+            inside = inpoly(p,pt,ee) ; 
+            clearvars pt ee 
+            %inside = (p(:,1) >= bbox(1,1) & p(:,1) <= bbox(1,2) & ...
+            %    p(:,2) >= bbox(2,1) & p(:,2) <= bbox(2,2) );
         else
             inside = true(size(d));
         end
         for bn = box_num+1:length(obj.bbox)
             % Get all points inside inner boxes
-            inside2 = (p(:,1) >= obj.bbox{bn}(1,1) & ...
-                p(:,1) <= obj.bbox{bn}(1,2) & ...
-                p(:,2) >= obj.bbox{bn}(2,1) & ...
-                p(:,2) <= obj.bbox{bn}(2,2) );
+            pt=obj.boubox{bn};
+            ee=Get_poly_edges(pt);
+            inside2 = inpoly(p,pt,ee) ;
+            %             inside2 = (p(:,1) >= obj.bbox{bn}(1,1) & ...
+            %                 p(:,1) <= obj.bbox{bn}(1,2) & ...
+            %                 p(:,2) >= obj.bbox{bn}(2,1) & ...
+            %                 p(:,2) <= obj.bbox{bn}(2,2) );
             inside(inside2) = false;
         end
     end
