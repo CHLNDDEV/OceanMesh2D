@@ -697,6 +697,99 @@ classdef msh
             end
         end
         
+        function [obj,qual] = clean(obj,db,ds,con,dj,nscreen,pfix)
+            % Fixing up the mesh automatically
+            disp('Beginning mesh cleaning and smoothing operations...');
+ 
+            if nargin == 1
+                db = 1;
+            end
+            if nargin <= 2
+                ds = 1;
+            end
+            if nargin <= 3
+                con = 9;
+            end
+            if nargin <= 4
+                dj = 0.25;
+            end
+            if nargin <= 5
+                nscreen = 1;
+            end
+            if nargin <= 6
+                pfix = [];
+            end
+            
+            % transform pfix to projected coordinates 
+            if ~isempty(pfix)
+               [pfix(:,1),pfix(:,2)] = m_ll2xy(pfix(:,1),pfix(:,2)); 
+            end
+            % transform coordinates to projected space and "fix"
+            [obj.p(:,1),obj.p(:,2)] =  m_ll2xy(obj.p(:,1),obj.p(:,2)); 
+            [obj.p,obj.t] = fixmesh(obj.p,obj.t);
+            
+            if db
+                % Begin by just deleting poor mesh boundary elements
+                tq = gettrimeshquan(obj.p,obj.t);
+                % Get the elements that have a boundary bar
+                bdbars = extdom_edges2(obj.t,obj.p);
+                bdnodes = unique(bdbars(:));
+                vtoe = VertToEle(obj.t);
+                bele = unique(vtoe(:,bdnodes)); bele(bele == 0) = [];
+                tqbou = tq.qm(bele);
+                % Delete those boundary elements with quality < 0.5
+                obj.t(bele(tqbou < 0.5),:) = [];
+            end
+            
+            % Make mesh traversable
+            obj = Make_Mesh_Boundaries_Traversable(obj,dj,nscreen);
+            
+            % Delete elements with single edge connectivity
+            obj = Fix_single_connec_edge_elements(obj,nscreen);
+            
+            % Reduce the mesh connectivity to maximum of 8
+            obj = renum(obj);
+            % May always work without error
+            try
+                obj = bound_con_int(obj,con);
+            catch
+                warning('Could not reduce connectivity mesh');
+            end
+            
+            % Try to fix spacing on the coastline
+            %if obj.ns_fix && negfix == 0
+            %    obj = nearshorefix(obj);
+            %end
+            
+            % Now do the smoothing if required
+            if ds
+                % Perform the direct smoothing
+                [obj.p,obj.t] = direct_smoother_lur(obj.p,obj.t,pfix,nscreen);
+                tq = gettrimeshquan( obj.p, obj.t);
+                if min(tq.qm) < 0.1
+                    % Need to clean it again
+                    disp(['Overlapping elements due to smoother, ' ...
+                          'cleaning again'])
+                    obj = clean(obj,db,ds,con,dj,nscreen,pfix);
+                end
+            end
+            
+            % Checking and displaying element quality
+            tq = gettrimeshquan( obj.p, obj.t);
+            mq_m = mean(tq.qm);
+            mq_l = min(tq.qm);
+            mq_s = std(tq.qm);
+            mq_l3sig = mq_m - 3*mq_s;
+            qual = [mq_m,mq_l3sig,mq_l];
+            
+            disp(['number of nodes is ' num2str(length(obj.p))])
+            disp(['mean quality is ' num2str(mq_m)])
+            disp(['min quality is ' num2str(mq_l)])
+           
+            % Do the transformation back
+            [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
+        end
+        
         function obj = lim_bathy_slope(obj,dfdx,overland)
             if nargin < 3
                 overland  = 0;
