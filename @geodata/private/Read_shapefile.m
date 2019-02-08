@@ -50,7 +50,7 @@ if (size(finputname,1)~=0)
             else
                 disp('Reading shapefile with m_shaperead')
                 % This uses m_map (slower but free)
-                S = m_shaperead(fname{1},bboxt(:));
+                S = m_shaperead(fname{1},reshape(bboxt',4,1));
                 % Let's just keep the x-y data
                 D = S.ncst;
                 S = cell2struct(D','points',1);

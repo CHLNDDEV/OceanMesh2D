@@ -12,6 +12,11 @@ if isempty(MAP_PROJECTION)
 end
 
 [X,Y] = m_ll2xy(p(:,1),p(:,2),'clip','on');
-hold on; H = tricontour(tri,X,Y,z,N,C);
+hold on; 
+if nargin < 5
+    H = tricontour(tri,X,Y,z,N);
+else
+    H = tricontour(tri,X,Y,z,N,C);
+end
 
 end
