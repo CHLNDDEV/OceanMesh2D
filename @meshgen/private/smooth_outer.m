@@ -7,18 +7,23 @@
         for bn = ii+1:length(efs)
             % smooth with all inner boxes (with buffer)
             x = efs{ii}.F.GridVectors{1}; dx = x(2) - x(1);
-            inx = x >= min(efs{bn}.F.GridVectors{1}) - dx & ...
-                  x <= max(efs{bn}.F.GridVectors{1}) + dx;
+            inx = x >= min(efs{bn}.F.GridVectors{1}) - 1*dx & ...
+                  x <= max(efs{bn}.F.GridVectors{1}) + 1*dx;
             y = efs{ii}.F.GridVectors{2}; dy = y(2) - y(1);
-            iny = y >= min(efs{bn}.F.GridVectors{2}) - dy & ...
-                  y <= max(efs{bn}.F.GridVectors{2}) + dy;
+            iny = y >= min(efs{bn}.F.GridVectors{2}) - 1*dy & ...
+                  y <= max(efs{bn}.F.GridVectors{2}) + 1*dy;
             if isempty(find(inx,1)) || isempty(find(iny,1)); continue; end
             found(bn) = 1;
             % Get the grid of coarse one inside the fine one
             [x,y] = ndgrid(x(inx),y(iny));
             % Use fine griddedInterpolant to interpolate fine to coarse
             hh_t = efs{bn}.F(x,y);
-            hh_m(inx,iny) = hh_t;
+            % mask non-square component
+            nonsq = inpoly([x(:),y(:)],efs{bn}.boubox(1:end-1,:)) ; 
+            hold=hh_m ; % copy it
+            hh_t(~nonsq)=NaN; % mask it
+            hh_m(inx,iny) = hh_t; % put all of it in (w/ NaN)
+            hh_m(isnan(hh_m))=hold(isnan(hh_m)); % replace NaN with old
         end
         if all(found == 0); continue; end
         disp(['Relaxing the gradient of #' num2str(ii) ' outer edgefx ' ...
@@ -36,11 +41,9 @@
         end
         % kjr  Oct 2018 consistent with default application of gradient limiting!
         dx = efs{ii}.h0*cosd(yg(1,:)); 
-        dy = efs{ii}.h0;               
+        dy = efs{ii}.h0;  
         [hfun,flag] = limgradStruct(efs{ii}.ny,dx,dy,hfun,...
-            efs{ii}.g,sqrt(length(hfun)));
-        %[hfun,flag] = limgradStruct(efs{ii}.ny,efs{ii}.h0,hfun,...
-        %    efs{ii}.g,sqrt(length(hfun)));
+          efs{ii}.g,sqrt(length(hfun)));
         if flag == 1
             disp('Gradient relaxing converged!');
         else

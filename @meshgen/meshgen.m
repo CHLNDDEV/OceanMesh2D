@@ -548,11 +548,11 @@ classdef meshgen
                 hbars = 0*ideal_bars(:,1);
                                 
                 for box_num = 1:length(obj.h0)                             % For each bbox, find the bars that are in and calculate
-                    if ~iscell(obj.bbox)                                   % their ideal lengths.
-                        bbox_l = obj.bbox;         
-                    else
-                        bbox_l = obj.bbox{box_num}; 
-                    end
+%                     if ~iscell(obj.bbox)                                  % their ideal lengths.
+%                         bbox_l = obj.bbox;         
+%                     else
+%                         bbox_l = obj.bbox{box_num}; 
+%                     end
                     if ~iscell(obj.fh)
                         fh_l = obj.fh;
                     else
@@ -561,10 +561,12 @@ classdef meshgen
                     h0_l = obj.h0(box_num);
                     if box_num > 1
                         h0_l = h0_l/111e3;                                 % create buffer to evalulate fh between nests
-                        inside = (ideal_bars(:,1) >= bbox_l(1,1) - h0_l & ...
-                            ideal_bars(:,1) <= bbox_l(1,2) + h0_l & ...
-                            ideal_bars(:,2) >= bbox_l(2,1) - h0_l & ...
-                            ideal_bars(:,2) <= bbox_l(2,2) + h0_l);
+                        iboubox = obj.boubox{box_num}(1:end-1,:) ; 
+                        inside = inpoly(ideal_bars,iboubox) ; 
+%                         inside = (ideal_bars(:,1) >= bbox_l(1,1) - h0_l & ...
+%                             ideal_bars(:,1) <= bbox_l(1,2) + h0_l & ...
+%                             ideal_bars(:,2) >= bbox_l(2,1) - h0_l & ...
+%                             ideal_bars(:,2) <= bbox_l(2,2) + h0_l);
                     else
                         inside = true(size(hbars));
                     end
