@@ -1309,15 +1309,16 @@ classdef msh
             p1 = obj1.p; t1 = obj1.t;
             p2 = obj2.p; t2 = obj2.t;
             
-            % assumes global mesh is mesh 2
-            lat_mi = min(p2(:,2)) ; lat_ma = max(p2(:,2)) ;
-            lon_mi = min(p2(:,1)) ; lon_ma = max(p2(:,1)) ;
-            
-            % centered on Arctic in stereographic projection
-            lat_mi = max(-88.0001,lat_mi);
-            m_proj('stereo','lat',90,...
-                   'long',0.5*(lon_mi+lon_ma),...
-                   'radius',90-lat_mi);
+            global MAP_PROJECTION MAP_COORDS MAP_VAR_LIST
+            if ~isempty(obj2.coord)
+                % kjr 2018,10,17; Set up projected space imported from msh class
+                MAP_PROJECTION = obj2.proj ;
+                MAP_VAR_LIST   = obj2.mapvar ;
+                MAP_COORDS     = obj2.coord ;
+                % projtype = MAP_PROJECTION.name;
+            else
+                setProj(obj2,1,'stereo');
+            end
             
             % project both meshes into the space of the global mesh
             [p1(:,1),p1(:,2)] = m_ll2xy(p1(:,1),p1(:,2)) ;
@@ -1389,7 +1390,6 @@ classdef msh
             % Clean up the new mesh
             merge = clean(merge);
             
-            global MAP_PROJECTION MAP_COORDS MAP_VAR_LIST
             merge.proj    = MAP_PROJECTION ;
             merge.coord   = MAP_COORDS ;
             merge.mapvar  = MAP_VAR_LIST ;

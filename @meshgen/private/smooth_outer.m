@@ -29,7 +29,7 @@
         disp(['Relaxing the gradient of #' num2str(ii) ' outer edgefx ' ...
               'using #' num2str(find(found)) ' inner edgefxs']);
         hfun = zeros(numel(efs{ii}.F.Values),1);
-        [xg,yg] = ndgrid(efs{ii}.F.GridVectors{1},efs{ii}.F.GridVectors{2});
+        [~,yg] = ndgrid(efs{ii}.F.GridVectors{1},efs{ii}.F.GridVectors{2});
         % kjr Oct 2018 already in planar meters!
         % hh_m = ConvertToPlanarMetres(xg,yg,hh_m) ; 
         nn = 0;
