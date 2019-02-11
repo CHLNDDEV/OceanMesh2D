@@ -1315,7 +1315,6 @@ classdef msh
                 MAP_PROJECTION = obj2.proj ;
                 MAP_VAR_LIST   = obj2.mapvar ;
                 MAP_COORDS     = obj2.coord ;
-                % projtype = MAP_PROJECTION.name;
             else
                 setProj(obj2,1,'stereo');
             end
