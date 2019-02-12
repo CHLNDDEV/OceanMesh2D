@@ -697,7 +697,7 @@ classdef msh
             end
         end
         
-        function [obj,qual] = clean(obj,db,ds,con,dj,nscreen,pfix)
+        function [obj,qual] = clean(obj,db,ds,con,dj,nscreen,pfix,proj)
             % Fixing up the mesh automatically
             disp('Beginning mesh cleaning and smoothing operations...');
  
@@ -719,13 +719,18 @@ classdef msh
             if nargin <= 6
                 pfix = [];
             end
+            if nargin <= 7
+                proj = 1;
+            end
             
             % transform pfix to projected coordinates 
-            if ~isempty(pfix)
+            if ~isempty(pfix) && proj
                [pfix(:,1),pfix(:,2)] = m_ll2xy(pfix(:,1),pfix(:,2)); 
             end
             % transform coordinates to projected space and "fix"
-            [obj.p(:,1),obj.p(:,2)] =  m_ll2xy(obj.p(:,1),obj.p(:,2)); 
+            if proj
+                [obj.p(:,1),obj.p(:,2)] =  m_ll2xy(obj.p(:,1),obj.p(:,2)); 
+            end
             [obj.p,obj.t] = fixmesh(obj.p,obj.t);
             
             if db
@@ -749,11 +754,11 @@ classdef msh
             
             % Reduce the mesh connectivity to maximum of 8
             obj = renum(obj);
-            % May always work without error
+            % May not always work without error
             try
-                obj = bound_con_int(obj,con);
+               obj = bound_con_int(obj,con);
             catch
-                warning('Could not reduce connectivity mesh');
+               warning('Could not reduce connectivity mesh');
             end
             
             % Try to fix spacing on the coastline
@@ -770,7 +775,8 @@ classdef msh
                     % Need to clean it again
                     disp(['Overlapping elements due to smoother, ' ...
                           'cleaning again'])
-                    obj = clean(obj,db,ds,con,dj,nscreen,pfix);
+                    % repeat without projecting (already projected)
+                    obj = clean(obj,db,ds,con,dj,nscreen,pfix,0);
                 end
             end
             
@@ -787,7 +793,9 @@ classdef msh
             disp(['min quality is ' num2str(mq_l)])
            
             % Do the transformation back
-            [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
+            if proj
+                [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
+            end
         end
         
         function obj = lim_bathy_slope(obj,dfdx,overland)
@@ -1315,9 +1323,13 @@ classdef msh
                 MAP_PROJECTION = obj2.proj ;
                 MAP_VAR_LIST   = obj2.mapvar ;
                 MAP_COORDS     = obj2.coord ;
-                % projtype = MAP_PROJECTION.name;
             else
-                setProj(obj2,1,'stereo');
+                %if ~isempty(obj1.proj)
+                %    projname = obj1.proj.name;
+                %else
+                %    projname = 'stereo';
+                %end
+                setProj(obj2,0);
             end
             
             % project both meshes into the space of the global mesh
