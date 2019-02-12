@@ -321,7 +321,7 @@ classdef geodata
                         break
                     end
                 end
-                if obj.bbox(1,2) > 180
+                if obj.bbox(1,2) > 180 && min(x) < 0
                     % bbox straddles 180/-180 line
                     loop = 2;
                 else
