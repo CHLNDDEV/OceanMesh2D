@@ -547,8 +547,9 @@ classdef geodata
                         'm-','linewi',1); hold on;
                 end
             end
-            
-            m_plot(obj.boubox(:,1),obj.boubox(:,2),'k--','linewi',2,'MarkerSize',15);
+            [la,lo] = my_interpm(obj.boubox(:,2),obj.boubox(:,1),...
+                                 0.5*obj.h0/111e3);
+            m_plot(lo,la,'k--','linewi',2);
             m_grid('xtick',10,'tickdir','out','yaxislocation','left','fontsize',10);
             if exist('h1','var') && exist('h2','var') && exist('h3','var')
                 legend([h1 h2,h3],{'mainland' 'inner' 'weirs'},'Location','NorthWest')

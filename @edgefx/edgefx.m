@@ -1,4 +1,3 @@
-
 classdef edgefx
     %   EDGEFX: Edgefunction class
     %   Constructs edgefunctions that are based on numerous geomteric and
