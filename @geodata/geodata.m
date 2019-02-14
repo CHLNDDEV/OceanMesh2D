@@ -321,16 +321,23 @@ classdef geodata
                         break
                     end
                 end
+                modbox = 0;
                 if obj.bbox(1,2) > 180 && min(x) < 0
                     % bbox straddles 180/-180 line
                     loop = 2;
                 else
                     loop = 1;
+                    if min(x) >= 0
+                       modbox = 1;
+                    end
                 end
                 J = find(y >= obj.bbox(2,1) & y <= obj.bbox(2,2));
                 I = []; demz = [];
                 for nn = 1:loop
                     bboxt = obj.bbox;
+                    if modbox
+                       bboxt(1,:) =  bboxt(1,:) + 360;
+                    end
                     if loop == 2
                         if nn == 1
                             bboxt(1,2) = 180;
