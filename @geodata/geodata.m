@@ -322,22 +322,22 @@ classdef geodata
                     end
                 end
                 modbox = 0;
-                if obj.bbox(1,2) > 180 && min(x) < 0
+                if obj.bbox(1,2) > 180 && obj.bbox(1,1) < 180 && min(x) < 0
                     % bbox straddles 180/-180 line
                     loop = 2;
                 else
                     loop = 1;
-                    if min(x) >= 0
-                       modbox = 1;
+                    if obj.bbox(1,2) < 180 && min(x) >= 0
+                        modbox = 1;
+                    elseif obj.bbox(1,1) > 180 && min(x) < 0
+                        modbox = -1;
                     end
                 end
                 J = find(y >= obj.bbox(2,1) & y <= obj.bbox(2,2));
                 I = []; demz = [];
                 for nn = 1:loop
                     bboxt = obj.bbox;
-                    if modbox
-                       bboxt(1,:) =  bboxt(1,:) + 360;
-                    end
+                    bboxt(1,:) =  bboxt(1,:) + modbox*360;
                     if loop == 2
                         if nn == 1
                             bboxt(1,2) = 180;
@@ -540,11 +540,11 @@ classdef geodata
                         obj.boubox(1:end-1,2),'cross',45,0.05);
                     m_plot(long,lati,'.','Color','white')
             end
-            if obj.mainland(1)~=0
+            if ~isempty(obj.mainland)
                 h1 = m_plot(obj.mainland(:,1),obj.mainland(:,2),...
                     'r-','linewi',1); hold on;
             end
-            if obj.inner(1)~=0 
+            if ~isempty(obj.inner) 
                 h2 = m_plot(obj.inner(:,1),obj.inner(:,2),...
                     'g-','linewi',1); hold on;
             end
