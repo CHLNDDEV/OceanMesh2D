@@ -41,6 +41,7 @@ classdef edgefx
         fl   % slope filter parameters
         ch   % channels
         chd  % matrix containing channel fx values.
+        AngOfRe 
         g    % max allowable grade of mesh.
         dt   % theoretical simulateable timestep
         
@@ -71,6 +72,7 @@ classdef edgefx
             addOptional(p,'slp',defval);
             addOptional(p,'ch',defval);
             addOptional(p,'min_el_ch',100);
+            addOptional(p,'AngOfRe',60);
             addOptional(p,'max_el',inf);
             addOptional(p,'max_el_ns',inf);
             addOptional(p,'g',0.20);
@@ -86,7 +88,7 @@ classdef edgefx
             % store the inputs as a struct
             inp = p.Results;
             % get the fieldnames of the edge functions
-            inp = orderfields(inp,{'max_el','min_el_ch','geodata','lmsl','Channels',...
+            inp = orderfields(inp,{'max_el','min_el_ch','AngOfRe','geodata','lmsl','Channels',...
                 'dis','fs','fl','g','max_el_ns','wl',...
                 'slp','ch','dt','h0'});
             fields = fieldnames(inp);
@@ -143,6 +145,11 @@ classdef edgefx
                         obj.min_el_ch=inp.(fields{i});
                         if obj.min_el_ch ~= 100
                             obj.min_el_ch = inp.(fields{i});
+                        end
+                    case('AngOfRe')
+                        obj.AngOfRe=inp.(fields{i});
+                        if obj.AngOfRe ==60
+                            obj.AngOfRe = inp.(fields{i});
                         end
                     case('Channels')
                         obj.Channels=inp.(fields{i});
@@ -458,7 +465,8 @@ classdef edgefx
         %% Channel edgefunction
         function obj = chfx(obj,feat)
             
-            ang_of_reslope = 60;                                           % Estimate width of channel using tangent of this angle times depth.
+            ang_of_reslope=obj.AngOfRe ; 
+            % ang_of_reslope = 60;                                           % Estimate width of channel using tangent of this angle times depth.
 
             % STEP 1: Calculate the width of each channel using a v-shape approx to
             % channel's cross sectional area.
@@ -490,7 +498,7 @@ classdef edgefx
                     % will the stencil be too large (nidx^2)?
                     nidx=ceil(radii{jj}(jjj)/obj.h0);                       % stencil of points around channel point.
                     %circle(sel(jjj,1),sel(jjj,2),(nidx+1)*obj.h0);
-                    if nidx > 100, disp('alert'), continue, end;
+                    %if nidx > 100, disp('alert'), continue, end;
                     % find linear index of channel point in 2-d matrix.
                     [lidx] = FindLinearIdx(sel(jjj,1),sel(jjj,2),xg,yg);
                     % convert to r,c or grid indices.
