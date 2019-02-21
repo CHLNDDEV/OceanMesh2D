@@ -327,7 +327,7 @@ classdef geodata
                     loop = 2;
                 else
                     loop = 1;
-                    if obj.bbox(1,2) < 180 && min(x) >= 0
+                    if obj.bbox(1,2) < 180 && max(x) > 180
                         modbox = 1;
                     elseif obj.bbox(1,1) > 180 && min(x) < 0
                         modbox = -1;
