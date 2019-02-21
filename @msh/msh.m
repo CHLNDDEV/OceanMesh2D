@@ -257,7 +257,15 @@ classdef msh
                                     plot(obj.p(obj.bd.ibconn(1:obj.bd.nvell(nb),nb),1),...
                                         obj.p(obj.bd.ibconn(1:obj.bd.nvell(nb),nb),2),'g','linewi',1.2);
                                 end
-                            else
+                            elseif obj.bd.ibtype(nb)  == 20
+                                if proj
+                                    m_plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
+                                        obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'r-','linewi',1.2);
+                                else
+                                    plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
+                                        obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'r-','linewi',1.2);
+                                end
+                            else              
                                 if proj
                                     m_plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
                                         obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'g-','linewi',1.2);
@@ -903,12 +911,25 @@ classdef msh
                     end
                     
                     % indices of switch
-                    Cuts  = find(diff(mainland ~= 0));
+                    Cuts  = find(diff(mainland) ~= 0);
                     
                     if ~periodic
                         % Do not include open boundary that is smaller than
-                        % 10 vertices across
-                        Cuts(diff(Cuts) < cutlim) = [];
+                        % cutlim vertices across
+                        rm = false(length(Cuts),1);
+                        for ii = 1:2:length(Cuts)
+                            if ii == length(Cuts)
+                                if length(mainland) - Cuts(ii) + ...
+                                   Cuts(1) - 1  < cutlim
+                                   rm([1 end]) = 1;
+                                end
+                            else
+                                if Cuts(ii+1) - Cuts(ii) < cutlim
+                                    rm(ii:ii+1) = 1;
+                                end
+                            end
+                        end
+                        Cuts(rm) = [];
                     end
                     
                     % Get length of largest island
