@@ -1,4 +1,3 @@
-
 classdef edgefx
     %   EDGEFX: Edgefunction class
     %   Constructs edgefunctions that are based on numerous geomteric and
@@ -285,6 +284,10 @@ classdef edgefx
             % they are within about co*h0 distance from each other.
             % co is the cutoff distance = 2*sqrt(2) (two diagonal dist)
             co = 2*sqrt(2);
+            if length(x_kp) < 12
+                error(['Not enough medial points... ' ... 
+                       'use dis function instead of fs'])
+            end
             [~, dmed] = WrapperForKsearch([x_kp,y_kp],[x_kp,y_kp],4);
             prune = dmed(:,2) > co*obj.h0 | dmed(:,3) > 2*co*obj.h0 | ...
                 dmed(:,4) > 3*co*obj.h0;

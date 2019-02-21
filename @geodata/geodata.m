@@ -321,16 +321,25 @@ classdef geodata
                         break
                     end
                 end
-                if obj.bbox(1,2) > 180
+                modbox = [0 0];
+                if obj.bbox(1,2) > 180 && obj.bbox(1,1) < 180 && min(x) < 0
                     % bbox straddles 180/-180 line
                     loop = 2;
                 else
                     loop = 1;
+                    if max(x) > 180
+                        if obj.bbox(1,1) < 0; modbox(1) = 1; end
+                        if obj.bbox(1,2) < 0; modbox(2) = 1; end
+                    elseif min(x) < 0
+                        if obj.bbox(1,1) > 180; modbox(1) = -1; end
+                        if obj.bbox(1,2) > 180; modbox(2) = -1; end
+                    end
                 end
                 J = find(y >= obj.bbox(2,1) & y <= obj.bbox(2,2));
                 I = []; demz = [];
                 for nn = 1:loop
                     bboxt = obj.bbox;
+                    bboxt(1,:) =  bboxt(1,:) + modbox.*360;
                     if loop == 2
                         if nn == 1
                             bboxt(1,2) = 180;
@@ -533,11 +542,11 @@ classdef geodata
                         obj.boubox(1:end-1,2),'cross',45,0.05);
                     m_plot(long,lati,'.','Color','white')
             end
-            if obj.mainland(1)~=0
+            if ~isempty(obj.mainland)
                 h1 = m_plot(obj.mainland(:,1),obj.mainland(:,2),...
                     'r-','linewi',1); hold on;
             end
-            if obj.inner(1)~=0 
+            if ~isempty(obj.inner) 
                 h2 = m_plot(obj.inner(:,1),obj.inner(:,2),...
                     'g-','linewi',1); hold on;
             end
@@ -547,8 +556,9 @@ classdef geodata
                         'm-','linewi',1); hold on;
                 end
             end
-            
-            m_plot(obj.boubox(:,1),obj.boubox(:,2),'k--','linewi',2,'MarkerSize',15);
+            [la,lo] = my_interpm(obj.boubox(:,2),obj.boubox(:,1),...
+                                 0.5*obj.h0/111e3);
+            m_plot(lo,la,'k--','linewi',2);
             m_grid('xtick',10,'tickdir','out','yaxislocation','left','fontsize',10);
             if exist('h1','var') && exist('h2','var') && exist('h3','var')
                 legend([h1 h2,h3],{'mainland' 'inner' 'weirs'},'Location','NorthWest')
