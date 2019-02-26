@@ -257,7 +257,15 @@ classdef msh
                                     plot(obj.p(obj.bd.ibconn(1:obj.bd.nvell(nb),nb),1),...
                                         obj.p(obj.bd.ibconn(1:obj.bd.nvell(nb),nb),2),'g','linewi',1.2);
                                 end
-                            else
+                            elseif obj.bd.ibtype(nb)  == 20
+                                if proj
+                                    m_plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
+                                        obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'r-','linewi',1.2);
+                                else
+                                    plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
+                                        obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'r-','linewi',1.2);
+                                end
+                            else              
                                 if proj
                                     m_plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
                                         obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'g-','linewi',1.2);
@@ -697,7 +705,7 @@ classdef msh
             end
         end
         
-        function [obj,qual] = clean(obj,db,ds,con,dj,nscreen,pfix)
+        function [obj,qual] = clean(obj,db,ds,con,dj,nscreen,pfix,proj)
             % Fixing up the mesh automatically
             disp('Beginning mesh cleaning and smoothing operations...');
  
@@ -719,13 +727,18 @@ classdef msh
             if nargin <= 6
                 pfix = [];
             end
+            if nargin <= 7
+                proj = 1;
+            end
             
             % transform pfix to projected coordinates 
-            if ~isempty(pfix)
+            if ~isempty(pfix) && proj
                [pfix(:,1),pfix(:,2)] = m_ll2xy(pfix(:,1),pfix(:,2)); 
             end
             % transform coordinates to projected space and "fix"
-            [obj.p(:,1),obj.p(:,2)] =  m_ll2xy(obj.p(:,1),obj.p(:,2)); 
+            if proj
+                [obj.p(:,1),obj.p(:,2)] =  m_ll2xy(obj.p(:,1),obj.p(:,2)); 
+            end
             [obj.p,obj.t] = fixmesh(obj.p,obj.t);
             
             if db
@@ -749,11 +762,11 @@ classdef msh
             
             % Reduce the mesh connectivity to maximum of 8
             obj = renum(obj);
-            % May always work without error
+            % May not always work without error
             try
-                obj = bound_con_int(obj,con);
+               obj = bound_con_int(obj,con);
             catch
-                warning('Could not reduce connectivity mesh');
+               warning('Could not reduce connectivity mesh');
             end
             
             % Try to fix spacing on the coastline
@@ -770,7 +783,8 @@ classdef msh
                     % Need to clean it again
                     disp(['Overlapping elements due to smoother, ' ...
                           'cleaning again'])
-                    obj = clean(obj,db,ds,con,dj,nscreen,pfix);
+                    % repeat without projecting (already projected)
+                    obj = clean(obj,db,ds,con,dj,nscreen,pfix,0);
                 end
             end
             
@@ -787,7 +801,9 @@ classdef msh
             disp(['min quality is ' num2str(mq_l)])
            
             % Do the transformation back
-            [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
+            if proj
+                [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
+            end
         end
         
         function obj = lim_bathy_slope(obj,dfdx,overland)
@@ -895,12 +911,25 @@ classdef msh
                     end
                     
                     % indices of switch
-                    Cuts  = find(diff(mainland ~= 0));
+                    Cuts  = find(diff(mainland) ~= 0);
                     
                     if ~periodic
                         % Do not include open boundary that is smaller than
-                        % 10 vertices across
-                        Cuts(diff(Cuts) < cutlim) = [];
+                        % cutlim vertices across
+                        rm = false(length(Cuts),1);
+                        for ii = 1:2:length(Cuts)
+                            if ii == length(Cuts)
+                                if length(mainland) - Cuts(ii) + ...
+                                   Cuts(1) - 1  < cutlim
+                                   rm([1 end]) = 1;
+                                end
+                            else
+                                if Cuts(ii+1) - Cuts(ii) < cutlim
+                                    rm(ii:ii+1) = 1;
+                                end
+                            end
+                        end
+                        Cuts(rm) = [];
                     end
                     
                     % Get length of largest island
@@ -1316,7 +1345,12 @@ classdef msh
                 MAP_VAR_LIST   = obj2.mapvar ;
                 MAP_COORDS     = obj2.coord ;
             else
-                setProj(obj2,1,'stereo');
+                %if ~isempty(obj1.proj)
+                %    projname = obj1.proj.name;
+                %else
+                %    projname = 'stereo';
+                %end
+                setProj(obj2,0);
             end
             
             % project both meshes into the space of the global mesh

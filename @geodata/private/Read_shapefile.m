@@ -136,14 +136,20 @@ for i = 1 : length(SG)
     else
         area = 999; % not a polygon
     end
-    if (area < 4*h0^2) % too small, then don't consider it.
-        continue;
-    elseif length(find(In == 1)) == length(points)
-        % Wholey inside box, set as island (with NaN delimiter)
+    if length(find(In == 1)) == length(points)
+        % Wholey inside box
+        if area < 4*h0^2 % too small, then don't consider it.
+            continue;
+        end
+        % Set as island (with NaN delimiter)
         k = k + 1 ; 
         new_island{k} = [points; NaN NaN];
     else
-        % Partially inside box, set as mainland
+        %Partially inside box
+        if area < 100*h0^2 % too small, then don't consider it.
+            continue;
+        end
+        % Set as mainland
         j = j + 1 ; 
         new_main{j} = [points; NaN NaN];
     end
