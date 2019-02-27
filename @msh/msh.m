@@ -1427,6 +1427,11 @@ classdef msh
             merge.coord   = MAP_COORDS ;
             merge.mapvar  = MAP_VAR_LIST ;
             
+            % Check element order
+            merge = CheckElementOrder(merge);
+            
+            disp(['Note that bathymetry, boundary conditions, etc. have' ...
+                  'not been carried over into the merged mesh'])
         end
       
         function obj = CheckElementOrder(obj,proj)
@@ -1522,10 +1527,13 @@ classdef msh
             % kjr, chl, und, 2018 <--updated for projected spaces
             %%
             desCFL     = 0.50;    %<-- set desired cfl (generally less than 0.80 for stable).
-            if nargin < 3
-                desIt = inf;        %<-- desired number of iterations
-            else
-                desIt = varargin{1};
+            desIt = inf;          %<-- desired number of iterations
+            if nargin == 3
+                if varargin{1} > 1
+                    desIt = varargin{1};
+                else
+                    desCFL = varargin{1};
+                end
             end
             %%
             if ~isempty(obj.coord)
@@ -1541,16 +1549,24 @@ classdef msh
             end
             %% Project..
             [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2)); 
+            
             %% Make bathy interpolant
             F = scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.b,...
-                                     'linear','nearest');
+                                     'linear','nearest');             
+            if ~isempty(obj.bx)
+                Fx = scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.bx,...
+                                          'linear','nearest');
+                Fy = scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.by,...
+                                          'linear','nearest');
+            end  
+                                 
             %% Delete CFL violations
             it  = 0;
             CFL = 999;
             tic
             while 1
                 [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
-                [CFL,Ln,ee] = CalcCFL(obj,dt);
+                CFL = CalcCFL(obj,dt);
                 [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2)); 
                 bad = real(CFL) > desCFL;
                 display(['Number of CFL violations ',num2str(sum(bad))]);
@@ -1564,34 +1580,33 @@ classdef msh
             toc
             disp(['Achieved max CFL of ',num2str(max(real(CFL))),...
                 ' after ',num2str(it),' iterations.']);
-            disp('Remove poor quality elements and fix connecitivity problems..');
             
-            obj = Make_Mesh_Boundaries_Traversable( obj, 0.25, 0 );
+            % convert back to lat-lon wgs84
+            [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
             
-            % Ensuring good numbering
-            [obj.p,obj.t] = fixmesh(obj.p,obj.t);
-           
-            % Display stats
-            tq = gettrimeshquan( obj.p, obj.t);
-            mq_m = mean(tq.qm);
-            mq_l = min(tq.qm);
-            disp(['number of nodes is ' num2str(length(obj.p))])
-            disp(['mean quality is ' num2str(mq_m)])
-            disp(['min quality is ' num2str(mq_l)])
-           
+            % clear some things which cause error in renum
+            obj.b = []; obj.bx = []; obj.by = []; obj.f13 = [];
+            obj.bd = []; obj.op = [];
+            disp('Deleting boundary and f13 info...');
+            disp('bathy and slope info will be carried over');
+            
+            % Clean up the new mesh
+            obj = clean(obj);
+            
             % add bathy back on
             obj.b = F(obj.p(:,1),obj.p(:,2));
+            if exist('Fx','var')
+                obj.bx = Fx(obj.p(:,1),obj.p(:,2));
+                obj.by = Fy(obj.p(:,1),obj.p(:,2));
+            end
             
             % find nans
             if ~isempty(find(isnan(obj.b), 1))
                warning('NaNs in bathy found')
             end
-                
-            % Do the transformation back
-            [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
             
-            disp('Deleting boundary information...please renumber mesh');
-            obj.bd = []; obj.op = [];
+            % Check Element order
+            obj = CheckElementOrder(obj);
             return;
             
             function obj = DecimateTria(obj,bad)
