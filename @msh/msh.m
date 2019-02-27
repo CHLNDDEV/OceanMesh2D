@@ -709,25 +709,25 @@ classdef msh
             % Fixing up the mesh automatically
             disp('Beginning mesh cleaning and smoothing operations...');
  
-            if nargin == 1
+            if nargin == 1 || isempty(db)
                 db = 1;
             end
-            if nargin <= 2
+            if nargin <= 2 || isempty(ds)
                 ds = 1;
             end
-            if nargin <= 3
+            if nargin <= 3 || isempty(con)
                 con = 9;
             end
-            if nargin <= 4
+            if nargin <= 4 || isempty(dj)
                 dj = 0.25;
             end
-            if nargin <= 5
+            if nargin <= 5 || isempty(nscreen)
                 nscreen = 1;
             end
             if nargin <= 6
                 pfix = [];
             end
-            if nargin <= 7
+            if nargin <= 7 || isempty(proj)
                 proj = 1;
             end
             
@@ -1581,17 +1581,14 @@ classdef msh
             disp(['Achieved max CFL of ',num2str(max(real(CFL))),...
                 ' after ',num2str(it),' iterations.']);
             
-            % convert back to lat-lon wgs84
-            [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
-            
             % clear some things which cause error in renum
             obj.b = []; obj.bx = []; obj.by = []; obj.f13 = [];
             obj.bd = []; obj.op = [];
             disp('Deleting boundary and f13 info...');
             disp('bathy and slope info will be carried over');
             
-            % Clean up the new mesh
-            obj = clean(obj);
+            % Clean up the new mesh (already projected)
+            obj = clean(obj,[],[],[],[],[],[],0);
             
             % add bathy back on
             obj.b = F(obj.p(:,1),obj.p(:,2));
@@ -1604,6 +1601,9 @@ classdef msh
             if ~isempty(find(isnan(obj.b), 1))
                warning('NaNs in bathy found')
             end
+            
+            % convert back to lat-lon wgs84
+            [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
             
             % Check Element order
             obj = CheckElementOrder(obj);
