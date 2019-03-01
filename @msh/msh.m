@@ -310,10 +310,10 @@ classdef msh
                         view(2); 
                         %shading interp;
                     end
-                    if exist('demcmap','file')
-                        demcmap(q)
-                    else
+                    if logaxis
                         cmocean('deep',numticks-1); 
+                    else
+                        cmocean('topo','pivot',min(max(q),0)); 
                     end
                     cb = colorbar;
                     if logaxis
@@ -368,8 +368,8 @@ classdef msh
                     end
                     if proj
                         figure;
-                        % m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
-                        m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
+                        m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
+                        %m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
                     else
                         figure;
                         trimesh(obj.t,obj.p(:,1),obj.p(:,2),q,'facecolor',...
@@ -1559,7 +1559,11 @@ classdef msh
                 Fy = scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.by,...
                                           'linear','nearest');
             end  
-                                 
+             
+            % clear some things which cause error in renum
+            obj.bx = []; obj.by = []; obj.f13 = [];
+            obj.bd = []; obj.op = [];
+            
             %% Delete CFL violations
             it  = 0;
             CFL = 999;
@@ -1571,9 +1575,13 @@ classdef msh
                 bad = real(CFL) > desCFL;
                 display(['Number of CFL violations ',num2str(sum(bad))]);
                 disp(['Max CFL is : ',num2str(max(real(CFL)))]);
-                if it==desIt,   break; end
-                if sum(bad)==0 , break; end
+                if it == desIt,   break; end
+                if sum(bad) == 0, break; end
                 obj = DecimateTria(obj,bad);
+                % Clean up the new mesh (already projected) without direct
+                % smoothing (we have used local smooting in DecmimateTria
+                obj.b = []; % (the bathy will cause error in renum)
+                obj = clean(obj,[],0,[],[],[],[],0);
                 obj.b = F(obj.p(:,1),obj.p(:,2));
                 it = it + 1;
             end
@@ -1581,21 +1589,15 @@ classdef msh
             disp(['Achieved max CFL of ',num2str(max(real(CFL))),...
                 ' after ',num2str(it),' iterations.']);
             
-            % clear some things which cause error in renum
-            obj.b = []; obj.bx = []; obj.by = []; obj.f13 = [];
-            obj.bd = []; obj.op = [];
-            disp('Deleting boundary and f13 info...');
-            disp('bathy and slope info will be carried over');
-            
-            % Clean up the new mesh (already projected)
-            obj = clean(obj,[],[],[],[],[],[],0);
-            
             % add bathy back on
             obj.b = F(obj.p(:,1),obj.p(:,2));
             if exist('Fx','var')
                 obj.bx = Fx(obj.p(:,1),obj.p(:,2));
                 obj.by = Fy(obj.p(:,1),obj.p(:,2));
             end
+            
+            disp('Boundary and f13 info has been deleted...');
+            disp('bathy and slope info is carried over');
             
             % find nans
             if ~isempty(find(isnan(obj.b), 1))
@@ -1609,9 +1611,7 @@ classdef msh
             obj = CheckElementOrder(obj);
             return;
             
-            function obj = DecimateTria(obj,bad)
-                                
-                obj = Make_Mesh_Boundaries_Traversable(obj,0.001,1);
+            function obj = DecimateTria(obj,bad)             
                 % form outer polygon of mesh for cleaning up.
                 bnde = extdom_edges2(obj.t,obj.p);
                 poly1 = extdom_polygon(bnde,obj.p,-1);
@@ -1641,11 +1641,11 @@ classdef msh
                 [pm,tm] = fixmesh(pm,tm);
                 if sum(bad) < 100e3
                     % find all the points nearby each "bad" point.
-                    idx = ourKNNsearch(pm',obj.p(find(bad),:)',12) ;
+                    idx = ourKNNsearch(pm',obj.p(find(bad),:)',12);
                     idx = idx(:);
                     idx = unique(idx);
                     constr = setdiff((1:length(pm))',idx);
-                    [pm,tm]=smoothmesh(pm,tm,constr,50,0.01);
+                    [pm,tm] = smoothmesh(pm,tm,constr,50,0.01);
                 else
                     error('Adapation would result in potentially catastrophic lose of connectivity, try adapting to a smaller timestep');
                 end

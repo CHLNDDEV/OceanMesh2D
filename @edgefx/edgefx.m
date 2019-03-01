@@ -214,7 +214,7 @@ classdef edgefx
                             obj.used{end+1} = 'ch';
                         end
                     case{'g','geodata','lmsl','max_el','min_el_ch',...
-                         'Channels','max_el_ns','h0','dt','fl'}
+                         'Channels','max_el_ns','h0','dt','fl','AngOfRe'}
                         % dummy to avoid warning
                     otherwise
                         warning('Unexpected edge function name/value pairs.')
@@ -330,31 +330,30 @@ classdef edgefx
         function obj = wlfx(obj,feat)
             
             % interpolate DEM's bathy linearly onto our edgefunction grid.
-            [xg,yg]=CreateStructGrid(obj); 
-
+            [xg,yg] = CreateStructGrid(obj); 
             tmpz    = feat.Fb(xg,yg);
-            obj.wld = NaN([obj.nx,obj.ny]); 
+            % Initialise wld
+            obj.wld = NaN([obj.nx,obj.ny]);  
+            grav    = 9.807;
+            period  = 12.42*3600; % M2 period in seconds
             
             for param = obj.wl'
                 if numel(param)==1
                     % no bounds specified.
                     wlp = param(1);
-                    dp1 = -50;
+                    % automatically get suitable min depth cutoff
+                    dp1 = -max(1,(wlp*2*obj.h0/period)^2/grav);
                     dp2 = -inf;
                 else
                     wlp = param(1);
                     dp1 = param(2);
                     dp2 = param(3);
                 end
-                
-                grav    = 9.807;
-                period  = 12.42*3600; % M2 period in seconds
-                twld = period*sqrt(grav*abs(tmpz+eps))/wlp;
-                % limit the maximum to avoid problems in WGS84 conversion 
-                %twld( twld > 1e6) = 1e6;
-                % convert to decimal degrees from meters
-                %twld = ConvertToWGS84(yg,twld) ; 
-                obj.wld(tmpz < dp1 & tmpz > dp2 ) = twld(tmpz < dp1 & tmpz > dp2);
+                                          % limit to 1 m
+                twld = period*sqrt(grav*max(abs(tmpz),1))/wlp; 
+                % Set wld with mask applied 
+                obj.wld(tmpz < dp1 & tmpz > dp2 ) = ...
+                                             twld(tmpz < dp1 & tmpz > dp2);
                 clearvars twld 
             end
             clearvars tmpz xg yg;
@@ -430,10 +429,8 @@ classdef edgefx
                     % put in the full one
                     bs(sel) = tempbs(sel); 
                 end
-            end
-            
-            if ~filtit
-                % get slope from unfiltered bathy
+            else
+                % get slope from (possibly filtered) bathy
                 [by,bx] = EarthGradient(tmpz_f,dy,dx); % get slope in x and y directions
                 bs      = sqrt(bx.^2 + by.^2); % get overall slope
             end
@@ -453,16 +450,12 @@ classdef edgefx
                     dp2 = param(3);
                 end
                 % Calculating the slope function
-                tslpd = (2*pi/slpp)*abs(tmpz./(bs+eps));
+                tslpd = (2*pi/slpp)*max(1,abs(tmpz))./(bs+eps);
                 obj.slpd(tmpz < dp1 & tmpz > dp2 ) = ...
                                             tslpd(tmpz < dp1 & tmpz > dp2);
                 clearvars tslpd
             end
-            % limit the maximum to avoid problems in WGS84 conversion 
-            %obj.slpd(obj.slpd > 1e6) = 1e6;
-            % convert to decimal degrees from meters
-            %obj.slpd = ConvertToWGS84(yg,obj.slpd) ; 
-            clearvars xg yg 
+            clearvars tmpz xg yg 
         end
         
         %% Channel edgefunction
@@ -539,19 +532,15 @@ classdef edgefx
             div = ceil(numel(xgrid)*8*24*1e-9);
             if nargin == 1
                 figure;
-                m_proj('Transverse Mercator','long',[obj.bbox(1,1) obj.bbox(1,2)],...
-                    'lat',[obj.bbox(2,1) obj.bbox(2,2)])
-                hold on; m_fastscatter(xgrid(obj.boudist < 0),ygrid(obj.boudist < 0),...
-                        obj.F.Values(obj.boudist < 0));
-                cb = colorbar; ylabel(cb,'topo-bathy depth [m]')
-                
-                %m_contourf(xgrid(1:div:end,1:div:end),...
-                %           ygrid(1:div:end,1:div:end),...
-                %  obj.F.Values(1:div:end,1:div:end),50,'Linestyle','none');
-                %shading interp
+                m_proj('Lamb',...
+                       'long',[obj.bbox(1,1) obj.bbox(1,2)],...
+                       'lat',[obj.bbox(2,1) obj.bbox(2,2)])
+                hold on; m_fastscatter(xgrid(obj.boudist < 0),...
+                     ygrid(obj.boudist < 0),obj.F.Values(obj.boudist < 0));
                 cb = colorbar; ylabel(cb,'edgelength in meters');
-                caxis([prctile(obj.F.Values(:),10) prctile(obj.F.Values(:),90)])
-                %m_grid('xtick',10,'tickdir','out','yaxislocation','left','fontsize',7);
+                colormap(lansey)
+                m_grid('xtick',10,'tickdir','out',...
+                       'yaxislocation','left','fontsize',7);
                 title('Total EdgeLength Function');
                 return;
             end
