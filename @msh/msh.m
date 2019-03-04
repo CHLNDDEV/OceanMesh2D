@@ -165,7 +165,7 @@ classdef msh
                 projtype = [] ;
             end
             np_g = length(obj.p) ;
-            if nargin < 7
+            if nargin < 6
                 numticks = 10;
             end
             
@@ -183,7 +183,7 @@ classdef msh
             end
             
             % Handle user specified subdomain
-            if nargin < 5
+            if nargin < 5 || isempty(bou)
                 kept = (1:length(obj.p))';
             else
                 if numel(bou) == 4
@@ -327,13 +327,21 @@ classdef msh
                         view(2); 
                     end
                     if logaxis
-                        cmocean('deep',numticks-1); 
+                        cmocean('deep',numticks(1)-1); 
                     else
                         cmocean('topo','pivot',min(max(q),0)); 
                     end
                     cb = colorbar;
                     if logaxis
-                        desiredTicks = round(10.^(linspace(min(q),max(q),numticks)),1);
+                        if length(numticks) == 3
+                            desiredTicks = round(10.^(linspace(...
+                                           log10(numticks(2)),...
+                                           log10(numticks(3)),...
+                                           numticks(1))),1);
+                        else
+                            desiredTicks = round(10.^(linspace(min(q),...
+                                                   max(q),numticks(1))),1);
+                        end
                         caxis([log10(min(desiredTicks)) log10(max(desiredTicks))]);
                         cb.Ticks     = log10(desiredTicks);
                         for i = 1 : length(desiredTicks)
@@ -410,9 +418,17 @@ classdef msh
                         end
                         view(2);
                     end
-                    cmocean('thermal',numticks-1); cb = colorbar;
+                    cmocean('thermal',numticks(1)-1); cb = colorbar;
                     if logaxis
-                        desiredTicks = round(10.^(linspace(min(q),max(q),10)));
+                        if length(numticks) == 3
+                            desiredTicks = round(10.^(linspace(...
+                                           log10(numticks(2)),...
+                                           log10(numticks(3)),...
+                                           numticks(1))),-1);
+                        else
+                            desiredTicks = round(10.^(linspace(min(q),...
+                                                 max(q),numticks(1))),-1);
+                        end
                         caxis([log10(min(desiredTicks)) log10(max(desiredTicks))]);
                         cb.Ticks     = log10(desiredTicks);
                         for i = 1 : length(desiredTicks)
