@@ -155,6 +155,29 @@ classdef msh
         
         % general plot function
         function h = plot(obj,type,proj,projtype,bou,numticks)
+            % h = plot(obj,type,proj,projtype,bou,numticks)
+            % 1) obj: msh object
+            % 2) type: plot type, choose from:
+            %    a) 'tri'  - (default) plots the triangulation
+            %    b) 'bd'   - same as tri but with nodestrings plotted
+            %    c) 'b'    - plots the bathymetry
+            %    d) 'reso' - plots the element circumradius
+            %    e) 'resodx' - plots the gradient in 'reso'
+            %    f) 'slp'  - plots the bathymetric gradients
+            %    g) 'itfric' - plots the internal_tide_friction values
+            %    h) 'cfvals' - plots the quadratic bottom friction values
+            %    additional --> 
+            %    i)  add 'log' inside type to plot caxis in log space
+            %    ii) add 'mesh' inside type to plot trimesh instead of trisurf
+            % 3) proj: whether to plot in projected space or unprojected space
+            %    a) 0       - plot in unprojected space
+            %    b) 1       - plot in projected space (default)
+            % 4) projtype: what projection to plot in if proj = 1. 
+            %    default is the projection of the msh object
+            % 5) bou: a local bounding box or polygon region to plot within
+            % 6) numticks: number of tickmarks, if you plot in the 'log'
+            %    space you can specify numticks = [numticks caxis_lower ...
+            %                                      caxis_upper]
             if nargin < 2
                 type = 'tri';
             end
