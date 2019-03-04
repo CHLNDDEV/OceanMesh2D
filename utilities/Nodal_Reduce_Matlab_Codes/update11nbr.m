@@ -207,7 +207,7 @@ for i = 1:5
     addnode = ([newnode(1),newnode(2),newnode(2),newnode(4),newnode(4)]);
     tmp = nei(nbrnode(spn(i)),:);
     ij = find(tmp == badnode);
-    fem.nei(nbrnode(spn(i)),1:end) = ([tmp(1:(ij-1)),addnode(i),tmp((ij+1):end)]);
+    fem.nei(nbrnode(spn(i)),1:length(tmp)) = ([tmp(1:(ij-1)),addnode(i),tmp((ij+1):end)]);
 end
 
 %Determine the triqual for the final form to see if has very low quality

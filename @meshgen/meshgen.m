@@ -398,13 +398,13 @@ classdef meshgen
                         % start at lower left and make grid going up to
                         % north latitude
                         for ii = 1:ny
-                            if st*ed > 0 
-                                nx = floor(1e3*m_lldist([st;ed],...
-                                     [ys;ys])/(2/sqrt(3)*h0_l));
-                            else
+                            if st*ed < 0 
                                 nx = floor(1e3*m_lldist([st;0],...
                                      [ys;ys])/(2/sqrt(3)*h0_l)) + ...
-                                     floor(1e3*m_lldist([st;0],...
+                                     floor(1e3*m_lldist([0;ed],...
+                                     [ys;ys])/(2/sqrt(3)*h0_l));
+                            else
+                                nx = floor(1e3*m_lldist([st;ed],...
                                      [ys;ys])/(2/sqrt(3)*h0_l));
                             end
                             ne = ns+nx-1;
@@ -434,6 +434,8 @@ classdef meshgen
                 imp = 5; % number of iterations to do mesh improvements (delete/add)
                 h0_l = obj.h0(end); % finest h0 (in case of a restart of meshgen.build).
             end
+            % Remove (almost) unique points
+            p = fixmesh(p);
             
             % remove pfix/egfix outside of domain
             nfix = size(obj.pfix,1);    % Number of fixed points

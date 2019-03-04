@@ -155,6 +155,9 @@ classdef msh
         
         % general plot function
         function h = plot(obj,type,proj,projtype,bou,numticks)
+            if nargin < 2
+                type = 'tri';
+            end
             if nargin < 3
                 proj = 1 ;
             end
@@ -209,9 +212,16 @@ classdef msh
             end
             
             logaxis = 0;
-            if strcmp(type(max(1,end-2):end),'log')
-                logaxis = 1; type = type(1:end-3);
+            idxl = strfind(type,'log');
+            if ~isempty(idxl)
+                logaxis = 1; type(idxl:idxl+2) = [];
             end
+            mesh = 0;
+            idxl = strfind(type,'mesh');
+            if ~isempty(idxl)
+                mesh = 1; type(idxl:idxl+3) = [];
+            end    
+            
             switch type
                 % parse aux options first
                 case('tri')
@@ -302,13 +312,19 @@ classdef msh
                         end
                     end
                     if proj
-                        m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
-                        %m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
+                        if mesh
+                            m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
+                        else
+                            m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
+                        end
                     else
-                        trimesh(obj.t,obj.p(:,1),obj.p(:,2),q,'facecolor','none');
-                        %trisurf(obj.t,obj.p(:,1),obj.p(:,2),q)
+                        if mesh
+                            trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
+                        else
+                            trisurf(obj.t,obj.p(:,1),obj.p(:,2),q)
+                            shading interp;
+                        end
                         view(2); 
-                        %shading interp;
                     end
                     if logaxis
                         cmocean('deep',numticks-1); 
@@ -327,16 +343,28 @@ classdef msh
                     ylabel(cb,'m below geoid');
                     title('mesh topo-bathy');
                 case('slp')
+                    figure;
                     if proj
-                        figure, h=m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),...
-                            hypot(obj.bx,obj.by)); view(2);
+                        if mesh
+                            m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),...
+                                      hypot(obj.bx,obj.by));  
+                        else
+                            m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),...
+                                      hypot(obj.bx,obj.by));
+                        end
                     else
-                        figure, h=trisurf(obj.t,obj.p(:,1),obj.p(:,2),...
-                            hypot(obj.bx,obj.by),'facecolor', 'flat', 'edgecolor', 'none');
+                        if mesh 
+                            trimesh(obj.t,obj.p(:,1),obj.p(:,2),...
+                                    hypot(obj.bx,obj.by));
+                        else
+                            trisurf(obj.t,obj.p(:,1),obj.p(:,2),...
+                                    hypot(obj.bx,obj.by));
+                            shading flat   
+                        end
                         view(2);
                     end
                     colormap(cmocean('thermal'));
-                    cb=colorbar; ylabel(cb,'slope');
+                    cb = colorbar; ylabel(cb,'slope');
                     caxis([0 0.25])
                 case('ob') % outer boundary of mesh
                     [~,bpt] = extdom_edges2(obj.t,obj.p);
@@ -366,14 +394,20 @@ classdef msh
                     else
                         q = z;
                     end
+                    figure;
                     if proj
-                        figure;
-                        m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
-                        %m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
+                        if mesh
+                            m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
+                        else
+                            m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
+                        end
                     else
-                        figure;
-                        trimesh(obj.t,obj.p(:,1),obj.p(:,2),q,'facecolor',...
-                            'flat', 'edgecolor', 'none');
+                        if mesh
+                            trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
+                        else
+                            trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
+                            shading flat
+                        end
                         view(2);
                     end
                     cmocean('thermal',numticks-1); cb = colorbar;
@@ -760,7 +794,7 @@ classdef msh
             % Delete elements with single edge connectivity
             obj = Fix_single_connec_edge_elements(obj,nscreen);
             
-            % Reduce the mesh connectivity to maximum of 8
+            % Reduce the mesh connectivity to maximum of con-1
             obj = renum(obj);
             % May not always work without error
             try
