@@ -547,13 +547,8 @@ classdef meshgen
                 ideal_bars = (p(bars(:,1),:) + p(bars(:,2),:))/2;          % Used to determine what bars are in bbox
                 hbars = 0*ideal_bars(:,1);
                                 
-                for box_num = 1:length(obj.h0)                             % For each bbox, find the bars that are in and calculate
-%                     if ~iscell(obj.bbox)                                  % their ideal lengths.
-%                         bbox_l = obj.bbox;         
-%                     else
-%                         bbox_l = obj.bbox{box_num}; 
-%                     end
-                    if ~iscell(obj.fh)
+                for box_num = 1:length(obj.h0)                             % For each bbox, find the bars that are in and calculate           
+                    if ~iscell(obj.fh)                                     % their ideal lengths.
                         fh_l = obj.fh;
                     else
                         fh_l = obj.fh{box_num};
@@ -563,10 +558,6 @@ classdef meshgen
                         h0_l = h0_l/111e3;                                 % create buffer to evalulate fh between nests
                         iboubox = obj.boubox{box_num}(1:end-1,:) ; 
                         inside = inpoly(ideal_bars,iboubox) ; 
-%                         inside = (ideal_bars(:,1) >= bbox_l(1,1) - h0_l & ...
-%                             ideal_bars(:,1) <= bbox_l(1,2) + h0_l & ...
-%                             ideal_bars(:,2) >= bbox_l(2,1) - h0_l & ...
-%                             ideal_bars(:,2) <= bbox_l(2,2) + h0_l);
                     else
                         inside = true(size(hbars));
                     end
@@ -719,6 +710,11 @@ classdef meshgen
                         TR.Points(nn,:) = []; 
                         p(nn,:) = []; pt1(nn,:) = [];
                     end
+                    %if ~isempty(obj.egfix) 
+                    %  pt1 = TR.Points; 
+                    %  p = []; 
+                    %  [p(:,1),p(:,2)]=m_xy2ll(pt1(:,1),pt1(:,2));
+                    %end
                     t = TR.ConnectivityList;
                     pmid = squeeze(mean(reshape(pt1(t,:),[],3,2),2));      % Compute centroids
                     [pmid(:,1),pmid(:,2)] = m_xy2ll(pmid(:,1),pmid(:,2));  % Change back to lat lon

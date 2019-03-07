@@ -474,6 +474,7 @@ classdef edgefx
             % STEP 1: Calculate the width of each channel using a v-shape approx to
             % channel's cross sectional area.
             for jj=1:length(obj.Channels)
+                if (isempty(obj.Channels{jj})); continue ;end
                 pts{jj} = obj.Channels{jj};
                 dp{jj} = feat.Fb(pts{jj});                                   % depth at x,y channel locations
                 radii{jj}=(tand(ang_of_reslope)*abs(dp{jj}));         % estimate of channel's width in degrees at x,y locations ASSUMING angle of reslope

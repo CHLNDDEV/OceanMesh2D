@@ -2,3 +2,9 @@ m_map/
 datasets/
 fort.*
 /*.mat
+*.15
+*.14
+*.13
+*.24
+*.nc
+@edgefx/edgefx.m
