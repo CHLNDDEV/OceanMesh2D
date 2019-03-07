@@ -1619,8 +1619,18 @@ classdef msh
                 [x, y] = CPP_conv( obj.p(:,1), obj.p(:,2) );
                 barlen = hypot(diff(x(bars),[],2)./sfac,diff(y(bars),[],2));
             end
+            
+            function [ x,y ] = CPP_conv( lon,lat )
+                %CPP_conv Converts lat and lon to x and y
+                lon0 =  mean(lon) * pi/180; lat0 = mean(lat) * pi/180;
+
+                R = 6378206.4;
+                lonr = lon * pi/180; latr = lat * pi/180; 
+                x = R * (lonr - lon0) * cos(lat0);
+                y = R * latr;
+            end
         end
-        
+
         function obj = CheckTimestep(obj,dt,varargin)
             %% Decimate mesh to achieve CFL condition for stability.
             % Takes a mesh and removes triangles and nodes to produce a mesh
