@@ -17,14 +17,25 @@ end
 if nargin == 3
     p  = varargin{1};
 else
-    [xg,yg]=CreateStructGrid(obj);
+    [xg,yg] = CreateStructGrid(obj);
     p = [xg(:),yg(:)];
     clearvars xg yg
 end
 pv1 = pv; % <-dup for inpoly to work
-pv1(isnan(pv(:,1)),:) = [];
-
-[~,d] = WrapperForKsearch(pv1, p,1);
+pv1(isnan(pv(:,1)),:) = []; clear pv;
+d = 0*p(:,1);
+noblks = ceil(length(p)*2*8*1e-9);
+blklen = floor(length(p)/noblks);
+ns = 1;
+for blks = 1:noblks
+    if blks == noblks
+        ne = length(p); 
+    else
+        ne = ns + blklen - 1;
+    end
+    [~,d(ns:ne)] = WrapperForKsearch(pv1, p(ns:ne,:), 1);
+    ns = ne + 1;
+end
 
 %% Doing the inpoly check
 if ~isempty(obj.lmsl)

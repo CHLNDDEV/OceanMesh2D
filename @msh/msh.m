@@ -1483,6 +1483,15 @@ classdef msh
             % in3 is inside the intersection
             in3 = inpoly(pmid,poly_vec3,edges3);
             
+            % Remove small connectivity
+            %[~, enum] = VertToEle(DTbase.ConnectivityList);
+            %bdbars = extdom_edges2(DTbase.ConnectivityList, ...
+            %                       DTbase.Points);
+            %bdnodes = unique(bdbars(:));
+            %I = find(enum <= 4);
+            %nn = setdiff(I',bdnodes);  
+            %DTbase.Points(nn,:) = []; 
+            
             % remove triangles that aren't in the global mesh or aren't in
             % the inset mesh
             tm((~in1 & ~in2) | ~in1 & in3,:) = [];
@@ -1548,9 +1557,13 @@ classdef msh
             end
         end
             
-        function [out1,barlen,bars] = CalcCFL(obj,dt)
+        function [out1,barlen,bars] = CalcCFL(obj,dt,type)
+            if nargin < 3
+                % use spherical haversine distances
+                type = 0;
+            end
             g      = 9.81;        % gravity
-            [bars,barlen] = GetBarLengths(obj);
+            [bars,barlen] = GetBarLengths(obj,type);
             % sort bar lengths in ascending order
             [barlen,IA] = sort(barlen,'ascend');
             bars = bars(IA,:);
@@ -1560,13 +1573,11 @@ classdef msh
             d1 = NaN*obj.p(:,1); d2 = NaN*obj.p(:,1);
             d1(B1) = barlen(IB); d2(B2) = barlen(IC);
             d = min(d1,d2);
-            %U = sqrt(g*max(obj.b,1));
-            %U(obj.b <= 0) = 1; % <--assume 1 m/s overland velocity.
             
             % wavespeed in ocean (second term represents orbital
             % velocity at 0 degree phase for 1-m amp. wave).
             U = sqrt(g*max(obj.b,1)) + sqrt(g./max(obj.b,1));
-            if nargin > 1
+            if nargin > 1 && ~isempty(dt)
                 % Get CFL from input dt
                 CFL = dt*U(:)./d;  % <-- from the wave celerity
                 out1 = CFL;
@@ -1577,17 +1588,37 @@ classdef msh
             end
         end
         
-        function [bars,barlen] = GetBarLengths(obj)
+        function [bars,barlen] = GetBarLengths(obj,type)
             bars = [obj.t(:,[1,2]); obj.t(:,[1,3]); obj.t(:,[2,3])]; % Interior bars duplicated
-            bars = unique(sort(bars,2),'rows');                         % Bars as node pairs
-            long   = zeros(length(bars)*2,1);
-            lat    = zeros(length(bars)*2,1);
-            long(1:2:end) = obj.p(bars(:,1),1);
-            long(2:2:end) = obj.p(bars(:,2),1);
-            lat(1:2:end)  = obj.p(bars(:,1),2);
-            lat(2:2:end)  = obj.p(bars(:,2),2);
-            % Get spherical earth distances for bars
-            barlen = m_lldist(long,lat); barlen = barlen(1:2:end)*1e3;  % L = Bar lengths in meters
+            bars = unique(sort(bars,2),'rows');                      % Bars as node pairs
+            if type == 0
+                % Compute based on Haversine spherical earth distances
+                long   = zeros(length(bars)*2,1);
+                lat    = zeros(length(bars)*2,1);
+                long(1:2:end) = obj.p(bars(:,1),1);
+                long(2:2:end) = obj.p(bars(:,2),1);
+                lat(1:2:end)  = obj.p(bars(:,1),2);
+                lat(2:2:end)  = obj.p(bars(:,2),2);
+                % Get spherical earth distances for bars
+                barlen = m_lldist(long,lat); 
+                barlen = barlen(1:2:end)*1e3;  % L = Bar lengths in meters
+            elseif type == 1
+                % Compute based on CPP with sfac correction factor for x-direction
+                sfea = obj.p(:,2); sfac = cosd(mean(sfea)) ./ cosd(sfea);
+                sfacelemid = mean(sfac(obj.t),2);
+                vtoe = VertToEle(obj.t);
+                vtoe(vtoe == 0) = length(obj.t) + 1;
+                sfacelemid(end+1) = NaN;
+                conbar1 = vtoe(:,bars(:,1));
+                conbar2 = vtoe(:,bars(:,2));
+                sfacbar1 = max(sfacelemid(conbar1));
+                sfacbar2 = max(sfacelemid(conbar2));
+                sfac = max(sfacbar1,sfacbar2)';
+                % add safety factor for high latitudes (this is quite critical)
+                sfac(sfac > 5e2) = 2*sfac(sfac > 5e2); 
+                [x, y] = CPP_conv( obj.p(:,1), obj.p(:,2) );
+                barlen = hypot(diff(x(bars),[],2)./sfac,diff(y(bars),[],2));
+            end
         end
         
         function obj = CheckTimestep(obj,dt,varargin)
@@ -1598,14 +1629,20 @@ classdef msh
             % that violates the CFL.
             % kjr, chl, und, 2017
             % kjr, chl, und, 2018 <--updated for projected spaces
-            %%
+            % wjp, chl, und, 2019 <--updates to carry over slopes and
+            % using the msh clean, and CFL calc type option
+            
+            type       = 0;       %<-- 0 == Haversine, 1 == CPP with correction factor
             desCFL     = 0.50;    %<-- set desired cfl (generally less than 0.80 for stable).
             desIt = inf;          %<-- desired number of iterations
-            if nargin == 3
+            if nargin > 2
                 if varargin{1} > 1
                     desIt = varargin{1};
                 else
                     desCFL = varargin{1};
+                end
+                if nargin == 4
+                    type = varargin{2}; 
                 end
             end
             %%
@@ -1620,6 +1657,7 @@ classdef msh
                 lat_mi = min(obj.p(:,2)); lat_ma = max(obj.p(:,2));
                 m_proj('Trans','lon',[lon_mi lon_ma],'lat',[lat_mi lat_ma]) ;
             end
+            
             %% Project..
             [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2)); 
             
@@ -1643,8 +1681,8 @@ classdef msh
             tic
             while 1
                 [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
-                CFL = CalcCFL(obj,dt);
-                [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2)); 
+                CFL = CalcCFL(obj,dt,type);
+                [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2));
                 bad = real(CFL) > desCFL;
                 display(['Number of CFL violations ',num2str(sum(bad))]);
                 disp(['Max CFL is : ',num2str(max(real(CFL)))]);
@@ -1684,7 +1722,7 @@ classdef msh
             obj = CheckElementOrder(obj);
             return;
             
-            function obj = DecimateTria(obj,bad)             
+            function obj = DecimateTria(obj,bad)
                 % form outer polygon of mesh for cleaning up.
                 bnde = extdom_edges2(obj.t,obj.p);
                 poly1 = extdom_polygon(bnde,obj.p,-1);

@@ -395,6 +395,7 @@ classdef meshgen
                         ny = floor(1e3*m_lldist(repmat(0.5*(st+ed),2,1),...
                                    [ys;bbox_l(2,2)])/h0_l);   
                         dy = diff(bbox_l(:,2))/ny;
+                        ns = 1;
                         % start at lower left and make grid going up to
                         % north latitude
                         for ii = 1:ny
@@ -434,8 +435,6 @@ classdef meshgen
                 imp = 5; % number of iterations to do mesh improvements (delete/add)
                 h0_l = obj.h0(end); % finest h0 (in case of a restart of meshgen.build).
             end
-            % Remove (almost) unique points
-            p = fixmesh(p);
             
             % remove pfix/egfix outside of domain
             nfix = size(obj.pfix,1);    % Number of fixed points

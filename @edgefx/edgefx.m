@@ -87,9 +87,10 @@ classdef edgefx
             % store the inputs as a struct
             inp = p.Results;
             % get the fieldnames of the edge functions
-            inp = orderfields(inp,{'max_el','min_el_ch','AngOfRe','geodata','lmsl','Channels',...
-                'dis','fs','fl','g','max_el_ns','wl',...
-                'slp','ch','dt','h0'});
+            inp = orderfields(inp,{'max_el','min_el_ch','AngOfRe',...
+                                   'geodata','lmsl','Channels',...
+                                   'dis','fs','fl','g','max_el_ns',...
+                                   'wl','slp','ch','dt','h0'});
             fields = fieldnames(inp);
             % loop through and determine which args were passed.
             % also, assign reasonable default values if some options were
@@ -130,7 +131,7 @@ classdef edgefx
                         end
                     case('dt')
                         obj.dt=inp.(fields{i});
-                        if obj.dt ~=-1
+                        if obj.dt >= 0
                             obj.dt = inp.(fields{i});
                         end
                     case('h0')
@@ -284,20 +285,31 @@ classdef edgefx
             % they are within about co*h0 distance from each other.
             % co is the cutoff distance = 2*sqrt(2) (two diagonal dist)
             co = 2*sqrt(2);
-            if length(x_kp) < 12
-                error(['Not enough medial points... ' ... 
-                       'use dis function instead of fs'])
+            if length(x_kp) > 12
+                [~, dmed] = WrapperForKsearch([x_kp,y_kp],[x_kp,y_kp],4);
+                prune = dmed(:,2) > co*obj.h0 | dmed(:,3) > 2*co*obj.h0 | ...
+                        dmed(:,4) > 3*co*obj.h0;
+                x_kp( prune ) = [];
+                y_kp( prune ) = [];
             end
-            [~, dmed] = WrapperForKsearch([x_kp,y_kp],[x_kp,y_kp],4);
-            prune = dmed(:,2) > co*obj.h0 | dmed(:,3) > 2*co*obj.h0 | ...
-                dmed(:,4) > 3*co*obj.h0;
-            x_kp( prune ) = [];
-            y_kp( prune ) = [];
             
             % Now get the feature size along the coastline
-            if ~isempty(x_kp)
+            if length(x_kp) > 12
                 % Use KD-tree
-                [~, dPOS] = WrapperForKsearch([x_kp,y_kp],[xg(:),yg(:)],1);
+                dPOS = 0*d;
+                noblks = ceil(length(dPOS)*2*8*1e-9);
+                blklen = floor(length(dPOS)/noblks);
+                ns = 1;
+                for blks = 1:noblks
+                    if blks == noblks
+                        ne = length(dPOS); 
+                    else
+                        ne = ns + blklen - 1;
+                    end
+                    [~,dPOS(ns:ne)] = WrapperForKsearch([x_kp,y_kp],...
+                                                [xg(ns:ne)',yg(ns:ne)'],1);
+                    ns = ne + 1;
+                end
             else
                 % No medial points so use distance function using grade
                 warning('No medial points, resorting to distance function')
@@ -314,14 +326,20 @@ classdef edgefx
             % WJP: d needs to be the absolute value because when we 
             % include the floodplain since dPOS is not signed but d is, 
             % they will cancel out producing really fine resolution
-            obj.fsd = 2*(dPOS+abs(d))/obj.fs;
-            
+            W = dPOS+abs(d);
+            if obj.fs < 0
+                % automatic feature size
+                fs_auto = min(-obj.fs,ceil(W/obj.h0)); 
+                obj.fsd = 2*W./fs_auto;
+            else
+                obj.fsd = 2*W/obj.fs;
+            end
             clear x_kp y_kp d d_fs dPOS xg yg
         end
         
         function [d,obj] = get_dis(obj,feat)
-            % Function used by distfx and featfx to return distance and make
-            % the Fdis interpolant
+            % Function used by distfx and featfx to return distance 
+            % and make the Fdis interpolant
             d = feval(obj.fd,obj,feat);
             d = reshape(d,obj.nx,[]);
         end
