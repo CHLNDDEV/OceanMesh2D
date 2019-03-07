@@ -155,6 +155,32 @@ classdef msh
         
         % general plot function
         function h = plot(obj,type,proj,projtype,bou,numticks)
+            % h = plot(obj,type,proj,projtype,bou,numticks)
+            % 1) obj: msh object
+            % 2) type: plot type, choose from:
+            %    a) 'tri'  - (default) plots the triangulation
+            %    b) 'bd'   - same as tri but with nodestrings plotted
+            %    c) 'b'    - plots the bathymetry
+            %    d) 'reso' - plots the element circumradius
+            %    e) 'resodx' - plots the gradient in 'reso'
+            %    f) 'slp'  - plots the bathymetric gradients
+            %    g) 'itfric' - plots the internal_tide_friction values
+            %    h) 'cfvals' - plots the quadratic bottom friction values
+            %    additional --> 
+            %    i)  add 'log' inside type to plot caxis in log space
+            %    ii) add 'mesh' inside type to plot trimesh instead of trisurf
+            % 3) proj: whether to plot in projected space or unprojected space
+            %    a) 0       - plot in unprojected space
+            %    b) 1       - plot in projected space (default)
+            % 4) projtype: what projection to plot in if proj = 1. 
+            %    default is the projection of the msh object
+            % 5) bou: a local bounding box or polygon region to plot within
+            % 6) numticks: number of tickmarks, if you plot in the 'log'
+            %    space you can specify numticks = [numticks caxis_lower ...
+            %                                      caxis_upper]
+            if nargin < 2
+                type = 'tri';
+            end
             if nargin < 3
                 proj = 1 ;
             end
@@ -162,7 +188,7 @@ classdef msh
                 projtype = [] ;
             end
             np_g = length(obj.p) ;
-            if nargin < 7
+            if nargin < 6
                 numticks = 10;
             end
             
@@ -180,7 +206,7 @@ classdef msh
             end
             
             % Handle user specified subdomain
-            if nargin < 5
+            if nargin < 5 || isempty(bou)
                 kept = (1:length(obj.p))';
             else
                 if numel(bou) == 4
@@ -209,9 +235,16 @@ classdef msh
             end
             
             logaxis = 0;
-            if strcmp(type(max(1,end-2):end),'log')
-                logaxis = 1; type = type(1:end-3);
+            idxl = strfind(type,'log');
+            if ~isempty(idxl)
+                logaxis = 1; type(idxl:idxl+2) = [];
             end
+            mesh = 0;
+            idxl = strfind(type,'mesh');
+            if ~isempty(idxl)
+                mesh = 1; type(idxl:idxl+3) = [];
+            end    
+            
             switch type
                 % parse aux options first
                 case('tri')
@@ -302,22 +335,36 @@ classdef msh
                         end
                     end
                     if proj
-                        m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
-                        %m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
+                        if mesh
+                            m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
+                        else
+                            m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
+                        end
                     else
-                        trimesh(obj.t,obj.p(:,1),obj.p(:,2),q,'facecolor','none');
-                        %trisurf(obj.t,obj.p(:,1),obj.p(:,2),q)
+                        if mesh
+                            trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
+                        else
+                            trisurf(obj.t,obj.p(:,1),obj.p(:,2),q)
+                            shading interp;
+                        end
                         view(2); 
-                        %shading interp;
                     end
-                    if exist('demcmap','file')
-                        demcmap(q)
+                    if logaxis
+                        cmocean('deep',numticks(1)-1); 
                     else
-                        cmocean('deep',numticks-1); 
+                        cmocean('topo','pivot',min(max(q),0)); 
                     end
                     cb = colorbar;
                     if logaxis
-                        desiredTicks = round(10.^(linspace(min(q),max(q),numticks)),1);
+                        if length(numticks) == 3
+                            desiredTicks = round(10.^(linspace(...
+                                           log10(numticks(2)),...
+                                           log10(numticks(3)),...
+                                           numticks(1))),1);
+                        else
+                            desiredTicks = round(10.^(linspace(min(q),...
+                                                   max(q),numticks(1))),1);
+                        end
                         caxis([log10(min(desiredTicks)) log10(max(desiredTicks))]);
                         cb.Ticks     = log10(desiredTicks);
                         for i = 1 : length(desiredTicks)
@@ -327,16 +374,28 @@ classdef msh
                     ylabel(cb,'m below geoid');
                     title('mesh topo-bathy');
                 case('slp')
+                    figure;
                     if proj
-                        figure, h=m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),...
-                            hypot(obj.bx,obj.by)); view(2);
+                        if mesh
+                            m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),...
+                                      hypot(obj.bx,obj.by));  
+                        else
+                            m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),...
+                                      hypot(obj.bx,obj.by));
+                        end
                     else
-                        figure, h=trisurf(obj.t,obj.p(:,1),obj.p(:,2),...
-                            hypot(obj.bx,obj.by),'facecolor', 'flat', 'edgecolor', 'none');
+                        if mesh 
+                            trimesh(obj.t,obj.p(:,1),obj.p(:,2),...
+                                    hypot(obj.bx,obj.by));
+                        else
+                            trisurf(obj.t,obj.p(:,1),obj.p(:,2),...
+                                    hypot(obj.bx,obj.by));
+                            shading flat   
+                        end
                         view(2);
                     end
                     colormap(cmocean('thermal'));
-                    cb=colorbar; ylabel(cb,'slope');
+                    cb = colorbar; ylabel(cb,'slope');
                     caxis([0 0.25])
                 case('ob') % outer boundary of mesh
                     [~,bpt] = extdom_edges2(obj.t,obj.p);
@@ -366,19 +425,33 @@ classdef msh
                     else
                         q = z;
                     end
+                    figure;
                     if proj
-                        figure;
-                        % m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
-                        m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
+                        if mesh
+                            m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
+                        else
+                            m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
+                        end
                     else
-                        figure;
-                        trimesh(obj.t,obj.p(:,1),obj.p(:,2),q,'facecolor',...
-                            'flat', 'edgecolor', 'none');
+                        if mesh
+                            trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
+                        else
+                            trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
+                            shading flat
+                        end
                         view(2);
                     end
-                    cmocean('thermal',numticks-1); cb = colorbar;
+                    cmocean('thermal',numticks(1)-1); cb = colorbar;
                     if logaxis
-                        desiredTicks = round(10.^(linspace(min(q),max(q),10)));
+                        if length(numticks) == 3
+                            desiredTicks = round(10.^(linspace(...
+                                           log10(numticks(2)),...
+                                           log10(numticks(3)),...
+                                           numticks(1))),-1);
+                        else
+                            desiredTicks = round(10.^(linspace(min(q),...
+                                                 max(q),numticks(1))),-1);
+                        end
                         caxis([log10(min(desiredTicks)) log10(max(desiredTicks))]);
                         cb.Ticks     = log10(desiredTicks);
                         for i = 1 : length(desiredTicks)
@@ -709,25 +782,25 @@ classdef msh
             % Fixing up the mesh automatically
             disp('Beginning mesh cleaning and smoothing operations...');
  
-            if nargin == 1
+            if nargin == 1 || isempty(db)
                 db = 1;
             end
-            if nargin <= 2
+            if nargin <= 2 || isempty(ds)
                 ds = 1;
             end
-            if nargin <= 3
+            if nargin <= 3 || isempty(con)
                 con = 9;
             end
-            if nargin <= 4
+            if nargin <= 4 || isempty(dj)
                 dj = 0.25;
             end
-            if nargin <= 5
+            if nargin <= 5 || isempty(nscreen)
                 nscreen = 1;
             end
             if nargin <= 6
                 pfix = [];
             end
-            if nargin <= 7
+            if nargin <= 7 || isempty(proj)
                 proj = 1;
             end
             
@@ -760,7 +833,7 @@ classdef msh
             % Delete elements with single edge connectivity
             obj = Fix_single_connec_edge_elements(obj,nscreen);
             
-            % Reduce the mesh connectivity to maximum of 8
+            % Reduce the mesh connectivity to maximum of con-1
             obj = renum(obj);
             % May not always work without error
             try
@@ -1410,6 +1483,15 @@ classdef msh
             % in3 is inside the intersection
             in3 = inpoly(pmid,poly_vec3,edges3);
             
+            % Remove small connectivity
+            %[~, enum] = VertToEle(DTbase.ConnectivityList);
+            %bdbars = extdom_edges2(DTbase.ConnectivityList, ...
+            %                       DTbase.Points);
+            %bdnodes = unique(bdbars(:));
+            %I = find(enum <= 4);
+            %nn = setdiff(I',bdnodes);  
+            %DTbase.Points(nn,:) = []; 
+            
             % remove triangles that aren't in the global mesh or aren't in
             % the inset mesh
             tm((~in1 & ~in2) | ~in1 & in3,:) = [];
@@ -1427,6 +1509,11 @@ classdef msh
             merge.coord   = MAP_COORDS ;
             merge.mapvar  = MAP_VAR_LIST ;
             
+            % Check element order
+            merge = CheckElementOrder(merge);
+            
+            disp(['Note that bathymetry, boundary conditions, etc. have' ...
+                  'not been carried over into the merged mesh'])
         end
       
         function obj = CheckElementOrder(obj,proj)
@@ -1470,9 +1557,13 @@ classdef msh
             end
         end
             
-        function [out1,barlen,bars] = CalcCFL(obj,dt)
+        function [out1,barlen,bars] = CalcCFL(obj,dt,type)
+            if nargin < 3
+                % use spherical haversine distances
+                type = 0;
+            end
             g      = 9.81;        % gravity
-            [bars,barlen] = GetBarLengths(obj);
+            [bars,barlen] = GetBarLengths(obj,type);
             % sort bar lengths in ascending order
             [barlen,IA] = sort(barlen,'ascend');
             bars = bars(IA,:);
@@ -1482,13 +1573,11 @@ classdef msh
             d1 = NaN*obj.p(:,1); d2 = NaN*obj.p(:,1);
             d1(B1) = barlen(IB); d2(B2) = barlen(IC);
             d = min(d1,d2);
-            %U = sqrt(g*max(obj.b,1));
-            %U(obj.b <= 0) = 1; % <--assume 1 m/s overland velocity.
             
             % wavespeed in ocean (second term represents orbital
             % velocity at 0 degree phase for 1-m amp. wave).
             U = sqrt(g*max(obj.b,1)) + sqrt(g./max(obj.b,1));
-            if nargin > 1
+            if nargin > 1 && ~isempty(dt)
                 % Get CFL from input dt
                 CFL = dt*U(:)./d;  % <-- from the wave celerity
                 out1 = CFL;
@@ -1499,19 +1588,49 @@ classdef msh
             end
         end
         
-        function [bars,barlen] = GetBarLengths(obj)
+        function [bars,barlen] = GetBarLengths(obj,type)
             bars = [obj.t(:,[1,2]); obj.t(:,[1,3]); obj.t(:,[2,3])]; % Interior bars duplicated
-            bars = unique(sort(bars,2),'rows');                         % Bars as node pairs
-            long   = zeros(length(bars)*2,1);
-            lat    = zeros(length(bars)*2,1);
-            long(1:2:end) = obj.p(bars(:,1),1);
-            long(2:2:end) = obj.p(bars(:,2),1);
-            lat(1:2:end)  = obj.p(bars(:,1),2);
-            lat(2:2:end)  = obj.p(bars(:,2),2);
-            % Get spherical earth distances for bars
-            barlen = m_lldist(long,lat); barlen = barlen(1:2:end)*1e3;  % L = Bar lengths in meters
+            bars = unique(sort(bars,2),'rows');                      % Bars as node pairs
+            if type == 0
+                % Compute based on Haversine spherical earth distances
+                long   = zeros(length(bars)*2,1);
+                lat    = zeros(length(bars)*2,1);
+                long(1:2:end) = obj.p(bars(:,1),1);
+                long(2:2:end) = obj.p(bars(:,2),1);
+                lat(1:2:end)  = obj.p(bars(:,1),2);
+                lat(2:2:end)  = obj.p(bars(:,2),2);
+                % Get spherical earth distances for bars
+                barlen = m_lldist(long,lat); 
+                barlen = barlen(1:2:end)*1e3;  % L = Bar lengths in meters
+            elseif type == 1
+                % Compute based on CPP with sfac correction factor for x-direction
+                sfea = obj.p(:,2); sfac = cosd(mean(sfea)) ./ cosd(sfea);
+                sfacelemid = mean(sfac(obj.t),2);
+                vtoe = VertToEle(obj.t);
+                vtoe(vtoe == 0) = length(obj.t) + 1;
+                sfacelemid(end+1) = NaN;
+                conbar1 = vtoe(:,bars(:,1));
+                conbar2 = vtoe(:,bars(:,2));
+                sfacbar1 = max(sfacelemid(conbar1));
+                sfacbar2 = max(sfacelemid(conbar2));
+                sfac = max(sfacbar1,sfacbar2)';
+                % add safety factor for high latitudes (this is quite critical)
+                sfac(sfac > 5e2) = 2*sfac(sfac > 5e2); 
+                [x, y] = CPP_conv( obj.p(:,1), obj.p(:,2) );
+                barlen = hypot(diff(x(bars),[],2)./sfac,diff(y(bars),[],2));
+            end
+            
+            function [ x,y ] = CPP_conv( lon,lat )
+                %CPP_conv Converts lat and lon to x and y
+                lon0 =  mean(lon) * pi/180; lat0 = mean(lat) * pi/180;
+
+                R = 6378206.4;
+                lonr = lon * pi/180; latr = lat * pi/180; 
+                x = R * (lonr - lon0) * cos(lat0);
+                y = R * latr;
+            end
         end
-        
+
         function obj = CheckTimestep(obj,dt,varargin)
             %% Decimate mesh to achieve CFL condition for stability.
             % Takes a mesh and removes triangles and nodes to produce a mesh
@@ -1520,12 +1639,21 @@ classdef msh
             % that violates the CFL.
             % kjr, chl, und, 2017
             % kjr, chl, und, 2018 <--updated for projected spaces
-            %%
+            % wjp, chl, und, 2019 <--updates to carry over slopes and
+            % using the msh clean, and CFL calc type option
+            
+            type       = 0;       %<-- 0 == Haversine, 1 == CPP with correction factor
             desCFL     = 0.50;    %<-- set desired cfl (generally less than 0.80 for stable).
-            if nargin < 3
-                desIt = inf;        %<-- desired number of iterations
-            else
-                desIt = varargin{1};
+            desIt = inf;          %<-- desired number of iterations
+            if nargin > 2
+                if varargin{1} > 1
+                    desIt = varargin{1};
+                else
+                    desCFL = varargin{1};
+                end
+                if nargin == 4
+                    type = varargin{2}; 
+                end
             end
             %%
             if ~isempty(obj.coord)
@@ -1539,64 +1667,72 @@ classdef msh
                 lat_mi = min(obj.p(:,2)); lat_ma = max(obj.p(:,2));
                 m_proj('Trans','lon',[lon_mi lon_ma],'lat',[lat_mi lat_ma]) ;
             end
+            
             %% Project..
             [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2)); 
+            
             %% Make bathy interpolant
             F = scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.b,...
-                                     'linear','nearest');
+                                     'linear','nearest');             
+            if ~isempty(obj.bx)
+                Fx = scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.bx,...
+                                          'linear','nearest');
+                Fy = scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.by,...
+                                          'linear','nearest');
+            end  
+             
+            % clear some things which cause error in renum
+            obj.bx = []; obj.by = []; obj.f13 = [];
+            obj.bd = []; obj.op = [];
+            
             %% Delete CFL violations
             it  = 0;
             CFL = 999;
             tic
             while 1
                 [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
-                [CFL,Ln,ee] = CalcCFL(obj,dt);
-                [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2)); 
+                CFL = CalcCFL(obj,dt,type);
+                [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2));
                 bad = real(CFL) > desCFL;
                 display(['Number of CFL violations ',num2str(sum(bad))]);
                 disp(['Max CFL is : ',num2str(max(real(CFL)))]);
-                if it==desIt,   break; end
-                if sum(bad)==0 , break; end
+                if it == desIt,   break; end
+                if sum(bad) == 0, break; end
                 obj = DecimateTria(obj,bad);
+                % Clean up the new mesh (already projected) without direct
+                % smoothing (we have used local smooting in DecmimateTria
+                obj.b = []; % (the bathy will cause error in renum)
+                obj = clean(obj,[],0,[],[],[],[],0);
                 obj.b = F(obj.p(:,1),obj.p(:,2));
                 it = it + 1;
             end
             toc
             disp(['Achieved max CFL of ',num2str(max(real(CFL))),...
                 ' after ',num2str(it),' iterations.']);
-            disp('Remove poor quality elements and fix connecitivity problems..');
             
-            obj = Make_Mesh_Boundaries_Traversable( obj, 0.25, 0 );
-            
-            % Ensuring good numbering
-            [obj.p,obj.t] = fixmesh(obj.p,obj.t);
-           
-            % Display stats
-            tq = gettrimeshquan( obj.p, obj.t);
-            mq_m = mean(tq.qm);
-            mq_l = min(tq.qm);
-            disp(['number of nodes is ' num2str(length(obj.p))])
-            disp(['mean quality is ' num2str(mq_m)])
-            disp(['min quality is ' num2str(mq_l)])
-           
             % add bathy back on
             obj.b = F(obj.p(:,1),obj.p(:,2));
+            if exist('Fx','var')
+                obj.bx = Fx(obj.p(:,1),obj.p(:,2));
+                obj.by = Fy(obj.p(:,1),obj.p(:,2));
+            end
+            
+            disp('Boundary and f13 info has been deleted...');
+            disp('bathy and slope info is carried over');
             
             % find nans
             if ~isempty(find(isnan(obj.b), 1))
                warning('NaNs in bathy found')
             end
-                
-            % Do the transformation back
+            
+            % convert back to lat-lon wgs84
             [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
             
-            disp('Deleting boundary information...please renumber mesh');
-            obj.bd = []; obj.op = [];
+            % Check Element order
+            obj = CheckElementOrder(obj);
             return;
             
             function obj = DecimateTria(obj,bad)
-                                
-                obj = Make_Mesh_Boundaries_Traversable(obj,0.001,1);
                 % form outer polygon of mesh for cleaning up.
                 bnde = extdom_edges2(obj.t,obj.p);
                 poly1 = extdom_polygon(bnde,obj.p,-1);
@@ -1626,11 +1762,11 @@ classdef msh
                 [pm,tm] = fixmesh(pm,tm);
                 if sum(bad) < 100e3
                     % find all the points nearby each "bad" point.
-                    idx = ourKNNsearch(pm',obj.p(find(bad),:)',12) ;
+                    idx = ourKNNsearch(pm',obj.p(find(bad),:)',12);
                     idx = idx(:);
                     idx = unique(idx);
                     constr = setdiff((1:length(pm))',idx);
-                    [pm,tm]=smoothmesh(pm,tm,constr,50,0.01);
+                    [pm,tm] = smoothmesh(pm,tm,constr,50,0.01);
                 else
                     error('Adapation would result in potentially catastrophic lose of connectivity, try adapting to a smaller timestep');
                 end
