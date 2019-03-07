@@ -257,14 +257,19 @@ if strcmp(type,'slope') || strcmp(type,'all')
     bx = NaN(length(K),1); 
     by = NaN(length(K),1); 
     % Get the dx and dy of the dem in meters
-    DELTA_X1 = m_idist(mean(obj.p(K,1)),mean(obj.p(K,2)),...
-                       mean(obj.p(K,1))+DELTA_X,mean(obj.p(K,2)));
-    DELTA_Y1 = m_idist(mean(obj.p(K,1)),mean(obj.p(K,2)),...
-                       mean(obj.p(K,1)),mean(obj.p(K,2))+DELTA_Y);       
+    DELTA_X1 = DELTA_X*111e3;
+    DELTA_X1 = DELTA_X1*cosd(DEM_Y(1,:)); % for gradient function   
+    DELTA_Y1 = DELTA_Y*111e3;
+    %m_idist(mean(obj.p(K,1)),mean(obj.p(K,2)),...
+    %        mean(obj.p(K,1)),mean(obj.p(K,2))+DELTA_Y)
+    %m_idist(mean(obj.p(K,1)),mean(obj.p(K,2)),...
+    %        mean(obj.p(K,1))+DELTA_X,mean(obj.p(K,2)))
     if exist('DEM_ZY','var')
         clear DEM_ZY DEM_ZX
     end
-    [DEM_ZY,DEM_ZX] = gradient(DEM_Z,DELTA_Y1,DELTA_X1);
+    % Calculate the gradient of the distance function.
+    [DEM_ZY,DEM_ZX] = EarthGradient(DEM_Z,DELTA_Y1,DELTA_X1);
+    %[DEM_ZY,DEM_ZX] = gradient(DEM_Z,DELTA_Y1,mean(DELTA_X1));
     % New method of averaging the absolute values 
     DEM_ZY = abs(DEM_ZY); DEM_ZX = abs(DEM_ZX);
 end
