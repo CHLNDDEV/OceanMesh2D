@@ -1466,36 +1466,41 @@ classdef msh
             disp('Merging...')
             DTbase = delaunayTriangulation(p1(:,1),p1(:,2));
             DTbase.Points(end+(1:length(p2)),:) = p2;
-            pm = DTbase.Points; tm = DTbase.ConnectivityList;
             
             % Prune triangles outside both domains.
             disp('Pruning...')
-            pmid = (pm(tm(:,1),:)+pm(tm(:,2),:)+pm(tm(:,3),:))/3;
-            
-            % in1 is inside the inset boundary polygon
-            [edges1] = Get_poly_edges(poly_vec1);
-            in1 = inpoly(pmid,poly_vec1,edges1);
-            
-            % in2 is inside the global boundary polygon
-            [edges2] = Get_poly_edges(poly_vec2);
-            in2 = inpoly(pmid,poly_vec2,edges2);
-            
-            % in3 is inside the intersection
-            in3 = inpoly(pmid,poly_vec3,edges3);
-            
-            % Remove small connectivity
-            %[~, enum] = VertToEle(DTbase.ConnectivityList);
-            %bdbars = extdom_edges2(DTbase.ConnectivityList, ...
-            %                       DTbase.Points);
-            %bdnodes = unique(bdbars(:));
-            %I = find(enum <= 4);
-            %nn = setdiff(I',bdnodes);  
-            %DTbase.Points(nn,:) = []; 
-            
-            % remove triangles that aren't in the global mesh or aren't in
-            % the inset mesh
-            tm((~in1 & ~in2) | ~in1 & in3,:) = [];
-            
+            for ii = 1:2 
+            % The loop makes sure to remove only small connectivity for the boundaries
+                if ii == 2
+                    % To remove small connectivity
+                    [~, enum] = VertToEle(tm);
+                    bdbars = extdom_edges2(tm,pm);
+                    bdnodes = unique(bdbars(:));
+                    I = find(enum <= 4);
+                    nn = setdiff(I',bdnodes);  
+                    DTbase.Points(nn,:) = []; 
+                end
+                
+                pm = DTbase.Points; tm = DTbase.ConnectivityList;
+
+                pmid = (pm(tm(:,1),:)+pm(tm(:,2),:)+pm(tm(:,3),:))/3;
+
+                % in1 is inside the inset boundary polygon
+                [edges1] = Get_poly_edges(poly_vec1);
+                in1 = inpoly(pmid,poly_vec1,edges1);
+
+                % in2 is inside the global boundary polygon
+                [edges2] = Get_poly_edges(poly_vec2);
+                in2 = inpoly(pmid,poly_vec2,edges2);
+
+                % in3 is inside the intersection
+                in3 = inpoly(pmid,poly_vec3,edges3);
+
+                % remove triangles that aren't in the global mesh or aren't in
+                % the inset mesh
+                tm((~in1 & ~in2) | ~in1 & in3,:) = [];
+            end
+                
             merge = msh() ; merge.p = pm; merge.t = tm ;
  
             % convert back to lat-lon wgs84
@@ -1615,7 +1620,7 @@ classdef msh
                 sfacbar2 = max(sfacelemid(conbar2));
                 sfac = max(sfacbar1,sfacbar2)';
                 % add safety factor for high latitudes (this is quite critical)
-                sfac(sfac > 5e2) = 2*sfac(sfac > 5e2); 
+                sfac = sfac.*ceil(sfac/100e2); 
                 [x, y] = CPP_conv( obj.p(:,1), obj.p(:,2) );
                 barlen = hypot(diff(x(bars),[],2)./sfac,diff(y(bars),[],2));
             end
