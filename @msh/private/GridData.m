@@ -121,11 +121,6 @@ if ~isa(geodata,'geodata')
        DEM_YA = flipud(DEM_YA);
        DELTA_Y = mean(diff(DEM_YA));
     end
-    if max(DEM_XA) > 180
-       lon_change = obj.p(:,1) < 0; 
-    else
-       lon_change = false(length(obj.p),1);
-    end
 else
     DEM_XA = geodata.Fb.GridVectors{1};
     DEM_YA = geodata.Fb.GridVectors{2};
@@ -135,6 +130,11 @@ else
     [DEM_X,DEM_Y] = ndgrid(DEM_XA,DEM_YA);
 end
 
+if max(DEM_XA) > 180
+   lon_change = obj.p(:,1) < 0; 
+else
+   lon_change = false(length(obj.p),1);
+end
 obj.p(lon_change,1) = obj.p(lon_change,1) + 360;
 
 % kjr edit 20180320

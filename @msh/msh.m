@@ -405,21 +405,37 @@ classdef msh
                         figure, plot(bpt(:,1),bpt(:,2),'r.');
                     end
                 case('reso')
+                    % Get bar lengths
+                    [bars,barlen] = GetBarLengths(obj,0);
+                    % sort bar lengths in ascending order
+                    [barlen,IA] = sort(barlen,'descend');
+                    bars = bars(IA,:);
+                    % get the maximum bar length for each node
+                    [B1,IB] = unique(bars(:,1),'first');
+                    [B2,IC] = unique(bars(:,2),'first');
+                    d1 = NaN*obj.p(:,1); d2 = NaN*obj.p(:,1);
+                    d1(B1) = barlen(IB); d2(B2) = barlen(IC);
+                    z = max(d1,d2);
+                    [B1,IB] = unique(bars(:,1),'last');
+                    [B2,IC] = unique(bars(:,2),'last');
+                    d1 = NaN*obj.p(:,1); d2 = NaN*obj.p(:,1);
+                    d1(B1) = barlen(IB); d2(B2) = barlen(IC);
+                    z = 0.5*(z + min(d1,d2));                    
                     % get the points on the current projection
-                    [X,Y]= m_ll2xy(obj.p(:,1),obj.p(:,2));
+                    %[X,Y]= m_ll2xy(obj.p(:,1),obj.p(:,2));
                     % get the circumcenter radius of each element
-                    TR = triangulation(obj.t,X,Y);
-                    [~,cr] = circumcenter(TR);
+                    %TR = triangulation(obj.t,X,Y);
+                    %[~,cr] = circumcenter(TR);
                     % Get the element connectivity
-                    [vtoe,nne] = VertToEle(obj.t);
+                    %[vtoe,nne] = VertToEle(obj.t);
                     % Make sure null value adds zero contribution
-                    cr(end+1) = 0;
-                    vtoe(vtoe == 0) = length(obj.t) + 1;
+                    %cr(end+1) = 0;
+                    %vtoe(vtoe == 0) = length(obj.t) + 1;
                     % Sum up all element contributions to each node and
                     % divide by number of connected elements
-                    z = sum(cr(vtoe))./nne;
+                    %z = sum(cr(vtoe))./nne;
                     % scale by earth radius
-                    Re = 6378.137e3; z = Re*z;
+                    %Re = 6378.137e3; z = Re*z;
                     if logaxis
                         q = log10(z); % plot on log scale with base
                     else
@@ -1517,7 +1533,20 @@ classdef msh
             % Check element order
             merge = CheckElementOrder(merge);
             
-            disp(['Note that bathymetry, boundary conditions, etc. have' ...
+            % Carry over bathy and gradients
+            [idx1,dst1] = ourKNNsearch(obj1.p',merge.p',1);   
+            [idx2,dst2] = ourKNNsearch(obj2.p',merge.p',1);   
+            merge.b(dst1 <= dst2) = obj1.b(idx1(dst1 <= dst2)); 
+            merge.b(dst2 < dst1) = obj2.b(idx2(dst2 < dst1)); 
+            if ~isempty(obj1.bx) && ~isempty(obj2.bx)
+                merge.bx = 0*merge.b; merge.by = 0*merge.b;
+                merge.bx(dst1 <= dst2) = obj1.bx(idx1(dst1 <= dst2)); 
+                merge.bx(dst2 < dst1) = obj2.bx(idx2(dst2 < dst1)); 
+                merge.by(dst1 <= dst2) = obj1.by(idx1(dst1 <= dst2)); 
+                merge.by(dst2 < dst1) = obj2.by(idx2(dst2 < dst1)); 
+            end
+            
+            disp(['Note that f13, f15 and boundary conditions etc. have' ...
                   'not been carried over into the merged mesh'])
         end
       
@@ -1620,7 +1649,7 @@ classdef msh
                 sfacbar2 = max(sfacelemid(conbar2));
                 sfac = max(sfacbar1,sfacbar2)';
                 % add safety factor for high latitudes (this is quite critical)
-                sfac = sfac.*ceil(sfac/100e2); 
+                sfac = sfac.*ceil(sfac/10); 
                 [x, y] = CPP_conv( obj.p(:,1), obj.p(:,2) );
                 barlen = hypot(diff(x(bars),[],2)./sfac,diff(y(bars),[],2));
             end

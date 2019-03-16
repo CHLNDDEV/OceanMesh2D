@@ -171,9 +171,9 @@ classdef edgefx
             % WJP: Do Mercator projection for calculating 
             % distances from shoreline
             if feat.bbox(1,2) > 180
-                m_proj('mercator','lat', [-89.9 89.9], 'long',[0 360]); 
+                m_proj('mercator','lat', [-88 90], 'long',[0 360]); 
             else
-                m_proj('mercator','lat', [-89.9 89.9],'long',[-180 180]); 
+                m_proj('mercator','lat', [-88 90],'long',[-180 180]); 
             end
             % now turn on the edge functions
             for i = 1 : numel(fields)
@@ -385,9 +385,8 @@ classdef edgefx
             tmpz    = feat.Fb(xg,yg); 
             tmpz(tmpz > 50) = 50; % ensure no larger than 50 m above land
             % use a harvestine assumption
-            Re = 6378.137e3;
-            dx = obj.gridspace*cosd(yg(1,:))*Re*pi/180; % for gradient function
-            dy = obj.gridspace*Re*pi/180; % for gradient function
+            dx = obj.h0*cosd(min(yg(1,:),85)); % for gradient function
+            dy = obj.h0;               % for gradient function
             % lets filter the bathy to get only relevant features
             % loop over each set of bandpass filter lengths
             tmpz_f = zeros(size(tmpz));
@@ -400,53 +399,102 @@ classdef edgefx
                 obj.fl = [];
                 tmpz_f = tmpz;
                 filtit = 0 ; 
+            else
+                filtit = 0;
+                for lambda = obj.fl'
+                    if all(lambda ~= 0)
+                        % do a bandpass filter
+                        tmpz_ft  = filt2(tmpz,dy,lambda,'bp') ;
+                    elseif lambda(2) == 0
+                        % do a low pass filter
+                        tmpz_ft  = filt2(tmpz,dy,lambda(1),'lp') ;
+                    else
+                        % highpass filter not recommended
+                        warning(['Highpass filter on bathymetry in slope' ...
+                            'edgelength function is not recommended'])
+                        tmpz_ft  = filt2(tmpz,dy,lambda(2),'hp') ;
+                    end
+                    tmpz_f = tmpz_f + tmpz_ft;
+                end
             end
             
-            for lambda = obj.fl'
-                if all(lambda ~= 0)
-                    % do a bandpass filter
-                    tmpz_ft  = filt2(tmpz,dy,lambda,'bp') ;
-                elseif lambda(2) == 0
-                    % do a low pass filter
-                    tmpz_ft  = filt2(tmpz,dy,lambda(1),'lp') ;
-                else
-                    % highpass filter not recommended
-                    warning(['Highpass filter on bathymetry in slope' ...
-                        'edgelength function is not recommended'])
-                    tmpz_ft  = filt2(tmpz,dy,lambda(2),'hp') ;
-                end
-                tmpz_f = tmpz_f + tmpz_ft;
-            end
-
             % Rossby radius of deformation filter
             if filtit
+                tic
                 bs = NaN([obj.nx,obj.ny]); 
-                % Rossby radius of deformation filter
-                f = 2*7.29e-5*abs(sind(yg));
-                % limit to 1000 km
-                rosb = min(1000e3,sqrt(9.81*abs(tmpz))./f);
-                % autmatically divide into discrete bins
-                [~,edges] = histcounts(rosb);
-                tmpz_ft  = tmpz; dyb = dy; 
-                % get slope from filtered bathy for the segment only
-                [by,bx] = EarthGradient(tmpz_ft,dy,dx); % get slope in x and y directions
-                tempbs  = sqrt(bx.^2 + by.^2); % get overall slope
-                for i = 1:length(edges)-1
-                    sel = rosb >= edges(i) & rosb <= edges(i+1);
-                    rosbylb = mean(edges(i:i+1));
-                    if rosbylb > 2*dyb
-                        disp(['i = ',num2str(i), ' rl/dx = ',num2str(rosbylb/dyb)])
-                        tmpz_ft  = filt2(tmpz_ft,dyb,rosbylb,'lp');
-                        dyb = rosbylb;
-                        % get slope from filtered bathy for the segment only
-                        [by,bx] = EarthGradient(tmpz_ft,dy,dx); % get slope in x and y directions
-                        tempbs  = sqrt(bx.^2 + by.^2); % get overall slope
-                    else
-                        % otherwise just use the same tempbs from before
+                div = 1e4; grav = 9.807; rbfilt = 2;
+                nb = ceil([obj.nx,obj.ny]/div); n1s = 1; 
+                for ii = 1:nb(1)
+                    n1e = min(obj.nx,n1s + div - 1); n2s = 1;
+                    for jj = 1:nb(2)
+                        n2e = min(obj.ny,n2s + div - 1);
+                        % Rossby radius of deformation filter
+                        f = 2*7.29e-5*abs(sind(yg(n1s:n1e,n2s:n2e)));
+                        % limit to 10,000 km
+                        rosb = min(1e7,...
+                                 sqrt(grav*abs(tmpz(n1s:n1e,n2s:n2e)))./f);
+                        clear f;
+                        % Keep lengthscales rbfilt * barotropic 
+                        % radius of deformation
+                        rosb = min(10,max(0,floor(log2(rosb/dy/rbfilt))));
+                        edges = double(unique(rosb(:)));   
+                        bst = rosb*0; 
+                        for i = 1:length(edges)
+                            if edges(i) > 0  
+                                mult = 2^edges(i);
+                                xl = max(1,n1s-mult/2);
+                                xu = min(obj.nx,n1e+mult/2);
+                                if (max(xg(:)) > 179 && min(xg(:)) < -179) || ...
+                                   (max(xg(:)) > 359 && min(xg(:)) < 1) 
+                                   % wraps around
+                                   if xu == obj.nx && xl == 1
+                                      xr = [obj.nx-mult/2+1:1:obj.nx xl:xu ...
+                                            1:mult/2+n1e-obj.nx];
+                                   elseif xl == 1
+                                      % go to otherside
+                                      xr = [obj.nx-mult/2+1:1:obj.nx xl:xu]; 
+                                   elseif xu == obj.nx
+                                      % go to otherside
+                                      xr = [xl:xu 1:mult/2+n1e-obj.nx]; 
+                                   else
+                                      xr = xl:xu;
+                                   end
+                                else
+                                   xr = xl:xu;
+                                end
+                                yl = max(1,n2s-mult/2);
+                                yu = min(obj.ny,n2e+mult/2);
+                                if max(yg(:)) > 89 && yu == obj.ny
+                                   % create mirror around pole
+                                   yr = [yl:yu yu-1:-1:2*obj.ny-n2e-mult/2]; 
+                                else
+                                   yr = yl:yu;
+                                end
+                                if mult == 2
+                                    tmpz_ft = filt2(tmpz(xr,yr),dy,...
+                                                    dy*2.01,'lp');
+                                else
+                                    tmpz_ft = filt2(tmpz(xr,yr),...
+                                                    dy,dy*mult,'lp');
+                                end
+                                % delete the padded region
+                                tmpz_ft(1:find(xr == n1s)-1,:) = [];
+                                tmpz_ft(n1e-n1s+2:end,:) = [];
+                                tmpz_ft(:,1:find(yr == n2s)-1) = [];
+                                tmpz_ft(:,n2e-n2s+2:end) = [];
+                            else
+                                tmpz_ft = tmpz(n1s:n1e,n2s:n2e);
+                            end
+                            [by,bx] = EarthGradient(tmpz_ft,dy,dx(n2s:n2e)); % get slope in x and y directions
+                            tempbs  = sqrt(bx.^2 + by.^2);          % get overall slope
+                            bst(rosb == edges(i)) = tempbs(rosb == edges(i)); 
+                        end
+                        bs(n1s:n1e,n2s:n2e) = bst;
+                        n2s = n2e + 1;
                     end
-                    % put in the full one
-                    bs(sel) = tempbs(sel); 
+                    n1s = n1e + 1;
                 end
+                toc
             else
                 % get slope from (possibly filtered) bathy
                 [by,bx] = EarthGradient(tmpz_f,dy,dx); % get slope in x and y directions
@@ -484,7 +532,7 @@ classdef edgefx
 
             % STEP 1: Calculate the width of each channel using a v-shape approx to
             % channel's cross sectional area.
-            for jj=1:length(obj.Channels)
+            for jj = 1:length(obj.Channels)
                 if (isempty(obj.Channels{jj})); continue ;end
                 pts{jj} = obj.Channels{jj};
                 dp{jj} = feat.Fb(pts{jj});                                   % depth at x,y channel locations
@@ -546,73 +594,44 @@ classdef edgefx
         function plot(obj,type)
             % form grid here. 
             % working out plottable size
-            [xgrid,ygrid]=CreateStructGrid(obj); 
+            [xgrid,ygrid] = CreateStructGrid(obj); 
 
-            div = ceil(numel(xgrid)*8*24*1e-9);
-            if nargin == 1
-                figure;
-                m_proj('Lamb',...
-                       'long',[obj.bbox(1,1) obj.bbox(1,2)],...
-                       'lat',[obj.bbox(2,1) obj.bbox(2,2)])
-                hold on; m_fastscatter(xgrid(obj.boudist < 0),...
-                     ygrid(obj.boudist < 0),obj.F.Values(obj.boudist < 0));
-                cb = colorbar; ylabel(cb,'edgelength in meters');
-                colormap(lansey)
-                m_grid('xtick',10,'tickdir','out',...
-                       'yaxislocation','left','fontsize',7);
-                title('Total EdgeLength Function');
-                return;
+            if nargin == 2
+                switch type
+                     case('dis')
+                        val = obj.hhd;
+                        tt = 'Distance EdgeLength Function';
+                     case('fs')
+                        val = obj.fsd;
+                        tt = 'Feature Size EdgeLength Function';
+                     case('wl')
+                        val = obj.wld;
+                        tt = 'Wavelength EdgeLength Function';
+                     case('ch')
+                        val = obj.chd;
+                        tt = 'Channel EdgeLength Function';
+                     case('slp')
+                        val = obj.slpd;
+                        tt = 'Slope EdgeLength Function';
+                    otherwise
+                        warning('Unexpected plot type. No plot created.')
+                end
+            else
+                val = obj.F.Values;
+                tt = 'Total EdgeLength Function';
             end
-            switch type
-                case('dis')
-                    figure;
-                    m_proj('Mercator','long',[obj.bbox(1,1) obj.bbox(1,2)],...
-                        'lat',[obj.bbox(2,1) obj.bbox(2,2)])
-                    m_contourf(xgrid(1:div:end,1:div:end),...
-                               ygrid(1:div:end,1:div:end),...
-                        obj.hhd(1:div:end,1:div:end),50,'Linestyle','none');
-                    shading interp
-                    hold on; m_plot(feat.mainland(:,1),feat.mainland(:,2),'k-','linewi',1);
-                    cb = colorbar; ylabel(cb,'edgelength in degrees');
-                    m_grid('xtick',10,'tickdir','out','yaxislocation','left','fontsize',7);
-                    title('Distance function');
-                    %caxis([min(obj.hhd(:)) 0.1])
-                case('fs')
-                    figure;
-                    m_proj('Mercator','long',[obj.bbox(1,1) obj.bbox(1,2)],...
-                        'lat',[obj.bbox(2,1) obj.bbox(2,2)])
-                    m_contourf(xgrid(1:div:end,1:div:end),...
-                               ygrid(1:div:end,1:div:end),...
-                        obj.fsd(1:div:end,1:div:end),50,'Linestyle','none');
-                    shading interp
-                    hold on; m_plot(feat.mainland(:,1),feat.mainland(:,2),'k-','linewi',1);
-                    cb = colorbar; ylabel(cb,'edgelength in degrees');
-                    m_grid('xtick',10,'tickdir','out','yaxislocation','left','fontsize',7);
-                    title('Feature size function');
-                case('wl')
-                    figure;
-                    m_proj('Mercator','long',[obj.bbox(1,1) obj.bbox(1,2)],...
-                        'lat',[obj.bbox(2,1) obj.bbox(2,2)]);
-                    m_contourf(xgrid(1:div:end,1:div:end),...
-                               ygrid(1:div:end,1:div:end),...
-                        obj.wld(1:div:end,1:div:end),100);
-                    %m_contourf(obj.xg,obj.yg,real(obj.wld)/1000);
-                    m_grid('xtick',10,'tickdir','out','yaxislocation','left','fontsize',7);
-                    title('Wavelength of the M2 edge function'); cb=colorbar;ylabel(cb,'WGS84 decimal degrees');
-                case('ch')
-                    figure;
-                    m_proj('Mercator','long',[obj.bbox(1,1) obj.bbox(1,2)],...
-                        'lat',[obj.bbox(2,1) obj.bbox(2,2)]);
-                    m_contourf(xgrid(1:div:end,1:div:end),...
-                               ygrid(1:div:end,1:div:end),...
-                               obj.chd(1:div:end,1:div:end),100);
-                    caxis([obj.h0,10*obj.h0])
-                    m_grid('xtick',10,'tickdir','out','yaxislocation','left','fontsize',7);
-                    title('Channel edge function'); cb=colorbar;ylabel(cb,'WGS84 decimal degrees');
-              
-                otherwise
-                    warning('Unexpected plot type. No plot created.')
-            end
+            figure;
+            m_proj('merc',...
+                   'long',[obj.bbox(1,1) obj.bbox(1,2)],...
+                   'lat',[obj.bbox(2,1) obj.bbox(2,2)])
+            hold on; m_fastscatter(xgrid(obj.boudist < 0),...
+                                   ygrid(obj.boudist < 0),...
+                                   val(obj.boudist < 0));
+            cb = colorbar; ylabel(cb,'edgelength in meters');
+            colormap(lansey)
+            m_grid() %'xtick',10,'tickdir','out',...
+                  % 'yaxislocation','left','fontsize',7);
+            title(tt);
         end
         
         %% Finalize edge function
@@ -689,7 +708,7 @@ classdef edgefx
                 end
             end
             
-            dx = obj.h0*cosd(yg(1,:)); % for gradient function
+            dx = obj.h0*cosd(min(yg(1,:),85)); % for gradient function
             dy = obj.h0;               % for gradient function
             [hfun,flag] = limgradStruct(obj.ny,dx,dy,hfun,...
                                         obj.g,sqrt(length(hfun)));
@@ -697,7 +716,7 @@ classdef edgefx
                 disp('Gradient relaxing converged!');
             else
                 error(['FATAL: Gradient relaxing did not converge, '
-                    'please check your edge functions']);
+                       'please check your edge functions']);
             end
             % reshape it back
             nn = 0;
