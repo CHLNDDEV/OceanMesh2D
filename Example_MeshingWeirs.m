@@ -42,6 +42,6 @@ m = interp(m,gdat); m.b = max(m.b,1); % interpolate bathy to the mesh
 m = makens(m,'outer',0) ;   % specify your elevation specified boundaries using the cursor 
 m = makens(m,'weirs',gdat); % make the nodestring boundary conditions
 plot(m,'bd'); % visualize your boundaries 
-plot(m,'b'); % plot triangulation and bathy
-caxis([0 10]) ; 
+plot(m,'bmesh'); % plot triangulation and bathy
+caxis([-10 0]) ; 
 save('JBAY_HR.mat','m')

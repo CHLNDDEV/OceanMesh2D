@@ -359,8 +359,8 @@ classdef edgefx
                 if numel(param)==1
                     % no bounds specified.
                     wlp = param(1);
-                    % automatically get suitable min depth cutoff
-                    dp1 = -max(1,(wlp*2*obj.h0/period)^2/grav);
+                    % set cuttof at 10 m by default
+                    dp1 = -10;
                     dp2 = -inf;
                 else
                     wlp = param(1);
@@ -508,7 +508,8 @@ classdef edgefx
                 if numel(param)==1
                     % no bounds specified. valid in this range.
                     slpp = param(1);
-                    dp1 = -50;
+                    % default cutoff is 10 m
+                    dp1 = -10;
                     dp2 = -inf;
                 else
                     slpp = param(1);
