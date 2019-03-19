@@ -10,7 +10,7 @@ addpath(genpath('m_map/'))
 wl        = 30;         % elements to resolve M2 wavelength
 dt        = 0;          % use automatic timestep 
 grade     = 0.25; 		% mesh grade in decimal percent.
-R         = 5;    		% number of elements to resolve feature width.
+R         = -5;    		% number of elements to resolve feature width.
 slp       = 15;         % 2*pi/number of elements to resolve slope
 
 %%  For relatively coarse resolution west North Atlantic Ocean
@@ -62,7 +62,8 @@ end
 %% Pass your edgefx class objects along with some meshing options 
 %% and build the mesh... 
 % (note that the nested edgefxs will be smoothed together with this call)
-mshopts = meshgen('ef',fh,'bou',gdat,'plot_on',1,'itmax',50);  
+mshopts = meshgen('ef',fh,'bou',gdat,'plot_on',1,'itmax',50,...
+                  'proj','lam');  
                                                 
 % now build the mesh with your options and the edge function.
 mshopts = mshopts.build; 
@@ -80,8 +81,9 @@ m.b = max(m.b,1);
 m = makens(m,'auto',gdat{1}); % make the nodestring boundary conditions
 
 %% Plot and save the msh class object/write to fort.14
-plot(m,'bd',1,'Sinusoidal'); % plot on Sinusoidal projection with nodestrings
-plot(m,'b',1,'Sinusoidal'); % plot the bathy on Sinusoidal projection
+plot(m,'bd'); % plot triangulation with nodestrings
+plot(m,'b'); % plot the bathy
+plot(m,'reso') % plot the res
 % Save as a msh class
 save('PRVI_msh.mat','m');
 % Write an ADCIRC fort.14 compliant file to disk.
