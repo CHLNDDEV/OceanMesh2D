@@ -171,7 +171,7 @@ for sta_database = sta_databases
     %% Now put into f15 struct
     if any(type == 1)
         % elevation
-        obj.f15.nstae = obj.f15.nstae + numel(find(Sta_type == 1));
+        obj.f15.nstae = obj.f15.nstae + numel(find(Sta_type(:,1) == 1));
         obj.f15.elvstaloc = [obj.f15.elvstaloc;
                              [Sta_lon(Sta_type(:,1) == 1) ...
                              Sta_lat(Sta_type(:,1) == 1)]];
@@ -181,23 +181,23 @@ for sta_database = sta_databases
     end
     if any(type == 2)
         % velocity
-        obj.f15.nstav = obj.f15.nstav + numel(find(Sta_type == 2));
+        obj.f15.nstav = obj.f15.nstav + numel(find(Sta_type(:,2) == 1));
         obj.f15.velstaloc = [obj.f15.velstaloc;
-                             [Sta_lon(Sta_type == 2) ...
-                             Sta_lat(Sta_type == 2)]];
+                             [Sta_lon(Sta_type(:,2) == 1) ...
+                             Sta_lat(Sta_type(:,2) == 1)]];
         obj.f15.velstaname = [obj.f15.velstaname;
-                             strcat(Sta_name(Sta_type == 2),' ID:',...
-                                    Sta_ID(Sta_type == 2))];
+                             strcat(Sta_name(Sta_type(:,2) == 1),' ID:',...
+                                    Sta_ID(Sta_type(:,2) == 1))];
     end
     if any(type == 3)
         % met
-        obj.f15.nstam = obj.f15.nstam + numel(find(Sta_type == 3));
+        obj.f15.nstam = obj.f15.nstam + numel(find(Sta_type(:,3) == 1));
         obj.f15.metstaloc = [obj.f15.metstaloc;
-                             [Sta_lon(Sta_type == 3) ...
-                             Sta_lat(Sta_type == 3)]];
+                             [Sta_lon(Sta_type(:,3) == 1) ...
+                             Sta_lat(Sta_type(:,3) == 1)]];
         obj.f15.metstaname = [obj.f15.metstaname;
-                             strcat(Sta_name(Sta_type == 3),' ID:',...
-                                    Sta_ID(Sta_type == 3))];
+                             strcat(Sta_name(Sta_type(:,3) == 1),' ID:',...
+                                    Sta_ID(Sta_type(:,3) == 1))];
     end    
 end
 
