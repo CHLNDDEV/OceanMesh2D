@@ -125,7 +125,7 @@ classdef geodata
                             obj.window = 5;
                         end
                     case('weirs')
-                        if ~iscell(inp.(fields{i})), continue; end 
+                        if ~iscell(inp.(fields{i})), continue; end
                         obj.weirs = inp.(fields{i}) ;
                         noWeirs   = length(obj.weirs) ;
                         disp(['INFO: User has passed ',num2str(noWeirs),' weir crestlines.']) ;
@@ -227,8 +227,9 @@ classdef geodata
                     disp('No smoothing of coastline enabled')
                 end
                 
-                % WJP: Jan 25, 2018 check the polygon
-                obj = check_connectedness_inpoly(obj);
+%                 % WJP: Jan 25, 2018 check the polygon
+% kjr moved to after dem is read to auto-close
+%                 obj = check_connectedness_inpoly(obj);
                 
                 % KJR: May 13, 2018 coarsen portions of outer, mainland
                 % and inner outside bbox (made into function WP)
@@ -249,12 +250,12 @@ classdef geodata
                 % kjr Oct. 27 2018, add the weir faux islands to the inner geometry
                 if ~isempty(obj.weirPfix)
                     idx = [0; cumsum(weirLength)']+1 ;
-                    tmp = [] ; 
+                    tmp = [] ;
                     for ii = 1 : noWeirs
-                        tmp =  [tmp; 
-                               [obj.weirPfix(idx(ii):idx(ii+1)-1,:)
-                                obj.weirPfix(idx(ii),:)]
-                                NaN NaN] ; 
+                        tmp =  [tmp;
+                            [obj.weirPfix(idx(ii):idx(ii+1)-1,:)
+                            obj.weirPfix(idx(ii),:)]
+                            NaN NaN] ;
                     end
                     obj.inner = [obj.inner ; NaN NaN ;  tmp ] ;
                 end
@@ -267,11 +268,11 @@ classdef geodata
                 % make sure it has equal spacing of h0/2
                 if obj.outer(1)==0
                     warning('Warning: creating outer polygon from bbox!')
-                    obj.outer = obj.boubox; 
+                    obj.outer = obj.boubox;
                 end
                 [la,lo]=my_interpm(obj.outer(:,2),obj.outer(:,1),gridspace/2);
                 obj.outer = []; obj.outer(:,1) = lo; obj.outer(:,2) = la;
-         
+                
                 
                 % for mainland
                 if obj.mainland(1)~=0
@@ -295,7 +296,7 @@ classdef geodata
                     obj.inner = [obj.inner ; NaN NaN ;  tmp ] ;
                 end
                 % for islands
-                if obj.inner(1)~=0 
+                if obj.inner(1)~=0
                     [la,lo]=my_interpm(obj.inner(:,2),obj.inner(:,1),gridspace/2);
                     obj.inner = [];
                     obj.inner(:,1) = lo; obj.inner(:,2) = la;
@@ -344,30 +345,30 @@ classdef geodata
                         if nn == 1
                             bboxt(1,2) = 180;
                         else
-                            bboxt(1,1) = -180; 
+                            bboxt(1,1) = -180;
                             bboxt(1,2) = bboxt(1,2) - 360;
                         end
                     end
                     It = find(x >= bboxt(1,1) & x <= bboxt(1,2));
-                    I = [I; It];  
+                    I = [I; It];
                     demzt = single(ncread(obj.demfile,zvarname,...
-                                   [It(1) J(1)],[length(It) length(J)]));
+                        [It(1) J(1)],[length(It) length(J)]));
                     if isempty(demz)
                         demz = demzt;
                     else
                         demz = cat(1,demz,demzt);
                     end
                 end
-                x = x(I); y = y(J); 
+                x = x(I); y = y(J);
                 if obj.bbox(1,2) > 180
                     x(x < 0) = x(x < 0) + 360;
                     [x1,IA] = unique(x);
                     if length(x) > length(x1)
-                       x = x1; demz = demz(IA,:); 
+                        x = x1; demz = demz(IA,:);
                     end
                 end
                 obj.Fb   = griddedInterpolant({x,y},demz,...
-                                              'linear','nearest');
+                    'linear','nearest');
                 obj.x0y0 = [x(1),y(1)];
                 % clear data from memory
                 clear x y demz
@@ -380,7 +381,9 @@ classdef geodata
                 obj.x0y0 = [obj.bbox(1,1), obj.bbox(2,1)];
             end
             
-            
+            % kjr moved to after dem is read to auto-close
+            obj = check_connectedness_inpoly(obj);
+
             function polyobj = coarsen_polygon(polyobj,iboubox)
                 % coarsen a polygon object
                 idx = find(isnan(polyobj(:,1)));
@@ -440,6 +443,9 @@ classdef geodata
             % read the GSHHS checker
             ps = Read_shapefile( {'GSHHS_l_L1'}, [], ...
                 obj.bbox, gridspace, obj.boubox, 0 );
+           
+            % kjr call close method to fix gdat.
+            obj = close(obj) ; 
             
             % make a fake tester grid
             x = linspace(obj.bbox(1,1),obj.bbox(1,2),100);
@@ -465,14 +471,35 @@ classdef geodata
         
         % close geometric countour vectors by clipping with a boubox
         % updates gdat.outer so that the meshing domain is correctly defined
-        function obj = close(obj,seed)
+        function obj = close(obj)
             % Clips the mainland segment with the boubox.
             % Performs a breadth-first search given a seed position
             % of the piecewise-straight line graph (PSLG) that is used to define the meshing boundary.
             % This returns back an updated geodata class instance with the outer boundary clipped with the boubox.
             % kjr,und,chl 2018
             
-            if(nargin < 2),error('Must supply coordinate seed to perform flood-fill'); end
+            if isempty(obj.Fb)
+                warning('ALERT: Meshing boundary is not a polygon!') 
+                warning('ALERT: DEM is required to clip line segment with polygon')
+                seed=input('Enter coordinate of seed location to clip: '); 
+            else
+                % Guess seed location: submerged portion of domain within
+                % bbox?
+                [demx,demy] = ndgrid(obj.x0y0(1):obj.h0/111e3:obj.bbox(1,2), ...
+                    obj.x0y0(2):obj.h0/111e3:obj.bbox(2,2));
+                demz = obj.Fb(demx,demy);
+                [idx]=find(demz(:) < -10) ; % find points deeper than -10 m below sea level
+                allpts=[demx(:),demy(:)] ;
+                cands = allpts(idx,:);
+                if(isnan(obj.boubox(end,1)))
+                  edges=Get_poly_edges(obj.boubox) ;
+                  [in]=inpoly(cands,obj.boubox,edges) ; %  determine which of these points is in the domain
+                else
+                  [in]=inpoly(cands,obj.boubox) ;       %  determine which of these points is in the domain
+                end
+                cands2=cands(in,:) ;
+                seed = cands2(50,:) ;
+            end
             
             geom = [obj.mainland; obj.inner; obj.boubox] ;
             
@@ -484,13 +511,12 @@ classdef geodata
             
             new_outer = cell2mat(POLY') ;
             
-            [la,lo] = my_interpm(new_outer(:,2),new_outer(:,1),((obj.h0/2)/111e3))  ; 
+            [la,lo] = my_interpm(new_outer(:,2),new_outer(:,1),((obj.h0/2)/111e3))  ;
             
-            new_outer = [lo la] ; 
+            new_outer = [lo la] ;
             
             obj.outer = new_outer ;
-            
-            
+     
             % reset this to default
             obj.inpoly_flip = 0 ;
         end
@@ -546,7 +572,7 @@ classdef geodata
                 h1 = m_plot(obj.mainland(:,1),obj.mainland(:,2),...
                     'r-','linewi',1); hold on;
             end
-            if ~isempty(obj.inner) 
+            if ~isempty(obj.inner)
                 h2 = m_plot(obj.inner(:,1),obj.inner(:,2),...
                     'g-','linewi',1); hold on;
             end
@@ -557,7 +583,7 @@ classdef geodata
                 end
             end
             [la,lo] = my_interpm(obj.boubox(:,2),obj.boubox(:,1),...
-                                 0.5*obj.h0/111e3);
+                0.5*obj.h0/111e3);
             m_plot(lo,la,'k--','linewi',2);
             m_grid('xtick',10,'tickdir','out','yaxislocation','left','fontsize',10);
             if exist('h1','var') && exist('h2','var') && exist('h3','var')
