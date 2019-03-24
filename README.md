@@ -7,9 +7,8 @@
 </p>
 OceanMesh2D is a set of user-friendly MATLAB functions to generate two-dimensional (2D) unstructured meshes for coastal ocean circulation problems. These meshes are based on a variety of feature driven geometric and bathymetric mesh size functions, which are generated according to user-defined parameters. Mesh generation is achieved through a force-balance algorithm combined with a number of topological improvement strategies aimed at improving the worst case triangle quality. The software embeds the mesh generation process into an object-orientated framework that contains pre- and post-processing workflows, which makes mesh generation flexible, reproducible, and script-able. 
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-DISCLAIMER: IF YOUR INPUTS ARE INVALID, THEN YOUR MESH WILL BE TOO. READ THE USER GUIDE FOR MORE INFORMATION. THE BOUNDARY OF THE MESHING DOMAIN MUST BE A POLYGON BUT IT DOES NOT NEED TO BE SIMPLIFIED.
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+## `DISCLAIMER: `
+IF YOUR INPUTS ARE INVALID, THEN YOUR MESH WILL BE TOO. THE BOUNDARY OF THE MESHING DOMAIN MUST BE A POLYGON (FIRST POINT EQUALS LAST AND NON-SELF INTERSECTING) BUT IT DOES NOT NEED TO BE SIMPLIFIED. READ THE USER GUIDE FOR MORE INFORMATION ABOUT THE INPUTS.
 
 
 ## `Code framework` 
