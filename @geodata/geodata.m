@@ -272,7 +272,7 @@ classdef geodata
                 end
                 [la,lo]=my_interpm(obj.outer(:,2),obj.outer(:,1),gridspace/2);
                 obj.outer = []; obj.outer(:,1) = lo; obj.outer(:,2) = la;
-                
+                disp('INFO: Read in user-defined NaN-delimited vector');
                 
                 % for mainland
                 if obj.mainland(1)~=0

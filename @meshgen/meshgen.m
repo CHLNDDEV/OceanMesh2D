@@ -24,6 +24,7 @@ classdef meshgen
         bbox          % bounding box [xmin,ymin; xmax,ymax]
         pfix          % fixed node positions (nfix x 2 )
         egfix         % edge constraints
+        fixboxes      % a flag that indicates which boxes will use fixed constraints
         plot_on       % flag to plot (def: 1) or not (0)
         nscreen       % how many it to plot and write temp files (def: 5)
         bou           % geodata class
@@ -60,6 +61,7 @@ classdef meshgen
             addOptional(p,'fh',defval);
             addOptional(p,'pfix',defval);
             addOptional(p,'egfix',defval);
+            addOptional(p,'fixboxes',defval);
             addOptional(p,'inner',defval);
             addOptional(p,'outer',defval);
             addOptional(p,'mainland',defval);
@@ -88,7 +90,7 @@ classdef meshgen
             % classes...then basic non-critical options. 
             inp = orderfields(inp,{'h0','bbox','fh','inner','outer','mainland',...
                                    'bou','ef',... %<--OceanMesh classes come after
-                                   'egfix','pfix',...
+                                   'egfix','pfix','fixboxes',...
                                    'plot_on','nscreen','itmax','memory_gb','cleanup',...
                                    'direc_smooth','dj_cutoff',...
                                    'big_mesh','ns_fix','proj'});             
@@ -134,7 +136,7 @@ classdef meshgen
                     case('pfix')
                         obj.pfix= inp.(fields{i});
                         if obj.pfix(1)~=0
-                            obj.pfix = inp.(fields{i});
+                            obj.pfix(:,:) = inp.(fields{i});
                         else
                             obj.pfix = [];
                         end
@@ -150,7 +152,10 @@ classdef meshgen
                         end
                          if ~isempty(obj.bou{1}.weirEgfix)
                            obj.egfix = [obj.egfix ; obj.bou{1}.weirEgfix+length(obj.egfix)];
-                        end
+                         end
+                    case('fixboxes')
+                        obj.fixboxes= inp.(fields{i});
+                    
                     case('bou')
                         % got it from user arg
                         if obj.outer~=0, continue; end
@@ -436,28 +441,47 @@ classdef meshgen
                 h0_l = obj.h0(end); % finest h0 (in case of a restart of meshgen.build).
             end
             
-            % remove pfix/egfix outside of domain
+            % remove pfix/egfix outside of desired subdomain
             nfix = size(obj.pfix,1);    % Number of fixed points
             negfix = size(obj.egfix,1); % Number of edge constraints.
             if negfix > 0
                 % remove bars if midpoint is outside domain
                 egfix_mid = (obj.pfix(obj.egfix(:,1),:) + obj.pfix(obj.egfix(:,2),:))/2;
-                inbar = inpoly(egfix_mid,obj.boubox{1}(1:end-1,:));
+                for jj = 1 : length(obj.fixboxes)
+                    if obj.fixboxes(jj)
+                        inbar(:,jj) = inpoly(egfix_mid,obj.boubox{jj}(1:end-1,:));
+                    end
+                end
+                inbar = sum(inbar,2) ;
                 obj.egfix(~inbar,:) = [];
                 tmppfix = obj.pfix(unique(obj.egfix(:)),:);
                 obj.pfix = []; obj.pfix = tmppfix;
                 obj.egfix = renumberEdges(obj.egfix);
             elseif nfix > 0
                 % remove pfix if outside domain
-                in = inpoly(obj.pfix,obj.boubox{1}(1:end-1,:));
-                obj.pfix(~in,:) = [];
+                for jj = 1 : length(obj.fixboxes)
+                    if obj.fixboxes(jj)
+                        inbox(:,jj) = inpoly(obj.pfix,obj.boubox{jj}(1:end-1,:));
+                    end
+                end
+                inbox = sum(inbox,2) ;
+                obj.pfix(~inbox,:) = [];
             end
+            % updated sizes
+            % remove pfix/egfix outside of domain
+            nfix = size(obj.pfix,1);    % Number of fixed points
+            negfix = size(obj.egfix,1); % Number of edge constraints.
             
             if nfix >= 0, disp(['Using ',num2str(nfix),' fixed points.']);end
             if negfix > 0
                 if max(obj.egfix(:)) > length(obj.pfix)
-                    error('FATAL: Egfix does index correcty into pfix.');
+                    error('FATAL: egfix does index correcty into pfix.');
                 end
+                disp(['Using ',num2str(negfix),' fixed edges.']);
+            end
+            
+            if ~isempty(obj.pfix) && sum(obj.fixboxes)==0
+                error('INFO: Please specify fixedboxes flags with at least one non-zero!');
             end
             if ~isempty(obj.pfix); p = [obj.pfix; p]; end
             N = size(p,1); % Number of points N

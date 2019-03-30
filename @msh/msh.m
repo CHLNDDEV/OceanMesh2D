@@ -613,7 +613,7 @@ classdef msh
             end
             if proj
                 % now add the box
-                m_grid(); %'box','none') %,'FontSize',12);
+                m_grid('FontSize',16); %'box','none') %,'FontSize',12);
             end
         end
         
@@ -901,7 +901,7 @@ classdef msh
             end
             % Limit to topo or bathymetric slope to dfdx on the edges
             imax = 100;
-            [edge,elen] = GetBarLengths(obj);  
+            [edge,elen] = GetBarLengths(obj,0);  
             bt = obj.b; 
             if overland
                 I = bt > 0; 
