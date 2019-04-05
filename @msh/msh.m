@@ -613,7 +613,7 @@ classdef msh
             end
             if proj
                 % now add the box
-                m_grid(); %'box','none') %,'FontSize',12);
+                m_grid('FontSize',16); %'box','none') %,'FontSize',12);
             end
         end
         
@@ -901,7 +901,7 @@ classdef msh
             end
             % Limit to topo or bathymetric slope to dfdx on the edges
             imax = 100;
-            [edge,elen] = GetBarLengths(obj);  
+            [edge,elen] = GetBarLengths(obj,0);  
             bt = obj.b; 
             if overland
                 I = bt > 0; 
@@ -2537,6 +2537,28 @@ classdef msh
             obj.t = fem_struct.e;
         end
         
+        function obj = interpFP(obj,gdat,muw)
+            % kjr interpolate depth onto floodplain.
+
+            bnde = extdom_edges2(muw.t,muw.p) ; 
+            bou = extdom_polygon(bnde,muw.p,-1) ; 
+            bou = cell2mat(bou') ; 
+            
+            dmy1 = obj; % uw 
+            dmy2 = obj; % ol
+            
+            ee = Get_poly_edges(bou); 
+            in = inpoly(dmy1.p,bou,ee) ; 
+            
+            dmy1 = interp(obj,gdat,'type','depth','K',find(in)) ; 
+            dmy1.b = max(dmy1.b,1) ; % bound the maximum depth to 1
+            
+            dmy2 = interp(obj,gdat,'type','depth','N',3) ; % use smooth overland 
+            
+            obj.b(in) = dmy1.b(in) ; 
+            obj.b(~in)= dmy2.b(~in) ; 
+          
+        end
         
         
     end % end methods
