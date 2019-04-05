@@ -1429,17 +1429,23 @@ classdef msh
             
             global MAP_PROJECTION MAP_COORDS MAP_VAR_LIST
             if ~isempty(obj2.coord)
-                % kjr 2018,10,17; Set up projected space imported from msh class
-                MAP_PROJECTION = obj2.proj ;
-                MAP_VAR_LIST   = obj2.mapvar ;
-                MAP_COORDS     = obj2.coord ;
+                if any(min(obj1.p) < min(obj2.p)) || ...
+                   any(max(obj1.p) > max(obj2.p))
+                    objt = obj2; objt.p = [objt.p; obj1.p];
+                    setProj(objt,1,obj2.proj.name);
+                else
+                    % kjr 2018,10,17; Set up projected space imported from msh class
+                    MAP_PROJECTION = obj2.proj ;
+                    MAP_VAR_LIST   = obj2.mapvar ;
+                    MAP_COORDS     = obj2.coord ;
+                end
             else
                 %if ~isempty(obj1.proj)
                 %    projname = obj1.proj.name;
                 %else
-                %    projname = 'stereo';
+                projname = 'stereo';
                 %end
-                setProj(obj2,0);
+                setProj(obj2,1,projname);
             end
             
             % project both meshes into the space of the global mesh
@@ -1534,6 +1540,7 @@ classdef msh
             merge = CheckElementOrder(merge);
             
             % Carry over bathy and gradients
+            merge.b = 0*merge.p(:,1);
             [idx1,dst1] = ourKNNsearch(obj1.p',merge.p',1);   
             [idx2,dst2] = ourKNNsearch(obj2.p',merge.p',1);   
             merge.b(dst1 <= dst2) = obj1.b(idx1(dst1 <= dst2)); 
@@ -1545,7 +1552,6 @@ classdef msh
                 merge.by(dst1 <= dst2) = obj1.by(idx1(dst1 <= dst2)); 
                 merge.by(dst2 < dst1) = obj2.by(idx2(dst2 < dst1)); 
             end
-            
             disp(['Note that f13, f15 and boundary conditions etc. have' ...
                   'not been carried over into the merged mesh'])
         end
