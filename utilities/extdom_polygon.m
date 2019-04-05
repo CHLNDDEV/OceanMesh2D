@@ -1,4 +1,4 @@
-function [poly,poly_idx,max_index,max_size] = extdom_polygon(bnde,pts,order)
+function [poly,poly_idx,max_index,max_size] = extdom_polygon(bnde,pts,order,line)
 % DESCRIPTION: Given a set of boundary edges of a singly- or multi-
 %              polygonal region, organize them in a winding order.
 %
@@ -9,6 +9,7 @@ function [poly,poly_idx,max_index,max_size] = extdom_polygon(bnde,pts,order)
 %         order:the order in which the traversal takes place
 %               counter-clockwise (0) or clockwise (1) or add a negative
 %               sign to append NaNs in each cell. 
+%          line:if desired output will be polylines
 % OUTPUTS:
 %          poly: the boundary of each enclosing polygon sorted in winding-order
 %                poly is returned as a cell-array of length number of polys.
@@ -38,6 +39,10 @@ function [poly,poly_idx,max_index,max_size] = extdom_polygon(bnde,pts,order)
 % the connectivity to continue the "walk" on the boundary making the
 % calculation massively more efficient than compared to searching the entire bnde
 % array with edge under consideration. 
+
+% if storing lines 
+if(nargin < 4); line = 0; end
+
 bnde = [bnde; fliplr(bnde)]; 
 bnde = sortrows(bnde,1);
 ned = length(bnde);
@@ -85,6 +90,11 @@ while any(active)
         tsel = bnde(st+r-1,:); tsel_inv = fliplr(tsel) ;
         sel=tsel(tsel~=v_next);
         
+        if(line) 
+           if(isempty(sel))
+             break
+           end
+        end
         % store points.
         k = k + 1;
         temp(k,:) = pts(sel,:);
