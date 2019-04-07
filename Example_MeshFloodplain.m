@@ -1,9 +1,11 @@
+%%
 % Example_MeshFloodplain: Mesh a floodplain using five Post-Hurricane Sandy 
 % LiDAR 1/9 arc second tiles with shoreline 
 % edge locking in a two-step meshing approach. 
 % This two-step approach carefully preserve the mesh's 
 % shoreline representation in a mesh that extends to a higher geometric countour.
-%%%% THIS EXAMPLE TAKES ROUGHLY 25-MINUTES TO COMPLETE%%%%
+%%%% THIS EXAMPLE TAKES ROUGHLY 25-MINUTES TO COMPLETE %%%%
+%%
 clearvars; close all; clc;
 
 addpath(genpath('utilities/'))
@@ -37,8 +39,8 @@ fh{1}   = edgefx('dis',GRADE,'geodata',gdat{1},'slp',SLP,...
 %% in only areas where LiDAR data is available. 
 MIN_EL    = 25 ; % MINIMUM ELEMENT SIZE
 MAX_EL_NS = 125 ;% MAXIMUM ELEMENT SIZE NEARSHORE 
-MAX_EL    = 1e3;% MAXIMUM ELEMENT SIZE IN THE ENTIRE DOMAIN
-FS        = -5 ;% FEATURE SIZE THAT SCALES RESOLUTION WITH SHORELINE WIDTH
+MAX_EL    = 1e3; % MAXIMUM ELEMENT SIZE IN THE ENTIRE DOMAIN
+FS        = -5 ; % FEATURE SIZE THAT SCALES RESOLUTION WITH SHORELINE WIDTH
 GRADE     = 0.15 ; % INTER-ELEMENTAL EXPANSION RATE
 
 % Five 1/9 arc second NCEI tiles from the Post-Sandy dataset referenced to
@@ -66,18 +68,19 @@ fh{i+1} = edgefx('geodata',gdat{i+1},...
 end
 %% CONSTRUCT MESH 
 % Note, we set a low disjoint cutoff (dj_cutoff) to retain as much
-% hydrualic connectivity of the mesh as possible. A larger value of dj_cutoff will
-% more aggressively simplify the shoreline representation.
+% hydrualic connectivity of the mesh as possible. A larger value of 
+% dj_cutoff will more aggressively simplify the shoreline representation.
 mshopts = meshgen('ef',fh,'bou',gdat,'plot_on',1,'dj_cutoff',0.001);
 
 mshopts = mshopts.build;
 
 m = mshopts.grd;
 
-plot(m,'tri')
+plot(m,'tri',0)
 
-% SAVE THE OCEANSIDE MESH TO DISK FOR LATER USE
+% SAVE THE OCEANSIDE MESH AS MSH OBJ TO DISK FOR LATER USE
 muw=m;
+
 save OceanSide muw
 
 %% STEP 2: mesh overland while locking shoreline edges and points
@@ -117,7 +120,7 @@ for i = 1:5
         'g',GRADE);
 end
 
-%% EXTRACT CONSTRAINTS FROM OCEANSIDE MESH
+%% EXTRACT SHORELINE CONSTRAINTS FROM OCEANSIDE MESH
 [pfix,egfix]=muw.extractFixedConstraints; 
 
 % We are going to constrain edges and points only in the high resolution
@@ -139,11 +142,11 @@ mol = mshopts.grd;
 %% Quality control: visually inspect mesh!!!!
 % Look for thin islands in the interior of the domain, odd-shaped elements.
 % This isn't magic! 
-plot(mol,'tri',0); 
+plot(mol,'tri'); 
 
 bou = mol.getBoundaryOfMesh; 
 
-hold on; plot(bou(:,1),bou(:,2),'r-','linewi',2); 
+hold on; m_plot(bou(:,1),bou(:,2),'r-','linewi',2); 
 
 %% INTERPOLATE BATHY FROM LiDAR USING SPECIAL PROCEDURE
 % This procedure interpolates data underwater FIRST using a gridscale
@@ -158,10 +161,18 @@ plot(mfinal,'b') ;
 
 demcmap([-5 5]);
 
-% Ensure the CFL is sufficiently small for stability. 
-max(CalcCFL(mfinal,1))
-
+%%
 % At this stage it would appropriate to remove portions of the mesh far
 % overlnd out of the reach of a potential flood.
+% Here we remove all elements with an average depth greater than 5-m above
+% the geoid of the DEMs used. 
+mfinal2 = mfinal.pruneOverlandMesh(10) ; 
 
+plot(mfinal2,'tri',0) ; 
 
+plot(mfinal2,'b',0) ;
+
+demcmap([-5 5]);
+
+% Ensure the CFL is sufficiently small for numerical stability. 
+max(CalcCFL(mfinal,1))

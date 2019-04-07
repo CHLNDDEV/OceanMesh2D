@@ -2612,6 +2612,23 @@ classdef msh
             boundary = cell2mat(boundary'); 
         end
         
+        function obj = pruneOverlandMesh(obj,elev) 
+            %%%%%%%
+            % Removes overland extent greater than certain elevation about 
+            % geoid of the mesh.
+            % INPUTS: msh_obj and height above the geoid whereby elements with
+            % an average depth greater than elev are pruned from the mesh. 
+            % OUTPUS: a msh_obj with the overland extents removed. 
+            % april 2019, kjr
+            Fb=scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.b,'nearest','none') ; 
+            c = (obj.b(obj.t(:,1),:)+obj.b(obj.t(:,2),:)+obj.b(obj.t(:,3),:))/3;
+            obj.t(c < -elev,:) = []; 
+            [pp,tt]=fixmesh(obj.p,obj.t) ; 
+            obj = msh() ; obj.p=pp; obj.t=tt; 
+            obj=renum(obj) ;
+            obj.b = Fb(obj.p) ; 
+        end
+        
         function obj = interpFP(obj,gdat,muw)
             %%%%%%%
             % Interpolate topography onto a mesh with floodplain
