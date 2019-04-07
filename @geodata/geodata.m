@@ -34,6 +34,7 @@ classdef geodata
         fp % deprecated but kept for backwards capability
         Fb % linear gridded interpolant of DEM
         x0y0 % bottom left of structure grid or position (0,0)
+        pslg 
     end
     
     methods
@@ -53,8 +54,10 @@ classdef geodata
             addOptional(p,'weirs',defval);
             addOptional(p,'inner',defval);
             addOptional(p,'mainland',defval);
+            addOptional(p,'pslg',defval);
             addOptional(p,'boubox',defval);
             addOptional(p,'window',defval);
+            
             
             % parse the inputs
             parse(p,varargin{:});
@@ -103,6 +106,11 @@ classdef geodata
                         end
                     case('outer')
                         obj.outer = inp.(fields{i});
+                        if obj.outer(1) ~=0
+                            obj.outer = inp.(fields{i});
+                        end
+                    case('pslg')
+                        obj.pslg = inp.(fields{i});
                         if obj.outer(1) ~=0
                             obj.outer = inp.(fields{i});
                         end
@@ -195,6 +203,12 @@ classdef geodata
                 obj.mainland = polygon_struct.mainland;
                 obj.inner    = polygon_struct.inner;
                 
+                % kjr April42019 check if no mainland segments, set outer
+                % to boubox 
+                if isempty(obj.mainland) 
+                  obj.outer = [ ]; 
+                  obj.outer = obj.boubox; 
+                end
                 % Make sure the shoreline components have spacing of gridspace/2
                 [la,lo]=my_interpm(obj.outer(:,2),obj.outer(:,1),gridspace/2);
                 obj.outer = [];  obj.outer(:,1) = lo; obj.outer(:,2) = la;
@@ -262,8 +276,90 @@ classdef geodata
                 
                 disp(['Read in shapefile ',obj.contourfile]);
                 
-            else
+            elseif obj.pslg(1)~=0
                 % Handle the case for user defined mesh boundary information
+                polygon_struct = Read_shapefile( [], obj.pslg, ...
+                    obj.bbox, gridspace, obj.boubox, 0 );
+                
+                % unpack data from function Read_Shapefile()s
+                obj.outer    = polygon_struct.outer;
+                obj.mainland = polygon_struct.mainland;
+                obj.inner    = polygon_struct.inner;
+                
+                % kjr April42019 check if no mainland segments, set outer
+                % to boubox 
+                if isempty(obj.mainland) 
+                  obj.outer = [ ]; 
+                  obj.outer = obj.boubox; 
+                end
+                % Make sure the shoreline components have spacing of gridspace/2
+                [la,lo]=my_interpm(obj.outer(:,2),obj.outer(:,1),gridspace/2);
+                obj.outer = [];  obj.outer(:,1) = lo; obj.outer(:,2) = la;
+                
+                if ~isempty(obj.mainland)
+                    [la,lo]=my_interpm(obj.mainland(:,2),obj.mainland(:,1),gridspace/2);
+                    obj.mainland = []; obj.mainland(:,1) = lo; obj.mainland(:,2) = la;
+                end
+                
+                if ~isempty(obj.inner)
+                    [la,lo]=my_interpm(obj.inner(:,2),obj.inner(:,1),gridspace/2);
+                    obj.inner = []; obj.inner(:,1) = lo; obj.inner(:,2) = la;
+                end
+                clearvars lo la
+                
+                % Smooth the coastline (apply moving average filter).
+                if obj.window > 1
+                    disp(['Smoothing coastline with ' ...
+                        num2str(obj.window) ' point window'])
+                    if ~isempty(obj.outer)
+                        obj.outer = smooth_coastline(obj.outer,obj.window,0);
+                    end
+                    if ~isempty(obj.mainland)
+                        obj.mainland = smooth_coastline(obj.mainland,obj.window,0);
+                    end
+                    if ~isempty(obj.inner)
+                        obj.inner = smooth_coastline(obj.inner,obj.window,0);
+                    end
+                else
+                    disp('No smoothing of coastline enabled')
+                end
+                
+%                 % WJP: Jan 25, 2018 check the polygon
+% kjr moved to after dem is read to auto-close
+%                 obj = check_connectedness_inpoly(obj);
+                
+                % KJR: May 13, 2018 coarsen portions of outer, mainland
+                % and inner outside bbox (made into function WP)
+                iboubox = obj.boubox;
+                iboubox(:,1) = 1.10*iboubox(:,1)+(1-1.10)*mean(iboubox(1:end-1,1));
+                iboubox(:,2) = 1.10*iboubox(:,2)+(1-1.10)*mean(iboubox(1:end-1,2));
+                
+                obj.outer = coarsen_polygon(obj.outer,iboubox);
+                
+                if ~isempty(obj.inner)
+                    obj.inner = coarsen_polygon(obj.inner,iboubox);
+                end
+                
+                if ~isempty(obj.mainland)
+                    obj.mainland = coarsen_polygon(obj.mainland,iboubox);
+                end
+                
+                % kjr Oct. 27 2018, add the weir faux islands to the inner geometry
+                if ~isempty(obj.weirPfix)
+                    idx = [0; cumsum(weirLength)']+1 ;
+                    tmp = [] ;
+                    for ii = 1 : noWeirs
+                        tmp =  [tmp;
+                            [obj.weirPfix(idx(ii):idx(ii+1)-1,:)
+                            obj.weirPfix(idx(ii),:)]
+                            NaN NaN] ;
+                    end
+                    obj.inner = [obj.inner ; NaN NaN ;  tmp ] ;
+                end
+                
+                disp(['Read in NaN-delimited vector']);
+                
+            elseif ~isempty(obj.outer)    
                 
                 % make sure it has equal spacing of h0/2
                 if obj.outer(1)==0
@@ -283,6 +379,16 @@ classdef geodata
                     warning('Warning: No mainland segment was passed!');
                 end
                 
+                % for islands
+                if obj.inner(1)~=0
+                    [la,lo]=my_interpm(obj.inner(:,2),obj.inner(:,1),gridspace/2);
+                    obj.inner = [];
+                    obj.inner(:,1) = lo; obj.inner(:,2) = la;
+                end
+                clearvars lo la
+                
+            else
+                
                 % kjr Oct. 27 2018, add the weir faux islands to the inner geometry
                 if ~isempty(obj.weirPfix)
                     idx = [0; cumsum(weirLength)']+1 ;
@@ -295,6 +401,7 @@ classdef geodata
                     end
                     obj.inner = [obj.inner ; NaN NaN ;  tmp ] ;
                 end
+                
                 % for islands
                 if obj.inner(1)~=0
                     [la,lo]=my_interpm(obj.inner(:,2),obj.inner(:,1),gridspace/2);
@@ -445,7 +552,7 @@ classdef geodata
                 obj.bbox, gridspace, obj.boubox, 0 );
            
             % kjr call close method to fix gdat.
-            obj = close(obj) ; 
+            %obj = close(obj) ; 
             
             % make a fake tester grid
             x = linspace(obj.bbox(1,1),obj.bbox(1,2),100);
@@ -501,7 +608,7 @@ classdef geodata
                 seed = cands2(50,:) ;
             end
             
-            geom = [obj.mainland; obj.inner; obj.boubox] ;
+            geom = [obj.mainland; obj.boubox] ;
             
             [NODE,PSLG]=getnan2(geom) ;
             
@@ -568,14 +675,14 @@ classdef geodata
                         obj.boubox(1:end-1,2),'cross',45,0.05);
                     m_plot(long,lati,'.','Color','white')
             end
-            if ~isempty(obj.mainland)
+            if obj.mainland(1)~=0
                 h1 = m_plot(obj.mainland(:,1),obj.mainland(:,2),...
                     'r-','linewi',1); hold on;
             end
-            if ~isempty(obj.inner)
-                h2 = m_plot(obj.inner(:,1),obj.inner(:,2),...
-                    'g-','linewi',1); hold on;
-            end
+%             if obj.inner(1)~=0
+%                 h2 = m_plot(obj.inner(:,1),obj.inner(:,2),...
+%                     'g-','linewi',1); hold on;
+%             end
             if ~isempty(obj.weirs)
                 for ii =1 : length(obj.weirs)
                     h3 = m_plot(obj.weirs{ii}(:,1),obj.weirs{ii}(:,2),...

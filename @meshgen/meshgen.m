@@ -358,7 +358,11 @@ classdef meshgen
             %%
             tic
             it = 1 ;
-            imp = 10; % number of iterations to do mesh improvements (delete/add)
+            if ~isempty(obj.pfix)
+                imp = 5; % number of iterations to do mesh improvements (delete/add)
+            else
+                imp=10;
+            end
             imp2 = imp;
             Re = 6378.137e3;
             geps = 1e-3*min(obj.h0)/Re; 
@@ -428,6 +432,9 @@ classdef meshgen
                         st = ed;
                         ed = st + blklen;
                         p1 = [x(:) y(:)]; clear x y
+                        if ~isempty(obj.pfix)
+                           p1 = [p1 ; obj.pfix] ;
+                        end
                         %% 2. Remove points outside the region, apply the rejection method
                         p1 = p1(feval(obj.fd,p1,obj,box_num) < geps,:);     % Keep only d<0 points
                         r0 = 1./feval(fh_l,p1).^2;                          % Probability to keep point
@@ -449,7 +456,11 @@ classdef meshgen
                 egfix_mid = (obj.pfix(obj.egfix(:,1),:) + obj.pfix(obj.egfix(:,2),:))/2;
                 for jj = 1 : length(obj.fixboxes)
                     if obj.fixboxes(jj)
-                        inbar(:,jj) = inpoly(egfix_mid,obj.boubox{jj}(1:end-1,:));
+                        % shrink box to avoid constraining boundary edges
+                        iboubox = obj.boubox{jj};
+                        iboubox(:,1) = 0.98*iboubox(:,1)+(1-0.98)*mean(iboubox(1:end-1,1));
+                        iboubox(:,2) = 0.98*iboubox(:,2)+(1-0.98)*mean(iboubox(1:end-1,2));
+                        inbar(:,jj) = inpoly(egfix_mid,iboubox(1:end-1,:));
                     end
                 end
                 inbar = sum(inbar,2) ;
@@ -686,6 +697,7 @@ classdef meshgen
                 prj = 1;  % project
                 [obj.grd,qout] = clean(obj.grd,db,obj.direc_smooth,con,...
                                    obj.dj_cutoff,obj.nscreen,obj.pfix,prj);
+                obj.grd.pfix = obj.pfix ;
                 obj.qual(end+1,:) = qout;
             else
                 % Fix mesh on the projected space
@@ -725,7 +737,11 @@ classdef meshgen
                 if isempty(obj.egfix)
                     TR   = delaunayTriangulation(p_s);
                 else
-                    TR   = delaunayTriangulation(p_s(:,1),p_s(:,2),obj.egfix);
+                   % if(mod(it,3)==0)
+                        TR   = delaunayTriangulation(p_s(:,1),p_s(:,2),obj.egfix);
+                   % else
+                    %    TR   = delaunayTriangulation(p_s);
+                   % end
                 end
                 for kk = 1:final+1
                     if kk > 1

@@ -83,10 +83,14 @@ for box_num = box_vec
     end
     
     % d is negative if inside polygon and vice versa.
+    %     if inpoly_flip
+    %         d_l = (-1).^(~in & ~in1).*d_l;
+    %     else
+    d_l = (-1).^( in & in1).*d_l;
+    %    end
+    
     if inpoly_flip
-        d_l = (-1).^(~in & ~in1).*d_l;
-    else
-        d_l = (-1).^( in & in1).*d_l;
+        d_l = d_l*-1 ;
     end
     
     if sum(inside)==0; return; end
