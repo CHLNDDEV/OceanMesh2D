@@ -376,6 +376,7 @@ classdef geodata
                     obj.mainland = [];
                     obj.mainland(:,1) = lo; obj.mainland(:,2) = la;
                 else
+                    obj.mainland = [];
                     warning('Warning: No mainland segment was passed!');
                 end
                 
@@ -407,6 +408,8 @@ classdef geodata
                     [la,lo]=my_interpm(obj.inner(:,2),obj.inner(:,1),gridspace/2);
                     obj.inner = [];
                     obj.inner(:,1) = lo; obj.inner(:,2) = la;
+                else
+                    obj.inner = [];
                 end
                 clearvars lo la
                 
@@ -657,8 +660,13 @@ classdef geodata
                     [demx,demy] = ndgrid(obj.x0y0(1):obj.h0/111e3:obj.bbox(1,2), ...
                         obj.x0y0(2):obj.h0/111e3:obj.bbox(2,2));
                     demz = obj.Fb(demx,demy);
-                    edges = Get_poly_edges( [obj.outer; obj.inner] );
-                    in = inpoly([demx(:),demy(:)],[obj.outer; obj.inner], edges);
+                    if ~isempty(obj.inner) && obj.inner(1) ~= 0
+                        poly = [obj.outer; obj.inner];
+                    else
+                        poly = obj.outer;
+                    end
+                    edges = Get_poly_edges( poly );
+                    in = inpoly([demx(:),demy(:)],poly, edges);
                     if obj.inpoly_flip
                         in = ~in;
                     end
@@ -675,14 +683,14 @@ classdef geodata
                         obj.boubox(1:end-1,2),'cross',45,0.05);
                     m_plot(long,lati,'.','Color','white')
             end
-            if obj.mainland(1)~=0
+            if ~isempty(obj.mainland) && obj.mainland(1) ~= 0
                 h1 = m_plot(obj.mainland(:,1),obj.mainland(:,2),...
                     'r-','linewi',1); hold on;
             end
-%             if obj.inner(1)~=0
-%                 h2 = m_plot(obj.inner(:,1),obj.inner(:,2),...
-%                     'g-','linewi',1); hold on;
-%             end
+            if ~isempty(obj.inner) && obj.inner(1) ~= 0
+                h2 = m_plot(obj.inner(:,1),obj.inner(:,2),...
+                    'g-','linewi',1); hold on;
+            end
             if ~isempty(obj.weirs)
                 for ii =1 : length(obj.weirs)
                     h3 = m_plot(obj.weirs{ii}(:,1),obj.weirs{ii}(:,2),...

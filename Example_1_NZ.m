@@ -6,10 +6,10 @@ addpath(genpath('m_map/'))
 %% STEP 1: set mesh extents and set parameters for mesh.
 bbox = [166 176;		% lon_min lon_max
         -48 -40]; 		% lat_min lat_max
-min_el    = 250;  		% minimum resolution in meters.
-max_el    = 20e3; 		% maximum resolution in meters. 
-max_el_ns = 1e3;        % maximum resolution nearshore in meters.
-grade     = 0.20; 		% mesh grade in decimal percent.
+min_el    = 1e3;  		% minimum resolution in meters.
+max_el    = 100e3; 		% maximum resolution in meters. 
+max_el_ns = 5e3;        % maximum resolution nearshore in meters.
+grade     = 0.35; 		% mesh grade in decimal percent.
 R         = 3;    		% number of elements to resolve feature width.
 %% STEP 2: specify geographical datasets and process the geographical data 
 %% to be used later with other OceanMesh classes...
