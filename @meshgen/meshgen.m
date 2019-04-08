@@ -358,11 +358,11 @@ classdef meshgen
             %%
             tic
             it = 1 ;
-            imp = 10; % number of iterations to do mesh improvements (delete/add)
+            imp=10;
             imp2 = imp;
             Re = 6378.137e3;
             geps = 1e-3*min(obj.h0)/Re; 
-            deps = sqrt(eps); %*min(obj.h0)/111e3;
+            deps = sqrt(eps);
             ttol=0.1; Fscale = 1.2; deltat = 0.1;
             % unpack initial points.
             p = obj.grd.p;
@@ -428,6 +428,7 @@ classdef meshgen
                         st = ed;
                         ed = st + blklen;
                         p1 = [x(:) y(:)]; clear x y
+
                         %% 2. Remove points outside the region, apply the rejection method
                         p1 = p1(feval(obj.fd,p1,obj,box_num) < geps,:);     % Keep only d<0 points
                         r0 = 1./feval(fh_l,p1).^2;                          % Probability to keep point
@@ -437,7 +438,8 @@ classdef meshgen
                     end
                 end
             else
-                imp = 5; % number of iterations to do mesh improvements (delete/add)
+                disp('User-supplied initial points!'); 
+                imp = 10; % number of iterations to do mesh improvements (delete/add)
                 h0_l = obj.h0(end); % finest h0 (in case of a restart of meshgen.build).
             end
             
@@ -449,7 +451,11 @@ classdef meshgen
                 egfix_mid = (obj.pfix(obj.egfix(:,1),:) + obj.pfix(obj.egfix(:,2),:))/2;
                 for jj = 1 : length(obj.fixboxes)
                     if obj.fixboxes(jj)
-                        inbar(:,jj) = inpoly(egfix_mid,obj.boubox{jj}(1:end-1,:));
+                        % shrink box to avoid constraining boundary edges
+                        iboubox = obj.boubox{jj};
+                        iboubox(:,1) = 0.98*iboubox(:,1)+(1-0.98)*mean(iboubox(1:end-1,1));
+                        iboubox(:,2) = 0.98*iboubox(:,2)+(1-0.98)*mean(iboubox(1:end-1,2));
+                        inbar(:,jj) = inpoly(egfix_mid,iboubox(1:end-1,:));
                     end
                 end
                 inbar = sum(inbar,2) ;
@@ -537,6 +543,39 @@ classdef meshgen
                 mq_s = std(tq.qm);
                 mq_l3sig = mq_m - 3*mq_s;
                 obj.qual(it,:) = [mq_m,mq_l3sig,mq_l];
+                
+                
+                % kjr april2019 
+                % if there's a triangle with a low geometric quality that
+                % contains a fixed edge, remove the non-fixed vertex
+                if ~isempty(obj.egfix) && mod(it,1)==0
+                    % returns triangle IDs that have edge locks
+                    TR = triangulation(t,p) ;
+                    elock = edgeAttachments(TR,obj.egfix) ;
+                    tq = gettrimeshquan(p,t);
+                    pmid = squeeze(mean(reshape(p(t,:),[],3,2),2));
+                    numbad=0 ; 
+                    badone=[]; 
+                    for ii = 1 : length(elock)
+                        vals=elock{ii};
+                        for iii = 1 : length(vals)
+                            if tq.qm(vals(iii)) < 0.10 % tria has poor qual
+                                numbad=numbad+1;
+                                badone(numbad)=vals(iii) ; 
+                            end
+                        end
+                    end
+                    % for each poor qual tria, delete the vertex tht isn't
+                    % fixed
+                    if ~isempty(badone)
+                        badtria=t(badone,:);
+                        del     = badtria(badtria > nfix) ;
+                        p(del,:)= [];
+                        pold = inf; it = it + 1;
+                        disp(['Deleting ',num2str(length(del)),' points close to fixed edges']);
+                        continue;
+                    end
+                end
                 % Termination quality, mesh quality reached is copacetic.
                 if mod(it,imp2) == 0
                     if abs(mq_l3sig - obj.qual(max(1,it-imp2),2)) < 0.01
@@ -686,6 +725,7 @@ classdef meshgen
                 prj = 1;  % project
                 [obj.grd,qout] = clean(obj.grd,db,obj.direc_smooth,con,...
                                    obj.dj_cutoff,obj.nscreen,obj.pfix,prj);
+                obj.grd.pfix = obj.pfix ;
                 obj.qual(end+1,:) = qout;
             else
                 % Fix mesh on the projected space
@@ -735,11 +775,6 @@ classdef meshgen
                         TR.Points(nn,:) = []; 
                         p(nn,:) = []; pt1(nn,:) = [];
                     end
-                    %if ~isempty(obj.egfix) 
-                    %  pt1 = TR.Points; 
-                    %  p = []; 
-                    %  [p(:,1),p(:,2)]=m_xy2ll(pt1(:,1),pt1(:,2));
-                    %end
                     t = TR.ConnectivityList;
                     pmid = squeeze(mean(reshape(pt1(t,:),[],3,2),2));      % Compute centroids
                     [pmid(:,1),pmid(:,2)] = m_xy2ll(pmid(:,1),pmid(:,2));  % Change back to lat lon

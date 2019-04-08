@@ -17,9 +17,13 @@ function obj = GridData(geodata,obj,varargin)
 %                         K = find( obj.p(:,1) >= lon_min & ...
 %                                   obj.p(:,2) <= lon_max);
 %                         obj = GridData(fname,obj,'K',K);
-%       type (optional) - type is either 'depth', 'slope' or 'all'. 
+%       type (optional) - type is either 'depth', 'slope' 'all' or 'fp'. 
 %                         'all' is the default (both slope and depth). 
 %                         'slope' to gets the gradients of DEM
+%                         'fp' interpolates the overland with a N=3 and
+%                         underwater with a maximum depth of 1-m. This
+%                         option requires a watertight polygon as a
+%                         NaN-delimited vector.
 %
 %     interp (optional) - interp is either the normal griddedInterpolant
 %                         options in MATLAB or is 'CA' (default). Note: 'CA'
@@ -44,7 +48,7 @@ function obj = GridData(geodata,obj,varargin)
 %               by      - The y direction gradient if type is 'slope' or
 %                         'all'
 %
-%	Author: William Pringle, CHL, Notre Dame University
+%	Author: William Pringle, and Keith Roberts CHL, Notre Dame University
 %	Created: 2018-03-12
 %
 %   Edits by Keith Roberts, 2018-02-22 to avoid FillValue contaimation and
@@ -52,6 +56,8 @@ function obj = GridData(geodata,obj,varargin)
 %
 %   Edits by Keith Roberts, 2018-10-18 to bound depth in interpolated
 %   regions
+%
+%   Edits by Keith Roberts, 2019-4-4 to interpolate the floodplain
 
 %% Test optional arguments
 % default
@@ -322,54 +328,7 @@ if strcmp(interp,'CA')
             end
         end
     end
-    
-    % Floodplain interp kjr chl und, 2018,10,16
-    if strcmp(type,'depthsmooth')
-        GRADE = 0.15 ;
-        stride = 5 ;
-        DEM_X2 = DEM_X(1:stride:end,1:stride:end) ;
-        DEM_Y2 = DEM_Y(1:stride:end,1:stride:end) ;
-        DEM_Z2 = DEM_Z(1:stride:end,1:stride:end) ;
-        DEM_X = DEM_X2 ; DEM_Y = DEM_Y2 ; DEM_Z = DEM_Z2 ;
-        clearvars DEM_X2 DEM_Y2 DEM_Z2
-        %%%
-        DX = 111e3*abs(DEM_X(2)-DEM_X(1)) ;
-        [nx,ny] = size(DEM_X) ;
-        % Apply gradient limiting to seabed topography
-        disp('Relaxing the gradient of DEM tile');
-        % relax gradient
-        hfun = zeros(size(DEM_X,1)*size(DEM_X,2),1);
-        nn = 0;
-        for ipos = 1 : nx
-            for jpos = 1 : ny
-                nn = nn + 1;
-                hfun(nn,1) = DEM_Z(ipos,jpos);
-            end
-        end
-        dx = DX*cosd(DEM_Y(1,:)); % for gradient function
-        dy = DX;                 % for gradient function
-        [hfun2,flag] = limgradStruct(ny,dx,dy,hfun,...
-            GRADE,sqrt(length(hfun)));
-        if flag == 1
-            disp(['Gradient relaxing converged to ',num2str(100*GRADE) ,'% ']);
-        else
-            disp('Warning: Gradient relaxing did not converge try increasing the grade');
-        end
-        % reshape it back
-        nn = 0;
-        for ipos = 1 : nx
-            for jpos = 1 : ny
-                nn = nn+1;
-                DEM_Z2(ipos,jpos) = hfun2(nn);
-            end
-        end
-        clearvars hfun
-        % Use nearestneighbor interpolation
-        F  = griddedInterpolant(DEM_X,DEM_Y,DEM_Z2,'nearest','none');
-        obj.b  = F(obj.p(K,1),obj.p(K,2));
         
-    end
-    
     % Average for the slopes
     if strcmp(type,'slope') || strcmp(type,'all')
         for ii = 1:length(K)

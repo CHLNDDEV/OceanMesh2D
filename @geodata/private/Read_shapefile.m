@@ -68,15 +68,25 @@ if (size(finputname,1)~=0)
         end
     end
 else
-    count = 1;
-    j=1;
+    % convert NaN-delimited vector to struct 
+    count = 1; j=1;
     for i = 1 : length(polygon)
+        % the end of the segment 
+        
         if(isnan(polygon(i,1))==1)
-            count = count + 1; j=1;
+            % put NaN at end 
+            SG(count,1).X(:,j) =NaN; 
+            SG(count,1).Y(:,j) =NaN; 
+            % reset 
+            j = 1 ; count = count + 1;
+
             continue
+        else
+            % keep going             
+            SG(count,1).X(:,j) = polygon(i,1);
+            SG(count,1).Y(:,j) = polygon(i,2);
+            j=j+1;
         end
-        SG(count).points(j,:) = polygon(i,:);
-        j=j+1;
     end
 end
 % If we don't have an outer polygon already then make it by bbox

@@ -36,6 +36,7 @@ classdef msh
         proj   % Description of projected space (m_mapv1.4)
         coord  % Description of projected space (m_mapv1.4)
         mapvar % Description of projected space (m_mapv1.4)
+        pfix   % fixed points that were constrained in msh
     end
     
     methods
@@ -2540,26 +2541,154 @@ classdef msh
             obj.t = fem_struct.e;
         end
         
+        function mfixed = MergeFP(muw,mfp) 
+            %%%%%%%
+            % Merges a watertight mesh muw with a mesh that contains both 
+            % over and underwater sections mfp. This method assumes mfp has
+            % been created by edge locking the shoreline and using fixed
+            % points. 
+            %
+            % INPUTS: 
+            % muw: watertight msh object 
+            % mfp: watertight msh with the floodplain using edge locking
+            %
+            % OUTPUTS: 
+            % mfixed: a final merged msh that seamlessly mates with the
+            % underwater mesh.
+            % kjr, April 2019
+            
+            m3 = mfp - muw ;
+                        
+            dt = delaunayTriangulation(muw.p) ;
+            
+            dt.Points(end+(1:length(m3.p)),:) = m3.p ;
+            
+            tmp = msh();
+            
+            tmp.p = dt.Points ; tmp.t = dt.ConnectivityList; 
+            
+            % delete points outside mfp and muw 
+            bnde = extdom_edges2(mfp.t,mfp.p) ;
+            polyt=extdom_polygon(bnde,mfp.p,-1,0,20) ;
+            polyt=cell2mat(polyt') ;
+            
+            ee   = Get_poly_edges(polyt) ;
+            bc   = baryc(tmp) ;
+            infp   = inpoly(bc,polyt,ee) ;
+            
+            bnde = extdom_edges2(muw.t,muw.p) ;
+            polyt=extdom_polygon(bnde,muw.p,-1,0,20) ;
+            polyt=cell2mat(polyt') ;
+            
+            ee   = Get_poly_edges(polyt) ;
+            bc   = baryc(tmp) ;
+            inuw   = inpoly(bc,polyt,ee) ;
+                        
+            
+            tmp.t(~infp & ~inuw,:) = [] ; 
+                       
+            [tmp.p,tmp.t]=fixmesh(tmp.p,tmp.t) ; 
+            
+            mfixed = tmp ;
+            
+            mfixed = renum(mfixed) ; 
+            
+            
+        end
+        
+        function [pfix,egfix] = extractFixedConstraints(obj)
+            %%%%%%%
+            % Extract boundary of mesh in no order.
+            % INPUTS: msh_obj 
+            % OUTPUTS: the points and edges of the mesh 
+            % NOTE: You can visualize these constraints by 
+            % drawedge2(pfix,egfix); 
+            % kjr, April 2019
+            [egfix,pfix]=extdom_edges2(obj.t,obj.p) ;
+            egfix = renumberEdges(egfix) ;
+        end
+        
+        function boundary = getBoundaryOfMesh(obj) 
+            %%%%%%%
+            % Returns the boundary of the mesh in a winding order as a
+            % NaN-delimited vector 
+            % INPUTS: msh_obj 
+            % OUTPUTS: NaN-delimited vector in a "walking" order.
+            % kjr, April 2019
+            bnde = extdom_edges2(obj.t,obj.p) ; 
+            try
+                boundary = extdom_polygon(bnde,obj.p,-1) ;
+            catch
+                warning('ALERT: Boundary of mesh is not walkable. Returning polylines.');
+                boundary = extdom_polygon(bnde,obj.p,-1,1) ;
+            end
+            boundary = cell2mat(boundary'); 
+        end
+        
+        function obj = pruneOverlandMesh(obj,elev) 
+            %%%%%%%
+            % Removes overland extent greater than certain elevation about 
+            % geoid of the mesh.
+            % INPUTS: msh_obj and height above the geoid whereby elements with
+            % an average depth greater than elev are pruned from the mesh. 
+            % OUTPUS: a msh_obj with the overland extents removed. 
+            % april 2019, kjr
+            Fb=scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.b,'nearest','none') ; 
+            c = (obj.b(obj.t(:,1),:)+obj.b(obj.t(:,2),:)+obj.b(obj.t(:,3),:))/3;
+            obj.t(c < -elev,:) = []; 
+            [pp,tt]=fixmesh(obj.p,obj.t) ; 
+            obj = msh() ; obj.p=pp; obj.t=tt; 
+            obj=renum(obj) ;
+            obj.b = Fb(obj.p) ; 
+        end
+        
         function obj = interpFP(obj,gdat,muw)
-            % kjr interpolate depth onto floodplain.
-
+            %%%%%%%
+            % Interpolate topography onto a mesh with floodplain
+            % Interpolates bathymetry underwater using a grid-scale
+            % averaging with a minimum depth of 1-m. 
+            % Then it uses a 3x multipler for grid-scale averaging
+            % to interpolate overland topography. 
+            % Finally, it updates the bathymetry on the outputted msh
+            % to match the underwater and the overland sections. 
+            %
+            %%%%%%%
+            % INPUTS
+            % obj: msh_obj to interpolate topograhy/bathy on
+            % gdat:geodata obj that contains DEM (could be cell-array of
+            % gdats)
+            % muw: msh_obj of only the watertight portion of the domain
+            %
+            %%%%%%%
+            % OUTPUTS: 
+            % a msh_obj with bathy/topo on its vertices 
+            %
+            % kjr, april 2019
+            
             bnde = extdom_edges2(muw.t,muw.p) ; 
             bou = extdom_polygon(bnde,muw.p,-1) ; 
             bou = cell2mat(bou') ; 
             
             dmy1 = obj; % uw 
-            dmy2 = obj; % ol
             
             ee = Get_poly_edges(bou); 
             in = inpoly(dmy1.p,bou,ee) ; 
-            
-            dmy1 = interp(obj,gdat,'type','depth','K',find(in)) ; 
-            dmy1.b = max(dmy1.b,1) ; % bound the maximum depth to 1
-            
-            dmy2 = interp(obj,gdat,'type','depth','N',3) ; % use smooth overland 
-            
-            obj.b(in) = dmy1.b(in) ; 
-            obj.b(~in)= dmy2.b(~in) ; 
+            obj.b = (1:length(obj.p(:,1)))'*0 ; 
+            for i = 1 : length(gdat)
+                if isempty(gdat{i}.Fb) 
+                   disp(['Entry ',num2str(i), ' does not contain DEM, skipping']);
+                   continue 
+                end
+                in2 = inpoly(dmy1.p,gdat{i}.boubox(1:end-1,:)) ;
+                dmy1 = interp(obj,gdat(i),'type','depth','K',find(in & in2)) ;
+                dmy1.b = max(dmy1.b,1) ; % bound the maximum depth to 1
+                
+                dmy2 = interp(obj,gdat(i),'type','depth','N',3) ; % use smooth overland
+                
+                obj.b(in  & in2,1) = dmy1.b(in & in2,1) ;
+                obj.b(~in & in2,1)= dmy2.b(~in & in2,1) ;
+                
+            end
           
         end
         
