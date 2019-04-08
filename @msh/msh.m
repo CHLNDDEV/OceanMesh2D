@@ -1453,10 +1453,12 @@ classdef msh
             [p2(:,1),p2(:,2)] = m_ll2xy(p2(:,1),p2(:,2)) ;
             
             disp('Forming outer boundary for base...')
-            poly_vec2 = cell2mat(extdom_polygon(extdom_edges2(t2,p2),p2,-1)');
+            cell2 = extdom_polygon(extdom_edges2(t2,p2),p2,-1,0);
+            poly_vec2 = cell2mat(cell2');
                         
             disp('Forming outer boundary for inset...')
-            poly_vec1 = cell2mat(extdom_polygon(extdom_edges2(t1,p1),p1,-1)');
+            cell1 = extdom_polygon(extdom_edges2(t1,p1),p1,-1,0);
+            poly_vec1 = cell2mat(cell1');
 
             % Delete the region in the global mesh that is in the
             % intersection with inset.
@@ -1483,7 +1485,8 @@ classdef msh
             pruned2 = Make_Mesh_Boundaries_Traversable(pruned2,0.25,1);
             t2 = pruned2.t; p2 = pruned2.p;
             % get new poly_vec2
-            poly_vec2 = cell2mat(extdom_polygon(extdom_edges2(t2,p2),p2,-1)');
+            cell2 = extdom_polygon(extdom_edges2(t2,p2),p2,-1,0);
+            poly_vec2 = cell2mat(cell2');
             
             disp('Merging...')
             DTbase = delaunayTriangulation(p1(:,1),p1(:,2));
