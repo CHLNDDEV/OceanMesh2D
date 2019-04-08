@@ -28,12 +28,12 @@ SLP   = 20 ;
 WL    = 20 ; 
 
 % Build boundary of outer mesh. 
-gdat{1} = geodata('shp',SHP,'dem',DEM,...
+gdat{1} = geodata('shp',SHP,...
     'h0',MIN_EL,'bbox',BBOX); 
 
 % Build a simple edgefunction for this coarse outer domain.
-fh{1}   = edgefx('dis',GRADE,'geodata',gdat{1},'slp',SLP,...
-                  'wl',WL,'g',GRADE,'max_el',MAX_EL) ; 
+fh{1}   = edgefx('dis',GRADE,'geodata',gdat{1},...
+                 'g',GRADE,'max_el',MAX_EL) ; 
 
 %% Build local high resolution (25-m minimum size) insets 
 %% in only areas where LiDAR data is available. 
@@ -127,52 +127,48 @@ end
 % insets, which are cell-array entries 2 through 6 in gdat{} and fh{}
 % arrays (since box 1 is the outer domain and box 2-6 are the hi-res
 % insets).
-fixboxes(1) = 0 ; % don't constrain
-fixboxes(2:6) = 1 ; % constrain
+fixboxes(1) = 0 ;   % don't constrain
+fixboxes(2:6) = 1 ; % constrhain
 
 % Pass constraints and fixboxes flags to meshgen.
 mshopts = meshgen('ef',fh,'bou',gdat,...
     'pfix',pfix,'egfix',egfix,'fixboxes',fixboxes,...
-    'plot_on',1);
+    'plot_on',1,'nscreen',1);
 
 mshopts = mshopts.build;
 
 mol = mshopts.grd;
 
 %% Quality control: visually inspect mesh!!!!
-% Look for thin islands in the interior of the domain, odd-shaped elements.
-% This isn't magic! 
-plot(mol,'tri'); 
-
 bou = mol.getBoundaryOfMesh; 
 
-hold on; m_plot(bou(:,1),bou(:,2),'r-','linewi',2); 
+plot(mol,'tri',0); 
+
+hold on; plot(bou(:,1),bou(:,2),'r-','linewi',2); 
 
 %% INTERPOLATE BATHY FROM LiDAR USING SPECIAL PROCEDURE
 % This procedure interpolates data underwater FIRST using a gridscale
 % averaging, then overland using a larger gridscale averaging to
 % produce smoother overland topography. It also ensures the shoreline component is
 % at leasts 1-m below sea level. 
-mfinal = interpFP(mol,gdat(2:6),muw) ;
+mol = interpFP(mol,gdat,muw) ;
 
-plot(mfinal,'tri') ; 
-
-plot(mfinal,'b') ;
+plot(mol,'b',0) ;
 
 demcmap([-5 5]);
 
 %%
 % At this stage it would appropriate to remove portions of the mesh far
 % overlnd out of the reach of a potential flood.
-% Here we remove all elements with an average depth greater than 5-m above
+% Here we remove all elements with an average depth greater than 10-m above
 % the geoid of the DEMs used. 
-mfinal2 = mfinal.pruneOverlandMesh(10) ; 
+mol2 = mol.pruneOverlandMesh(10) ; 
 
-plot(mfinal2,'tri',0) ; 
+plot(mol2,'tri',0) ; 
 
-plot(mfinal2,'b',0) ;
+plot(mol2,'b',0) ;
 
 demcmap([-5 5]);
 
 % Ensure the CFL is sufficiently small for numerical stability. 
-max(CalcCFL(mfinal,1))
+max(CalcCFL(mol2,1))

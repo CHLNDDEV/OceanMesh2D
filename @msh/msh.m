@@ -2564,16 +2564,26 @@ classdef msh
             
             tmp.p = dt.Points ; tmp.t = dt.ConnectivityList; 
             
-            % delete points outside mfp 
-            bnde = extdom_edges2(mfp.t,mfp.p) ; 
-            [polyt,~,max_index]=extdom_polygon(bnde,mfp.p,-1);
-            poly = polyt(max_index) ;
-            poly = cell2mat(poly') ; 
-            ee   = Get_poly_edges(poly) ; 
-            bc   = baryc(tmp) ; 
-            in   = inpoly(bc,poly,ee) ; 
-            tmp.t(~in,:) = [] ; 
-           
+            % delete points outside mfp and muw 
+            bnde = extdom_edges2(mfp.t,mfp.p) ;
+            polyt=extdom_polygon(bnde,mfp.p,-1,0,20) ;
+            polyt=cell2mat(polyt') ;
+            
+            ee   = Get_poly_edges(polyt) ;
+            bc   = baryc(tmp) ;
+            infp   = inpoly(bc,polyt,ee) ;
+            
+            bnde = extdom_edges2(muw.t,muw.p) ;
+            polyt=extdom_polygon(bnde,muw.p,-1,0,20) ;
+            polyt=cell2mat(polyt') ;
+            
+            ee   = Get_poly_edges(polyt) ;
+            bc   = baryc(tmp) ;
+            inuw   = inpoly(bc,polyt,ee) ;
+                        
+            
+            tmp.t(~infp & ~inuw,:) = [] ; 
+                       
             [tmp.p,tmp.t]=fixmesh(tmp.p,tmp.t) ; 
             
             mfixed = tmp ;
@@ -2660,8 +2670,12 @@ classdef msh
             
             ee = Get_poly_edges(bou); 
             in = inpoly(dmy1.p,bou,ee) ; 
-            
+            obj.b = (1:length(obj.p(:,1)))'*0 ; 
             for i = 1 : length(gdat)
+                if isempty(gdat{i}.Fb) 
+                   disp(['Entry ',num2str(i), ' does not contain DEM, skipping']);
+                   continue 
+                end
                 in2 = inpoly(dmy1.p,gdat{i}.boubox(1:end-1,:)) ;
                 dmy1 = interp(obj,gdat(i),'type','depth','K',find(in & in2)) ;
                 dmy1.b = max(dmy1.b,1) ; % bound the maximum depth to 1

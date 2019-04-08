@@ -358,15 +358,11 @@ classdef meshgen
             %%
             tic
             it = 1 ;
-            if ~isempty(obj.pfix)
-                imp = 5; % number of iterations to do mesh improvements (delete/add)
-            else
-                imp=10;
-            end
+            imp=10;
             imp2 = imp;
             Re = 6378.137e3;
             geps = 1e-3*min(obj.h0)/Re; 
-            deps = sqrt(eps); %*min(obj.h0)/111e3;
+            deps = sqrt(eps);
             ttol=0.1; Fscale = 1.2; deltat = 0.1;
             % unpack initial points.
             p = obj.grd.p;
@@ -432,9 +428,7 @@ classdef meshgen
                         st = ed;
                         ed = st + blklen;
                         p1 = [x(:) y(:)]; clear x y
-                        if ~isempty(obj.pfix)
-                           p1 = [p1 ; obj.pfix] ;
-                        end
+
                         %% 2. Remove points outside the region, apply the rejection method
                         p1 = p1(feval(obj.fd,p1,obj,box_num) < geps,:);     % Keep only d<0 points
                         r0 = 1./feval(fh_l,p1).^2;                          % Probability to keep point
@@ -444,7 +438,8 @@ classdef meshgen
                     end
                 end
             else
-                imp = 5; % number of iterations to do mesh improvements (delete/add)
+                disp('User-supplied initial points!'); 
+                imp = 10; % number of iterations to do mesh improvements (delete/add)
                 h0_l = obj.h0(end); % finest h0 (in case of a restart of meshgen.build).
             end
             
@@ -548,6 +543,39 @@ classdef meshgen
                 mq_s = std(tq.qm);
                 mq_l3sig = mq_m - 3*mq_s;
                 obj.qual(it,:) = [mq_m,mq_l3sig,mq_l];
+                
+                
+                % kjr april2019 
+                % if there's a triangle with a low geometric quality that
+                % contains a fixed edge, remove the non-fixed vertex
+                if ~isempty(obj.egfix) && mod(it,1)==0
+                    % returns triangle IDs that have edge locks
+                    TR = triangulation(t,p) ;
+                    elock = edgeAttachments(TR,obj.egfix) ;
+                    tq = gettrimeshquan(p,t);
+                    pmid = squeeze(mean(reshape(p(t,:),[],3,2),2));
+                    numbad=0 ; 
+                    badone=[]; 
+                    for ii = 1 : length(elock)
+                        vals=elock{ii};
+                        for iii = 1 : length(vals)
+                            if tq.qm(vals(iii)) < 0.10 % tria has poor qual
+                                numbad=numbad+1;
+                                badone(numbad)=vals(iii) ; 
+                            end
+                        end
+                    end
+                    % for each poor qual tria, delete the vertex tht isn't
+                    % fixed
+                    if ~isempty(badone)
+                        badtria=t(badone,:);
+                        del     = badtria(badtria > nfix) ;
+                        p(del,:)= [];
+                        pold = inf; it = it + 1;
+                        disp(['Deleting ',num2str(length(del)),' points close to fixed edges']);
+                        continue;
+                    end
+                end
                 % Termination quality, mesh quality reached is copacetic.
                 if mod(it,imp2) == 0
                     if abs(mq_l3sig - obj.qual(max(1,it-imp2),2)) < 0.01
@@ -737,11 +765,7 @@ classdef meshgen
                 if isempty(obj.egfix)
                     TR   = delaunayTriangulation(p_s);
                 else
-                   % if(mod(it,3)==0)
-                        TR   = delaunayTriangulation(p_s(:,1),p_s(:,2),obj.egfix);
-                   % else
-                    %    TR   = delaunayTriangulation(p_s);
-                   % end
+                    TR   = delaunayTriangulation(p_s(:,1),p_s(:,2),obj.egfix);
                 end
                 for kk = 1:final+1
                     if kk > 1
@@ -751,11 +775,6 @@ classdef meshgen
                         TR.Points(nn,:) = []; 
                         p(nn,:) = []; pt1(nn,:) = [];
                     end
-                    %if ~isempty(obj.egfix) 
-                    %  pt1 = TR.Points; 
-                    %  p = []; 
-                    %  [p(:,1),p(:,2)]=m_xy2ll(pt1(:,1),pt1(:,2));
-                    %end
                     t = TR.ConnectivityList;
                     pmid = squeeze(mean(reshape(pt1(t,:),[],3,2),2));      % Compute centroids
                     [pmid(:,1),pmid(:,2)] = m_xy2ll(pmid(:,1),pmid(:,2));  % Change back to lat lon
