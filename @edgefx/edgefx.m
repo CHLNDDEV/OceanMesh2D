@@ -390,11 +390,12 @@ classdef edgefx
             % lets filter the bathy to get only relevant features
             % loop over each set of bandpass filter lengths
             tmpz_f = zeros(size(tmpz));
-            if obj.fl(1) == 0
+            if obj.fl(1) < 0
                 disp('INFO: Rossby radius of deformation filter on.') ;
+                rbfilt = abs(obj.fl(1));
                 obj.fl = [];
                 filtit = 1;
-            elseif obj.fl(1) == -1
+            elseif obj.fl(1) == 0
                 disp('INFO: Slope filter is off.');
                 obj.fl = [];
                 tmpz_f = tmpz;
@@ -422,7 +423,7 @@ classdef edgefx
             if filtit
                 tic
                 bs = NaN([obj.nx,obj.ny]); 
-                div = 1e4; grav = 9.807; rbfilt = 2;
+                div = 1e4; grav = 9.807; 
                 nb = ceil([obj.nx,obj.ny]/div); n1s = 1; 
                 for ii = 1:nb(1)
                     n1e = min(obj.nx,n1s + div - 1); n2s = 1;
@@ -667,7 +668,7 @@ classdef edgefx
                     otherwise
                         error('FATAL:  Could not finalize edge function');
                 end
-            end
+            end  
             
             [hh_m] = min(hh,[],3);
             clearvars hh 
