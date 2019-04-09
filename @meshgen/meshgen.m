@@ -183,7 +183,8 @@ classdef meshgen
                             if isa(arg,'geodata')
                                 obj.outer{ee} = obj.bou{ee}.outer;
                                 obj.inner{ee} = obj.bou{ee}.inner;
-                                if ~isempty(obj.inner{ee})
+                                if ~isempty(obj.inner{ee}) && ...
+                                   obj.inner{ee}(1)~= 0
                                     obj.outer{ee} = [obj.outer{ee};
                                         obj.inner{ee}];
                                 end

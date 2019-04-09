@@ -46,20 +46,22 @@ if (size(finputname,1)~=0)
                bboxt(:,1) = bboxt(:,1) - 360; 
             end
             % The shaperead is much faster if it is available
-            if exist('shaperead','file')
-                disp('Reading shapefile with shaperead')
-                % Read the structure
+            % Read the structure
+            try 
                 S = shaperead(fname{1},'BoundingBox',bboxt);
                 % Get rid of unwanted components;
                 D = struct2cell(S);
                 S = cell2struct(D(3:4,:)',{'X','Y'},2);
-            else
+                disp('Read shapefile with shaperead')
+                sr = 1;
+            catch
                 disp('Reading shapefile with m_shaperead')
                 % This uses m_map (slower but free)
                 S = m_shaperead(fname{1},reshape(bboxt',4,1));
                 % Let's just keep the x-y data
                 D = S.ncst;
                 S = cell2struct(D','points',1);
+                sr = 0;
             end
             if ~isempty(S)
                 % Keep the following polygons
@@ -105,7 +107,7 @@ polygon_struct.inner = [];
 polygon_struct.mainland = [];
 edges = Get_poly_edges( polygon_struct.outer );
 
-if exist('shaperead','file')
+if sr
     tmpM = [[SG.X]',[SG.Y]'] ; % MAT 
     if bbox(1,2) > 180
         tmpM(tmpM(:,1) < 0,1) =  tmpM(tmpM(:,1) < 0,1) + 360;
@@ -117,6 +119,9 @@ if exist('shaperead','file')
 else
     tmpM =  cell2mat(struct2cell(SG)'); 
     tmpC =  struct2cell(SG)'; 
+    if size(tmpM,2) == 3
+       tmpM = tmpM(:,1:2); 
+    end
 end
 % Get current polygon
 % Check proportion of polygon that is within bbox
@@ -125,11 +130,11 @@ tmpInC = mat2cell(tmpIn,cellfun(@length,tmpC));
 
 j = 0 ; k = 0 ; 
 for i = 1 : length(SG)
-    if exist('shaperead','file')
-        points = tmpC{i}(1:end-1,:) ;
+    if sr
+        points = tmpC{i}(1:end-1,1:2) ;
         In     = tmpInC{i}(1:end-1) ;
     else
-        points = tmpC{i}(1:end,:) ;
+        points = tmpC{i}(1:end,1:2) ;
         In     = tmpInC{i}(1:end) ;
     end
     if bbox(1,2) > 180

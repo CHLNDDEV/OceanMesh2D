@@ -353,7 +353,11 @@ classdef msh
                     if logaxis
                         cmocean('deep',numticks(1)-1); 
                     else
-                        cmocean('topo','pivot',min(max(q),0)); 
+                        if exist('demcmap','file')
+                            demcmap(q);
+                        else   
+                            cmocean('topo','pivot',min(max(q),0)); 
+                        end
                     end
                     cb = colorbar;
                     if logaxis
@@ -2642,7 +2646,7 @@ classdef msh
             obj.b = Fb(obj.p) ; 
         end
         
-        function obj = interpFP(obj,gdat,muw)
+        function obj = interpFP(obj,gdat,muw,minb,CAN)
             %%%%%%%
             % Interpolate topography onto a mesh with floodplain
             % Interpolates bathymetry underwater using a grid-scale
@@ -2665,28 +2669,49 @@ classdef msh
             %
             % kjr, april 2019
             
+            % parsing some inputs (or set to default)
+            if nargin < 4
+                minb = 1;
+            end
+            if nargin < 5
+                CAN = 3;
+            end
+               
             bnde = extdom_edges2(muw.t,muw.p) ; 
             bou = extdom_polygon(bnde,muw.p,-1) ; 
             bou = cell2mat(bou') ; 
             
-            dmy1 = obj; % uw 
+            dmy1 = obj; % land + uw
             
             ee = Get_poly_edges(bou); 
             in = inpoly(dmy1.p,bou,ee) ; 
+            
+            % get the "on"
+            [~, dst] = ourKNNsearch(muw.p',dmy1.p',1);
+            on = dst < 1e-5;  
+            
             obj.b = (1:length(obj.p(:,1)))'*0 ; 
+            
+            if ~iscell(gdat); gdat = {gdat}; end
+            
             for i = 1 : length(gdat)
                 if isempty(gdat{i}.Fb) 
                    disp(['Entry ',num2str(i), ' does not contain DEM, skipping']);
                    continue 
                 end
-                in2 = inpoly(dmy1.p,gdat{i}.boubox(1:end-1,:)) ;
-                dmy1 = interp(obj,gdat(i),'type','depth','K',find(in & in2)) ;
-                dmy1.b = max(dmy1.b,1) ; % bound the maximum depth to 1
+                if i == 1
+                    in2 = true(size(obj.b));
+                else
+                    in2 = inpoly(dmy1.p,gdat{i}.boubox(1:end-1,:)) ;
+                end
+                dmy1 = interp(obj,gdat(i),'type','depth',...
+                              'K',find((in | on ) & in2)) ;
+                dmy1.b = max(dmy1.b,minb) ; % bound the maximum depth (1 m by default)
                 
-                dmy2 = interp(obj,gdat(i),'type','depth','N',3) ; % use smooth overland
+                dmy2 = interp(obj,gdat(i),'type','depth','N',CAN) ; % use smooth overland
                 
-                obj.b(in  & in2,1) = dmy1.b(in & in2,1) ;
-                obj.b(~in & in2,1)= dmy2.b(~in & in2,1) ;
+                obj.b((in | on )  & in2,1) = dmy1.b((in | on ) & in2,1) ;
+                obj.b(~(in | on ) & in2,1) = dmy2.b(~(in | on ) & in2,1) ;
                 
             end
           

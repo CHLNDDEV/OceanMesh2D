@@ -29,7 +29,7 @@ if strcmpi(attribute,'Cf')
     default_val = 0.0025; % Default Cf
 elseif strcmpi(attribute,'EV')
     attrname = 'average_horizontal_eddy_viscosity_in_sea_water_wrt_depth';
-    default_val = 0.2; % Default smagorinsky eddy viscosity
+    default_val = 0.05; % Default smagorinsky eddy viscosity
 elseif strcmpi(attribute,'mannings_n_at_sea_floor')
     attrname = 'mannings_n_at_sea_floor';
     default_val = 0.0020;
