@@ -34,7 +34,7 @@ classdef geodata
         fp % deprecated but kept for backwards capability
         Fb % linear gridded interpolant of DEM
         x0y0 % bottom left of structure grid or position (0,0)
-        pslg 
+        pslg % piecewise liner straight line graph
     end
     
     methods
@@ -111,8 +111,8 @@ classdef geodata
                         end
                     case('pslg')
                         obj.pslg = inp.(fields{i});
-                        if obj.outer(1) ~=0
-                            obj.outer = inp.(fields{i});
+                        if obj.pslg(1) ~=0
+                            obj.pslg = inp.(fields{i});
                         end
                     case('mainland')
                         obj.mainland = inp.(fields{i});
