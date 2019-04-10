@@ -78,6 +78,9 @@ for box_num = box_vec
     edges = Get_poly_edges( outer );
     if sum(inside)~=0
         in    = inpoly(p(inside,:),outer,edges);
+        if inpoly_flip 
+            in = ~in;
+        end
     else
         in    = d_l*0;
     end
@@ -89,9 +92,9 @@ for box_num = box_vec
     d_l = (-1).^( in & in1).*d_l;
     %    end
     
-    if inpoly_flip
-        d_l = d_l*-1 ;
-    end
+    %if inpoly_flip
+    %    d_l = d_l*-1 ;
+    %end
     
     if sum(inside)==0; return; end
     

@@ -2637,12 +2637,13 @@ classdef msh
             % an average depth greater than elev are pruned from the mesh. 
             % OUTPUS: a msh_obj with the overland extents removed. 
             % april 2019, kjr
-            Fb=scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.b,'nearest','none') ; 
+            Fb = scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.b,'nearest','none') ; 
             c = (obj.b(obj.t(:,1),:)+obj.b(obj.t(:,2),:)+obj.b(obj.t(:,3),:))/3;
             obj.t(c < -elev,:) = []; 
-            [pp,tt]=fixmesh(obj.p,obj.t) ; 
-            obj = msh() ; obj.p=pp; obj.t=tt; 
-            obj=renum(obj) ;
+            [pp,tt] = fixmesh(obj.p,obj.t) ; 
+            obj = msh() ; obj.p = pp; obj.t = tt; 
+            obj = Make_Mesh_Boundaries_Traversable(obj,0.25,1);
+            obj = renum(obj) ;
             obj.b = Fb(obj.p) ; 
         end
         
@@ -2690,6 +2691,7 @@ classdef msh
             [~, dst] = ourKNNsearch(muw.p',dmy1.p',1);
             on = dst < 1e-5;  
             
+            
             obj.b = (1:length(obj.p(:,1)))'*0 ; 
             
             if ~iscell(gdat); gdat = {gdat}; end
@@ -2704,11 +2706,24 @@ classdef msh
                 else
                     in2 = inpoly(dmy1.p,gdat{i}.boubox(1:end-1,:)) ;
                 end
-                dmy1 = interp(obj,gdat(i),'type','depth',...
+                if ~isempty(muw.b) && ~all(muw.b == 0)
+                    % if already have underwater bathy
+                    idx = ourKNNsearch(muw.p',obj.p',1);
+                    dmy1.b = muw.b(idx);
+                else
+                    dmy1 = interp(obj,gdat(i),'type','depth',...
                               'K',find((in | on ) & in2)) ;
+                end
                 dmy1.b = max(dmy1.b,minb) ; % bound the maximum depth (1 m by default)
                 
                 dmy2 = interp(obj,gdat(i),'type','depth','N',CAN) ; % use smooth overland
+                
+                if ~isempty(gdat{i}.mainlandb) || ~isempty(gdat{i}.innerb)
+                   riverbound = [gdat{i}.mainlandb; gdat{i}.innerb];
+                   riverbound(isnan(riverbound(:,1)),:) = [];
+                   idx = ourKNNsearch(riverbound(:,1:2)',dmy2.p',1);
+                   dmy2.b = min(0,dmy2.b + riverbound(idx,3)); 
+                end
                 
                 obj.b((in | on )  & in2,1) = dmy1.b((in | on ) & in2,1) ;
                 obj.b(~(in | on ) & in2,1) = dmy2.b(~(in | on ) & in2,1) ;

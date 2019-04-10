@@ -22,6 +22,8 @@ classdef geodata
         mainland % mainland boundary.
         outer % outer boundary.
         inner % islands.
+        mainlandb % height of mainland
+        innerb    % height of inner
         weirs % weir crestlines
         weirPfix % boundaries of weir
         weirEgfix % edges of weir
@@ -202,6 +204,8 @@ classdef geodata
                 obj.outer    = polygon_struct.outer;
                 obj.mainland = polygon_struct.mainland;
                 obj.inner    = polygon_struct.inner;
+                obj.mainlandb = polygon_struct.mainlandb;
+                obj.innerb    = polygon_struct.innerb;
                 
                 % kjr April42019 check if no mainland segments, set outer
                 % to boubox 
@@ -210,11 +214,11 @@ classdef geodata
                   obj.outer = obj.boubox; 
                 end
                 % Make sure the shoreline components have spacing of gridspace/2
-                [la,lo]=my_interpm(obj.outer(:,2),obj.outer(:,1),gridspace/2);
+                [la,lo] = my_interpm(obj.outer(:,2),obj.outer(:,1),gridspace/2);
                 obj.outer = [];  obj.outer(:,1) = lo; obj.outer(:,2) = la;
                 
                 if ~isempty(obj.mainland)
-                    [la,lo]=my_interpm(obj.mainland(:,2),obj.mainland(:,1),gridspace/2);
+                    [la,lo] = my_interpm(obj.mainland(:,2),obj.mainland(:,1),gridspace/2);
                     obj.mainland = []; obj.mainland(:,1) = lo; obj.mainland(:,2) = la;
                 end
                 
@@ -546,9 +550,11 @@ classdef geodata
             shpEnd = vertcat(0,shpEnd); loc = loc+1;
             if abs(sum(obj.outer(shpEnd(loc)+1,:)) - ...
                     sum(obj.outer(shpEnd(loc+1)-1,:))) < eps
-                return;
+                %return;
+            else
+                disp('Warning: Shapefile is unconnected... continuing anyway')
             end
-            disp('Warning: Shapefile is unconnected... continuing anyway')
+            
             % outer polygon is not connected, check for inpoly goodness
             % read the GSHHS checker
             ps = Read_shapefile( {'GSHHS_l_L1'}, [], ...
@@ -562,14 +568,19 @@ classdef geodata
             y = linspace(obj.bbox(2,1),obj.bbox(2,2),100);
             edges = Get_poly_edges( [ps.outer; ps.inner] );
             in_Test = inpoly([x',y'],[ps.outer; ps.inner],edges);
-            edges = Get_poly_edges( [obj.outer; obj.inner] );
-            in_Shpf = inpoly([x',y'],[obj.outer; obj.inner],edges);
+            if obj.inner(1) ~=0 
+                polytester = [obj.outer; obj.inner];
+            else
+                polytester = obj.outer;
+            end
+            edges = Get_poly_edges( polytester );
+            in_Shpf = inpoly([x',y'],polytester,edges);
             % if more than half of thepoints disagree between Test and Shpf
             % lets flip the inpoly
             if length(find(xor(in_Shpf,in_Test))) > 50
                 obj.inpoly_flip = 1;
-                disp(['Unconnected shapefile is inconsistent ' ...
-                    'with GHSSS test file, flipping the inpoly test'])
+                disp(['Shapefile inpoly is inconsistent ' ...
+                      'with GHSSS test file, flipping the inpoly test'])
             end
             
             % if flooplaind meshing, flip the inpoly test

@@ -95,7 +95,7 @@ end
 polygon_struct.outer = boubox;
 % Densify the outer polygon (fills gaps larger than half min edgelength).
 [latout,lonout] = my_interpm(polygon_struct.outer(:,2),...
-    polygon_struct.outer(:,1),h0/2);
+                             polygon_struct.outer(:,1),h0/2);
 polygon_struct.outer = [];
 polygon_struct.outer(:,1) = lonout;
 polygon_struct.outer(:,2) = latout;
@@ -105,6 +105,8 @@ polygon_struct.outer(:,2) = latout;
 disp('Partitioning the boundary into islands, mainland, ocean')
 polygon_struct.inner = [];
 polygon_struct.mainland = [];
+polygon_struct.innerb = [];
+polygon_struct.mainlandb = [];
 edges = Get_poly_edges( polygon_struct.outer );
 
 if sr
@@ -117,8 +119,23 @@ if sr
     end
     tmpC = mat2cell(tmpM,dims); % TO CELL 
 else
-    tmpM =  cell2mat(struct2cell(SG)'); 
-    tmpC =  struct2cell(SG)'; 
+    tmpC =  struct2cell(SG)';
+    tmpCC = []; nn = 0;
+    for ii = 1:length(tmpC)
+       % may have NaNs inside 
+       isnan1 = find(isnan(tmpC{ii}(:,1)));
+       is = 1;
+       for jj = 1:length(isnan1)
+           nn = nn + 1;
+           ie = isnan1(jj)-1;
+           tmpCC{nn} = tmpC{ii}(is:ie,:);
+           is = isnan1(jj)+1;
+       end
+    end
+    if ~isempty(tmpCC)
+        tmpC = tmpCC';
+    end  
+    tmpM =  cell2mat(tmpC); 
     if size(tmpM,2) == 3
        tmpM = tmpM(:,1:2); 
     end
@@ -128,13 +145,19 @@ end
 tmpIn = inpoly(tmpM,polygon_struct.outer, edges);
 tmpInC = mat2cell(tmpIn,cellfun(@length,tmpC));
 
-j = 0 ; k = 0 ; 
-for i = 1 : length(SG)
+j = 0 ; k = 0 ; height = []; new_islandb = []; new_mainb = [];
+for i = 1 : length(tmpC)
     if sr
-        points = tmpC{i}(1:end-1,1:2) ;
+        points = tmpC{i}(1:end-1,:) ;
         In     = tmpInC{i}(1:end-1) ;
     else
-        points = tmpC{i}(1:end,1:2) ;
+        points = tmpC{i}(1:end,:) ;
+        if size(points,2) == 3
+            height = points(:,3); 
+            points = points(:,1:2); 
+        else
+            height = [];
+        end
         In     = tmpInC{i}(1:end) ;
     end
     if bbox(1,2) > 180
@@ -159,6 +182,9 @@ for i = 1 : length(SG)
         % Set as island (with NaN delimiter)
         k = k + 1 ; 
         new_island{k} = [points; NaN NaN];
+        if ~isempty(height)
+            new_islandb{k} = [points height; NaN NaN NaN];
+        end
     else
         %Partially inside box
         if area < 100*h0^2 % too small, then don't consider it.
@@ -167,13 +193,36 @@ for i = 1 : length(SG)
         % Set as mainland
         j = j + 1 ; 
         new_main{j} = [points; NaN NaN];
+        if ~isempty(height)
+            new_mainb{j} = [points height; NaN NaN NaN];
+        end
     end
 end
 if k > 0
     polygon_struct.inner = [polygon_struct.inner; cell2mat(new_island')];
+    polygon_struct.innerb = cell2mat(new_islandb');
 end
 if j > 0
     polygon_struct.mainland = [polygon_struct.mainland; cell2mat(new_main')];
+    polygon_struct.mainlandb = cell2mat(new_mainb');
+end
+% Merge overlapping mainland and inner
+if ~isempty(new_mainb)
+    polym = polygon_struct.mainland;
+    mergei = false(k,1);
+    for kk = 1:k
+        polyi = new_island{kk};
+        IA = find(ismembertol(polym,polyi,1e-5,'ByRows',true));
+        if length(IA) > 2
+           [x,y] = polybool('or',polym(:,1),...
+                                        polym(:,2),polyi(:,1),polyi(:,2));
+           polym = [x,y];
+           mergei(kk) = 1;
+        end
+    end
+    polygon_struct.mainland = [polym; NaN NaN];
+    new_island(mergei) = [];
+    polygon_struct.inner = cell2mat(new_island');
 end
 polygon_struct.outer = [polygon_struct.outer; polygon_struct.mainland];
 %% Plot the map

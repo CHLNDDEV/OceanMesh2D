@@ -549,7 +549,7 @@ classdef meshgen
                 % kjr april2019 
                 % if there's a triangle with a low geometric quality that
                 % contains a fixed edge, remove the non-fixed vertex
-                if ~isempty(obj.egfix) && mod(it,2)==0
+                if ~isempty(obj.egfix) && mod(it,2) == 0
                     % returns triangle IDs that have edge locks
                     TR = triangulation(t,p) ;
                     elock = edgeAttachments(TR,obj.egfix) ;
