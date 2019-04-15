@@ -109,6 +109,8 @@ polygon_struct.innerb = [];
 polygon_struct.mainlandb = [];
 edges = Get_poly_edges( polygon_struct.outer );
 
+if isempty(SG); return; end
+
 if sr
     tmpM = [[SG.X]',[SG.Y]'] ; % MAT 
     if bbox(1,2) > 180
@@ -124,6 +126,11 @@ else
     for ii = 1:length(tmpC)
        % may have NaNs inside 
        isnan1 = find(isnan(tmpC{ii}(:,1)));
+       if isempty(isnan1)
+           isnan1 = length(tmpC{ii})+1; 
+       elseif isnan1(end) ~= length(tmpC{ii})
+           isnan1(end+1) = length(tmpC{ii})+1;
+       end
        is = 1;
        for jj = 1:length(isnan1)
            nn = nn + 1;
@@ -207,7 +214,7 @@ if j > 0
     polygon_struct.mainlandb = cell2mat(new_mainb');
 end
 % Merge overlapping mainland and inner
-if ~isempty(new_mainb)
+if ~isempty(new_mainb) & k > 0
     polym = polygon_struct.mainland;
     mergei = false(k,1);
     for kk = 1:k
@@ -220,10 +227,12 @@ if ~isempty(new_mainb)
            mergei(kk) = 1;
         end
     end
-    polygon_struct.mainland = [polym; NaN NaN];
+    if ~isnan(polym(end,1)); polym(end+1,:) = NaN; end
+    polygon_struct.mainland = polym;
     new_island(mergei) = [];
     polygon_struct.inner = cell2mat(new_island');
 end
+% Remove parts of inner and mainland overlapping with outer 
 polygon_struct.outer = [polygon_struct.outer; polygon_struct.mainland];
 %% Plot the map
 if plot_on >= 1 && ~isempty(polygon_struct)

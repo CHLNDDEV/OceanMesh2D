@@ -804,7 +804,7 @@ classdef msh
             disp('Beginning mesh cleaning and smoothing operations...');
  
             if nargin == 1 || isempty(db)
-                db = 1;
+                db = 0.1;
             end
             if nargin <= 2 || isempty(ds)
                 ds = 1;
@@ -845,7 +845,7 @@ classdef msh
                 bele = unique(vtoe(:,bdnodes)); bele(bele == 0) = [];
                 tqbou = tq.qm(bele);
                 % Delete those boundary elements with quality < 0.5
-                obj.t(bele(tqbou < 0.5),:) = [];
+                obj.t(bele(tqbou < db),:) = [];
             end
             
             % Make mesh traversable
@@ -873,7 +873,7 @@ classdef msh
                 % Perform the direct smoothing
                 [obj.p,obj.t] = direct_smoother_lur(obj.p,obj.t,pfix,nscreen);
                 tq = gettrimeshquan( obj.p, obj.t);
-                if min(tq.qm) < 0.1
+                if min(tq.qm) < 0.01
                     % Need to clean it again
                     disp(['Overlapping elements due to smoother, ' ...
                           'cleaning again'])
@@ -1437,6 +1437,8 @@ classdef msh
                 if any(min(obj1.p) < min(obj2.p)) || ...
                    any(max(obj1.p) > max(obj2.p))
                     objt = obj2; objt.p = [objt.p; obj1.p];
+                    objt.p(1,:) = min(objt.p) - 1e-3;
+                    objt.p(2,:) = max(objt.p) + 1e-3;
                     setProj(objt,1,obj2.proj.name);
                 else
                     % kjr 2018,10,17; Set up projected space imported from msh class
@@ -1468,17 +1470,15 @@ classdef msh
             % Delete the region in the global mesh that is in the
             % intersection with inset.
             disp('Calculating intersection...');
-            if exist('polyshape','builtin')
-                PG = polyshape(poly_vec1(:,1),poly_vec1(:,2));
-                PG2 = polyshape(poly_vec2(:,1), poly_vec2(:,2)) ;
-                polyout2 = intersect(PG,PG2) ;
-                poly_vec3 = polyout2.Vertices;
-            else
-                [poly_vec3(:,1),poly_vec3(:,2)] = polybool(...
-                                        'intersection',...
-                                         poly_vec1(:,1),poly_vec1(:,2),...
-                                         poly_vec2(:,1),poly_vec2(:,2));                    
-            end
+            %if exist('polyshape','file')
+            %    PG = polyshape(poly_vec1(:,1),poly_vec1(:,2));
+            %    PG2 = polyshape(poly_vec2(:,1), poly_vec2(:,2)) ;
+            %    polyout2 = intersect(PG,PG2) ;
+            %    poly_vec3 = polyout2.Vertices;
+            %else
+            [poly_vec3(:,1),poly_vec3(:,2)] = polybool('intersection',...
+              poly_vec1(:,1),poly_vec1(:,2),poly_vec2(:,1),poly_vec2(:,2));                    
+            %end
             [edges3]  = Get_poly_edges([poly_vec3; NaN NaN]);
             in1 = inpoly(p2(t2(:,1),:),poly_vec3,edges3);
             in2 = inpoly(p2(t2(:,2),:),poly_vec3,edges3);
@@ -1532,13 +1532,30 @@ classdef msh
             end
                 
             merge = msh() ; merge.p = pm; merge.t = tm ;
- 
+          
+            % get overlap region and expand
+            polyvect = poly_vec3; 
+            polyvect(isnan(polyvect(:,1)),:) = [];
+            K = convhull(polyvect(:,1),polyvect(:,2));
+            x = polyvect(K,1); y = polyvect(K,2);
+            xt = 2*x+(1-2)*mean(x(1:end-1));
+            yt = 2*y+(1-2)*mean(y(1:end-1));
+            in3 = inpoly(merge.p,[xt, yt]);
+            
             % convert back to lat-lon wgs84
             [merge.p(:,1),merge.p(:,2)] = ...
                                         m_xy2ll(merge.p(:,1),merge.p(:,2));
+               
+            % set points outsidr to overlap region to be fixed
+            pfixt = merge.p(~in3,:);     
             
             % Clean up the new mesh
-            merge = clean(merge);
+            if ~isempty(obj1.pfix) || ~isempty(obj2.pfix)
+                fix = ismembertol(merge.p,[obj1.pfix; obj2.pfix],...
+                                  1e-6,'ByRows',true)';
+                merge.pfix = merge.p(fix,:);
+            end
+            merge = clean(merge,[],[],[],[],[],[pfixt; merge.pfix]);
             
             merge.proj    = MAP_PROJECTION ;
             merge.coord   = MAP_COORDS ;
@@ -1552,7 +1569,7 @@ classdef msh
             [idx1,dst1] = ourKNNsearch(obj1.p',merge.p',1);   
             [idx2,dst2] = ourKNNsearch(obj2.p',merge.p',1);   
             merge.b(dst1 <= dst2) = obj1.b(idx1(dst1 <= dst2)); 
-            merge.b(dst2 < dst1) = obj2.b(idx2(dst2 < dst1)); 
+            merge.b(dst2 <  dst1) = obj2.b(idx2(dst2 <  dst1)); 
             if ~isempty(obj1.bx) && ~isempty(obj2.bx)
                 merge.bx = 0*merge.b; merge.by = 0*merge.b;
                 merge.bx(dst1 <= dst2) = obj1.bx(idx1(dst1 <= dst2)); 
@@ -1693,6 +1710,7 @@ classdef msh
             type       = 0;       %<-- 0 == Haversine, 1 == CPP with correction factor
             desCFL     = 0.50;    %<-- set desired cfl (generally less than 0.80 for stable).
             desIt = inf;          %<-- desired number of iterations
+            djc   = 0.25;
             if nargin > 2
                 if varargin{1} > 1
                     desIt = varargin{1};
@@ -1700,7 +1718,8 @@ classdef msh
                     desCFL = varargin{1};
                 end
                 if nargin == 4
-                    type = varargin{2}; 
+                    djc = varargin{2};
+                    %type = varargin{2}; 
                 end
             end
             %%
@@ -1736,23 +1755,31 @@ classdef msh
             %% Delete CFL violations
             it  = 0;
             CFL = 999;
+            if ~isempty(obj.pfix)
+                [pf(:,1),pf(:,2)] = m_ll2xy(obj.pfix(:,1),obj.pfix(:,2));
+            end
+            con = 9;
             tic
             while 1
                 [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
                 CFL = CalcCFL(obj,dt,type);
                 [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2));
                 bad = real(CFL) > desCFL;
+                %if ~isempty(obj.pfix)
+                %    fix = ismembertol(obj.p,pf,1e-6,'ByRows',true); 
+                %    bad = bad & fix;
+                %end
                 display(['Number of CFL violations ',num2str(sum(bad))]);
                 disp(['Max CFL is : ',num2str(max(real(CFL)))]);
                 if it == desIt,   break; end
                 if sum(bad) == 0, break; end
+                it = it + 1;
                 obj = DecimateTria(obj,bad);
                 % Clean up the new mesh (already projected) without direct
                 % smoothing (we have used local smooting in DecmimateTria
                 obj.b = []; % (the bathy will cause error in renum)
-                obj = clean(obj,[],0,[],[],[],[],0);
+                obj = clean(obj,[],0,con+floor(it/10),djc,[],[],0);
                 obj.b = F(obj.p(:,1),obj.p(:,2));
-                it = it + 1;
             end
             toc
             disp(['Achieved max CFL of ',num2str(max(real(CFL))),...
@@ -2567,7 +2594,7 @@ classdef msh
             
             dt.Points(end+(1:length(m3.p)),:) = m3.p ;
             
-            tmp = msh();
+            tmp = mfp;
             
             tmp.p = dt.Points ; tmp.t = dt.ConnectivityList; 
             
@@ -2588,10 +2615,9 @@ classdef msh
             bc   = baryc(tmp) ;
             inuw   = inpoly(bc,polyt,ee) ;
                         
-            
             tmp.t(~infp & ~inuw,:) = [] ; 
                        
-            [tmp.p,tmp.t]=fixmesh(tmp.p,tmp.t) ; 
+            [tmp.p,tmp.t] = fixmesh(tmp.p,tmp.t) ; 
             
             mfixed = tmp ;
             
@@ -2629,7 +2655,7 @@ classdef msh
             boundary = cell2mat(boundary'); 
         end
         
-        function obj = pruneOverlandMesh(obj,elev) 
+        function obj = pruneOverlandMesh(obj,elev,djc) 
             %%%%%%%
             % Removes overland extent greater than certain elevation about 
             % geoid of the mesh.
@@ -2637,17 +2663,21 @@ classdef msh
             % an average depth greater than elev are pruned from the mesh. 
             % OUTPUS: a msh_obj with the overland extents removed. 
             % april 2019, kjr
-            Fb = scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.b,'nearest','none') ; 
+            if nargin < 3
+               djc = 0.25; 
+            end
+            
+            Fb = scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.b,'linear','nearest') ; 
             c = (obj.b(obj.t(:,1),:)+obj.b(obj.t(:,2),:)+obj.b(obj.t(:,3),:))/3;
             obj.t(c < -elev,:) = []; 
             [pp,tt] = fixmesh(obj.p,obj.t) ; 
-            obj = msh() ; obj.p = pp; obj.t = tt; 
-            obj = Make_Mesh_Boundaries_Traversable(obj,0.25,1);
+            obj.p = pp; obj.t = tt; 
+            obj = Make_Mesh_Boundaries_Traversable(obj,djc,1);
             obj = renum(obj) ;
             obj.b = Fb(obj.p) ; 
         end
         
-        function obj = interpFP(obj,gdat,muw,minb,CAN)
+        function obj = interpFP(obj,gdat,muw,gdatuw,minb,CAN)
             %%%%%%%
             % Interpolate topography onto a mesh with floodplain
             % Interpolates bathymetry underwater using a grid-scale
@@ -2671,10 +2701,10 @@ classdef msh
             % kjr, april 2019
             
             % parsing some inputs (or set to default)
-            if nargin < 4
+            if nargin < 5
                 minb = 1;
             end
-            if nargin < 5
+            if nargin < 6
                 CAN = 3;
             end
                
@@ -2688,9 +2718,7 @@ classdef msh
             in = inpoly(dmy1.p,bou,ee) ; 
             
             % get the "on"
-            [~, dst] = ourKNNsearch(muw.p',dmy1.p',1);
-            on = dst < 1e-5;  
-            
+            on = ismembertol(dmy1.p,muw.p,1e-5,'ByRows',true);
             
             obj.b = (1:length(obj.p(:,1)))'*0 ; 
             
@@ -2706,27 +2734,29 @@ classdef msh
                 else
                     in2 = inpoly(dmy1.p,gdat{i}.boubox(1:end-1,:)) ;
                 end
-                if ~isempty(muw.b) && ~all(muw.b == 0)
-                    % if already have underwater bathy
-                    idx = ourKNNsearch(muw.p',obj.p',1);
-                    dmy1.b = muw.b(idx);
-                else
-                    dmy1 = interp(obj,gdat(i),'type','depth',...
-                              'K',find((in | on ) & in2)) ;
-                end
-                dmy1.b = max(dmy1.b,minb) ; % bound the maximum depth (1 m by default)
+                dmy1 = interp(obj,gdatuw(i),'type','depth'); 
                 
                 dmy2 = interp(obj,gdat(i),'type','depth','N',CAN) ; % use smooth overland
                 
                 if ~isempty(gdat{i}.mainlandb) || ~isempty(gdat{i}.innerb)
                    riverbound = [gdat{i}.mainlandb; gdat{i}.innerb];
                    riverbound(isnan(riverbound(:,1)),:) = [];
-                   idx = ourKNNsearch(riverbound(:,1:2)',dmy2.p',1);
+
+                   global MAP_PROJECTION MAP_VAR_LIST MAP_COORDS
+                    % kjr 2018,10,17; Set up projected space imported from msh class
+                   MAP_PROJECTION = obj.proj ;
+                   MAP_VAR_LIST   = obj.mapvar ;
+                   MAP_COORDS     = obj.coord ;           
+                   [rvb(:,1),rvb(:,2)] = ...
+                                 m_ll2xy(riverbound(:,1),riverbound(:,2));
+                   [dmp(:,1),dmp(:,2)] = m_ll2xy(dmy2.p(:,1),dmy2.p(:,2));                   
+                   idx = ourKNNsearch(rvb',dmp',1);
                    dmy2.b = min(0,dmy2.b + riverbound(idx,3)); 
                 end
-                
-                obj.b((in | on )  & in2,1) = dmy1.b((in | on ) & in2,1) ;
-                obj.b(~(in | on ) & in2,1) = dmy2.b(~(in | on ) & in2,1) ;
+                uw = in | on | dmy1.b > 0;
+                dmy1.b = max(dmy1.b,minb); % bound the maximum depth (1 m by default)
+                obj.b(uw & in2,1) = dmy1.b(uw & in2,1) ;
+                obj.b(~uw & in2,1) = dmy2.b(~uw & in2,1) ;
                 
             end
           

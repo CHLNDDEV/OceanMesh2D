@@ -1,5 +1,5 @@
 function [vtoe,nne]=VertToEle(t)
-np = max(t(:)); ne = length(t);
+np = max(t(:)); ne = size(t,1);
 nne = zeros(np,1);
 for ie = +1 : ne                                                            %--Go through once and find max nnz.
     %for iv = +1 : +3

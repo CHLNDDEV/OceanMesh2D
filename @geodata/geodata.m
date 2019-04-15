@@ -216,15 +216,18 @@ classdef geodata
                 % Make sure the shoreline components have spacing of gridspace/2
                 [la,lo] = my_interpm(obj.outer(:,2),obj.outer(:,1),gridspace/2);
                 obj.outer = [];  obj.outer(:,1) = lo; obj.outer(:,2) = la;
+                outerbox = obj.outer(1:find(isnan(obj.outer(:,1)),1,'first'),:);
                 
                 if ~isempty(obj.mainland)
                     [la,lo] = my_interpm(obj.mainland(:,2),obj.mainland(:,1),gridspace/2);
-                    obj.mainland = []; obj.mainland(:,1) = lo; obj.mainland(:,2) = la;
+                    obj.mainland = [];  
+                    obj.mainland(:,1) = lo; obj.mainland(:,2) = la;
                 end
                 
                 if ~isempty(obj.inner)
                     [la,lo]=my_interpm(obj.inner(:,2),obj.inner(:,1),gridspace/2);
-                    obj.inner = []; obj.inner(:,1) = lo; obj.inner(:,2) = la;
+                    obj.inner = []; 
+                    obj.inner(:,1) = lo; obj.inner(:,2) = la;
                 end
                 clearvars lo la
                 
@@ -259,11 +262,34 @@ classdef geodata
                 
                 if ~isempty(obj.inner)
                     obj.inner = coarsen_polygon(obj.inner,iboubox);
+                    id_del = ismembertol(obj.inner,outerbox,1e-5,'ByRows',true);      
+                    if sum(id_del) > 0
+                       % need to change parts of inner to mainland...
+                       isnan1 = find(isnan(obj.inner(:,1))); ns = 1;
+                       innerdel = []; mnadd = [];
+                       for ii = 1:length(isnan1)
+                           ne = isnan1(ii);
+                           sumdel = sum(id_del(ns:ne));
+                           if sumdel > 0
+                               mnadd = [mnadd; obj.inner(ns:ne,:)];
+                               innerdel = [innerdel ns:ne];
+                           end
+                           ns = ne + 1;
+                       end
+                       obj.inner(innerdel,:) = [];
+                       obj.outer = [obj.outer; mnadd];
+                       obj.mainland = [obj.mainland; mnadd];
+                    end
                 end
                 
                 if ~isempty(obj.mainland)
                     obj.mainland = coarsen_polygon(obj.mainland,iboubox);
-                end
+                    id_del = ismembertol(obj.mainland,outerbox,1e-5,'ByRows',true);      
+                    obj.mainland(id_del,:) = []; 
+                    while ~isempty(obj.mainland) && isnan(obj.mainland(1))
+                        obj.mainland(1,:) = []; 
+                    end   
+                end               
                 
                 % kjr Oct. 27 2018, add the weir faux islands to the inner geometry
                 if ~isempty(obj.weirPfix)
@@ -296,13 +322,19 @@ classdef geodata
                   obj.outer = [ ]; 
                   obj.outer = obj.boubox; 
                 end
+                
                 % Make sure the shoreline components have spacing of gridspace/2
                 [la,lo]=my_interpm(obj.outer(:,2),obj.outer(:,1),gridspace/2);
                 obj.outer = [];  obj.outer(:,1) = lo; obj.outer(:,2) = la;
-                
+                      
                 if ~isempty(obj.mainland)
-                    [la,lo]=my_interpm(obj.mainland(:,2),obj.mainland(:,1),gridspace/2);
-                    obj.mainland = []; obj.mainland(:,1) = lo; obj.mainland(:,2) = la;
+                    [la,lo] = my_interpm(obj.mainland(:,2),obj.mainland(:,1),gridspace/2);
+                    obj.mainland = []; 
+                    idx = ismembertol([lo,la],polygon_struct.outer,...
+                                      1e-5,'ByRows',true);      
+                    lo(idx) = []; la(idx) = [];
+                    while isnan(lo(1)); lo(1) = []; la(1) = []; end   
+                    obj.mainland(:,1) = lo; obj.mainland(:,2) = la;
                 end
                 
                 if ~isempty(obj.inner)
@@ -568,7 +600,7 @@ classdef geodata
             y = linspace(obj.bbox(2,1),obj.bbox(2,2),100);
             edges = Get_poly_edges( [ps.outer; ps.inner] );
             in_Test = inpoly([x',y'],[ps.outer; ps.inner],edges);
-            if obj.inner(1) ~=0 
+            if ~isempty(obj.inner) && obj.inner(1) ~=0 
                 polytester = [obj.outer; obj.inner];
             else
                 polytester = obj.outer;
