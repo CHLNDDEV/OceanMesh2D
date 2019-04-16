@@ -387,8 +387,8 @@ classdef meshgen
             %%
             tic
             it = 1 ;
-            imp=10;
-            imp2 = imp;
+            imp = 10;
+            qual_diff = 0;
             Re = 6378.137e3;
             geps = 1e-3*min(obj.h0)/Re; 
             deps = sqrt(eps);
@@ -536,11 +536,11 @@ classdef meshgen
                 end
                 
                 % 3. Retriangulation by the Delaunay algorithm
-                if max(sqrt(sum((p-pold).^2,2))/h0_l*111e3) > ttol         % Any large movement?
+                if max(sqrt(sum((p(1:size(pold,1),:)-pold).^2,2))/h0_l*111e3) > ttol         % Any large movement?
                     p = fixmesh(p);                                        % Ensure only unique points.
                     N = size(p,1); pold = p;                               % Save current positions
-                    t = delaunay_elim(p,obj.fd,geps,0);                    % Delaunay with elimination
-                    
+                    [t,p] = delaunay_elim(p,obj.fd,geps,0);                % Delaunay with elimination
+                    N = size(p,1); 
                     % 4. Describe each bar by a unique pair of nodes.
                     bars = [t(:,[1,2]); t(:,[1,3]); t(:,[2,3])];           % Interior bars duplicated
                     bars = unique(sort(bars,2),'rows');                    % Bars as node pairs
@@ -577,7 +577,9 @@ classdef meshgen
                 % kjr april2019 
                 % if there's a triangle with a low geometric quality that
                 % contains a fixed edge, remove the non-fixed vertex
-                if ~isempty(obj.egfix) && mod(it,2) == 0
+                % perform this on every iteration aside from ones where we
+                % want to do improvement strategies
+                if ~isempty(obj.egfix) && mod(it,imp) 
                     % returns triangle IDs that have edge locks
                     TR = triangulation(t,p) ;
                     elock = edgeAttachments(TR,obj.egfix) ;
@@ -606,8 +608,9 @@ classdef meshgen
                     end
                 end
                 % Termination quality, mesh quality reached is copacetic.
-                if mod(it,imp2) == 0
-                    if abs(mq_l3sig - obj.qual(max(1,it-imp2),2)) < 0.01
+                if mod(it,imp) == 0
+                    qual_diff = mq_l3sig - obj.qual(max(1,it-imp),2);
+                    if abs(qual_diff) < 0.01
                         % Do the final elimination of small connectivity
                         [t,p] = delaunay_elim(p,obj.fd,geps,1);
                         disp('Quality of mesh is good enough, exit')
@@ -661,7 +664,7 @@ classdef meshgen
                 LN = L./L0;                                                 % LN = Normalized bar lengths
                 
                 % Mesh improvements (deleting and addition)
-                if mod(it,imp) == 0
+                if mod(it,imp) == 0 && qual_diff < 0.1 && qual_diff > 0
                     % Remove elements with small connectivity
                     nn = get_small_connectivity(p,t);
                     disp(['Deleting ' num2str(length(nn)) ' due to small connectivity'])
@@ -714,7 +717,7 @@ classdef meshgen
                 [p(:,1),p(:,2)] = m_xy2ll(pt(:,1),pt(:,2));  
                 
                 %7. Bring outside points back to the boundary
-                d = feval(obj.fd,p,obj,[],1); ix = d>0;                    % Find points outside (d>0)
+                d = feval(obj.fd,p,obj,[],1); ix = d > 0;                  % Find points outside (d>0)
                 ix(1:nfix)=0;
                 if sum(ix) > 0
                     dgradx = (feval(obj.fd,[p(ix,1)+deps,p(ix,2)],obj,[])...%,1)...
@@ -758,8 +761,9 @@ classdef meshgen
                 obj.qual(end+1,:) = qout;
             else
                 % Fix mesh on the projected space
-                [p1(:,1),p1(:,2)] = m_ll2xy(p(:,1),p(:,2)); 
-                [p,t1] = fixmesh(p1,t);
+                [p(:,1),p(:,2)] = m_ll2xy(p(:,1),p(:,2)); 
+                [p,t] = fixmesh(p,t);
+                [p(:,1),p(:,2)] = m_xy2ll(p(:,1),p(:,2)); 
                 % Put the mesh class into the grd part of meshgen
                 obj.grd.p = p; obj.grd.t = t1;
             end
@@ -790,19 +794,20 @@ classdef meshgen
                 % help the convex calc
                 if exist('pt1','var'); clear pt1; end
                 [pt1(:,1),pt1(:,2)] = m_ll2xy(p(:,1),p(:,2));
-                p_s  = pt1 - repmat(mean(pt1),[N,1]);
                 if isempty(obj.egfix)
+                    p_s  = pt1 - repmat(mean(pt1),[N,1]);
                     TR   = delaunayTriangulation(p_s);
                 else
-                    TR   = delaunayTriangulation(p_s(:,1),p_s(:,2),obj.egfix);
+                    TR   = delaunayTriangulation(pt1(:,1),pt1(:,2),obj.egfix);
+                    pt1  = TR.Points;
                 end
                 for kk = 1:final+1
                     if kk > 1
                         % Perform the following below upon exit from the mesh
                         % generation algorithm
-                        nn = get_small_connectivity(p,t);
+                        nn = get_small_connectivity(pt1,t);
                         TR.Points(nn,:) = []; 
-                        p(nn,:) = []; pt1(nn,:) = [];
+                        pt1(nn,:) = [];
                     end
                     t = TR.ConnectivityList;
                     pmid = squeeze(mean(reshape(pt1(t,:),[],3,2),2));      % Compute centroids
@@ -813,6 +818,10 @@ classdef meshgen
                     bad_ele = any(tq_n.vang < 1*pi/180 | ...
                                   tq_n.vang > 179*pi/180,2);
                     t(bad_ele,:) = [];
+                end
+                if length(pt1) ~= length(p)
+                    clear p
+                    [p(:,1),p(:,2)] = m_xy2ll(pt1(:,1),pt1(:,2));
                 end
             end
             
