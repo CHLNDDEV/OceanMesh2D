@@ -44,6 +44,8 @@ classdef meshgen
         ns_fix        % improve spacing for boundary vertices
         qual          % mean, lower 3rd sigma, and the minimum element quality.
         proj          % structure containing the m_map projection info
+        anno          % Approx. Nearest Neighbor search object. 
+        annData       % datat contained with KD-tree in anno
     end
     
     
@@ -343,12 +345,38 @@ classdef meshgen
             if isempty(obj.outer), error('no outer boundary specified!'), end
             if isempty(obj.bbox), error('no bounding box specified!'), end
             obj.fd = @dpoly;  % <-default distance fx accepts p and pv (outer polygon).
-            
+            % kjr build ANN object into meshgen
+            obj = createANN(obj) ;
+             
             global MAP_PROJECTION MAP_COORDS MAP_VAR_LIST
             obj.grd.proj    = MAP_PROJECTION ; 
             obj.grd.coord   = MAP_COORDS ; 
             obj.grd.mapvar  = MAP_VAR_LIST ; 
         
+        end
+        
+        % Creates Approximate nearest neighbor objects on start-up
+        function  obj = createANN(obj)
+            
+            box_vec = 1:length(obj.bbox);
+            
+            for box_num = box_vec
+                if ~iscell(obj.outer)
+                    dataset = obj.outer;
+                    dataset(isnan(obj.outer(:,1)),:) = [];
+                else
+                    dataset = obj.outer{box_num};
+                    dataset(isnan(obj.outer{box_num}(:,1)),:) = [];
+                end
+                [dataset(:,1),dataset(:,2)] = m_ll2xy(dataset(:,1),dataset(:,2));
+                dataset(isnan(dataset(:,1)),:) = [];
+                % This line removes the line that can appear in the center for
+                % stereo projection from the bbox
+                dataset(abs(dataset(:,1)) < 1e-6,:) = [];
+                dmy = ann(dataset');
+                obj.anno{box_num} = dmy;
+                obj.annData{box_num}=dataset; 
+            end
         end
 
         function  obj = build(obj)
@@ -510,10 +538,9 @@ classdef meshgen
                 % 3. Retriangulation by the Delaunay algorithm
                 if max(sqrt(sum((p(1:size(pold,1),:)-pold).^2,2))/h0_l*111e3) > ttol         % Any large movement?
                     p = fixmesh(p);                                        % Ensure only unique points.
-                    pold = p;  N = size(p,1);                              % Save current positions
+                    N = size(p,1); pold = p;                               % Save current positions
                     [t,p] = delaunay_elim(p,obj.fd,geps,0);                % Delaunay with elimination
                     N = size(p,1); 
-                    
                     % 4. Describe each bar by a unique pair of nodes.
                     bars = [t(:,[1,2]); t(:,[1,3]); t(:,[2,3])];           % Interior bars duplicated
                     bars = unique(sort(bars,2),'rows');                    % Bars as node pairs
@@ -550,7 +577,9 @@ classdef meshgen
                 % kjr april2019 
                 % if there's a triangle with a low geometric quality that
                 % contains a fixed edge, remove the non-fixed vertex
-                if ~isempty(obj.egfix) && mod(it,3) == 0
+                % perform this on every iteration aside from ones where we
+                % want to do improvement strategies
+                if ~isempty(obj.egfix) && mod(it,imp) 
                     % returns triangle IDs that have edge locks
                     TR = triangulation(t,p) ;
                     elock = edgeAttachments(TR,obj.egfix) ;
@@ -688,12 +717,12 @@ classdef meshgen
                 [p(:,1),p(:,2)] = m_xy2ll(pt(:,1),pt(:,2));  
                 
                 %7. Bring outside points back to the boundary
-                d = feval(obj.fd,p,obj,[],0); ix = d>0;                    % Find points outside (d>0)
+                d = feval(obj.fd,p,obj,[],1); ix = d > 0;                  % Find points outside (d>0)
                 ix(1:nfix)=0;
                 if sum(ix) > 0
-                    dgradx = (feval(obj.fd,[p(ix,1)+deps,p(ix,2)],obj,[],0)...
+                    dgradx = (feval(obj.fd,[p(ix,1)+deps,p(ix,2)],obj,[])...%,1)...
                               -d(ix))/deps; % Numerical 
-                    dgrady = (feval(obj.fd,[p(ix,1),p(ix,2)+deps],obj,[],0)...
+                    dgrady = (feval(obj.fd,[p(ix,1),p(ix,2)+deps],obj,[])...%,1)...
                               -d(ix))/deps; % gradient
                     dgrad2 = dgradx.^+2 + dgrady.^+2;
                     p(ix,:) = p(ix,:)-[d(ix).*dgradx./dgrad2,...
@@ -723,7 +752,7 @@ classdef meshgen
             if obj.cleanup 
                 % Put the mesh class into the grd part of meshgen and clean
                 obj.grd.p = p; obj.grd.t = t;
-                db = 0.1;   % delete bad boundaries
+                db = 1;   % delete bad boundaries
                 con = 9;  % reduce connectivity to max of 9
                 prj = 1;  % project
                 [obj.grd,qout] = clean(obj.grd,db,obj.direc_smooth,con,...
@@ -736,7 +765,7 @@ classdef meshgen
                 [p,t] = fixmesh(p,t);
                 [p(:,1),p(:,2)] = m_xy2ll(p(:,1),p(:,2)); 
                 % Put the mesh class into the grd part of meshgen
-                obj.grd.p = p; obj.grd.t = t;
+                obj.grd.p = p; obj.grd.t = t1;
             end
             
             % Check element order, important for the global meshes crossing
