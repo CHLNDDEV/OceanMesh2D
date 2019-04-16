@@ -265,6 +265,7 @@ classdef geodata
             [la,lo] = my_interpm(obj.outer(:,2),obj.outer(:,1),...
                 obj.gridspace/obj.spacing);
             obj.outer = [];  obj.outer(:,1) = lo; obj.outer(:,2) = la;
+            outerbox = obj.outer(1:find(isnan(obj.outer(:,1)),1,'first'),:);
             
             if ~isempty(obj.mainland)
                 [la,lo] = my_interpm(obj.mainland(:,2),obj.mainland(:,1),...
@@ -302,14 +303,43 @@ classdef geodata
             iboubox(:,1) = 1.10*iboubox(:,1)+(1-1.10)*mean(iboubox(1:end-1,1));
             iboubox(:,2) = 1.10*iboubox(:,2)+(1-1.10)*mean(iboubox(1:end-1,2));
             
+            % Coarsen outer
             obj.outer = coarsen_polygon(obj.outer,iboubox);
             
+            % Coarsen inner and move parts that overlap with bounding box
+            % to mainland
             if ~isempty(obj.inner)
                 obj.inner = coarsen_polygon(obj.inner,iboubox);
+                id_del = ismembertol(obj.inner,outerbox,1e-5,'ByRows',true);      
+                if sum(id_del) > 0
+                   % need to change parts of inner to mainland...
+                   isnan1 = find(isnan(obj.inner(:,1))); ns = 1;
+                   innerdel = []; mnadd = [];
+                   for ii = 1:length(isnan1)
+                       ne = isnan1(ii);
+                       sumdel = sum(id_del(ns:ne));
+                       if sumdel > 0
+                           mnadd = [mnadd; obj.inner(ns:ne,:)];
+                           innerdel = [innerdel ns:ne];
+                       end
+                       ns = ne + 1;
+                   end
+                   obj.inner(innerdel,:) = [];
+                   obj.outer = [obj.outer; mnadd];
+                   obj.mainland = [obj.mainland; mnadd];
+                end
             end
             
+            % Coarsen mainland and remove parts that overlap with bounding
+            % box (note this doesn't change the polygon used for inpoly,
+            % only changes the distance function used for edgefx)
             if ~isempty(obj.mainland)
                 obj.mainland = coarsen_polygon(obj.mainland,iboubox);
+                id_del = ismembertol(obj.mainland,outerbox,1e-5,'ByRows',true);      
+                obj.mainland(id_del,:) = []; 
+                while ~isempty(obj.mainland) && isnan(obj.mainland(1))
+                    obj.mainland(1,:) = []; 
+                end                
             end
             
             % kjr Add the weir faux islands to the inner geometry
@@ -425,14 +455,11 @@ classdef geodata
             [~,loc] = max(diff(shpEnd));
             shpEnd = vertcat(0,shpEnd); loc = loc+1;
             if abs(sum(obj.outer(shpEnd(loc)+1,:)) - ...
-                    sum(obj.outer(shpEnd(loc+1)-1,:))) < eps
-                %return;
-            else
-                disp('Warning: Shapefile is unconnected... continuing anyway')
+                    sum(obj.outer(shpEnd(loc+1)-1,:))) > eps
+               disp('Warning: Shapefile is unconnected... continuing anyway')
             end
             
-            % outer polygon is not connected, check for inpoly goodness
-            % read the GSHHS checker
+            % check for inpoly goodness read the GSHHS checker
             ps = Read_shapefile( {'GSHHS_l_L1'}, [], ...
                 obj.bbox, obj.gridspace, obj.boubox, 0 );
             
@@ -453,7 +480,7 @@ classdef geodata
             if length(find(xor(in_Shpf,in_Test))) > 50
                 obj.inpoly_flip = 1;
                 disp(['Shapefile inpoly is inconsistent ' ...
-                    'with GHSSS test file, flipping the inpoly test'])
+                      'with GHSSS test file, flipping the inpoly test'])
             end
             
             % if flooplaind meshing, flip the inpoly test
