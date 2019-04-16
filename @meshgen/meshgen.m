@@ -43,6 +43,7 @@ classdef meshgen
         big_mesh
         ns_fix        % improve spacing for boundary vertices
         qual          % mean, lower 3rd sigma, and the minimum element quality.
+        qual_tol      % tolerance for the accepted negligible change in quality
         proj          % structure containing the m_map projection info
         anno          % Approx. Nearest Neighbor search object. 
         annData       % datat contained with KD-tree in anno
@@ -79,6 +80,7 @@ classdef meshgen
             addOptional(p,'big_mesh',defval);
             addOptional(p,'ns_fix',defval);
             addOptional(p,'proj',defval);
+            addOptional(p,'qual_tol',defval);
             
             % parse the inputs
             parse(p,varargin{:});
@@ -93,7 +95,8 @@ classdef meshgen
             inp = orderfields(inp,{'h0','bbox','fh','inner','outer','mainland',...
                                    'bou','ef',... %<--OceanMesh classes come after
                                    'egfix','pfix','fixboxes',...
-                                   'plot_on','nscreen','itmax','memory_gb','cleanup',...
+                                   'plot_on','nscreen','itmax',...
+                                   'memory_gb','qual_tol','cleanup',...
                                    'direc_smooth','dj_cutoff',...
                                    'big_mesh','ns_fix','proj'});             
             % get the fieldnames of the edge functions
@@ -280,6 +283,13 @@ classdef meshgen
                             obj.itmax = 100;
                             warning('No itmax specified, itmax set to 100');
                         end
+                    case('qual_tol')
+                        obj.qual_tol = inp.(fields{i});
+                        if obj.qual_tol ~=0
+                            obj.qual_tol = inp.(fields{i});
+                        else
+                            obj.qual_tol = 0.01;
+                        end 
                     case('inner')
                         if ~isa(obj.bou,'geodata')
                             obj.inner = inp.(fields{i});
@@ -480,10 +490,11 @@ classdef meshgen
                 egfix_mid = (obj.pfix(obj.egfix(:,1),:) + obj.pfix(obj.egfix(:,2),:))/2;
                 for jj = 1 : length(obj.fixboxes)
                     if obj.fixboxes(jj)
-                        % shrink box to avoid constraining boundary edges
                         iboubox = obj.boubox{jj};
-                        iboubox(:,1) = 0.98*iboubox(:,1)+(1-0.98)*mean(iboubox(1:end-1,1));
-                        iboubox(:,2) = 0.98*iboubox(:,2)+(1-0.98)*mean(iboubox(1:end-1,2));
+                        %this shrinkage isn't general enough should be
+                        %handled by user
+                        %iboubox(:,1) = 0.98*iboubox(:,1)+(1-0.98)*mean(iboubox(1:end-1,1));
+                        %iboubox(:,2) = 0.98*iboubox(:,2)+(1-0.98)*mean(iboubox(1:end-1,2));
                         inbar(:,jj) = inpoly(egfix_mid,iboubox(1:end-1,:));
                     end
                 end
@@ -610,7 +621,7 @@ classdef meshgen
                 % Termination quality, mesh quality reached is copacetic.
                 if mod(it,imp) == 0
                     qual_diff = mq_l3sig - obj.qual(max(1,it-imp),2);
-                    if abs(qual_diff) < 0.01
+                    if abs(qual_diff) < obj.qual_tol
                         % Do the final elimination of small connectivity
                         [t,p] = delaunay_elim(p,obj.fd,geps,1);
                         disp('Quality of mesh is good enough, exit')
@@ -765,7 +776,8 @@ classdef meshgen
                 [p,t] = fixmesh(p,t);
                 [p(:,1),p(:,2)] = m_xy2ll(p(:,1),p(:,2)); 
                 % Put the mesh class into the grd part of meshgen
-                obj.grd.p = p; obj.grd.t = t1;
+                obj.grd.p = p; obj.grd.t = t;
+                obj.grd.pfix = obj.pfix ;
             end
             
             % Check element order, important for the global meshes crossing

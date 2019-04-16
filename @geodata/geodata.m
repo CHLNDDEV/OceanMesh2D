@@ -220,8 +220,6 @@ classdef geodata
                 obj.mainlandb = polygon_struct.mainlandb;
                 obj.innerb    = polygon_struct.innerb;
                 
-                obj = ClassifyShoreline(obj) ;
-                
                 % Read in the geometric meshing boundary information from a
                 % NaN-delimited vector.
             elseif obj.pslg(1)~=0
@@ -237,9 +235,11 @@ classdef geodata
                 obj.mainlandb = polygon_struct.mainlandb;
                 obj.innerb    = polygon_struct.innerb;
                 
-                obj = ClassifyShoreline(polygon_struct) ;
-                
+            else
+                % set outer to the boubox
+               obj.outer = obj.boubox;
             end
+            obj = ClassifyShoreline(obj) ;
         end
         
         function obj = ClassifyShoreline(obj)
@@ -307,7 +307,7 @@ classdef geodata
             % to mainland
             if ~isempty(obj.inner)
                 obj.inner = coarsen_polygon(obj.inner,iboubox);
-                id_del = ismembertol(obj.inner,outerbox,1e-5,'ByRows',true);      
+                id_del = ismembertol(obj.inner,outerbox,1e-4,'ByRows',true);      
                 if sum(id_del) > 0
                    % need to change parts of inner to mainland...
                    isnan1 = find(isnan(obj.inner(:,1))); ns = 1;
@@ -332,7 +332,7 @@ classdef geodata
             % only changes the distance function used for edgefx)
             if ~isempty(obj.mainland)
                 obj.mainland = coarsen_polygon(obj.mainland,iboubox);
-                id_del = ismembertol(obj.mainland,outerbox,1e-5,'ByRows',true);      
+                id_del = ismembertol(obj.mainland,outerbox,1e-4,'ByRows',true);      
                 obj.mainland(id_del,:) = []; 
                 while ~isempty(obj.mainland) && isnan(obj.mainland(1))
                     obj.mainland(1,:) = []; 

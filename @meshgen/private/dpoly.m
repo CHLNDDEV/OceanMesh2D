@@ -21,7 +21,7 @@ elseif isempty(box_vec)
     box_vec = 1:length(obj.bbox);
 end
 % initialize d with some positive number larger than geps
-d = ones(length(p),1);
+d = 0*p(:,1) + 1;
 for box_num = box_vec
     if ~iscell(obj.outer)
         outer = obj.outer;
