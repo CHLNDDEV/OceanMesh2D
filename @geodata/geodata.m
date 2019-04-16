@@ -57,10 +57,7 @@ classdef geodata
             addOptional(p,'h0',defval);
             addOptional(p,'dem',defval);
             addOptional(p,'fp',defval);
-            addOptional(p,'outer',defval);
             addOptional(p,'weirs',defval);
-            addOptional(p,'inner',defval);
-            addOptional(p,'mainland',defval);
             addOptional(p,'pslg',defval);
             addOptional(p,'boubox',defval);
             addOptional(p,'window',defval);
@@ -445,9 +442,6 @@ classdef geodata
             % Check for connected polygons and if not connected,
             %  whether to flip the inpoly result to ensure meshing
             %  on the coastal side of the polygon.
-            if isempty(obj.inner)
-                obj.inner(1) = 0 ;
-            end
             
             obj.inpoly_flip = 0;
             % return if outer polygon is connected
@@ -468,11 +462,7 @@ classdef geodata
             y = linspace(obj.bbox(2,1),obj.bbox(2,2),100);
             edges = Get_poly_edges( [ps.outer; ps.inner] );
             in_Test = inpoly([x',y'],[ps.outer; ps.inner],edges);
-            if obj.inner(1) ~=0
-                polytester = [obj.outer; obj.inner];
-            else
-                polytester = obj.outer;
-            end
+            polytester = [obj.outer; obj.inner];
             edges = Get_poly_edges( polytester );
             in_Shpf = inpoly([x',y'],polytester,edges);
             % if more than half of thepoints disagree between Test and Shpf

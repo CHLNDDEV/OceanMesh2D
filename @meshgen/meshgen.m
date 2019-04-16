@@ -752,7 +752,7 @@ classdef meshgen
             if obj.cleanup 
                 % Put the mesh class into the grd part of meshgen and clean
                 obj.grd.p = p; obj.grd.t = t;
-                db = 1;   % delete bad boundaries
+                db = 0.1;   % delete bad boundaries
                 con = 9;  % reduce connectivity to max of 9
                 prj = 1;  % project
                 [obj.grd,qout] = clean(obj.grd,db,obj.direc_smooth,con,...
