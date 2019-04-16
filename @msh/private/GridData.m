@@ -292,14 +292,14 @@ if strcmp(interp,'CA')
     % make sure inside box
     % y
     high = DEM_Y(IDXR(1),IDXT)' > pcon_max(:,2);
-    IDXT(high) = IDXT(high) - 1;
+    IDXT(high) = max(1,IDXT(high) - 1);
     low = DEM_Y(IDXL(1),IDXB)' < pcon_min(:,2);
-    IDXB(low) = IDXB(low) + 1;
+    IDXB(low) = min(size(DEM_Y,2),IDXB(low) + 1);
     % x
     high = DEM_X(IDXR,IDXT(1)) > pcon_max(:,1);
-    IDXR(high) = IDXR(high) - 1;
+    IDXR(high) = max(1,IDXR(high) - 1);
     low = DEM_X(IDXL,IDXB(1)) < pcon_min(:,1);
-    IDXL(low) = IDXL(low) + 1;
+    IDXL(low) = min(size(DEM_X,1),IDXL(low) + 1);
     % Make sure no negative or positive Nx, Ny
     I = IDXL > IDXR;
     IDXL(I) = IDXX(I); IDXR(I) = IDXX(I);
