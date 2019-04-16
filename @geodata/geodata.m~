@@ -18,10 +18,10 @@ classdef geodata
     %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
     properties
         bbox  % bounding coordinates
-        boubox % bbox coordinates as a CCW polygon
+        boubox % bbox coordinates as a polygon
         mainland % mainland boundary.
         outer % outer boundary.
-        inner % island boundary(ies)
+        inner % islands.
         mainlandb % height of mainland
         innerb    % height of inner
         weirs % weir crestlines
