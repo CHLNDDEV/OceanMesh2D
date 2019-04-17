@@ -601,7 +601,7 @@ classdef meshgen
                     for ii = 1 : length(elock)
                         vals=elock{ii};
                         for iii = 1 : length(vals)
-                            if tq.qm(vals(iii)) < 0.10 % tria has poor qual
+                            if tq.qm(vals(iii)) < 0.025 % tria has poor qual
                                 numbad=numbad+1;
                                 badone(numbad)=vals(iii) ; 
                             end
@@ -613,7 +613,7 @@ classdef meshgen
                         badtria=t(badone,:);
                         del     = badtria(badtria > nfix) ;
                         p(del,:)= [];
-                        pold = inf; it = it + 1;
+                        pold = inf; %it = it + 1;
                         disp(['Deleting ',num2str(length(del)),' points close to fixed edges']);
                         continue;
                     end

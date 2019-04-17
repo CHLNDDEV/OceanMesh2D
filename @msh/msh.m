@@ -873,11 +873,12 @@ classdef msh
                 % Perform the direct smoothing
                 [obj.p,obj.t] = direct_smoother_lur(obj.p,obj.t,pfix,nscreen);
                 tq = gettrimeshquan( obj.p, obj.t);
-                if min(tq.qm) < 0.01
+                if min(tq.qm) < 0.1
                     % Need to clean it again
                     disp(['Overlapping elements due to smoother, ' ...
                           'cleaning again'])
                     % repeat without projecting (already projected)
+                    obj.t(any(tq.vang*180/pi < 5 | tq.vang*180/pi > 175,2),:) = [];
                     obj = clean(obj,db,ds,con,dj,nscreen,pfix,0);
                 end
             end
@@ -1722,7 +1723,7 @@ classdef msh
                 % Clean up the new mesh (already projected) without direct
                 % smoothing (we have used local smooting in DecmimateTria
                 obj.b = []; % (the bathy will cause error in renum)
-                obj = clean(obj,[],0,con+floor(it/10),djc,[],[],0);
+                obj = clean(obj,[],0,con+floor(it/5),djc,[],[],0);
                 obj.b = F(obj.p(:,1),obj.p(:,2));
             end
             toc
@@ -2579,7 +2580,7 @@ classdef msh
             % drawedge2(pfix,egfix); 
             % kjr, April 2019
             [egfix,pfix] = extdom_edges2(obj.t,obj.p) ;
-            if obj.op.nope > 0
+            if ~isempty(obj.op) && obj.op.nope > 0
                 disp('detected ocean boundary, removing these fixed points')
                 ocean = unique(obj.op.nbdv(:));
                 [~,IA] = intersect(egfix(:,1),ocean);
@@ -2619,7 +2620,7 @@ classdef msh
             if nargin < 3
                djc = 0.25; 
             end
-            
+            [obj.p(:,1),obj.p(:,2)] =  m_ll2xy(obj.p(:,1),obj.p(:,2)); 
             Fb = scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.b,'linear','nearest') ; 
             c = (obj.b(obj.t(:,1),:)+obj.b(obj.t(:,2),:)+obj.b(obj.t(:,3),:))/3;
             obj.t(c < -elev,:) = []; 
@@ -2628,6 +2629,7 @@ classdef msh
             obj = Make_Mesh_Boundaries_Traversable(obj,djc,1);
             obj = renum(obj) ;
             obj.b = Fb(obj.p) ; 
+            [obj.p(:,1),obj.p(:,2)] =  m_xy2ll(obj.p(:,1),obj.p(:,2)); 
         end
         
         function obj = interpFP(obj,gdat,muw,gdatuw,minb,CAN)
