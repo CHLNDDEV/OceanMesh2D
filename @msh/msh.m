@@ -873,12 +873,11 @@ classdef msh
                 % Perform the direct smoothing
                 [obj.p,obj.t] = direct_smoother_lur(obj.p,obj.t,pfix,nscreen);
                 tq = gettrimeshquan( obj.p, obj.t);
-                if min(tq.qm) < 0.1
+                if min(tq.qm) < 0.025
                     % Need to clean it again
                     disp(['Overlapping elements due to smoother, ' ...
                           'cleaning again'])
                     % repeat without projecting (already projected)
-                    obj.t(any(tq.vang*180/pi < 5 | tq.vang*180/pi > 175,2),:) = [];
                     obj = clean(obj,db,ds,con,dj,nscreen,pfix,0);
                 end
             end
@@ -1088,14 +1087,14 @@ classdef msh
                         else
                             % must be ocean
                             nope = nope + 1;
-                            nvdll(nope) = length(idv_t);
+                            nvdll(nope) = length(idv);
                             neta = neta + nvdll(nope);
                             ibtypee(nope) = 0;
-                            nbdv(1:nvdll(nope),nope) = idv_t;
+                            nbdv(1:nvdll(nope),nope) = idv';
                         end
                     end
                     
-                    if nope > 1
+                    if nope > 0
                         % ocean boundary
                         obj.op.nope = nope ;
                         obj.op.neta = neta ;
@@ -1104,7 +1103,7 @@ classdef msh
                         obj.op.nbdv = nbdv;
                     end
                     
-                    if nbou > 1
+                    if nbou > 0
                         % land boundary
                         obj.bd.nbou = nbou ;
                         obj.bd.nvel = nvel ;
