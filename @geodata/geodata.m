@@ -31,10 +31,12 @@ classdef geodata
         inpoly_flip % reverse the notion of "in"
         contourfile %  cell-array of shapefile
         demfile % filename of dem
+        BACKUPdemfile % filename of dem
         h0 % min. edgelength (meters)
         window  % smoothing window on boundary (default 5 points)
         fp % deprecated but kept for backwards capability
         Fb % linear gridded interpolant of DEM
+        Fb2 % linear gridded interpolant of backup DEM
         x0y0 % bottom left of structure grid or position (0,0)
         pslg % piecewise liner straight line graph
         spacing = 1.01 ; %Relative spacing along polygon, large effect on computational efficiency of signed distance.
@@ -56,6 +58,7 @@ classdef geodata
             addOptional(p,'shp',defval);
             addOptional(p,'h0',defval);
             addOptional(p,'dem',defval);
+            addOptional(p,'backupdem',defval);
             addOptional(p,'fp',defval);
             addOptional(p,'weirs',defval);
             addOptional(p,'pslg',defval);
@@ -101,6 +104,13 @@ classdef geodata
                             obj.demfile = inp.(fields{i});
                         else
                             obj.demfile = [];
+                        end
+                    case('backupdem')
+                        obj.BACKUPdemfile= inp.(fields{i});
+                        if obj.BACKUPdemfile ~=0
+                            obj.BACKUPdemfile = inp.(fields{i});
+                        else
+                            obj.BACKUPdemfile = [];
                         end
                     case('fp')
                         obj.fp= inp.(fields{i});
@@ -197,6 +207,10 @@ classdef geodata
             end
             
             obj = ParseShoreline(obj) ;
+            
+            if obj.BACKUPdemfile~=0 
+              obj = ParseDEM(obj,1) ;   
+            end
             
             obj = ParseDEM(obj) ;
             
@@ -359,18 +373,25 @@ classdef geodata
             
         end
         
-        function obj = ParseDEM(obj)
+        function obj = ParseDEM(obj,backup)
+            if nargin < 2 
+              backup = 0 ;
+              fname = obj.demfile ; 
+            else
+              backup = 1 ;   
+              fname = obj.BACKUPdemfile ;
+            end
             % Process the DEM for the meshing region. 
-            if ~isempty(obj.demfile)
+            if ~isempty(fname)
                 try
-                    x = double(ncread(obj.demfile,'lon'));
-                    y = double(ncread(obj.demfile,'lat'));
+                    x = double(ncread(fname,'lon'));
+                    y = double(ncread(fname,'lat'));
                 catch
-                    x = double(ncread(obj.demfile,'x'));
-                    y = double(ncread(obj.demfile,'y'));
+                    x = double(ncread(fname,'x'));
+                    y = double(ncread(fname,'y'));
                 end
                 % Find name of z value (use one that has 2 dimensions)
-                finfo = ncinfo(obj.demfile);
+                finfo = ncinfo(fname);
                 for ii = 1:length(finfo.Variables)
                     if length(finfo.Variables(ii).Size) == 2
                         zvarname = finfo.Variables(ii).Name;
@@ -406,7 +427,7 @@ classdef geodata
                     end
                     It = find(x >= bboxt(1,1) & x <= bboxt(1,2));
                     I = [I; It];
-                    demzt = single(ncread(obj.demfile,zvarname,...
+                    demzt = single(ncread(fname,zvarname,...
                         [It(1) J(1)],[length(It) length(J)]));
                     if isempty(demz)
                         demz = demzt;
@@ -422,13 +443,43 @@ classdef geodata
                         x = x1; demz = demz(IA,:);
                     end
                 end
-                obj.Fb   = griddedInterpolant({x,y},demz,...
-                    'linear','nearest');
-                obj.x0y0 = [x(1),y(1)];
-                % clear data from memory
-                clear x y demz
+                % handle DEMS from packed starting from the bottom left 
+                if y(2) < y(1) 
+                  y = flipud(y) ; 
+                  demz = fliplr(demz) ; 
+                end
                 
-                disp(['Read in demfile ',obj.demfile]);
+                % check for any invalid values 
+                bad = abs(demz) > 11e3 ;
+                if sum(bad) > 0 & ~backup 
+                    warning('ALERT: Invalid and/or missing DEM values detected..check DEM');
+                    if obj.BACKUPdemfile(1)~=0
+                        disp('Replacing invalid values with back-up DEMfile');
+                        [demx,demy] = ndgrid(x,y) ;
+                        demz(bad) = obj.Fb2(demx(bad),demy(bad)) ;
+                        clearvars demx demy 
+                    else
+                        % just replace it with NaNs
+                        demz(bad) = NaN ;
+                    end
+                end
+                
+                % creating back up interpolant
+                if backup
+                    obj.Fb2   = griddedInterpolant({x,y},demz,...
+                        'linear','nearest');
+                    % clear data from memory
+                    clear x y demz
+                else
+                 % main interpolant 
+                    obj.Fb   = griddedInterpolant({x,y},demz,...
+                        'linear','nearest');
+                    obj.x0y0 = [x(1),y(1)];
+                    % clear data from memory
+                    clear x y demz
+                end
+                
+                disp(['Read in demfile ',fname]);
             end
             
             % Handle the case of no dem
