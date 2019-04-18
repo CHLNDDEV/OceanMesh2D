@@ -873,7 +873,7 @@ classdef msh
                 % Perform the direct smoothing
                 [obj.p,obj.t] = direct_smoother_lur(obj.p,obj.t,pfix,nscreen);
                 tq = gettrimeshquan( obj.p, obj.t);
-                if min(tq.qm) < 0.025
+                if min(tq.qm) < 0.01
                     % Need to clean it again
                     disp(['Overlapping elements due to smoother, ' ...
                           'cleaning again'])
@@ -1382,7 +1382,7 @@ classdef msh
                    any(max(obj1.p) > max(obj2.p))
                     objt = obj2; objt.p = [objt.p; obj1.p];
                     objt.p(1,:) = min(objt.p) - 1e-3;
-                    objt.p(2,:) = max(objt.p) + 1e-3;
+                    objt.p(2,:) = max(objt.p) + 1e-3;  
                     setProj(objt,1,obj2.proj.name);
                 else
                     % kjr 2018,10,17; Set up projected space imported from msh class
@@ -1414,29 +1414,27 @@ classdef msh
             % Delete the region in the global mesh that is in the
             % intersection with inset.
             disp('Calculating intersection...');
-            %if exist('polyshape','file')
-            %    PG = polyshape(poly_vec1(:,1),poly_vec1(:,2));
-            %    PG2 = polyshape(poly_vec2(:,1), poly_vec2(:,2)) ;
-            %    polyout2 = intersect(PG,PG2) ;
-            %    poly_vec3 = polyout2.Vertices;
-            %else
-            [poly_vec3(:,1),poly_vec3(:,2)] = polybool('intersection',...
+            [x3,y3] = polybool('intersection',...
               poly_vec1(:,1),poly_vec1(:,2),poly_vec2(:,1),poly_vec2(:,2));                    
-            %end
-            [edges3]  = Get_poly_edges([poly_vec3; NaN NaN]);
-            in1 = inpoly(p2(t2(:,1),:),poly_vec3,edges3);
-            in2 = inpoly(p2(t2(:,2),:),poly_vec3,edges3);
-            in3 = inpoly(p2(t2(:,3),:),poly_vec3,edges3);
-            t2(in1 & in2 & in3,:) = []; 
-            % We need to delete straggling elements that are generated
-            % through the above deletion step
-            pruned2 = msh() ; pruned2.p = p2; pruned2.t = t2;
-            pruned2 = Make_Mesh_Boundaries_Traversable(pruned2,0.25,1);
-            t2 = pruned2.t; p2 = pruned2.p;
-            % get new poly_vec2
-            cell2 = extdom_polygon(extdom_edges2(t2,p2),p2,-1,0);
-            poly_vec2 = cell2mat(cell2');
-            
+            if ~isempty(x3)
+                poly_vec3 = [x3,y3];
+                [edges3]  = Get_poly_edges([poly_vec3; NaN NaN]);
+                in1 = inpoly(p2(t2(:,1),:),poly_vec3,edges3);
+                in2 = inpoly(p2(t2(:,2),:),poly_vec3,edges3);
+                in3 = inpoly(p2(t2(:,3),:),poly_vec3,edges3);
+                t2(in1 & in2 & in3,:) = []; 
+                % We need to delete straggling elements that are generated
+                % through the above deletion step
+                pruned2 = msh() ; pruned2.p = p2; pruned2.t = t2;
+                pruned2 = Make_Mesh_Boundaries_Traversable(pruned2,0.25,1);
+                t2 = pruned2.t; p2 = pruned2.p;
+                % get new poly_vec2
+                cell2 = extdom_polygon(extdom_edges2(t2,p2),p2,-1,0);
+                poly_vec2 = cell2mat(cell2');
+            end
+            [~,avd1] = ourKNNsearch(p1',p1',2); avd1 = max(avd1(:,2));
+            [~,avd2] = ourKNNsearch(p2',p2',2); avd2 = max(avd2(:,2));
+           
             disp('Merging...')
             DTbase = delaunayTriangulation(p1(:,1),p1(:,2));
             DTbase.Points(end+(1:length(p2)),:) = p2;
@@ -1446,67 +1444,101 @@ classdef msh
             for ii = 1:2 
             % The loop makes sure to remove only small connectivity for the boundaries
                 if ii == 2
-                    % To remove small connectivity
+                    % To remove small connectivity or bad elements
                     [~, enum] = VertToEle(tm);
                     bdbars = extdom_edges2(tm,pm);
                     bdnodes = unique(bdbars(:));
                     I = find(enum <= 4);
                     nn = setdiff(I',bdnodes);  
-                    DTbase.Points(nn,:) = []; 
+                    % delete vertices associated with small/large angle
+                    % elements
+                    tq = gettrimeshquan(pm,tm);
+                    [I,J] = find(tq.vang*180/pi > 179);
+                    for i = 1:length(I)
+                        % delete the vertex associated with angle angle
+                        wn = tm(I(i),:); 
+                        nn = [nn; wn(J(i))];
+                    end
+                    [I,J] = find(tq.vang*180/pi <   1);
+                    for i = 1:length(I)
+                        % delete one of the vertices not associated with small
+                        % angle
+                        wn = tm(I(i),:); wn(J(i)) = []; 
+                        nn = [nn; wn(1)];
+                    end
+                    DTbase.Points(unique(nn),:) = []; 
                 end
                 
                 pm = DTbase.Points; tm = DTbase.ConnectivityList;
-
+                nei = DTbase.neighbors;
+                
                 pmid = (pm(tm(:,1),:)+pm(tm(:,2),:)+pm(tm(:,3),:))/3;
 
-                % in1 is inside the inset boundary polygon
+                %in1 is inside the inset boundary polygon
                 [edges1] = Get_poly_edges(poly_vec1);
                 in1 = inpoly(pmid,poly_vec1,edges1);
 
-                % in2 is inside the global boundary polygon
+                %in2 is inside the global boundary polygon
                 [edges2] = Get_poly_edges(poly_vec2);
                 in2 = inpoly(pmid,poly_vec2,edges2);
 
-                % in3 is inside the intersection
-                in3 = inpoly(pmid,poly_vec3,edges3);
-
-                % remove triangles that aren't in the global mesh or aren't in
-                % the inset mesh
-                tm((~in1 & ~in2) | ~in1 & in3,:) = [];
-            end
+                %in3 is inside the intersection
+                if exist('poly_vec3','var')
+                    in3 = inpoly(pmid,poly_vec3,edges3);
+                else
+                    in3 = false(size(in1)); 
+                end
                 
+                % remove triangles that aren't in the global mesh or 
+                % aren't in the inset mesh
+                inn = find((~in1 & ~in2) | (~in1 & in3));
+                % this logic tries to avoid creating holes in the merged
+                % mesh
+                del_nei = nei(inn,:);
+                del1 = intersect(del_nei(:,1),inn);
+                del2 = intersect(del_nei(:,2),inn);
+                del3 = intersect(del_nei(:,3),inn);
+                del = unique([del1; del2; del3]);
+                tm(del,:) = [];
+            end
+                        
             merge = msh() ; merge.p = pm; merge.t = tm ;
-          
-            % get overlap region and expand
-            polyvect = poly_vec3; 
-            polyvect(isnan(polyvect(:,1)),:) = [];
-            K = convhull(polyvect(:,1),polyvect(:,2));
-            x = polyvect(K,1); y = polyvect(K,2);
-            xt = 2*x+(1-2)*mean(x(1:end-1));
-            yt = 2*y+(1-2)*mean(y(1:end-1));
-            in3 = inpoly(merge.p,[xt, yt]);
-            
-            % convert back to lat-lon wgs84
-            [merge.p(:,1),merge.p(:,2)] = ...
-                                        m_xy2ll(merge.p(:,1),merge.p(:,2));
-               
-            % set points outsidr to overlap region to be fixed
-            pfixt = merge.p(~in3,:);     
             
             % Clean up the new mesh
-            if ~isempty(obj1.pfix) || ~isempty(obj2.pfix)
-                fix = ismembertol(merge.p,[obj1.pfix; obj2.pfix],...
-                                  1e-6,'ByRows',true)';
-                merge.pfix = merge.p(fix,:);
+            %if ~isempty(obj1.pfix) || ~isempty(obj2.pfix)
+            %    fix = ismembertol(merge.p,[obj1.pfix; obj2.pfix],...
+            %                      1e-6,'ByRows',true)';
+            %    merge.pfix = merge.p(fix,:);
+            %end
+            
+            tq.qm = 0;
+            
+            while min(tq.qm) < 0.01
+
+                merge = clean(merge,[],0,[],1e-3,[],[],0);
+
+                % if we don't know the overlap region
+                [~,dst1] = ourKNNsearch(p1',merge.p',1);
+                [~,dst2] = ourKNNsearch(p2',merge.p',1);
+                idx = find(abs(dst1 - dst2) < 0.5*(avd1 + avd2));
+                
+                % use local smoother
+                constr = setdiff((1:length(merge.p))',idx);
+                [pm,tm] = smoothmesh(merge.p,merge.t,constr,50,0.01);
+                tq = gettrimeshquan(pm,tm);
+                merge.p = pm; merge.t = tm;
             end
-            merge = clean(merge,[],[],[],[],[],[pfixt; merge.pfix]);
+ 
+             % convert back to lat-lon wgs84
+            [merge.p(:,1),merge.p(:,2)] = ...
+                                        m_xy2ll(merge.p(:,1),merge.p(:,2));  
             
             merge.proj    = MAP_PROJECTION ;
             merge.coord   = MAP_COORDS ;
-            merge.mapvar  = MAP_VAR_LIST ;
-            
+            merge.mapvar  = MAP_VAR_LIST ;                        
+                                    
             % Check element order
-            merge = CheckElementOrder(merge);
+            merge = CheckElementOrder(merge);             
             
             % Carry over bathy and gradients
             merge.b = 0*merge.p(:,1);
@@ -1522,7 +1554,7 @@ classdef msh
                 merge.by(dst2 < dst1) = obj2.by(idx2(dst2 < dst1)); 
             end
             disp(['Note that f13, f15 and boundary conditions etc. have' ...
-                  'not been carried over into the merged mesh'])
+                  'not been carried over into the merged mesh'])                                  
         end
       
         function obj = CheckElementOrder(obj,proj)
@@ -1774,8 +1806,8 @@ classdef msh
                     vtoe = VertToEle(tm);
                     bele = unique(vtoe(:,bdnodes)); bele(bele == 0) = [];
                     tqbou = tq1.qm(bele); 
-                    badbound = bele(tqbou < 0.5);
-                    % Delete those boundary elements with quality < 0.5
+                    badbound = bele(tqbou < 0.1);
+                    % Delete those boundary elements with quality < 0.1
                     tm(badbound,:) = [];
                 end
                 [pm,tm] = fixmesh(pm,tm);
