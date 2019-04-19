@@ -450,14 +450,13 @@ classdef geodata
                 end
                 
                 % check for any invalid values 
-                bad = abs(demz) > 11e3 ;
-                if sum(bad) > 0 & ~backup 
+                bad = abs(demz) > 10e3 ;
+                if ~isempty(find(bad)) > 0 & ~backup
                     warning('ALERT: Invalid and/or missing DEM values detected..check DEM');
                     if obj.BACKUPdemfile(1)~=0
                         disp('Replacing invalid values with back-up DEMfile');
                         [demx,demy] = ndgrid(x,y) ;
                         demz(bad) = obj.Fb2(demx(bad),demy(bad)) ;
-                        clearvars demx demy 
                     else
                         % just replace it with NaNs
                         demz(bad) = NaN ;
