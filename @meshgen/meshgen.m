@@ -590,7 +590,7 @@ classdef meshgen
                 % contains a fixed edge, remove the non-fixed vertex
                 % perform this on every iteration aside from ones where we
                 % want to do improvement strategies
-                if ~isempty(obj.egfix) && mod(it,imp) 
+                if ~isempty(obj.egfix) && mod(it,2) 
                     % returns triangle IDs that have edge locks
                     TR = triangulation(t,p) ;
                     elock = edgeAttachments(TR,obj.egfix) ;
@@ -601,7 +601,7 @@ classdef meshgen
                     for ii = 1 : length(elock)
                         vals=elock{ii};
                         for iii = 1 : length(vals)
-                            if tq.qm(vals(iii)) < 0.025 % tria has poor qual
+                            if tq.qm(vals(iii)) < 0.10 % tria has poor qual
                                 numbad=numbad+1;
                                 badone(numbad)=vals(iii) ; 
                             end
