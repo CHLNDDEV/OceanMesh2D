@@ -615,7 +615,9 @@ classdef meshgen
                         p(del,:)= [];
                         pold = inf; %it = it + 1;
                         disp(['Deleting ',num2str(length(del)),' points close to fixed edges']);
+                        if ~isempty(del)
                         continue;
+                        end
                     end
                 end
                 % Termination quality, mesh quality reached is copacetic.

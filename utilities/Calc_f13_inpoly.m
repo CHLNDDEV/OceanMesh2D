@@ -32,7 +32,7 @@ elseif strcmpi(attribute,'EV')
     default_val = 0.05; % Default smagorinsky eddy viscosity
 elseif strcmpi(attribute,'mannings_n_at_sea_floor')
     attrname = 'mannings_n_at_sea_floor';
-    default_val = 0.0020;
+    default_val = 0.020;
 elseif strcmpi(attribute,'surface_submergence_state')
     attrname = 'surface_submergence_state';
     default_val = 0;
