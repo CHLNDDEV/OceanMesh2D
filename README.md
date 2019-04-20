@@ -1,6 +1,7 @@
 ## `OceanMesh2D: Precise distance-based two-dimensional automated mesh generation toolbox intended for coast ocean/shallow water flow models`
 
 <p align="center">
+  <img src = "Example1.png"> &nbsp &nbsp &nbsp &nbsp
   <img src = "nesting.png"> &nbsp &nbsp &nbsp &nbsp
   <img src = "ResoNA.png"> &nbsp &nbsp &nbsp &nbsp
   <img src = "Globalocean.jpg"> &nbsp &nbsp &nbsp &nbsp
