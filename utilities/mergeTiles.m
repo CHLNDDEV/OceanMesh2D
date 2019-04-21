@@ -7,7 +7,7 @@ function merge = mergeTiles(tiles)
     numTiles = length(tiles);
     n = 0;
     for i = 1: 2 : numTiles
-        dmy = load(tiles{i}) ;
+        dmy = load(tiles{i});
         n = n + 1;
         disp(['merge #' num2str(n)])
         merge{n} = dmy.m;
