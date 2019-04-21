@@ -65,7 +65,9 @@ p = obj.p; t = obj.t;
 
 % WJP sometimes we may wanna delete some exterior portions even with a valid
 % mesh so allow entry even in this case.
-etbv(end+1,:) = 1; 
+if numel(etbv) == numel(vxe)
+    etbv(end+1,:) = 1; 
+end
 % Loop until all the nodes only have two boundary edges
 %(the number of boundary edges will equal number of boundary nodes)
 
@@ -85,6 +87,11 @@ while numel(etbv) > numel(vxe)
     
     % Get boundary edges and nodes
     [etbv,vxe] = extdom_edges2( t, p ) ;
+    
+    %if numel(vxe) > numel(etbv)
+    %   error(['number of boundary vertices larger than boundary edges', ...
+    %          ', try a larger dj_cutoff']) 
+    %end
 end
 % Finished cleaning
 disp('ALERT: finished cleaning up mesh..'); 

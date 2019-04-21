@@ -599,7 +599,7 @@ classdef geodata
             end
             
             if nargin < 3
-                projection = 'Transverse Mercator';
+                projection = 'Mercator';
             end
             bufx = 0.2*(obj.bbox(1,2) - obj.bbox(1,1));
             bufy = 0.2*(obj.bbox(2,2) - obj.bbox(2,1));
@@ -608,9 +608,12 @@ classdef geodata
                     'long',mean(obj.bbox(1,:)),'radius',...
                     min(179.9,1.20*max(diff(obj.bbox(2,:)))));
             else
+                lon1 = max(-180,obj.bbox(1,1) - bufx);
+                lon2 = min(+180,obj.bbox(1,2) + bufx);
+                lat1 = max(- 90,obj.bbox(2,1) - bufy);
+                lat2 = min(+ 90,obj.bbox(2,2) + bufy);                
                 m_proj(projection,...
-                    'long',[obj.bbox(1,1) - bufx, obj.bbox(1,2) + bufx],...
-                    'lat',[obj.bbox(2,1) - bufy, obj.bbox(2,2) + bufy]);
+                    'long',[lon1, lon2],'lat',[lat1, lat2]);
             end
             
             switch type
