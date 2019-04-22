@@ -873,7 +873,7 @@ classdef msh
                 % Perform the direct smoothing
                 [obj.p,obj.t] = direct_smoother_lur(obj.p,obj.t,pfix,nscreen);
                 tq = gettrimeshquan( obj.p, obj.t);
-                if min(tq.qm) < 0.01
+                if min(tq.qm) < 0.0
                     % Need to clean it again
                     disp(['Overlapping elements due to smoother, ' ...
                           'cleaning again'])

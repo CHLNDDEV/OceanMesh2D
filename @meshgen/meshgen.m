@@ -403,6 +403,8 @@ classdef meshgen
             geps = 1e-3*min(obj.h0)/Re; 
             deps = sqrt(eps);
             ttol=0.1; Fscale = 1.2; deltat = 0.1;
+            delIT = 0 ; 
+
             % unpack initial points.
             p = obj.grd.p;
             if isempty(p)
@@ -474,6 +476,11 @@ classdef meshgen
                         max_r0 = 1/h0_l^2;     
                         p1 = p1(rand(size(p1,1),1) < r0/max_r0,:);          % Rejection method
                         p  = [p; p1];                                       % Adding p1 to p
+                        % kjr make sure the corners of the box are added to
+                        % make the tile corner's fill the extent more
+                        % quickly. 
+                        plt = cell2mat(obj.boubox');
+                        p = [p ; plt(1:end-1,:) ] ; 
                     end
                 end
             else
@@ -491,10 +498,6 @@ classdef meshgen
                 for jj = 1 : length(obj.fixboxes)
                     if obj.fixboxes(jj)
                         iboubox = obj.boubox{jj};
-                        %this shrinkage isn't general enough should be
-                        %handled by user
-                        %iboubox(:,1) = 0.98*iboubox(:,1)+(1-0.98)*mean(iboubox(1:end-1,1));
-                        %iboubox(:,2) = 0.98*iboubox(:,2)+(1-0.98)*mean(iboubox(1:end-1,2));
                         inbar(:,jj) = inpoly(egfix_mid,iboubox(1:end-1,:));
                     end
                 end
@@ -584,42 +587,27 @@ classdef meshgen
                 mq_l3sig = mq_m - 3*mq_s;
                 obj.qual(it,:) = [mq_m,mq_l3sig,mq_l];
                 
-                
-                % kjr april2019 
-                % if there's a triangle with a low geometric quality that
-                % contains a fixed edge, remove the non-fixed vertex
-                % perform this on every iteration aside from ones where we
-                % want to do improvement strategies
-                if ~isempty(obj.egfix) && mod(it,2) 
-                    % returns triangle IDs that have edge locks
-                    TR = triangulation(t,p) ;
-                    elock = edgeAttachments(TR,obj.egfix) ;
-                    tq = gettrimeshquan(p,t);
-                    pmid = squeeze(mean(reshape(p(t,:),[],3,2),2));
-                    numbad=0 ; 
-                    badone=[]; 
-                    for ii = 1 : length(elock)
-                        vals=elock{ii};
-                        for iii = 1 : length(vals)
-                            if tq.qm(vals(iii)) < 0.10 % tria has poor qual
-                                numbad=numbad+1;
-                                badone(numbad)=vals(iii) ; 
-                            end
+                % Improve the quality of triangles next to fixed edges by
+                % deleting the point part of thin triangles without the fixed
+                % point in it. Thin triangles have poor geometric quality <
+                % 10%. 
+                if ~isempty(obj.egfix) && mod(it,2)
+                    del = heal_fixed_edges(p,t,obj.egfix) ;
+                    if ~isempty(del)
+                        delIT = delIT + 1 ;
+                        if delIT < 5
+                            p(del,:)= [];
+                            pold = inf;
+                            disp(['Deleting ',num2str(length(del)),' points close to fixed edges']);
+                            continue;
+                        else
+                            % Abandon strategy..if it will not terminate
+                            disp('Moving to next iteration');
                         end
                     end
-                    % for each poor qual tria, delete the vertex tht isn't
-                    % fixed
-                    if ~isempty(badone)
-                        badtria=t(badone,:);
-                        del     = badtria(badtria > nfix) ;
-                        p(del,:)= [];
-                        pold = inf; %it = it + 1;
-                        disp(['Deleting ',num2str(length(del)),' points close to fixed edges']);
-                        if ~isempty(del)
-                        continue;
-                        end
-                    end
+                    delIT = 0 ;
                 end
+                
                 % Termination quality, mesh quality reached is copacetic.
                 if mod(it,imp) == 0
                     qual_diff = mq_l3sig - obj.qual(max(1,it-imp),2);
@@ -820,10 +808,13 @@ classdef meshgen
                         % Perform the following below upon exit from the mesh
                         % generation algorithm
                         nn = get_small_connectivity(pt1,t);
-                        TR.Points(nn,:) = []; 
-                        pt1(nn,:) = [];
+                        nn2 = heal_fixed_edges(pt1,t,obj.egfix) ; 
+                        nn3 = unique([nn(:); nn2(:)]) ; 
+                        TR.Points(nn3,:) = []; 
+                        pt1(nn3,:) = [];
                     end
                     t = TR.ConnectivityList;
+             
                     pmid = squeeze(mean(reshape(pt1(t,:),[],3,2),2));      % Compute centroids
                     [pmid(:,1),pmid(:,2)] = m_xy2ll(pmid(:,1),pmid(:,2));  % Change back to lat lon
                     t    = t(feval(fd,pmid,obj,[]) < -geps,:);             % Keep interior triangles
@@ -849,6 +840,36 @@ classdef meshgen
                 nn = setdiff(I',[(1:nfix)';bdnodes]);                      % and don't destroy pfix or egfix!
                 return;
             end
+            
+            
+            function del = heal_fixed_edges(p,t,egfix)
+                % kjr april2019
+                % if there's a triangle with a low geometric quality that
+                % contains a fixed edge, remove the non-fixed vertex
+                % perform this on every other iteration to allow non-fixed
+                % points to create equilateral triangles nearby the locked
+                % edge. 
+                % returns points IDs that should be deleted. 
+                TR = triangulation(t,p) ;
+                elock = edgeAttachments(TR,egfix) ;
+                dmy = edgeAttachments(TR,fliplr(egfix)) ;
+
+                tq = gettrimeshquan(p,t);
+                numbad=0 ;
+                dmy=[];
+                for c = 1 : length(elock)
+                    vals=elock{c};
+                    for cc = 1 : length(vals)
+                        if tq.qm(vals(cc)) < 0.10 % tria has poor qual
+                            numbad=numbad+1;
+                            dmy(numbad)=vals(cc) ;
+                        end
+                    end
+                end
+                badtria=t(dmy,:);
+                del    = badtria(badtria > nfix) ;
+            end
+            
             
         end % end distmesh2d_plus
         

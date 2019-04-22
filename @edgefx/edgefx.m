@@ -235,7 +235,14 @@ classdef edgefx
         end
         %% Feature size function, approximates width of nearshore geo.
         function obj = featfx(obj,feat)
-            
+            if isempty(feat.mainland) && isempty(feat.inner)
+                % No medial points so use distance function using grade
+                warning('No mainland or inner')
+                xg = CreateStructGrid(obj);
+                obj.fsd = xg*NaN; 
+                clearvars xg 
+                return
+            end
             % Make sure we don't create a singularity on the coast in the
             % distance function!
             [d,obj] = get_dis(obj,feat);
