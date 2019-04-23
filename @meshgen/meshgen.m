@@ -397,7 +397,7 @@ classdef meshgen
             %%
             tic
             it = 1 ;
-            imp = 10;
+            imp = 5;
             qual_diff = 0;
             Re = 6378.137e3;
             geps = 1e-3*min(obj.h0)/Re; 
@@ -675,7 +675,7 @@ classdef meshgen
                 % Mesh improvements (deleting and addition)
                 if mod(it,imp) == 0
                     nn = []; pst = [];
-                    if qual_diff < 0.1 && qual_diff > 0
+                    if qual_diff < imp*0.01 && qual_diff > 0
                         % Remove elements with small connectivity
                         nn = get_small_connectivity(p,t);
                         disp(['Deleting ' num2str(length(nn)) ' due to small connectivity'])
@@ -690,7 +690,6 @@ classdef meshgen
 
                         % Split long edges however many times to
                         % better lead to LN of 1
-                        pst = [];
                         if any(LN > 2)
                             nsplit = floor(LN);
                             nsplit(nsplit < 1) = 1;
@@ -711,23 +710,25 @@ classdef meshgen
                             end
                             disp(['Adding ',num2str(adding) ,' points.'])
                         end
+                        if ~isempty(nn) || ~isempty(pst)
+                            it = it + 1;
+                        end
                     end
                     if negfix > 0 
-                        %[obj.egfix,obj.pfix] = heal_fixed_edges(p,t,obj.egfix,obj.pfix);
-                        %negfix = size(obj.egfix,1);
                         nn1 = heal_fixed_edges(p,t,obj.egfix,obj.pfix);
-                        disp(['Deleting ' num2str(length(nn1)) ' points too close to fix edge'])
-                        nn = unique([nn; nn1]);
+                        if ~isempty(nn1)
+                            disp(['Deleting ' num2str(length(nn1)) ...
+                                  ' points too close to fix edge'])
+                            nn = unique([nn; nn1]);
+                        end
                     end               
-                    
-                    % Doing the actual subtracting and add
-                    p(nn,:)= [];
-                    p = [p; pst]; %-->p is duplicated here but 'setdiff' at the top of the while
-                    % re-adding pfix onto beginning of p
-                    %p(1:nfix,:) = []; p = [obj.pfix; p];
-                    %nfix   = size(obj.pfix,1);
-                    pold = inf; it = it + 1;
-                    continue;
+                    if ~isempty(nn) || ~isempty(pst)
+                        % Doing the actual subtracting and add
+                        p(nn,:)= [];
+                        p = [p; pst]; 
+                        pold = inf; 
+                        continue;
+                    end
                 end
                 
                 F    = (1-LN.^4).*exp(-LN.^4)./LN;                         % Bessens-Heckbert edge force

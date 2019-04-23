@@ -836,16 +836,20 @@ classdef msh
             [obj.p,obj.t] = fixmesh(obj.p,obj.t);
             
             if db
-                % Begin by just deleting poor mesh boundary elements
-                tq = gettrimeshquan(obj.p,obj.t);
-                % Get the elements that have a boundary bar
-                bdbars = extdom_edges2(obj.t,obj.p);
-                bdnodes = unique(bdbars(:));
-                vtoe = VertToEle(obj.t);
-                bele = unique(vtoe(:,bdnodes)); bele(bele == 0) = [];
-                tqbou = tq.qm(bele);
-                % Delete those boundary elements with quality < 0.5
-                obj.t(bele(tqbou < db),:) = [];
+                while 1
+                    % Begin by just deleting poor mesh boundary elements
+                    tq = gettrimeshquan(obj.p,obj.t);
+                    % Get the elements that have a boundary bar
+                    bdbars = extdom_edges2(obj.t,obj.p);
+                    bdnodes = unique(bdbars(:));
+                    vtoe = VertToEle(obj.t);
+                    bele = unique(vtoe(:,bdnodes)); bele(bele == 0) = [];
+                    tqbou = tq.qm(bele);
+                    % Delete those boundary elements with quality < db
+                    if min(tqbou >= db); break; end
+                    obj.t(bele(tqbou < db),:) = [];
+                    [obj.p,obj.t] = fixmesh(obj.p,obj.t);
+                end
             end
             
             % Make mesh traversable
