@@ -491,8 +491,9 @@ classdef meshgen
             
             % remove pfix/egfix outside of desired subdomain
             nfix = size(obj.pfix,1);    % Number of fixed points
-            negfix = size(obj.egfix,1); % Number of edge constraints.
+            negfix = size(obj.egfix,1); % Number of edge constraints
             if negfix > 0
+                pfixkeep = setdiff([1:nfix]',unique(obj.egfix(:)));
                 % remove bars if midpoint is outside domain
                 egfix_mid = (obj.pfix(obj.egfix(:,1),:) + obj.pfix(obj.egfix(:,2),:))/2;
                 for jj = 1 : length(obj.fixboxes)
@@ -503,10 +504,12 @@ classdef meshgen
                 end
                 inbar = sum(inbar,2) ;
                 obj.egfix(~inbar,:) = [];
-                tmppfix = obj.pfix(unique(obj.egfix(:)),:);
-                obj.pfix = []; obj.pfix = tmppfix;
+                tmppfix = obj.pfix([unique(obj.egfix(:)); pfixkeep],:);
+                obj.pfix = tmppfix;
                 obj.egfix = renumberEdges(obj.egfix);
-            elseif nfix > 0
+                negfix = size(obj.egfix,1); % Number of edge constraints.
+            end
+            if nfix > 0
                 % remove pfix if outside domain
                 for jj = 1 : length(obj.fixboxes)
                     if obj.fixboxes(jj)
@@ -514,13 +517,10 @@ classdef meshgen
                     end
                 end
                 inbox = sum(inbox,2) ;
+                inbox(1:negfix) = 1;
                 obj.pfix(~inbox,:) = [];
+                nfix = size(obj.pfix,1);    % Number of fixed points
             end
-            % updated sizes
-            % remove pfix/egfix outside of domain
-            nfix = size(obj.pfix,1);    % Number of fixed points
-            negfix = size(obj.egfix,1); % Number of edge constraints.
-            
             if nfix >= 0, disp(['Using ',num2str(nfix),' fixed points.']);end
             if negfix > 0
                 if max(obj.egfix(:)) > length(obj.pfix)
@@ -564,9 +564,12 @@ classdef meshgen
                         cla,m_triplot(p(:,1),p(:,2),t)
                         m_grid
                         title(['Iteration = ',num2str(it)]);
-                        if ~isempty(obj.pfix)
-                            hold on;
-                            m_plot(p(1:nfix,1),p(1:nfix,2),'r.')
+                        if negfix > 0
+                            m_plot(reshape(obj.pfix(obj.egfix,1),[],2)',...
+                                 reshape(obj.pfix(obj.egfix,2),[],2)','r-')
+                        end
+                        if nfix > 0
+                            m_plot(obj.pfix(:,1),obj.pfix(:,2),'b.')
                         end
                         plt = cell2mat(obj.boubox');
                         % reduce point spacing for asecthics
@@ -591,22 +594,22 @@ classdef meshgen
                 % deleting the point part of thin triangles without the fixed
                 % point in it. Thin triangles have poor geometric quality <
                 % 10%. 
-                if ~isempty(obj.egfix) && mod(it,2)
-                    del = heal_fixed_edges(p,t,obj.egfix) ;
-                    if ~isempty(del)
-                        delIT = delIT + 1 ;
-                        if delIT < 5
-                            p(del,:)= [];
-                            pold = inf;
-                            disp(['Deleting ',num2str(length(del)),' points close to fixed edges']);
-                            continue;
-                        else
-                            % Abandon strategy..if it will not terminate
-                            disp('Moving to next iteration');
-                        end
-                    end
-                    delIT = 0 ;
-                end
+%                 if ~isempty(obj.egfix) && mod(it,2)
+%                     del = heal_fixed_edges(p,t,obj.egfix) ;
+%                     if ~isempty(del)
+%                         delIT = delIT + 1 ;
+%                         if delIT < 5
+%                             p(del,:)= [];
+%                             pold = inf;
+%                             disp(['Deleting ',num2str(length(del)),' points close to fixed edges']);
+%                             continue;
+%                         else
+%                             % Abandon strategy..if it will not terminate
+%                             disp('Moving to next iteration');
+%                         end
+%                     end
+%                     delIT = 0 ;
+%                  end
                 
                 % Termination quality, mesh quality reached is copacetic.
                 if mod(it,imp) == 0
@@ -633,14 +636,19 @@ classdef meshgen
                 
                 % 6. Move mesh points based on bar lengths L and forces F
                 barvec = pt(bars(:,1),:)- pt(bars(:,2),:);                 % List of bar vectors
-                long   = zeros(length(bars)*2,1);                          % 
-                lat    = zeros(length(bars)*2,1);
-                long(1:2:end) = p(bars(:,1),1); 
-                long(2:2:end) = p(bars(:,2),1);
-                lat(1:2:end)  = p(bars(:,1),2);  
-                lat(2:2:end)  = p(bars(:,2),2);
-                %Get spherical earth distances
-                L = m_lldist(long,lat); L = L(1:2:end)*1e3;                % L = Bar lengths in meters
+                if strcmp(obj.grd.proj.name,'UTM')
+                    % UTM is already in meters (useful for small domains)
+                    L = sqrt(sum(barvec.^2,2)); 
+                else
+                    % Get spherical earth distances
+                    long   = zeros(length(bars)*2,1);                       
+                    lat    = zeros(length(bars)*2,1);
+                    long(1:2:end) = p(bars(:,1),1); 
+                    long(2:2:end) = p(bars(:,2),1);
+                    lat(1:2:end)  = p(bars(:,1),2);  
+                    lat(2:2:end)  = p(bars(:,2),2);
+                    L = m_lldist(long,lat); L = L(1:2:end)*1e3;            % L = Bar lengths in meters
+                end
                 ideal_bars = (p(bars(:,1),:) + p(bars(:,2),:))/2;          % Used to determine what bars are in bbox
                 hbars = 0*ideal_bars(:,1);
                                 
@@ -701,9 +709,17 @@ classdef meshgen
                         end
                         disp(['Adding ',num2str(adding) ,' points.'])
                     end
+                    if negfix > 0 
+                        [obj.egfix,obj.pfix] = heal_fixed_edges(p,t,obj.egfix,obj.pfix);
+                        negfix = size(obj.egfix,1);
+                    end               
+                    
                     % Doing the actual subtracting and add
                     p(nn,:)= [];
                     p = [p; pst]; %-->p is duplicated here but 'setdiff' at the top of the while
+                    % re-adding pfix onto beginning of p
+                    p(1:nfix,:) = []; p = [obj.pfix; p];
+                    nfix   = size(obj.pfix,1);
                     pold = inf; it = it + 1;
                     continue;
                 end
@@ -808,21 +824,22 @@ classdef meshgen
                         % Perform the following below upon exit from the mesh
                         % generation algorithm
                         nn = get_small_connectivity(pt1,t);
-                        nn2 = heal_fixed_edges(pt1,t,obj.egfix) ; 
-                        nn3 = unique([nn(:); nn2(:)]) ; 
-                        TR.Points(nn3,:) = []; 
-                        pt1(nn3,:) = [];
+                        %nn2 = heal_fixed_edges(pt1,t,obj.egfix) ; 
+                        %nn3 = unique([nn(:); nn2(:)]) ; 
+                        TR.Points(nn,:) = []; 
+                        pt1(nn,:) = [];
                     end
                     t = TR.ConnectivityList;
-             
                     pmid = squeeze(mean(reshape(pt1(t,:),[],3,2),2));      % Compute centroids
                     [pmid(:,1),pmid(:,2)] = m_xy2ll(pmid(:,1),pmid(:,2));  % Change back to lat lon
                     t    = t(feval(fd,pmid,obj,[]) < -geps,:);             % Keep interior triangles
-                    % Deleting very straight triangles
-                    tq_n = gettrimeshquan( pt1, t);
-                    bad_ele = any(tq_n.vang < 1*pi/180 | ...
-                                  tq_n.vang > 179*pi/180,2);
-                    t(bad_ele,:) = [];
+                    if kk == 1
+                        % Deleting very straight triangles
+                        tq_n = gettrimeshquan( pt1, t);
+                        bad_ele = any(tq_n.vang < 1*pi/180 | ...
+                                      tq_n.vang > 179*pi/180,2);
+                        t(bad_ele,:) = [];
+                    end
                 end
                 if length(pt1) ~= length(p)
                     clear p
@@ -842,7 +859,7 @@ classdef meshgen
             end
             
             
-            function del = heal_fixed_edges(p,t,egfix)
+            function [egfix,pfix] = heal_fixed_edges(p,t,egfix,pfix)
                 % kjr april2019
                 % if there's a triangle with a low geometric quality that
                 % contains a fixed edge, remove the non-fixed vertex
@@ -852,22 +869,36 @@ classdef meshgen
                 % returns points IDs that should be deleted. 
                 TR = triangulation(t,p) ;
                 elock = edgeAttachments(TR,egfix) ;
-                dmy = edgeAttachments(TR,fliplr(egfix)) ;
-
                 tq = gettrimeshquan(p,t);
-                numbad=0 ;
-                dmy=[];
+%                numbad = 0 ;
+                dmy = [];
                 for c = 1 : length(elock)
-                    vals=elock{c};
-                    for cc = 1 : length(vals)
-                        if tq.qm(vals(cc)) < 0.10 % tria has poor qual
-                            numbad=numbad+1;
-                            dmy(numbad)=vals(cc) ;
-                        end
+                    vals = elock{c};
+                    if any(tq.qm(vals) < 0.10)
+                        dmy(end+1) = c;
                     end
+%                     for cc = 1 : length(vals)
+%                         if tq.qm(vals(cc)) < 0.10 % tria has poor qual
+%                             numbad = numbad + 1;
+%                             dmy(numbad) = vals(cc) ;
+%                         end
+%                     end
                 end
-                badtria=t(dmy,:);
-                del    = badtria(badtria > nfix) ;
+                % split edge
+                disp(['Splitting ',num2str(length(dmy)) ,' fixed edges.'])
+                egfix_o = egfix(dmy,:);
+                psplit = 0.5*(pfix(egfix_o(:,1),:) + pfix(egfix_o(:,2),:));
+                pfix = [pfix; psplit];
+                egfix(dmy,:) = [];
+                egfix_n = zeros(size(egfix_o).*[2,1]);
+                egfix_n(1:2:end,1) = egfix_o(:,1);
+                egfix_n(2:2:end,2) = egfix_o(:,2);
+                egfix_n(1:2:end,2) = [1:length(psplit)]' + nfix;
+                egfix_n(2:2:end,1) = [1:length(psplit)]' + nfix;
+                egfix = [egfix; egfix_n];
+                %
+                %badtria = t(dmy,:);
+                %del    = badtria(badtria > nfix) ;
             end
             
             

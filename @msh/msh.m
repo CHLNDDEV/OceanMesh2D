@@ -1145,12 +1145,16 @@ classdef msh
                     obj.op.nbdv = 0;
                     
                     % land boundary
-                    obj.bd.nbou = nbou ;
-                    obj.bd.nvel = nvel ;
-                    obj.bd.nvell = nvell ;
-                    obj.bd.ibtype = ibtype ;
-                    obj.bd.nbvv = nbvv ;
-                    
+                    if nbou == 0
+                        disp('No islands found!')
+                    else
+                        obj.bd.nbou = nbou ;
+                        obj.bd.nvel = nvel ;
+                        obj.bd.nvell = nvell ;
+                        obj.bd.ibtype = ibtype ;
+                        obj.bd.nbvv = nbvv ;
+                    end
+                        
                 case('delete')
                     % have the user select the nodestring '
                     plot(obj,'bd') ;
