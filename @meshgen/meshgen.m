@@ -517,7 +517,7 @@ classdef meshgen
                     end
                 end
                 inbox = sum(inbox,2) ;
-                inbox(1:negfix) = 1;
+                inbox(unique(obj.egfix(:))) = 1;
                 obj.pfix(~inbox,:) = [];
                 nfix = size(obj.pfix,1);    % Number of fixed points
             end
@@ -673,53 +673,59 @@ classdef meshgen
                 LN = L./L0;                                                 % LN = Normalized bar lengths
                 
                 % Mesh improvements (deleting and addition)
-                if mod(it,imp) == 0 && qual_diff < 0.1 && qual_diff > 0
-                    % Remove elements with small connectivity
-                    nn = get_small_connectivity(p,t);
-                    disp(['Deleting ' num2str(length(nn)) ' due to small connectivity'])
-                    
-                    % Remove points that are too close (< LN = 0.5)
-                    if any(LN < 0.5)
-                        % Do not delete pfix too close.
-                        nn1 = setdiff(reshape(bars(LN < 0.5,:),[],1),[(1:nfix)']);
-                        disp(['Deleting ' num2str(length(nn1)) ' points too close together'])
-                        nn = unique([nn; nn1]);
-                    end
-                    
-                    % Split long edges however many times to
-                    % better lead to LN of 1
-                    pst = [];
-                    if any(LN > 2)
-                        nsplit = floor(LN);
-                        nsplit(nsplit < 1) = 1;
-                        adding = 0;
-                        % Probably we can just split once?
-                        for jj = 2:2
-                            il = find(nsplit >= jj);
-                            xadd = zeros(length(il),jj-1);
-                            yadd = zeros(length(il),jj-1);
-                            for jjj = 1 : length(il)
-                                deltax = (p(bars(il(jjj),2),1)- p(bars(il(jjj),1),1))/jj;
-                                deltay = (p(bars(il(jjj),2),2)- p(bars(il(jjj),1),2))/jj;
-                                xadd(jjj,:) = p(bars(il(jjj),1),1) + (1:jj-1)*deltax;
-                                yadd(jjj,:) = p(bars(il(jjj),1),2) + (1:jj-1)*deltay;
-                            end
-                            pst = [pst; xadd(:) yadd(:)];
-                            adding = numel(xadd) + adding;
+                if mod(it,imp) == 0
+                    nn = []; pst = [];
+                    if qual_diff < 0.1 && qual_diff > 0
+                        % Remove elements with small connectivity
+                        nn = get_small_connectivity(p,t);
+                        disp(['Deleting ' num2str(length(nn)) ' due to small connectivity'])
+
+                        % Remove points that are too close (< LN = 0.5)
+                        if any(LN < 0.5)
+                            % Do not delete pfix too close.
+                            nn1 = setdiff(reshape(bars(LN < 0.5,:),[],1),[(1:nfix)']);
+                            disp(['Deleting ' num2str(length(nn1)) ' points too close together'])
+                            nn = unique([nn; nn1]);
                         end
-                        disp(['Adding ',num2str(adding) ,' points.'])
+
+                        % Split long edges however many times to
+                        % better lead to LN of 1
+                        pst = [];
+                        if any(LN > 2)
+                            nsplit = floor(LN);
+                            nsplit(nsplit < 1) = 1;
+                            adding = 0;
+                            % Probably we can just split once?
+                            for jj = 2:2
+                                il = find(nsplit >= jj);
+                                xadd = zeros(length(il),jj-1);
+                                yadd = zeros(length(il),jj-1);
+                                for jjj = 1 : length(il)
+                                    deltax = (p(bars(il(jjj),2),1)- p(bars(il(jjj),1),1))/jj;
+                                    deltay = (p(bars(il(jjj),2),2)- p(bars(il(jjj),1),2))/jj;
+                                    xadd(jjj,:) = p(bars(il(jjj),1),1) + (1:jj-1)*deltax;
+                                    yadd(jjj,:) = p(bars(il(jjj),1),2) + (1:jj-1)*deltay;
+                                end
+                                pst = [pst; xadd(:) yadd(:)];
+                                adding = numel(xadd) + adding;
+                            end
+                            disp(['Adding ',num2str(adding) ,' points.'])
+                        end
                     end
                     if negfix > 0 
-                        [obj.egfix,obj.pfix] = heal_fixed_edges(p,t,obj.egfix,obj.pfix);
-                        negfix = size(obj.egfix,1);
+                        %[obj.egfix,obj.pfix] = heal_fixed_edges(p,t,obj.egfix,obj.pfix);
+                        %negfix = size(obj.egfix,1);
+                        nn1 = heal_fixed_edges(p,t,obj.egfix,obj.pfix);
+                        disp(['Deleting ' num2str(length(nn1)) ' points too close to fix edge'])
+                        nn = unique([nn; nn1]);
                     end               
                     
                     % Doing the actual subtracting and add
                     p(nn,:)= [];
                     p = [p; pst]; %-->p is duplicated here but 'setdiff' at the top of the while
                     % re-adding pfix onto beginning of p
-                    p(1:nfix,:) = []; p = [obj.pfix; p];
-                    nfix   = size(obj.pfix,1);
+                    %p(1:nfix,:) = []; p = [obj.pfix; p];
+                    %nfix   = size(obj.pfix,1);
                     pold = inf; it = it + 1;
                     continue;
                 end
@@ -824,8 +830,8 @@ classdef meshgen
                         % Perform the following below upon exit from the mesh
                         % generation algorithm
                         nn = get_small_connectivity(pt1,t);
-                        %nn2 = heal_fixed_edges(pt1,t,obj.egfix) ; 
-                        %nn3 = unique([nn(:); nn2(:)]) ; 
+                        nn1 = heal_fixed_edges(pt1,t,obj.egfix) ; 
+                        nn = unique([nn; nn1]) ; 
                         TR.Points(nn,:) = []; 
                         pt1(nn,:) = [];
                     end
@@ -859,7 +865,7 @@ classdef meshgen
             end
             
             
-            function [egfix,pfix] = heal_fixed_edges(p,t,egfix,pfix)
+            function del = heal_fixed_edges(p,t,egfix,pfix) %[egfix,pfix] 
                 % kjr april2019
                 % if there's a triangle with a low geometric quality that
                 % contains a fixed edge, remove the non-fixed vertex
@@ -870,35 +876,34 @@ classdef meshgen
                 TR = triangulation(t,p) ;
                 elock = edgeAttachments(TR,egfix) ;
                 tq = gettrimeshquan(p,t);
-%                numbad = 0 ;
+                numbad = 0 ;
                 dmy = [];
                 for c = 1 : length(elock)
                     vals = elock{c};
-                    if any(tq.qm(vals) < 0.10)
-                        dmy(end+1) = c;
-                    end
-%                     for cc = 1 : length(vals)
-%                         if tq.qm(vals(cc)) < 0.10 % tria has poor qual
-%                             numbad = numbad + 1;
-%                             dmy(numbad) = vals(cc) ;
-%                         end
+%                     if any(tq.qm(vals) < 0.10)
+%                         dmy(end+1) = c;
 %                     end
+                    for cc = 1 : length(vals)
+                        if tq.qm(vals(cc)) < 0.10 % tria has poor qual
+                            numbad = numbad + 1;
+                            dmy(numbad) = vals(cc) ;
+                        end
+                    end
                 end
-                % split edge
-                disp(['Splitting ',num2str(length(dmy)) ,' fixed edges.'])
-                egfix_o = egfix(dmy,:);
-                psplit = 0.5*(pfix(egfix_o(:,1),:) + pfix(egfix_o(:,2),:));
-                pfix = [pfix; psplit];
-                egfix(dmy,:) = [];
-                egfix_n = zeros(size(egfix_o).*[2,1]);
-                egfix_n(1:2:end,1) = egfix_o(:,1);
-                egfix_n(2:2:end,2) = egfix_o(:,2);
-                egfix_n(1:2:end,2) = [1:length(psplit)]' + nfix;
-                egfix_n(2:2:end,1) = [1:length(psplit)]' + nfix;
-                egfix = [egfix; egfix_n];
-                %
-                %badtria = t(dmy,:);
-                %del    = badtria(badtria > nfix) ;
+                badtria = t(dmy,:);
+                del    = badtria(badtria > nfix) ;
+%                 % split edge
+%                 disp(['Splitting ',num2str(length(dmy)) ,' fixed edges.'])
+%                 egfix_o = egfix(dmy,:);
+%                 psplit = 0.5*(pfix(egfix_o(:,1),:) + pfix(egfix_o(:,2),:));
+%                 pfix = [pfix; psplit];
+%                 egfix(dmy,:) = [];
+%                 egfix_n = zeros(size(egfix_o).*[2,1]);
+%                 egfix_n(1:2:end,1) = egfix_o(:,1);
+%                 egfix_n(2:2:end,2) = egfix_o(:,2);
+%                 egfix_n(1:2:end,2) = [1:length(psplit)]' + nfix;
+%                 egfix_n(2:2:end,1) = [1:length(psplit)]' + nfix;
+%                 egfix = [egfix; egfix_n];
             end
             
             
