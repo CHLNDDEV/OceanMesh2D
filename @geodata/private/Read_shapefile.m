@@ -162,7 +162,7 @@ tmpInC = mat2cell(tmpIn,cellfun(@length,tmpC(:,1)));
 
 j = 0 ; k = 0 ; height = []; new_islandb = []; new_mainb = [];
 new_islandb_type = []; new_mainb_type = [];
-for i = 1 : length(tmpC)
+for i = 1 : size(tmpC,1)
     if sr
         points = tmpC{i,1}(1:end-1,:) ;
         In     = tmpInC{i,1}(1:end-1) ;
