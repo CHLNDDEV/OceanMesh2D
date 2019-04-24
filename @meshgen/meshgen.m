@@ -494,6 +494,9 @@ classdef meshgen
             nfix = size(obj.pfix,1);    % Number of fixed points
             negfix = size(obj.egfix,1); % Number of edge constraints
             if negfix > 0
+                if length(obj.fixboxes)==1 && obj.fixboxes(1)==0 
+                  obj.fixboxes(1)=1 ; 
+                end
                 pfixkeep = setdiff([1:nfix]',unique(obj.egfix(:)));
                 % remove bars if midpoint is outside domain
                 egfix_mid = (obj.pfix(obj.egfix(:,1),:) + ...
@@ -512,6 +515,9 @@ classdef meshgen
                 negfix = size(obj.egfix,1); % Number of edge constraints.
             end
             if nfix > 0
+                if length(obj.fixboxes)==1 && obj.fixboxes(1)==0 
+                  obj.fixboxes(1)=1 ; 
+                end
                 % remove pfix if outside domain
                 for jj = 1 : length(obj.fixboxes)
                     if obj.fixboxes(jj)
@@ -531,9 +537,6 @@ classdef meshgen
                 disp(['Using ',num2str(negfix),' fixed edges.']);
             end
             
-            if ~isempty(obj.pfix) && sum(obj.fixboxes)==0
-                error('INFO: Please specify fixedboxes flags with at least one non-zero!');
-            end
             if ~isempty(obj.pfix); p = [obj.pfix; p]; end
             N = size(p,1); % Number of points N
             disp(['Number of initial points after rejection is ',num2str(N)]);

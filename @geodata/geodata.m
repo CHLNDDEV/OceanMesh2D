@@ -210,6 +210,24 @@ classdef geodata
             
             obj = ParseShoreline(obj) ;
             
+            % kjr Add the weir faux islands to the inner geometry
+            if ~isempty(obj.weirPfix)
+                idx = [0; cumsum(weirLength)']+1 ;
+                tmp = [] ;
+                for ii = 1 : noWeirs
+                    tmp =  [tmp;
+                        [obj.weirPfix(idx(ii):idx(ii+1)-1,:)
+                        obj.weirPfix(idx(ii),:)]
+                        NaN NaN] ;
+                end
+                obj.inner = [obj.inner ; NaN NaN ;  tmp ] ;
+            end
+            
+            % Ensure inpoly flip is correct
+            obj = check_connectedness_inpoly(obj);
+            
+            disp(['Read in meshing boundary: ',obj.contourfile]);
+            
             if obj.BACKUPdemfile~=0 
               obj = ParseDEM(obj,1) ;   
             end
@@ -358,24 +376,7 @@ classdef geodata
                     obj.mainland(1,:) = []; 
                 end                
             end
-            
-            % kjr Add the weir faux islands to the inner geometry
-            if ~isempty(obj.weirPfix)
-                idx = [0; cumsum(weirLength)']+1 ;
-                tmp = [] ;
-                for ii = 1 : noWeirs
-                    tmp =  [tmp;
-                        [obj.weirPfix(idx(ii):idx(ii+1)-1,:)
-                        obj.weirPfix(idx(ii),:)]
-                        NaN NaN] ;
-                end
-                obj.inner = [obj.inner ; NaN NaN ;  tmp ] ;
-            end
-            
-            % Ensure inpoly flip is correct
-            obj = check_connectedness_inpoly(obj);
-            
-            disp(['Read in meshing boundary: ',obj.contourfile]);
+           
             
         end
         
