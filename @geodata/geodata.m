@@ -24,6 +24,8 @@ classdef geodata
         inner % island boundary(ies)
         mainlandb % height of mainland
         innerb    % height of inner
+        mainlandb_type % type of mainland (lake or river or ocean)
+        innerb_type    % type of inner (lake or river or ocean)
         weirs % weir crestlines
         weirPfix % boundaries of weir
         weirEgfix % edges of weir
@@ -233,7 +235,9 @@ classdef geodata
                 obj.inner     = polygon_struct.inner;
                 obj.mainlandb = polygon_struct.mainlandb;
                 obj.innerb    = polygon_struct.innerb;
-                
+                obj.mainlandb_type = polygon_struct.mainlandb_type;
+                obj.innerb_type    = polygon_struct.innerb_type;
+
                 % Read in the geometric meshing boundary information from a
                 % NaN-delimited vector.
             elseif obj.pslg(1)~=0
@@ -248,7 +252,9 @@ classdef geodata
                 obj.inner     = polygon_struct.inner;
                 obj.mainlandb = polygon_struct.mainlandb;
                 obj.innerb    = polygon_struct.innerb;
-                
+                obj.mainlandb_type = polygon_struct.mainlandb_type;
+                obj.innerb_type    = polygon_struct.innerb_type; 
+
             else
                 % set outer to the boubox
                obj.outer = obj.boubox;

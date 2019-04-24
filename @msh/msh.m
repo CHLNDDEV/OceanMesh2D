@@ -2371,9 +2371,10 @@ classdef msh
             
             
             % kjr convert back to msh obj.
-            obj.p = []; obj.b = []; obj.t =[];
             obj.p = [fem_struct.x,fem_struct.y];
-            obj.b = fem_struct.z;
+            if ~isempty(obj.b)
+                obj.b = fem_struct.z;
+            end
             obj.t = fem_struct.e;
         end
         
@@ -2709,7 +2710,7 @@ classdef msh
             % a msh_obj with bathy/topo on its vertices 
             %
             % kjr, april 2019
-            
+
             % parsing some inputs (or set to default)
             if nargin < 5
                 minb = 1;
@@ -2749,23 +2750,44 @@ classdef msh
                 dmy2 = interp(obj,gdat(i),'type','depth','N',CAN) ; % use smooth overland
                 
                 if ~isempty(gdat{i}.mainlandb) || ~isempty(gdat{i}.innerb)
-                   riverbound = [gdat{i}.mainlandb; gdat{i}.innerb];
-                   riverbound(isnan(riverbound(:,1)),:) = [];
+                    riverbound = [];
+                    if ~isempty(gdat{i}.mainlandb)
+                        notlakem = find(~contains(gdat{i}.mainlandb_type,'lake'));
+                        isnan1 = find(isnan(gdat{i}.mainlandb(:,1)));    
+                        for l = 1:length(notlakem)
+                            if notlakem(l) == 1; isn1 = 1; else
+                            isn1 = isnan1(notlakem(l)-1)+1; end
+                            isn2 = isnan1(notlakem(l))-1;
+                            riverbound = [riverbound; ...
+                                          gdat{i}.mainlandb(isn1:isn2,:)];
+                        end
+                    end
+                    if ~isempty(isempty(gdat{i}.innerb))
+                        notlakei = find(~contains(gdat{i}.innerb_type,'lake'));
+                        isnan1 = find(isnan(gdat{i}.innerb(:,1)));    
+                        for l = 1:length(notlakei)
+                            if notlakei(l) == 1; isn1 = 1; else
+                            isn1 = isnan1(notlakei(l)-1)+1; end
+                            isn2 = isnan1(notlakei(l))-1;
+                            riverbound = [riverbound; ...
+                                          gdat{i}.innerb(isn1:isn2,:)];
+                        end
+                    end
 
-                   global MAP_PROJECTION MAP_VAR_LIST MAP_COORDS
                     % kjr 2018,10,17; Set up projected space imported from msh class
-                   MAP_PROJECTION = obj.proj ;
-                   MAP_VAR_LIST   = obj.mapvar ;
-                   MAP_COORDS     = obj.coord ;           
-                   [rvb(:,1),rvb(:,2)] = ...
-                                 m_ll2xy(riverbound(:,1),riverbound(:,2));
-                   [dmp(:,1),dmp(:,2)] = m_ll2xy(dmy2.p(:,1),dmy2.p(:,2));                                    
-                   F = scatteredInterpolant(rvb(:,1),rvb(:,2),...
-                                     riverbound(:,3),'natural','nearest');
-                   offset = F(dmp);
-                   dmy2.b = min(0,dmy2.b + offset); 
-                   % change minb based on river height
-                   minb = max(1,dmy2.b*0 + minb - riverbound(idx,3));
+                    dmyriver = dmy2; 
+                    dmyriver.p = [dmyriver.p; riverbound(:,1:2)];
+                    setProj(dmyriver,1,obj.proj.name)         
+                    [rvb(:,1),rvb(:,2)] = ...
+                                  m_ll2xy(riverbound(:,1),riverbound(:,2));
+                    [dmp(:,1),dmp(:,2)] = m_ll2xy(dmy2.p(:,1),dmy2.p(:,2));                                    
+                    F = scatteredInterpolant(rvb(:,1),rvb(:,2),...
+                                      riverbound(:,3),'natural','nearest');
+                    offset = F(dmp);
+                    % change above land
+                    dmy2.b = min(0,dmy2.b + offset); 
+                    % change minb based on river height
+                    minb = max(1,dmy1.b*0 + minb - offset);
                 end
                 uw = in | on | dmy1.b > 0;
                 dmy1.b = max(dmy1.b,minb); % bound the depth by minb

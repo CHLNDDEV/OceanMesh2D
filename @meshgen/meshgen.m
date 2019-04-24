@@ -397,13 +397,13 @@ classdef meshgen
             %%
             tic
             it = 1 ;
-            imp = 5;
+            imp = 10;
             qual_diff = 0;
             Re = 6378.137e3;
             geps = 1e-3*min(obj.h0)/Re; 
             deps = sqrt(eps);
             ttol=0.1; Fscale = 1.2; deltat = 0.1;
-            delIT = 0 ; 
+            delIT = 0 ; delImp = 2;
 
             % unpack initial points.
             p = obj.grd.p;
@@ -484,7 +484,8 @@ classdef meshgen
                     end
                 end
             else
-                disp('User-supplied initial points!'); 
+                disp('User-supplied initial points!');
+                obj.grd.b = [];
                 imp = 10; % number of iterations to do mesh improvements (delete/add)
                 h0_l = obj.h0(end); % finest h0 (in case of a restart of meshgen.build).
             end
@@ -495,7 +496,8 @@ classdef meshgen
             if negfix > 0
                 pfixkeep = setdiff([1:nfix]',unique(obj.egfix(:)));
                 % remove bars if midpoint is outside domain
-                egfix_mid = (obj.pfix(obj.egfix(:,1),:) + obj.pfix(obj.egfix(:,2),:))/2;
+                egfix_mid = (obj.pfix(obj.egfix(:,1),:) + ...
+                             obj.pfix(obj.egfix(:,2),:))/2;
                 for jj = 1 : length(obj.fixboxes)
                     if obj.fixboxes(jj)
                         iboubox = obj.boubox{jj};
@@ -545,7 +547,7 @@ classdef meshgen
             disp('Begin iterating...');
             while 1
                 tic
-                if mod(it,obj.nscreen) == 0
+                if ~mod(it,obj.nscreen) && delIT == 0
                     disp(['Iteration =' num2str(it)]) ;
                 end
                 
@@ -594,25 +596,26 @@ classdef meshgen
                 % deleting the point part of thin triangles without the fixed
                 % point in it. Thin triangles have poor geometric quality <
                 % 10%. 
-%                 if ~isempty(obj.egfix) && mod(it,2)
-%                     del = heal_fixed_edges(p,t,obj.egfix) ;
-%                     if ~isempty(del)
-%                         delIT = delIT + 1 ;
-%                         if delIT < 5
-%                             p(del,:)= [];
-%                             pold = inf;
-%                             disp(['Deleting ',num2str(length(del)),' points close to fixed edges']);
-%                             continue;
-%                         else
-%                             % Abandon strategy..if it will not terminate
-%                             disp('Moving to next iteration');
-%                         end
-%                     end
-%                     delIT = 0 ;
-%                  end
+                if ~isempty(obj.egfix) && ~mod(it,delImp)
+                    del = heal_fixed_edges(p,t,obj.egfix) ;
+                    if ~isempty(del)
+                        delIT = delIT + 1 ;
+                        if delIT < 5
+                            p(del,:)= [];
+                            pold = inf;
+                            disp(['Deleting ',num2str(length(del)),...
+                                  ' points close to fixed edges']);
+                            continue;
+                        else
+                            % Abandon strategy..if it will not terminate
+                            disp('Moving to next iteration');
+                        end
+                    end
+                    delIT = 0 ;
+                 end
                 
                 % Termination quality, mesh quality reached is copacetic.
-                if mod(it,imp) == 0
+                if ~mod(it,imp)
                     qual_diff = mq_l3sig - obj.qual(max(1,it-imp),2);
                     if abs(qual_diff) < obj.qual_tol
                         % Do the final elimination of small connectivity
@@ -624,7 +627,7 @@ classdef meshgen
                 end
                 
                 % Saving a temp mesh
-                if mod(it,obj.nscreen) == 0
+                if ~mod(it,obj.nscreen) && delIT == 0
                     disp(['Number of nodes is ' num2str(length(p))])
                     disp(['Mean mesh quality is ' num2str(mq_m)])
                     disp(['Min mesh quality is ' num2str(mq_l)])
@@ -673,7 +676,7 @@ classdef meshgen
                 LN = L./L0;                                                 % LN = Normalized bar lengths
                 
                 % Mesh improvements (deleting and addition)
-                if mod(it,imp) == 0
+                if ~mod(it,imp)
                     nn = []; pst = [];
                     if qual_diff < imp*0.01 && qual_diff > 0
                         % Remove elements with small connectivity
@@ -710,23 +713,13 @@ classdef meshgen
                             end
                             disp(['Adding ',num2str(adding) ,' points.'])
                         end
-                        if ~isempty(nn) || ~isempty(pst)
-                            it = it + 1;
-                        end
-                    end
-                    if negfix > 0 
-                        nn1 = heal_fixed_edges(p,t,obj.egfix,obj.pfix);
-                        if ~isempty(nn1)
-                            disp(['Deleting ' num2str(length(nn1)) ...
-                                  ' points too close to fix edge'])
-                            nn = unique([nn; nn1]);
-                        end
-                    end               
+                    end        
                     if ~isempty(nn) || ~isempty(pst)
                         % Doing the actual subtracting and add
                         p(nn,:)= [];
                         p = [p; pst]; 
                         pold = inf; 
+                        it = it + 1;
                         continue;
                     end
                 end
@@ -866,7 +859,7 @@ classdef meshgen
             end
             
             
-            function del = heal_fixed_edges(p,t,egfix,pfix) %[egfix,pfix] 
+            function del = heal_fixed_edges(p,t,egfix)
                 % kjr april2019
                 % if there's a triangle with a low geometric quality that
                 % contains a fixed edge, remove the non-fixed vertex
@@ -877,22 +870,22 @@ classdef meshgen
                 TR = triangulation(t,p) ;
                 elock = edgeAttachments(TR,egfix) ;
                 tq = gettrimeshquan(p,t);
-                numbad = 0 ;
-                dmy = [];
-                for c = 1 : length(elock)
-                    vals = elock{c};
-%                     if any(tq.qm(vals) < 0.10)
-%                         dmy(end+1) = c;
-%                     end
-                    for cc = 1 : length(vals)
-                        if tq.qm(vals(cc)) < 0.10 % tria has poor qual
-                            numbad = numbad + 1;
-                            dmy(numbad) = vals(cc) ;
-                        end
-                    end
-                end
+                elock = unique(cell2mat(elock'));
+                dmy = elock(tq.qm(elock) < 0.10);
+%                 numbad = 0 ;
+%                 dmy = [];
+%                 elock = edgeAttachments(TR,egfix) ;
+%                 for c = 1 : length(elock)
+%                    vals = elock{c};
+%                    for cc = 1 : length(vals)
+%                        if tq.qm(vals(cc)) < 0.10 % tria has poor qual
+%                            numbad = numbad + 1;
+%                            dmy(numbad) = vals(cc) ;
+%                        end
+%                    end
+%                 end
                 badtria = t(dmy,:);
-                del    = badtria(badtria > nfix) ;
+                del     = badtria(badtria > nfix) ;
 %                 % split edge
 %                 disp(['Splitting ',num2str(length(dmy)) ,' fixed edges.'])
 %                 egfix_o = egfix(dmy,:);
