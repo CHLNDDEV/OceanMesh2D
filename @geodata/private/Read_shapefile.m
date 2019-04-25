@@ -75,6 +75,7 @@ if (size(finputname,1)~=0)
         end
     end
 else
+    sr = 1 ; 
     % convert NaN-delimited vector to struct 
     count = 1; j=1;
     for i = 1 : length(polygon)
