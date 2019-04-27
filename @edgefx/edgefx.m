@@ -719,8 +719,35 @@ classdef edgefx
             
             dx = obj.h0*cosd(min(yg(1,:),85)); % for gradient function
             dy = obj.h0;               % for gradient function
+            % make g a function of space
+            [xg,yg] = CreateStructGrid(obj);
+            dmy     = xg*0 ; 
+            for param = obj.g'
+                if numel(param)==1 && param~=0
+                    lim   = obj.g(1);
+                    dmy  = dmy + lim ; 
+                else
+                    lim  = param(1);
+                    dp1 = param(2);
+                    dp2 = param(3);
+                    
+                    limidx = (feat.Fb(xg,yg) < dp1 & ...
+                        feat.Fb(xg,yg) > dp2) ; 
+                    
+                    dmy( limidx ) = lim;
+                end
+            end
+            nn = 0;
+            fdfdx = zeros(size(hh_m,1)*size(hh_m,2),1);
+            for ipos = 1 : obj.nx
+                for jpos = 1 : obj.ny
+                    nn = nn + 1;
+                    fdfdx(nn,1) = dmy(ipos,jpos);
+                end
+            end
+                   
             [hfun,flag] = limgradStruct(obj.ny,dx,dy,hfun,...
-                                        obj.g,sqrt(length(hfun)));
+                                        fdfdx,sqrt(length(hfun)));
             if flag == 1
                 disp('Gradient relaxing converged!');
             else

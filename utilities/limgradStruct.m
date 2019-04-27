@@ -1,4 +1,4 @@
-function [ffun,flag] = limgradStruct(ny,xeglen,yeglen,ffun,dfdx,imax)
+function [ffun,flag] = limgradStruct(ny,xeglen,yeglen,ffun,fdfdx,imax)
 %LIMGRAD impose "gradient-limits" on a function defined over
 %an undirected graph.
 %   [FNEW] = LIMGRADStruct(NY,EGLEN,FFUN,DFDX,IMAX) computes a
@@ -99,7 +99,7 @@ for iter = +1 : imax
             if (ffun(nod1) > ffun(nod2))
                 
                 fun1 = ffun(nod2) ...
-                    + elen * dfdx ;
+                    + elen * fdfdx(nod2) ;
                 
                 if (ffun(nod1) > fun1+ftol)
                     ffun(nod1) = fun1;
@@ -109,7 +109,7 @@ for iter = +1 : imax
             else
                 
                 fun2 = ffun(nod1) ...
-                    + elen * dfdx ;
+                    + elen * fdfdx(nod2) ;
                 
                 if (ffun(nod2) > fun2+ftol)
                     ffun(nod2) = fun2;
