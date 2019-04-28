@@ -27,7 +27,14 @@ function [ffun,flag] = limgradStruct(ny,xeglen,yeglen,ffun,fdfdx,imax)
 %         Last updated: 24/06/2017
 %         Email       : krober10@nd.edu
 %         Keith Roberts, 2017.
-%
+% ---------------------
+%             Modified to have spatially variable fdfdx 
+%             Last updated: 27/04/2019
+%             Keith Roberts, 2019
+
+if length(fdfdx)==1 
+  fdfdx = ffun*0 + fdfdx ; 
+end
 %----------------------------- ASET=ITER if node is "active"
 aset = zeros(size(ffun,1),1) ;
 

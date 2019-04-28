@@ -762,7 +762,7 @@ classdef edgefx
                     hh_m(ipos,jpos) = hfun(nn);
                 end
             end
-            clearvars hfun
+            clearvars hfun fdfdx
             
             % enforce the CFL if present
             % Limit CFL if dt >= 0, dt = 0 finds dt automatically.

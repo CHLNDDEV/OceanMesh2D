@@ -480,6 +480,7 @@ classdef meshgen
                         % make the tile corner's fill the extent more
                         % quickly. 
                         plt = cell2mat(obj.boubox');
+                        plt(isnan(plt(:,1)),:)=[] ; 
                         p = [p ; plt(1:end-1,:) ] ; 
                     end
                 end
