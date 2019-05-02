@@ -797,6 +797,14 @@ classdef edgefx
                 if ~isempty(obj.chd) 
                    obj.chd = [];  
                 end
+                
+                if ~isempty(obj.ch) 
+                   obj.ch = [];
+                end
+                
+                if ~isempty(obj.boudist) 
+                   obj.boudist = []; 
+                end
             end
         end
         
