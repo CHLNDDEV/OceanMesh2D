@@ -1,4 +1,4 @@
- function efs = smooth_outer(efs)
+ function efs = smooth_outer(efs,Fb)
 % This method takes a cell-aray of edge function class instances 
 % and smoothes them together so they blend into each other.
 % Relax gradient of outer edgefx with inner edgefx using limgradStruct
@@ -40,10 +40,46 @@
             end
         end
         % kjr  Oct 2018 consistent with default application of gradient limiting!
-        dx = efs{ii}.h0*cosd(yg(1,:)); 
-        dy = efs{ii}.h0;  
+        dx = efs{ii}.h0*cosd(yg(1,:));
+        dy = efs{ii}.h0;
+        
+        % make g a function of space
+        [xg,yg] = CreateStructGrid(efs{ii});
+        dmy     = xg*0 ;
+        for param = efs{ii}.g'
+            if numel(param)==1 && param~=0
+                lim   = obj.g(1);
+                dmy  = dmy + lim ;
+            else
+                lim  = param(1);
+                dp1 = param(2);
+                dp2 = param(3);
+                
+                limidx = (Fb{ii}(xg,yg) < dp1 & ...
+                    Fb{ii}(xg,yg) > dp2) ;
+                
+                dmy( limidx ) = lim;
+            end
+        end
+
+        nn = 0;
+        fdfdx = zeros(size(hh_m,1)*size(hh_m,2),1);
+        for ipos = 1 : efs{ii}.nx
+            for jpos = 1 :efs{ii}.ny
+                nn = nn + 1;
+                fdfdx(nn,1) = dmy(ipos,jpos);
+            end
+        end
+
+        dmy    = [] ; 
+        xg     = [] ; 
+        yg     = [] ; 
+        limidx = [] ;
+
         [hfun,flag] = limgradStruct(efs{ii}.ny,dx,dy,hfun,...
-          efs{ii}.g,sqrt(length(hfun)));
+          fdfdx,sqrt(length(hfun)));
+      
+     
         if flag == 1
             disp('Gradient relaxing converged!');
         else
