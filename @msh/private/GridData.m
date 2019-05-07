@@ -95,6 +95,9 @@ if ~isempty(varargin)
     end
 end
 
+if ~exist('ignoreOL','var')
+  ignoreOL = 0 ; 
+end
 if ignoreOL 
   disp('NaNing overland data before interpolating') 
 end
