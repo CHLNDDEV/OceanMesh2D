@@ -47,6 +47,7 @@ classdef meshgen
         proj          % structure containing the m_map projection info
         anno          % Approx. Nearest Neighbor search object. 
         annData       % datat contained with KD-tree in anno
+        Fb            % bathymetry data interpolant 
     end
     
     
@@ -188,6 +189,12 @@ classdef meshgen
                             if isa(arg,'geodata')
                                 obj.outer{ee} = obj.bou{ee}.outer;
                                 obj.inner{ee} = obj.bou{ee}.inner;
+                                
+                                % save bathy interpolant to meshgen 
+                                if ~isempty(obj.bou{ee}.Fb) 
+                                  obj.Fb{ee} = obj.bou{ee}.Fb ;   
+                                end
+                                
                                 if ~isempty(obj.inner{ee}) && ...
                                    obj.inner{ee}(1)~= 0
                                     obj.outer{ee} = [obj.outer{ee};
@@ -251,7 +258,7 @@ classdef meshgen
                         
                         % kjr 2018 smooth the outer automatically
                         if length(obj.ef) > 1
-                            obj.ef = smooth_outer(obj.ef);
+                            obj.ef = smooth_outer(obj.ef,obj.Fb);
                         end
                         
                         % Save the ef interpolants into the edgefx
@@ -560,6 +567,11 @@ classdef meshgen
                     p = fixmesh(p);                                        % Ensure only unique points.
                     N = size(p,1); pold = p;                               % Save current positions
                     [t,p] = delaunay_elim(p,obj.fd,geps,0);                % Delaunay with elimination
+                    
+                    if isempty(t) 
+                      disp('Exiting') 
+                      return 
+                    end
                     N = size(p,1); 
                     % 4. Describe each bar by a unique pair of nodes.
                     bars = [t(:,[1,2]); t(:,[1,3]); t(:,[2,3])];           % Interior bars duplicated
