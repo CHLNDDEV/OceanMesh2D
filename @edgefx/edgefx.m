@@ -385,6 +385,7 @@ classdef edgefx
         end
         
         %% Topographic length scale/slope edge function.
+      %% Topographic length scale/slope edge function.
         function obj = slpfx(obj,feat)
             
             [xg,yg] = CreateStructGrid(obj);
@@ -397,7 +398,7 @@ classdef edgefx
             % lets filter the bathy to get only relevant features
             % loop over each set of bandpass filter lengths
             tmpz_f = zeros(size(tmpz));
-            if obj.fl(1) < 0
+            if obj.fl(1) < 0 && obj.fl(1) ~= -999
                 disp('INFO: Rossby radius of deformation filter on.') ;
                 rbfilt = abs(obj.fl(1));
                 obj.fl = [];
@@ -407,6 +408,11 @@ classdef edgefx
                 obj.fl = [];
                 tmpz_f = tmpz;
                 filtit = 0 ;
+            elseif obj.fl(1) == -999
+                disp('INFO: Slope filter is LEGACY.');
+                obj.fl = [];
+                tmpz_f = tmpz;
+                filtit = -999;
             else
                 filtit = 0;
                 for lambda = obj.fl'
@@ -427,7 +433,7 @@ classdef edgefx
             end
             
             % Rossby radius of deformation filter
-            if filtit
+            if filtit==1
                 tic
                 bs = NaN([obj.nx,obj.ny]);
                 div = 1e4; grav = 9.807;
@@ -503,6 +509,35 @@ classdef edgefx
                     n1s = n1e + 1;
                 end
                 toc
+                % legacy filter
+            elseif filtit==-999
+                bs = NaN([obj.nx,obj.ny]);
+                % Rossby radius of deformation filter
+                f = 2*7.29e-5*abs(sind(yg));
+                % limit to 1000 km
+                rosb = min(1000e3,sqrt(9.81*abs(tmpz))./f);
+                % autmatically divide into discrete bins
+                [~,edges] = histcounts(rosb);
+                tmpz_ft  = tmpz; dyb = dy;
+                % get slope from filtered bathy for the segment only
+                [by,bx] = EarthGradient(tmpz_ft,dy,dx); % get slope in x and y directions
+                tempbs  = sqrt(bx.^2 + by.^2); % get overall slope
+                for i = 1:length(edges)-1
+                    sel = rosb >= edges(i) & rosb <= edges(i+1);
+                    rosbylb = mean(edges(i:i+1));
+                    if rosbylb > 2*dyb
+                        disp(['i = ',num2str(i), ' rl/dx = ',num2str(rosbylb/dyb)])
+                        tmpz_ft  = filt2(tmpz_ft,dyb,rosbylb,'lp');
+                        dyb = rosbylb;
+                        % get slope from filtered bathy for the segment only
+                        [by,bx] = EarthGradient(tmpz_ft,dy,dx); % get slope in x and y directions
+                        tempbs  = sqrt(bx.^2 + by.^2); % get overall slope
+                    else
+                        % otherwise just use the same tempbs from before
+                    end
+                    % put in the full one
+                    bs(sel) = tempbs(sel);
+                end
             else
                 % get slope from (possibly filtered) bathy
                 [by,bx] = EarthGradient(tmpz_f,dy,dx); % get slope in x and y directions
