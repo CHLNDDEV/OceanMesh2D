@@ -740,6 +740,20 @@ classdef edgefx
                     hh_m( limidx ) = mx;
                 end
             end
+            
+            % Make sure this is called before releasing memory...
+            if obj.dt == 0
+                % Find min allowable dt based on dis or fs function
+                if any(~cellfun('isempty',strfind(obj.used,'dis')))
+                    hh_d = obj.hhd;
+                elseif any(~cellfun('isempty',strfind(obj.used,'fs')))
+                    hh_d = obj.fsd;
+                else
+                    error(['FATAL: cannot use automatic timestep ' ...
+                           'limiter without specifying dis or fs option']);
+                end
+            end
+            
             obj = release_memory(obj) ;
 
             disp('Relaxing the gradient');
@@ -764,8 +778,8 @@ classdef edgefx
                     dmy  = dmy + lim ;
                 else
                     lim  = param(1);
-                    dp1 = param(2);
-                    dp2 = param(3);
+                    dp1  = param(2);
+                    dp2  = param(3);
                     
                     limidx = (feat.Fb(xg,yg) < dp1 & ...
                         feat.Fb(xg,yg) > dp2) ;
@@ -803,7 +817,7 @@ classdef edgefx
             % enforce the CFL if present
             % Limit CFL if dt >= 0, dt = 0 finds dt automatically.
             if obj.dt >= 0
-                if(isempty(feat.Fb)); error('No DEM supplied Can''t CFL limit.'); end
+                if isempty(feat.Fb); error('No DEM supplied Can''t CFL limit.'); end
                 tmpz    = feat.Fb(xg,yg);
                 grav = 9.807; descfl = 0.50;
                 % limit the minimum depth to 1 m
@@ -812,22 +826,9 @@ classdef edgefx
                 % velocity at 0 degree phase for 1-m amp. wave).
                 u = sqrt(grav*abs(tmpz)) + sqrt(grav./abs(tmpz));
                 if obj.dt == 0
-                    % Find min allowable dt based on dis or fs function
-                    if any(~cellfun('isempty',strfind(obj.used,'dis')))
-                        hh_d = obj.hhd;
-                    elseif any(~cellfun('isempty',strfind(obj.used,'fs')))
-                        hh_d = obj.fsd;
-                    else
-                        hh_d = [];
-                    end
-                    if ~isempty(hh_d)
-                        hh_d(hh_d < obj.h0) = obj.h0;
-                        obj.dt = min(min(descfl*hh_d./u));
-                        clear hh_d
-                    else
-                        error(['FATAL: cannot use automatic timestep limiter ' ...
-                            'without specifying a dis or fs function']);
-                    end
+                    hh_d(hh_d < obj.h0) = obj.h0;
+                    obj.dt = min(min(descfl*hh_d./u));
+                    clear hh_d
                 end
                 disp(['Enforcing timestep of ',num2str(obj.dt),' seconds.']);
                 cfl = (obj.dt*u)./hh_m; % this is your cfl
@@ -850,7 +851,7 @@ classdef edgefx
             % releases heavy components from data structures
             if isa(obj,'edgefx')
                 disp('--------------------------------------------------');
-                disp('Releasing induvidual edge functions from memory...');
+                disp('Releasing individual edge functions from memory...');
                 disp('--------------------------------------------------');
                 if ~isempty(obj.fsd)
                     obj.fsd = [];
