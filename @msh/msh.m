@@ -1835,7 +1835,7 @@ classdef msh
                     tm(badbound,:) = [];
                 end
                 [pm,tm] = fixmesh(pm,tm);
-                if sum(bad) < 100e3
+                if sum(bad) < size(pm,1)*0.1
                     % find all the points nearby each "bad" point.
                     idx = ourKNNsearch(pm',obj.p(find(bad),:)',12);
                     idx = idx(:);
@@ -1843,7 +1843,7 @@ classdef msh
                     constr = setdiff((1:length(pm))',idx);
                     [pm,tm] = smoothmesh(pm,tm,constr,50,0.01);
                 else
-                    error('Adapation would result in potentially catastrophic lose of connectivity, try adapting to a smaller timestep');
+                    warning('Adapation would result in potentially catastrophic lose of connectivity, try adapting to a smaller timestep');
                 end
                 obj.p = pm; obj.t = tm;
             end
