@@ -978,10 +978,18 @@ classdef msh
                         end
                     end
                     % Get geodata outer and mainland polygons
-                    outer = [gdat.outer(~isnan(gdat.outer(:,1)),:);
-                        gdat.inner(~isnan(gdat.inner(:,1)),:)];
-                    main = [gdat.mainland(~isnan(gdat.mainland(:,1)),:);
-                        gdat.inner(~isnan(gdat.inner(:,1)),:)];
+                    try
+                        outer = [gdat.outer(~isnan(gdat.outer(:,1)),:);
+                            gdat.inner(~isnan(gdat.inner(:,1)),:)];
+                    catch
+                        outer = [gdat.outer(~isnan(gdat.outer(:,1)),:)];
+                    end
+                    try
+                        main = [gdat.mainland(~isnan(gdat.mainland(:,1)),:);
+                            gdat.inner(~isnan(gdat.inner(:,1)),:)];
+                    catch
+                        main = [gdat.mainland(~isnan(gdat.mainland(:,1)),:)] ; 
+                    end
                     [~, d_out] = ourKNNsearch(outer',obj.p(idv,:)',1);
                     [~, d_main] = ourKNNsearch(main',obj.p(idv,:)',1);
                     
