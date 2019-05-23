@@ -568,11 +568,11 @@ classdef geodata
             y = linspace(obj.bbox(2,1),obj.bbox(2,2),100);
             edges = Get_poly_edges( [ps.outer; ps.inner] );
             in_Test = inpoly([x',y'],[ps.outer; ps.inner],edges);
-            if obj.inner(1) ~=0 
-                polytester = [obj.outer; obj.inner];
-            else
+           if ~isempty(obj.inner)
+               polytester = [obj.outer; obj.inner];
+           else
                 polytester = obj.outer;
-            end
+           end
             edges = Get_poly_edges( polytester );
             in_Shpf = inpoly([x',y'],polytester,edges);
             % if more than half of thepoints disagree between Test and Shpf
