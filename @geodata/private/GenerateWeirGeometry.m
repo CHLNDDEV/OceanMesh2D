@@ -23,6 +23,8 @@ function [weirPfix,weirEgfix,ibconn_pts] = GenerateWeirGeometry(crestline,width,
 % ibconn_pts: This array tells you the coordinates that form a pair of points.  
 %
 % AUTHOR: KJR, OCT 26. 2018, CHL,UND
+%    updated by KJR May, 23, 2019, CHL,UND first and last point correspond to knife
+%    edges that are the minimum element size long 
 
 tmp = crestline ; crestline = [] ; 
 
@@ -33,67 +35,27 @@ width = width/2 ;
 dy = gradient(crestline(:,2));
 dx = gradient(crestline(:,1));
 
-% % plt the tangent vec
-% quiver(crestline(:,1),crestline(:,2),-dy,dx)
-% hold on; plot( crestline(:,1), crestline(:,2))
-
 % tangential vectors to line points
 tang(:,1) = crestline(:,1)-dy ;
 tang(:,2) = crestline(:,2)+dx ;
 
+% normal
 v=tang-crestline;
-
+% unit normal 
 u=v./norm(v) ;
 
-new_above=crestline + width*u ;
-new_below=crestline - width*u ;
+new_above=crestline(2:end-1,:) + width*u(2:end-1,:) ;
+new_below=crestline(2:end-1,:) - width*u(2:end-1,:) ;
 
 % create ibconn_pts 
 ibconn_pts = [new_above new_below] ; 
-% hold on; plot(new_above(:,1),new_above(:,2),'r-s') ;
-% hold on; plot(new_below(:,1),new_below(:,2),'g-s') ;
 
-% create knife-edge corners by calculating the normal of the new sgements
-% formed at the edges of the geometry
-ke_left = [new_above(1,:); new_below(1,:)] ;
+ke_right_point_mid = crestline(end,:) ; 
+ke_left_point_mid  = crestline(1,:) ; 
 
-dy = gradient(ke_left(:,2));
-dx = gradient(ke_left(:,1));
-
-% tangential vectors to line points
-tang2(:,1) = ke_left(:,1)-dy ;
-tang2(:,2) = ke_left(:,2)+dx ;
-
-v=tang2-ke_left;
-
-u=v./norm(v) ;
-
-ke_left_point=ke_left - 4.0*width*u ;
-ke_left_point_mid = mean(ke_left_point) ;
-
-%hold on; plot(ke_left_point_mid(:,1),ke_left_point_mid(:,2),'b*') ;
-
-% create knife-edge corners by calculating the normal of the new sgements
-% formed at the edges of the geometry
-ke_right = [new_above(end,:); new_below(end,:)] ;
-
-dy = gradient(ke_right(:,2));
-dx = gradient(ke_right(:,1));
-
-% tangential vectors to line points
-tang3(:,1) = ke_right(:,1)-dy ;
-tang3(:,2) = ke_right(:,2)+dx ;
-
-v=tang3-ke_right;
-
-u=v./norm(v) ;
-
-ke_right_point=ke_right + 4.0*width*u ;
-ke_right_point_mid = mean(ke_right_point) ;
-
-%hold on; plot(ke_right_point_mid(:,1),ke_right_point_mid(:,2),'b*') ;
-
-weirPfix = [ke_left_point_mid ; new_below; ke_right_point_mid ;  flipud(new_above) ; ke_left_point_mid] ;
+weirPfix = [ke_left_point_mid ; new_below; 
+            ke_right_point_mid ; 
+           flipud(new_above) ; ke_left_point_mid] ;
 
 % compute the edges that define the weir geometry for output
 weirEgfix = Get_poly_edges([weirPfix; NaN NaN]) ;
