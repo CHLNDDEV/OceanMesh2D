@@ -245,6 +245,10 @@ classdef msh
             if ~isempty(idxl)
                 mesh = 1; type(idxl:idxl+3) = [];
             end    
+            earthres = 0;
+            if strcmp(type,'resoearth')
+                type = 'reso'; earthres = 1;
+            end
             
             switch type
                 % parse aux options first
@@ -410,37 +414,42 @@ classdef msh
                         figure, plot(bpt(:,1),bpt(:,2),'r.');
                     end
                 case('reso')
-%                     % Get bar lengths
-%                     [bars,barlen] = GetBarLengths(obj,0);
-%                     % sort bar lengths in ascending order
-%                     [barlen,IA] = sort(barlen,'descend');
-%                     bars = bars(IA,:);
-%                     % get the maximum bar length for each node
-%                     [B1,IB] = unique(bars(:,1),'first');
-%                     [B2,IC] = unique(bars(:,2),'first');
-%                     d1 = NaN*obj.p(:,1); d2 = NaN*obj.p(:,1);
-%                     d1(B1) = barlen(IB); d2(B2) = barlen(IC);
-%                     z = max(d1,d2);
-%                     [B1,IB] = unique(bars(:,1),'last');
-%                     [B2,IC] = unique(bars(:,2),'last');
-%                     d1 = NaN*obj.p(:,1); d2 = NaN*obj.p(:,1);
-%                     d1(B1) = barlen(IB); d2(B2) = barlen(IC);
-%                     z = 0.5*(z + min(d1,d2));                    
-                    % get the points on the current projection
-                    [X,Y]= m_ll2xy(obj.p(:,1),obj.p(:,2));
-                    % get the circumcenter radius of each element
-                    TR = triangulation(obj.t,X,Y);
-                    [~,cr] = circumcenter(TR);
-                    % Get the element connectivity
-                    [vtoe,nne] = VertToEle(obj.t);
-                    % Make sure null value adds zero contribution
-                    cr(end+1) = 0;
-                    vtoe(vtoe == 0) = length(obj.t) + 1;
-                    % Sum up all element contributions to each node and
-                    % divide by number of connected elements
-                    z = sum(cr(vtoe))./nne;
-                    % scale by earth radius
-                    Re = 6378.137e3; z = Re*z;
+                    % Get bar lengths
+                    if earthres
+                        [bars,barlen] = GetBarLengths(obj,0);
+                        % sort bar lengths in ascending order
+                        [barlen,IA] = sort(barlen,'descend');
+                        bars = bars(IA,:);
+                        % get the maximum bar length for each node
+                        %[B1,IB] = unique(bars(:,1),'first');
+                        %[B2,IC] = unique(bars(:,2),'first');
+                        %d1 = NaN*obj.p(:,1); d2 = NaN*obj.p(:,1);
+                        %d1(B1) = barlen(IB); d2(B2) = barlen(IC);
+                        %z = max(d1,d2);
+                        % get the minimum bar length for each node
+                        [B1,IB] = unique(bars(:,1),'last');
+                        [B2,IC] = unique(bars(:,2),'last');
+                        d1 = NaN*obj.p(:,1); d2 = NaN*obj.p(:,1);
+                        d1(B1) = barlen(IB); d2(B2) = barlen(IC);
+                        %z = 0.5*(z + min(d1,d2));     
+                        z = min(d1,d2);
+                    else
+                        % get the points on the current projection
+                        [X,Y]= m_ll2xy(obj.p(:,1),obj.p(:,2));
+                        % get the circumcenter radius of each element
+                        TR = triangulation(obj.t,X,Y);
+                        [~,cr] = circumcenter(TR);
+                        % Get the element connectivity
+                        [vtoe,nne] = VertToEle(obj.t);
+                        % Make sure null value adds zero contribution
+                        cr(end+1) = 0;
+                        vtoe(vtoe == 0) = length(obj.t) + 1;
+                        % Sum up all element contributions to each node and
+                        % divide by number of connected elements
+                        z = sum(cr(vtoe))./nne;
+                        % scale by earth radius
+                        Re = 6378.137e3; z = Re*z;
+                    end
                     if logaxis
                         q = log10(z); % plot on log scale with base
                     else
@@ -616,7 +625,7 @@ classdef msh
                 otherwise
                     error('Specified type is incorrect');
             end
-            if proj
+            if proj == 1
                 % now add the box
                 m_grid('FontSize',16); %'box','none') %,'FontSize',12);
             end
@@ -1126,8 +1135,8 @@ classdef msh
                     nvel = 0;
                     % the largest polygon will be a combination of ocean and mainland
                     % boundaries. Deal with this first, then remove it from the polygon
-                    poly(max_ind) = [];
-                    poly_idx(max_ind)=[];
+                    %poly(max_ind) = [];
+                    %poly_idx(max_ind)=[];
                     
                     % loop through the remaining polygons
                     for poly_count = 1 : length(poly)

@@ -671,6 +671,8 @@ classdef geodata
             m_grid('xtick',10,'tickdir','out','yaxislocation','left','fontsize',10);
             if exist('h1','var') && exist('h2','var') && exist('h3','var')
                 legend([h1 h2,h3],{'mainland' 'inner' 'weirs'},'Location','NorthWest')
+            elseif exist('h1','var') && exist('h2','var')
+                legend([h1 h2],{'mainland' 'inner'},'Location','NorthWest')
             elseif exist('h1','var')
                 legend(h1,'mainland','Location','NorthWest')
             elseif exist('h2','var')

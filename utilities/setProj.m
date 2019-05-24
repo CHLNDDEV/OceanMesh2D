@@ -31,11 +31,13 @@
                        startsWith(projtype,'gno','IgnoreCase',true) || ...
                        startsWith(projtype,'azi','IgnoreCase',true) || ...
                        startsWith(projtype,'sat','IgnoreCase',true)
-                    % Azimuthal type projections
-                    m_proj(projtype,'lat',lat_mea,'long',lon_mea,...
-                           'radius',50);
+                    % Azimuthal type projections;
+                    lon_mea = -60;
+                    m_proj(projtype,'lat',lat_mea,...
+                           'long',lon_mea,...
+                           'radius',100,'rot',15);
                     m_proj('get') ;
-                    del = 1;
+                    del = 0;
                 elseif startsWith(projtype,'obl','IgnoreCase',true)
                     % Oblique Mercator projection
                     asp = (lon_ma-lon_mi)/(lat_ma - lat_mi);
