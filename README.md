@@ -9,7 +9,7 @@
 OceanMesh2D is a set of user-friendly MATLAB functions to generate two-dimensional (2D) unstructured meshes for coastal ocean circulation problems. These meshes are based on a variety of feature driven geometric and bathymetric mesh size functions, which are generated according to user-defined parameters. Mesh generation is achieved through a force-balance algorithm combined with a number of topological improvement strategies aimed at improving the worst case triangle quality. The software embeds the mesh generation process into an object-orientated framework that contains pre- and post-processing workflows, which makes mesh generation flexible, reproducible, and script-able. 
 
 ## `DISCLAIMER: `
-IF YOUR INPUTS ARE INVALID, THEN YOUR MESH WILL BE TOO. THE BOUNDARY OF THE MESHING DOMAIN MUST BE A POLYGON (FIRST POINT EQUALS LAST AND NON-SELF INTERSECTING) BUT IT DOES NOT NEED TO BE SIMPLIFIED. READ THE USER GUIDE FOR MORE INFORMATION ABOUT THE INPUTS.
+The boundary of the meshing domain must be a polygon (first point equals the last and non-self intersecting) but it does not need to be simplified. Read the user guide for more information about the inputs.
 
 
 ## `Code framework` 
@@ -51,7 +51,7 @@ If you make use of `OceanMesh2D` please include a reference to the following:
 
 [1] - Roberts, K. J., Pringle, W. J., and Westerink, J. J., 2018. 
       OceanMesh2D 1.0: MATLAB-based software for two-dimensional unstructured mesh generation in coastal ocean modeling, 
-      Geosci. Model Dev. Discuss., https://doi.org/10.5194/gmd-2018-203, accepted. 
+      Geoscientific Model Development., 10.5194/gmd-12-1847-2019. 
 [2] - Roberts, K. J., Pringle, W. J, 2018. 
       OceanMesh2D: User guide - Precise distance-based two-dimensional automated mesh generation toolbox intended for coastal
       ocean/shallow water. https://doi.org/10.13140/RG.2.2.21840.61446/2.       
