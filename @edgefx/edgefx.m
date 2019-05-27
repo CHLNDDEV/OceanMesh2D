@@ -389,6 +389,7 @@ classdef edgefx
         end
         
         %% Topographic length scale/slope edge function.
+      %% Topographic length scale/slope edge function.
         function obj = slpfx(obj,feat)
             
             [xg,yg] = CreateStructGrid(obj);
@@ -401,7 +402,7 @@ classdef edgefx
             % lets filter the bathy to get only relevant features
             % loop over each set of bandpass filter lengths
             tmpz_f = zeros(size(tmpz));
-            if obj.fl(1) < 0
+            if obj.fl(1) < 0 && obj.fl(1) ~= -999
                 disp('INFO: Rossby radius of deformation filter on.') ;
                 rbfilt = abs(obj.fl(1));
                 obj.fl = [];
@@ -411,6 +412,11 @@ classdef edgefx
                 obj.fl = [];
                 tmpz_f = tmpz;
                 filtit = 0 ;
+            elseif obj.fl(1) == -999
+                disp('INFO: Slope filter is LEGACY.');
+                obj.fl = [];
+                tmpz_f = tmpz;
+                filtit = -999;
             else
                 filtit = 0;
                 for lambda = obj.fl'
@@ -431,7 +437,7 @@ classdef edgefx
             end
             
             % Rossby radius of deformation filter
-            if filtit
+            if filtit==1
                 tic
                 bs = NaN([obj.nx,obj.ny]);
                 div = 1e4; grav = 9.807;
@@ -507,6 +513,35 @@ classdef edgefx
                     n1s = n1e + 1;
                 end
                 toc
+                % legacy filter
+            elseif filtit==-999
+                bs = NaN([obj.nx,obj.ny]);
+                % Rossby radius of deformation filter
+                f = 2*7.29e-5*abs(sind(yg));
+                % limit to 1000 km
+                rosb = min(1000e3,sqrt(9.81*abs(tmpz))./f);
+                % autmatically divide into discrete bins
+                [~,edges] = histcounts(rosb);
+                tmpz_ft  = tmpz; dyb = dy;
+                % get slope from filtered bathy for the segment only
+                [by,bx] = EarthGradient(tmpz_ft,dy,dx); % get slope in x and y directions
+                tempbs  = sqrt(bx.^2 + by.^2); % get overall slope
+                for i = 1:length(edges)-1
+                    sel = rosb >= edges(i) & rosb <= edges(i+1);
+                    rosbylb = mean(edges(i:i+1));
+                    if rosbylb > 2*dyb
+                        disp(['i = ',num2str(i), ' rl/dx = ',num2str(rosbylb/dyb)])
+                        tmpz_ft  = filt2(tmpz_ft,dyb,rosbylb,'lp');
+                        dyb = rosbylb;
+                        % get slope from filtered bathy for the segment only
+                        [by,bx] = EarthGradient(tmpz_ft,dy,dx); % get slope in x and y directions
+                        tempbs  = sqrt(bx.^2 + by.^2); % get overall slope
+                    else
+                        % otherwise just use the same tempbs from before
+                    end
+                    % put in the full one
+                    bs(sel) = tempbs(sel);
+                end
             else
                 % get slope from (possibly filtered) bathy
                 [by,bx] = EarthGradient(tmpz_f,dy,dx); % get slope in x and y directions
@@ -709,6 +744,20 @@ classdef edgefx
                     hh_m( limidx ) = mx;
                 end
             end
+            
+            % Make sure this is called before releasing memory...
+            if obj.dt == 0
+                % Find min allowable dt based on dis or fs function
+                if any(~cellfun('isempty',strfind(obj.used,'dis')))
+                    hh_d = obj.hhd;
+                elseif any(~cellfun('isempty',strfind(obj.used,'fs')))
+                    hh_d = obj.fsd;
+                else
+                    error(['FATAL: cannot use automatic timestep ' ...
+                           'limiter without specifying dis or fs option']);
+                end
+            end
+            
             obj = release_memory(obj) ;
 
             disp('Relaxing the gradient');
@@ -733,8 +782,8 @@ classdef edgefx
                     dmy  = dmy + lim ;
                 else
                     lim  = param(1);
-                    dp1 = param(2);
-                    dp2 = param(3);
+                    dp1  = param(2);
+                    dp2  = param(3);
                     
                     limidx = (feat.Fb(xg,yg) < dp1 & ...
                         feat.Fb(xg,yg) > dp2) ;
@@ -772,7 +821,7 @@ classdef edgefx
             % enforce the CFL if present
             % Limit CFL if dt >= 0, dt = 0 finds dt automatically.
             if obj.dt >= 0
-                if(isempty(feat.Fb)); error('No DEM supplied Can''t CFL limit.'); end
+                if isempty(feat.Fb); error('No DEM supplied Can''t CFL limit.'); end
                 tmpz    = feat.Fb(xg,yg);
                 grav = 9.807; descfl = 0.50;
                 % limit the minimum depth to 1 m
@@ -781,22 +830,9 @@ classdef edgefx
                 % velocity at 0 degree phase for 1-m amp. wave).
                 u = sqrt(grav*abs(tmpz)) + sqrt(grav./abs(tmpz));
                 if obj.dt == 0
-                    % Find min allowable dt based on dis or fs function
-                    if any(~cellfun('isempty',strfind(obj.used,'dis')))
-                        hh_d = obj.hhd;
-                    elseif any(~cellfun('isempty',strfind(obj.used,'fs')))
-                        hh_d = obj.fsd;
-                    else
-                        hh_d = [];
-                    end
-                    if ~isempty(hh_d)
-                        hh_d(hh_d < obj.h0) = obj.h0;
-                        obj.dt = min(min(descfl*hh_d./u));
-                        clear hh_d
-                    else
-                        error(['FATAL: cannot use automatic timestep limiter ' ...
-                            'without specifying a dis or fs function']);
-                    end
+                    hh_d(hh_d < obj.h0) = obj.h0;
+                    obj.dt = min(min(descfl*hh_d./u));
+                    clear hh_d
                 end
                 disp(['Enforcing timestep of ',num2str(obj.dt),' seconds.']);
                 cfl = (obj.dt*u)./hh_m; % this is your cfl
@@ -819,7 +855,7 @@ classdef edgefx
             % releases heavy components from data structures
             if isa(obj,'edgefx')
                 disp('--------------------------------------------------');
-                disp('Releasing induvidual edge functions from memory...');
+                disp('Releasing individual edge functions from memory...');
                 disp('--------------------------------------------------');
                 if ~isempty(obj.fsd)
                     obj.fsd = [];

@@ -457,10 +457,10 @@ classdef geodata
                 end
                 
                 % check for any invalid values 
-                bad = abs(demz) > 10e3 ;
-                if ~isempty(find(bad)) > 0 & ~backup
+                bad = abs(demz) > 11e3 ;
+                if ~isempty(find(bad, 1)) > 0 && ~backup
                     warning('ALERT: Invalid and/or missing DEM values detected..check DEM');
-                    if obj.BACKUPdemfile(1)~=0
+                    if ~isempty(obj.BACKUPdemfile)
                         disp('Replacing invalid values with back-up DEMfile');
                         [demx,demy] = ndgrid(x,y) ;
                         demz(bad) = obj.Fb2(demx(bad),demy(bad)) ;
@@ -671,6 +671,8 @@ classdef geodata
             m_grid('xtick',10,'tickdir','out','yaxislocation','left','fontsize',10);
             if exist('h1','var') && exist('h2','var') && exist('h3','var')
                 legend([h1 h2,h3],{'mainland' 'inner' 'weirs'},'Location','NorthWest')
+            elseif exist('h1','var') && exist('h2','var')
+                legend([h1 h2],{'mainland' 'inner'},'Location','NorthWest')
             elseif exist('h1','var')
                 legend(h1,'mainland','Location','NorthWest')
             elseif exist('h2','var')

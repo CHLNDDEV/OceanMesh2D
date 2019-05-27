@@ -175,7 +175,11 @@ if nscreen
     disp(['  ACCEPTED: deleting ' num2str(L-size(t,1)) ...
           ' elements outside main mesh']) ;
 end
-
+if size(t,1) < 1
+    error(['All elements have been deleted... something wrong? ' ...
+           'dj_cutoff is set to' num2str(dj_cutoff)])
+end
+    
 end
 
 %% Delete interior elements
