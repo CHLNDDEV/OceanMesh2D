@@ -146,8 +146,10 @@ classdef meshgen
                         else
                             obj.pfix = [];
                         end
-                        if  ~isempty(obj.bou{1}.weirPfix)
-                           obj.pfix = [obj.pfix ; obj.bou{1}.weirPfix];
+                        for j = 1 : length(obj.bou)
+                            if  ~isempty(obj.bou{j}.weirPfix)
+                                obj.pfix = [obj.pfix ; obj.bou{j}.weirPfix];
+                            end
                         end
                     case('egfix')
                         obj.egfix= inp.(fields{i});
@@ -156,9 +158,11 @@ classdef meshgen
                         else
                             obj.egfix = [];
                         end
-                         if ~isempty(obj.bou{1}.weirEgfix)
-                           obj.egfix = [obj.egfix ; obj.bou{1}.weirEgfix+length(obj.egfix)];
-                         end
+                        for j = 1 : length(obj.bou)
+                            if ~isempty(obj.bou{j}.weirEgfix)
+                                obj.egfix = [obj.egfix ; obj.bou{j}.weirEgfix+length(obj.egfix)];
+                            end
+                        end
                     case('fixboxes')
                         obj.fixboxes= inp.(fields{i});
                     
@@ -657,7 +661,7 @@ classdef meshgen
                 barvec = pt(bars(:,1),:)- pt(bars(:,2),:);                 % List of bar vectors
                 if strcmp(obj.grd.proj.name,'UTM')
                     % UTM is already in meters (useful for small domains)
-                    L = sqrt(sum(barvec.^2,2)); 
+                    L = sqrt(sum(barvec.^2,2))*Re; 
                 else
                     % Get spherical earth distances
                     long   = zeros(length(bars)*2,1);                       
