@@ -41,7 +41,7 @@ classdef geodata
         Fb2 % linear gridded interpolant of backup DEM
         x0y0 % bottom left of structure grid or position (0,0)
         pslg % piecewise liner straight line graph
-        spacing = 1.01 ; %Relative spacing along polygon, large effect on computational efficiency of signed distance.
+        spacing = 2.0 ; %Relative spacing along polygon, large effect on computational efficiency of signed distance.
         gridspace
     end
     
