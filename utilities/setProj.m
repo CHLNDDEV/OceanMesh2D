@@ -12,7 +12,7 @@
                 m_proj('equi','lat',[lat_mi lat_ma],'long',[lon_mi lon_ma]) ;
                 del = 1;
             else
-                if startsWith(projtype,'ste','IgnoreCase',true)
+                if ~isempty(regexp(projtype,'ste'))%startsWith(projtype,'ste','IgnoreCase',true)
                     % Special treatment of Stereographic projection
                     if lat_ma < 0
                         % center Antarctica
@@ -27,16 +27,20 @@
                               'radius',90-lat_mi,'rot',180);
                     end
                     m_proj('get') ;
-                elseif startsWith(projtype,'ort','IgnoreCase',true) || ...
-                       startsWith(projtype,'gno','IgnoreCase',true) || ...
-                       startsWith(projtype,'azi','IgnoreCase',true) || ...
-                       startsWith(projtype,'sat','IgnoreCase',true)
+                elseif  ~isempty(regexp(projtype,'ort')) || ...
+                        ~isempty(regexp(projtype,'gno')) || ...
+                        ~isempty(regexp(projtype,'azi')) || ...
+                        ~isempty(regexp(projtype,'sat'))
+%                        startsWith(projtype,'ort','IgnoreCase',true) || ...
+%                        startsWith(projtype,'gno','IgnoreCase',true) || ...
+%                        startsWith(projtype,'azi','IgnoreCase',true) || ...
+%                        startsWith(projtype,'sat','IgnoreCase',true)
                     % Azimuthal type projections
                     m_proj(projtype,'lat',lat_mea,'long',lon_mea,...
                            'radius',50);
                     m_proj('get') ;
                     del = 1;
-                elseif startsWith(projtype,'obl','IgnoreCase',true)
+                elseif ~isempty(regexp(projtype,'obl')) %startsWith(projtype,'obl','IgnoreCase',true)
                     % Oblique Mercator projection
                     asp = (lon_ma-lon_mi)/(lat_ma - lat_mi);
                     dir = 'hor';
