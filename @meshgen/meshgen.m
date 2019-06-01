@@ -745,7 +745,11 @@ classdef meshgen
                 hold on
                 % plot the line dividing cleanup and distmesh
                 plot([it it],[0 1],'--k')
-                xticks(1:5:obj.itmax);
+                try
+                    xticks(1:5:obj.itmax);
+                catch
+                    disp('Older MATLAB no xticks!')
+                end
                 xlabel('Iterations'); ylabel('Geometric element quality');
                 title('Geometric element quality with iterations');
                 set(gca,'FontSize',14);
