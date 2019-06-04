@@ -190,8 +190,12 @@ classdef edgefx
                         obj.fs  = inp.(fields{i});
                         if obj.fs ~= 0
                             disp('Building feature size function...');
-                            obj = featfx(obj,feat);
-                            obj.used{end+1} = 'fs';
+                            try
+                                obj = featfx(obj,feat);
+                                obj.used{end+1} = 'fs';
+                            catch
+                                disp('man, no medial points!')
+                            end
                         end
                     case('wl')
                         obj.wl  = inp.(fields{i});

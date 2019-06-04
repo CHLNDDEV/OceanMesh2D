@@ -865,7 +865,7 @@ classdef msh
             obj = Make_Mesh_Boundaries_Traversable(obj,dj,nscreen);
             
             % Delete elements with single edge connectivity
-            obj = Fix_single_connec_edge_elements(obj,nscreen);
+            %obj = Fix_single_connec_edge_elements(obj,nscreen);
             
             % Reduce the mesh connectivity to maximum of con-1
             obj = renum(obj);
@@ -2758,7 +2758,7 @@ classdef msh
                 else
                     in2 = inpoly(dmy1.p,gdat{i}.boubox(1:end-1,:)) ;
                 end
-                dmy1 = interp(obj,gdatuw(i),'type','depth'); 
+                dmy1 = interp(obj,gdatuw(i),'type','depth','ignoreOL',1); 
                 
                 dmy2 = interp(obj,gdat(i),'type','depth','N',CAN) ; % use smooth overland
                 

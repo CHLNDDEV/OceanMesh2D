@@ -47,6 +47,7 @@ classdef meshgen
         proj          % structure containing the m_map projection info
         anno          % Approx. Nearest Neighbor search object. 
         annData       % datat contained with KD-tree in anno
+        Fb            % bathymetry data interpolant 
     end
     
     
@@ -145,8 +146,10 @@ classdef meshgen
                         else
                             obj.pfix = [];
                         end
-                        if  ~isempty(obj.bou{1}.weirPfix)
-                           obj.pfix = [obj.pfix ; obj.bou{1}.weirPfix];
+                        for j = 1 : length(obj.bou)
+                            if  ~isempty(obj.bou{j}.weirPfix)
+                                obj.pfix = [obj.pfix ; obj.bou{j}.weirPfix];
+                            end
                         end
                     case('egfix')
                         obj.egfix= inp.(fields{i});
@@ -155,9 +158,11 @@ classdef meshgen
                         else
                             obj.egfix = [];
                         end
-                         if ~isempty(obj.bou{1}.weirEgfix)
-                           obj.egfix = [obj.egfix ; obj.bou{1}.weirEgfix+length(obj.egfix)];
-                         end
+                        for j = 1 : length(obj.bou)
+                            if ~isempty(obj.bou{j}.weirEgfix)
+                                obj.egfix = [obj.egfix ; obj.bou{j}.weirEgfix+length(obj.egfix)];
+                            end
+                        end
                     case('fixboxes')
                         obj.fixboxes= inp.(fields{i});
                     
@@ -188,6 +193,12 @@ classdef meshgen
                             if isa(arg,'geodata')
                                 obj.outer{ee} = obj.bou{ee}.outer;
                                 obj.inner{ee} = obj.bou{ee}.inner;
+                                
+                                % save bathy interpolant to meshgen 
+                                if ~isempty(obj.bou{ee}.Fb) 
+                                  obj.Fb{ee} = obj.bou{ee}.Fb ;   
+                                end
+                                
                                 if ~isempty(obj.inner{ee}) && ...
                                    obj.inner{ee}(1)~= 0
                                     obj.outer{ee} = [obj.outer{ee};
@@ -251,7 +262,7 @@ classdef meshgen
                         
                         % kjr 2018 smooth the outer automatically
                         if length(obj.ef) > 1
-                            obj.ef = smooth_outer(obj.ef);
+                            obj.ef = smooth_outer(obj.ef,obj.Fb);
                         end
                         
                         % Save the ef interpolants into the edgefx
@@ -560,6 +571,11 @@ classdef meshgen
                     p = fixmesh(p);                                        % Ensure only unique points.
                     N = size(p,1); pold = p;                               % Save current positions
                     [t,p] = delaunay_elim(p,obj.fd,geps,0);                % Delaunay with elimination
+                    
+                    if isempty(t) 
+                      disp('Exiting') 
+                      return 
+                    end
                     N = size(p,1); 
                     % 4. Describe each bar by a unique pair of nodes.
                     bars = [t(:,[1,2]); t(:,[1,3]); t(:,[2,3])];           % Interior bars duplicated
@@ -645,7 +661,7 @@ classdef meshgen
                 barvec = pt(bars(:,1),:)- pt(bars(:,2),:);                 % List of bar vectors
                 if strcmp(obj.grd.proj.name,'UTM')
                     % UTM is already in meters (useful for small domains)
-                    L = sqrt(sum(barvec.^2,2)); 
+                    L = sqrt(sum(barvec.^2,2))*Re; 
                 else
                     % Get spherical earth distances
                     long   = zeros(length(bars)*2,1);                       
