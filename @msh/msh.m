@@ -916,6 +916,7 @@ classdef msh
         end
         
         function obj = lim_bathy_slope(obj,dfdx,overland)
+            %obj = lim_bathy_slope(obj,dfdx,overland)
             if nargin < 3
                 overland  = 0;
             end
@@ -1706,6 +1707,9 @@ classdef msh
         end
 
         function obj = CheckTimestep(obj,dt,varargin)
+            % obj = CheckTimestep(obj,dt,varargin)
+            % varargin(1) is desired CFL (< 1) or maximum iterations (> 1)
+            % varargin(2) is desired dj_cutoff 
             %% Decimate mesh to achieve CFL condition for stability.
             % Takes a mesh and removes triangles and nodes to produce a mesh
             % that satisfies the given timestep requirements of the user by

@@ -683,7 +683,7 @@ classdef geodata
                 legend([h2,h3],'inner','weirs','Location','NorthWest')
             end
             %set(gcf, 'Units', 'Normalized', 'OuterPosition', [0 0 1 1]);
-                end
+       end
         
     end
 end
