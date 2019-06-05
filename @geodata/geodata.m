@@ -43,6 +43,11 @@ classdef geodata
         pslg % piecewise liner straight line graph
         spacing = 2 ; %Relative spacing along polygon, large effect on computational efficiency of signed distance.
         gridspace
+        % Define well-known variables for longitude and latitude
+        % coordinates in Digital Elevation Model NetCDF file (CF
+        % compliant).
+        wkv_x = {'x','Longitude','lon'} ;
+        wkv_y = {'y','Latitude', 'lat'} ;
     end
     
     methods
@@ -169,12 +174,7 @@ classdef geodata
                         end
                 end
             end
-            
-            % Define well-known variables for longitude and latitude
-            % coordinates in Digital Elevation Model NetCDF file (CF
-            % compliant).
-            wkv_x = {'x','longitude','lon'} ;
-            wkv_y = {'y','latitude', 'lat'} ;
+           
 
             % Basic error handling should go here. 
             % if not bbox and no dem, you're outta luck
@@ -186,12 +186,12 @@ classdef geodata
             
             % Get bbox information from demfile if not supplied
             if size(obj.bbox,1) == 1 && isempty(obj.pslg) 
-                for i = 1 : length(wkv_x)
+                for i = 1 : length(obj.wkv_x)
                     try
-                        x = double(ncread(obj.demfile,wkv_x{i}));
-                        y = double(ncread(obj.demfile,wkv_y{i}));
+                        x = double(ncread(obj.demfile,obj.wkv_x{i}));
+                        y = double(ncread(obj.demfile,obj.wkv_y{i}));
                     catch
-                        if i == length(wkv_x)
+                        if i == length(obj.wkv_x)
                            error('Could not locate x/y coordinate in DEM') ; 
                         end
                     end
@@ -399,13 +399,18 @@ classdef geodata
             end
             % Process the DEM for the meshing region. 
             if ~isempty(fname)
-                try
-                    x = double(ncread(fname,'lon'));
-                    y = double(ncread(fname,'lat'));
-                catch
-                    x = double(ncread(fname,'x'));
-                    y = double(ncread(fname,'y'));
+                
+               for i = 1 : length(obj.wkv_x)
+                    try
+                        x = double(ncread(obj.demfile,obj.wkv_x{i}));
+                        y = double(ncread(obj.demfile,obj.wkv_y{i}));
+                    catch
+                        if i == length(obj.wkv_x)
+                           error('Could not locate x/y coordinate in DEM') ; 
+                        end
+                    end
                 end
+                
                 % Find name of z value (use one that has 2 dimensions)
                 finfo = ncinfo(fname);
                 for ii = 1:length(finfo.Variables)
