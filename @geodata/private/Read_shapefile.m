@@ -60,7 +60,12 @@ if (size(finputname,1)~=0)
                 S = m_shaperead(fname{1},reshape(bboxt',4,1));
                 % Let's just keep the x-y data
                 D = S.ncst;
-                S = cell2struct(D','points',1);
+                if isfield(S,'dbf')
+                    code = S.dbfdata(:,1);
+                    S = cell2struct([D code]',{'points' 'type'},1);
+                else
+                    S = cell2struct(D','points',1);
+                end
                 sr = 0;
             end
             if ~isempty(S)
@@ -70,6 +75,7 @@ if (size(finputname,1)~=0)
         end
     end
 else
+    sr = 1 ; 
     % convert NaN-delimited vector to struct 
     count = 1; j=1;
     for i = 1 : length(polygon)
@@ -107,7 +113,11 @@ polygon_struct.inner = [];
 polygon_struct.mainland = [];
 polygon_struct.innerb = [];
 polygon_struct.mainlandb = [];
+polygon_struct.innerb_type = [];
+polygon_struct.mainlandb_type = [];
 edges = Get_poly_edges( polygon_struct.outer );
+
+if isempty(SG); return; end
 
 if sr
     tmpM = [[SG.X]',[SG.Y]'] ; % MAT 
@@ -121,21 +131,27 @@ if sr
 else
     tmpC =  struct2cell(SG)';
     tmpCC = []; nn = 0;
-    for ii = 1:length(tmpC)
+    for ii = 1:size(tmpC,1)
        % may have NaNs inside 
-       isnan1 = find(isnan(tmpC{ii}(:,1)));
+       isnan1 = find(isnan(tmpC{ii,1}(:,1)));
+       if isempty(isnan1)
+           isnan1 = length(tmpC{ii,1})+1; 
+       elseif isnan1(end) ~= length(tmpC{ii,1})
+           isnan1(end+1) = length(tmpC{ii,1})+1;
+       end
        is = 1;
        for jj = 1:length(isnan1)
            nn = nn + 1;
            ie = isnan1(jj)-1;
-           tmpCC{nn} = tmpC{ii}(is:ie,:);
+           tmpCC{nn,1} = tmpC{ii,1}(is:ie,:);
+           tmpCC{nn,2} = tmpC{ii,2};
            is = isnan1(jj)+1;
        end
     end
     if ~isempty(tmpCC)
-        tmpC = tmpCC';
+        tmpC = tmpCC;
     end  
-    tmpM =  cell2mat(tmpC); 
+    tmpM =  cell2mat(tmpC(:,1)); 
     if size(tmpM,2) == 3
        tmpM = tmpM(:,1:2); 
     end
@@ -143,22 +159,31 @@ end
 % Get current polygon
 % Check proportion of polygon that is within bbox
 tmpIn = inpoly(tmpM,polygon_struct.outer, edges);
-tmpInC = mat2cell(tmpIn,cellfun(@length,tmpC));
+tmpInC = mat2cell(tmpIn,cellfun(@length,tmpC(:,1)));
 
 j = 0 ; k = 0 ; height = []; new_islandb = []; new_mainb = [];
-for i = 1 : length(tmpC)
+new_islandb_type = []; new_mainb_type = [];
+for i = 1 : size(tmpC,1)
     if sr
-        points = tmpC{i}(1:end-1,:) ;
-        In     = tmpInC{i}(1:end-1) ;
+        points = tmpC{i,1}(1:end-1,:) ;
+        In     = tmpInC{i,1}(1:end-1) ;
     else
-        points = tmpC{i}(1:end,:) ;
+        points = tmpC{i,1}(1:end,:) ;
         if size(points,2) == 3
             height = points(:,3); 
             points = points(:,1:2); 
+            type   = tmpC{i,2};
+            if strcmp(type,'BA040')
+                type = 'ocean';
+            elseif strcmp(type,'BH080')
+                type = 'lake'; 
+            elseif strcmp(type,'BH140')
+                type = 'river';
+            end    
         else
             height = [];
         end
-        In     = tmpInC{i}(1:end) ;
+        In     = tmpInC{i,1}(1:end) ;
     end
     if bbox(1,2) > 180
        lond = abs(diff(points(:,1)));
@@ -184,6 +209,7 @@ for i = 1 : length(tmpC)
         new_island{k} = [points; NaN NaN];
         if ~isempty(height)
             new_islandb{k} = [points height; NaN NaN NaN];
+            new_islandb_type{k} = type;
         end
     else
         %Partially inside box
@@ -195,35 +221,39 @@ for i = 1 : length(tmpC)
         new_main{j} = [points; NaN NaN];
         if ~isempty(height)
             new_mainb{j} = [points height; NaN NaN NaN];
+            new_mainb_type{j} = type;
         end
     end
 end
 if k > 0
     polygon_struct.inner = [polygon_struct.inner; cell2mat(new_island')];
     polygon_struct.innerb = cell2mat(new_islandb');
+    polygon_struct.innerb_type = new_islandb_type;
 end
 if j > 0
     polygon_struct.mainland = [polygon_struct.mainland; cell2mat(new_main')];
     polygon_struct.mainlandb = cell2mat(new_mainb');
+    polygon_struct.mainlandb_type = new_mainb_type;
 end
 % Merge overlapping mainland and inner
-if ~isempty(new_mainb)
+if ~isempty(new_mainb) && k > 0
     polym = polygon_struct.mainland;
     mergei = false(k,1);
     for kk = 1:k
         polyi = new_island{kk};
         IA = find(ismembertol(polym,polyi,1e-5,'ByRows',true));
         if length(IA) > 2
-           [x,y] = polybool('or',polym(:,1),...
-                                        polym(:,2),polyi(:,1),polyi(:,2));
+           [x,y] = polybool('or',polym(:,1),polym(:,2),polyi(:,1),polyi(:,2));
            polym = [x,y];
            mergei(kk) = 1;
         end
     end
-    polygon_struct.mainland = [polym; NaN NaN];
+    if ~isnan(polym(end,1)); polym(end+1,:) = NaN; end
+    polygon_struct.mainland = polym;
     new_island(mergei) = [];
     polygon_struct.inner = cell2mat(new_island');
 end
+% Remove parts of inner and mainland overlapping with outer 
 polygon_struct.outer = [polygon_struct.outer; polygon_struct.mainland];
 %% Plot the map
 if plot_on >= 1 && ~isempty(polygon_struct)

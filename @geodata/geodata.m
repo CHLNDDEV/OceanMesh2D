@@ -17,13 +17,15 @@ classdef geodata
     %   You should have received a copy of the GNU General Public License
     %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
     properties
-        bbox  % bounding coordinates (same as mesh and grdgen classes)
-        boubox % bbox coordinates as a polygon
+        bbox  % bounding coordinates
+        boubox % bbox coordinates as a CCW polygon
         mainland % mainland boundary.
         outer % outer boundary.
-        inner % islands.
+        inner % island boundary(ies)
         mainlandb % height of mainland
         innerb    % height of inner
+        mainlandb_type % type of mainland (lake or river or ocean)
+        innerb_type    % type of inner (lake or river or ocean)
         weirs % weir crestlines
         weirPfix % boundaries of weir
         weirEgfix % edges of weir
@@ -31,35 +33,39 @@ classdef geodata
         inpoly_flip % reverse the notion of "in"
         contourfile %  cell-array of shapefile
         demfile % filename of dem
+        BACKUPdemfile % filename of dem
         h0 % min. edgelength (meters)
         window  % smoothing window on boundary (default 5 points)
         fp % deprecated but kept for backwards capability
         Fb % linear gridded interpolant of DEM
+        Fb2 % linear gridded interpolant of backup DEM
         x0y0 % bottom left of structure grid or position (0,0)
         pslg % piecewise liner straight line graph
+        spacing = 2 ; %Relative spacing along polygon, large effect on computational efficiency of signed distance.
+        gridspace
     end
     
     methods
         
-        % class constructor/parse shapefile
         function obj = geodata(varargin)
-            
+            % Class constructor to parse NetCDF DEM data, NaN-delimited vector,
+            % or shapefile that defines polygonal boundary of meshing
+            % domain.
+          
             p = inputParser;
+            
             defval = 0; % placeholder value if arg is not passed.
             % add name/value pairs
             addOptional(p,'bbox',defval);
             addOptional(p,'shp',defval);
             addOptional(p,'h0',defval);
             addOptional(p,'dem',defval);
+            addOptional(p,'backupdem',defval);
             addOptional(p,'fp',defval);
-            addOptional(p,'outer',defval);
             addOptional(p,'weirs',defval);
-            addOptional(p,'inner',defval);
-            addOptional(p,'mainland',defval);
             addOptional(p,'pslg',defval);
             addOptional(p,'boubox',defval);
             addOptional(p,'window',defval);
-            
             
             % parse the inputs
             parse(p,varargin{:});
@@ -100,6 +106,13 @@ classdef geodata
                             obj.demfile = inp.(fields{i});
                         else
                             obj.demfile = [];
+                        end
+                    case('backupdem')
+                        obj.BACKUPdemfile= inp.(fields{i});
+                        if obj.BACKUPdemfile ~=0
+                            obj.BACKUPdemfile = inp.(fields{i});
+                        else
+                            obj.BACKUPdemfile = [];
                         end
                     case('fp')
                         obj.fp= inp.(fields{i});
@@ -157,14 +170,31 @@ classdef geodata
                 end
             end
             
+            % Define well-known variables for longitude and latitude
+            % coordinates in Digital Elevation Model NetCDF file (CF
+            % compliant).
+            wkv_x = {'x','longitude','lon'} ;
+            wkv_y = {'y','latitude', 'lat'} ;
+
+            % Basic error handling should go here. 
+            % if not bbox and no dem, you're outta luck
+            if size(obj.bbox,1) == 1 && isempty(obj.demfile) && isempty(obj.pslg)
+               error('No DEM supplied and no bbox supplied, sorry pal'); 
+            end
+          
+            obj.gridspace    = abs(obj.h0)/111e3; %point spacing along polygon,
+            
             % Get bbox information from demfile if not supplied
-            if size(obj.bbox,1) == 1
-                try
-                    x = double(ncread(obj.demfile,'lon'));
-                    y = double(ncread(obj.demfile,'lat'));
-                catch
-                    x = double(ncread(obj.demfile,'x'));
-                    y = double(ncread(obj.demfile,'y'));
+            if size(obj.bbox,1) == 1 && isempty(obj.pslg) 
+                for i = 1 : length(wkv_x)
+                    try
+                        x = double(ncread(obj.demfile,wkv_x{i}));
+                        y = double(ncread(obj.demfile,wkv_y{i}));
+                    catch
+                        if i == length(wkv_x)
+                           error('Could not locate x/y coordinate in DEM') ; 
+                        end
+                    end
                 end
                 obj.bbox = [min(x) max(x); min(y) max(y)];
             end
@@ -187,249 +217,197 @@ classdef geodata
                     min(obj.boubox(:,2)) max(obj.boubox(:,2))] ;
             end
             
-            % Turn the h0 into smallest lat/lon gridspace
-            gridspace    = abs(obj.h0)/111e3;
+            obj = ParseShoreline(obj) ;
             
-            % Read in the geometric contour information
+            % kjr Add the weir faux islands to the inner geometry
+            if ~isempty(obj.weirPfix)
+                idx = [0; cumsum(weirLength)']+1 ;
+                tmp = [] ;
+                for ii = 1 : noWeirs
+                    tmp =  [tmp;
+                        [obj.weirPfix(idx(ii):idx(ii+1)-1,:)
+                        obj.weirPfix(idx(ii),:)]
+                        NaN NaN] ;
+                end
+                obj.inner = [obj.inner ; NaN NaN ;  tmp ] ;
+            end
+            
+            % Ensure inpoly flip is correct
+            obj = check_connectedness_inpoly(obj);
+            
+            disp(['Read in meshing boundary: ',obj.contourfile]);
+            
+            if obj.BACKUPdemfile~=0 
+              obj = ParseDEM(obj,1) ;   
+            end
+            
+            obj = ParseDEM(obj) ;
+            
+        end
+        
+        function obj = ParseShoreline(obj)
+            % Read in the geometric meshing boundary information from a
+            % ESRI-shapefile
             if ~isempty(obj.contourfile)
-                
                 if ~iscell(obj.contourfile)
                     obj.contourfile = {obj.contourfile};
                 end
                 
                 polygon_struct = Read_shapefile( obj.contourfile, [], ...
-                    obj.bbox, gridspace, obj.boubox, 0 );
+                    obj.bbox, obj.gridspace, obj.boubox, 0 );
                 
-                % unpack data from function Read_Shapefile()s
-                obj.outer    = polygon_struct.outer;
-                obj.mainland = polygon_struct.mainland;
-                obj.inner    = polygon_struct.inner;
+                % Unpack data from function Read_Shapefile()s
+                obj.outer     = polygon_struct.outer;
+                obj.mainland  = polygon_struct.mainland;
+                obj.inner     = polygon_struct.inner;
                 obj.mainlandb = polygon_struct.mainlandb;
                 obj.innerb    = polygon_struct.innerb;
-                
-                % kjr April42019 check if no mainland segments, set outer
-                % to boubox 
-                if isempty(obj.mainland) 
-                  obj.outer = [ ]; 
-                  obj.outer = obj.boubox; 
-                end
-                % Make sure the shoreline components have spacing of gridspace/2
-                [la,lo] = my_interpm(obj.outer(:,2),obj.outer(:,1),gridspace/2);
-                obj.outer = [];  obj.outer(:,1) = lo; obj.outer(:,2) = la;
-                
-                if ~isempty(obj.mainland)
-                    [la,lo] = my_interpm(obj.mainland(:,2),obj.mainland(:,1),gridspace/2);
-                    obj.mainland = []; obj.mainland(:,1) = lo; obj.mainland(:,2) = la;
-                end
-                
-                if ~isempty(obj.inner)
-                    [la,lo]=my_interpm(obj.inner(:,2),obj.inner(:,1),gridspace/2);
-                    obj.inner = []; obj.inner(:,1) = lo; obj.inner(:,2) = la;
-                end
-                clearvars lo la
-                
-                % Smooth the coastline (apply moving average filter).
-                if obj.window > 1
-                    disp(['Smoothing coastline with ' ...
-                        num2str(obj.window) ' point window'])
-                    if ~isempty(obj.outer)
-                        obj.outer = smooth_coastline(obj.outer,obj.window,0);
-                    end
-                    if ~isempty(obj.mainland)
-                        obj.mainland = smooth_coastline(obj.mainland,obj.window,0);
-                    end
-                    if ~isempty(obj.inner)
-                        obj.inner = smooth_coastline(obj.inner,obj.window,0);
-                    end
-                else
-                    disp('No smoothing of coastline enabled')
-                end
-                
-%                 % WJP: Jan 25, 2018 check the polygon
-% kjr moved to after dem is read to auto-close
-%                 obj = check_connectedness_inpoly(obj);
-                
-                % KJR: May 13, 2018 coarsen portions of outer, mainland
-                % and inner outside bbox (made into function WP)
-                iboubox = obj.boubox;
-                iboubox(:,1) = 1.10*iboubox(:,1)+(1-1.10)*mean(iboubox(1:end-1,1));
-                iboubox(:,2) = 1.10*iboubox(:,2)+(1-1.10)*mean(iboubox(1:end-1,2));
-                
-                obj.outer = coarsen_polygon(obj.outer,iboubox);
-                
-                if ~isempty(obj.inner)
-                    obj.inner = coarsen_polygon(obj.inner,iboubox);
-                end
-                
-                if ~isempty(obj.mainland)
-                    obj.mainland = coarsen_polygon(obj.mainland,iboubox);
-                end
-                
-                % kjr Oct. 27 2018, add the weir faux islands to the inner geometry
-                if ~isempty(obj.weirPfix)
-                    idx = [0; cumsum(weirLength)']+1 ;
-                    tmp = [] ;
-                    for ii = 1 : noWeirs
-                        tmp =  [tmp;
-                            [obj.weirPfix(idx(ii):idx(ii+1)-1,:)
-                            obj.weirPfix(idx(ii),:)]
-                            NaN NaN] ;
-                    end
-                    obj.inner = [obj.inner ; NaN NaN ;  tmp ] ;
-                end
-                
-                disp(['Read in shapefile ',obj.contourfile]);
-                
+                obj.mainlandb_type = polygon_struct.mainlandb_type;
+                obj.innerb_type    = polygon_struct.innerb_type;
+
+                % Read in the geometric meshing boundary information from a
+                % NaN-delimited vector.
             elseif obj.pslg(1)~=0
+                
                 % Handle the case for user defined mesh boundary information
                 polygon_struct = Read_shapefile( [], obj.pslg, ...
-                    obj.bbox, gridspace, obj.boubox, 0 );
+                    obj.bbox, obj.gridspace, obj.boubox, 0 );
                 
-                % unpack data from function Read_Shapefile()s
-                obj.outer    = polygon_struct.outer;
-                obj.mainland = polygon_struct.mainland;
-                obj.inner    = polygon_struct.inner;
-                
-                % kjr April42019 check if no mainland segments, set outer
-                % to boubox 
-                if isempty(obj.mainland) 
-                  obj.outer = [ ]; 
-                  obj.outer = obj.boubox; 
-                end
-                % Make sure the shoreline components have spacing of gridspace/2
-                [la,lo]=my_interpm(obj.outer(:,2),obj.outer(:,1),gridspace/2);
-                obj.outer = [];  obj.outer(:,1) = lo; obj.outer(:,2) = la;
-                
-                if ~isempty(obj.mainland)
-                    [la,lo]=my_interpm(obj.mainland(:,2),obj.mainland(:,1),gridspace/2);
-                    obj.mainland = []; obj.mainland(:,1) = lo; obj.mainland(:,2) = la;
-                end
-                
-                if ~isempty(obj.inner)
-                    [la,lo]=my_interpm(obj.inner(:,2),obj.inner(:,1),gridspace/2);
-                    obj.inner = []; obj.inner(:,1) = lo; obj.inner(:,2) = la;
-                end
-                clearvars lo la
-                
-                % Smooth the coastline (apply moving average filter).
-                if obj.window > 1
-                    disp(['Smoothing coastline with ' ...
-                        num2str(obj.window) ' point window'])
-                    if ~isempty(obj.outer)
-                        obj.outer = smooth_coastline(obj.outer,obj.window,0);
-                    end
-                    if ~isempty(obj.mainland)
-                        obj.mainland = smooth_coastline(obj.mainland,obj.window,0);
-                    end
-                    if ~isempty(obj.inner)
-                        obj.inner = smooth_coastline(obj.inner,obj.window,0);
-                    end
-                else
-                    disp('No smoothing of coastline enabled')
-                end
-                
-%                 % WJP: Jan 25, 2018 check the polygon
-% kjr moved to after dem is read to auto-close
-%                 obj = check_connectedness_inpoly(obj);
-                
-                % KJR: May 13, 2018 coarsen portions of outer, mainland
-                % and inner outside bbox (made into function WP)
-                iboubox = obj.boubox;
-                iboubox(:,1) = 1.10*iboubox(:,1)+(1-1.10)*mean(iboubox(1:end-1,1));
-                iboubox(:,2) = 1.10*iboubox(:,2)+(1-1.10)*mean(iboubox(1:end-1,2));
-                
-                obj.outer = coarsen_polygon(obj.outer,iboubox);
-                
-                if ~isempty(obj.inner)
-                    obj.inner = coarsen_polygon(obj.inner,iboubox);
-                end
-                
-                if ~isempty(obj.mainland)
-                    obj.mainland = coarsen_polygon(obj.mainland,iboubox);
-                end
-                
-                % kjr Oct. 27 2018, add the weir faux islands to the inner geometry
-                if ~isempty(obj.weirPfix)
-                    idx = [0; cumsum(weirLength)']+1 ;
-                    tmp = [] ;
-                    for ii = 1 : noWeirs
-                        tmp =  [tmp;
-                            [obj.weirPfix(idx(ii):idx(ii+1)-1,:)
-                            obj.weirPfix(idx(ii),:)]
-                            NaN NaN] ;
-                    end
-                    obj.inner = [obj.inner ; NaN NaN ;  tmp ] ;
-                end
-                
-                disp(['Read in NaN-delimited vector']);
-                
-            elseif ~isempty(obj.outer)    
-                
-                % make sure it has equal spacing of h0/2
-                if obj.outer(1)==0
-                    warning('Warning: creating outer polygon from bbox!')
-                    obj.outer = obj.boubox;
-                end
-                [la,lo]=my_interpm(obj.outer(:,2),obj.outer(:,1),gridspace/2);
-                obj.outer = []; obj.outer(:,1) = lo; obj.outer(:,2) = la;
-                disp('INFO: Read in user-defined NaN-delimited vector');
-                
-                % for mainland
-                if obj.mainland(1)~=0
-                    [la,lo]=my_interpm(obj.mainland(:,2),obj.mainland(:,1),gridspace/2);
-                    obj.mainland = [];
-                    obj.mainland(:,1) = lo; obj.mainland(:,2) = la;
-                else
-                    obj.mainland = [];
-                    warning('Warning: No mainland segment was passed!');
-                end
-                
-                % for islands
-                if obj.inner(1)~=0
-                    [la,lo]=my_interpm(obj.inner(:,2),obj.inner(:,1),gridspace/2);
-                    obj.inner = [];
-                    obj.inner(:,1) = lo; obj.inner(:,2) = la;
-                end
-                clearvars lo la
-                
+                % Unpack data from function Read_Shapefile()s
+                obj.outer     = polygon_struct.outer;
+                obj.mainland  = polygon_struct.mainland;
+                obj.inner     = polygon_struct.inner;
+                obj.mainlandb = polygon_struct.mainlandb;
+                obj.innerb    = polygon_struct.innerb;
+                obj.mainlandb_type = polygon_struct.mainlandb_type;
+                obj.innerb_type    = polygon_struct.innerb_type; 
+
             else
-                
-                % kjr Oct. 27 2018, add the weir faux islands to the inner geometry
-                if ~isempty(obj.weirPfix)
-                    idx = [0; cumsum(weirLength)']+1 ;
-                    tmp = [] ;
-                    for ii = 1 : noWeirs
-                        tmp =  [tmp;
-                            [obj.weirPfix(idx(ii):idx(ii+1)-1,:)
-                            obj.weirPfix(idx(ii),:)]
-                            NaN NaN] ;
-                    end
-                    obj.inner = [obj.inner ; NaN NaN ;  tmp ] ;
-                end
-                
-                % for islands
-                if obj.inner(1)~=0
-                    [la,lo]=my_interpm(obj.inner(:,2),obj.inner(:,1),gridspace/2);
-                    obj.inner = [];
-                    obj.inner(:,1) = lo; obj.inner(:,2) = la;
-                else
-                    obj.inner = [];
-                end
-                clearvars lo la
-                
+                % set outer to the boubox
+               obj.outer = obj.boubox;
+            end
+            obj = ClassifyShoreline(obj) ;
+        end
+        
+        function obj = ClassifyShoreline(obj)
+            % Helper function to...
+            % 1) Read the data from supplied file
+            % 2) Classify segments as either inner, outer, or mainland.
+            % 3) Ensure point spacing is adequate to support mesh sizes
+            %    and ensure computational efficiency when calculating the
+            %    signed distance function.
+            
+            % Check if no mainland segments, set outer
+            % to the boubox.
+            if isempty(obj.mainland)
+                obj.outer = [ ];
+                obj.outer = obj.boubox;
             end
             
-            % Process the DEM
-            if ~isempty(obj.demfile)
+            % Make sure the shoreline components have spacing of
+            % gridspace/spacing
+            [la,lo] = my_interpm(obj.outer(:,2),obj.outer(:,1),...
+                obj.gridspace/obj.spacing);
+            obj.outer = [];  obj.outer(:,1) = lo; obj.outer(:,2) = la;
+            outerbox = obj.outer(1:find(isnan(obj.outer(:,1)),1,'first'),:);
+            
+            if ~isempty(obj.mainland)
+                [la,lo] = my_interpm(obj.mainland(:,2),obj.mainland(:,1),...
+                    obj.gridspace/obj.spacing);
+                obj.mainland = []; obj.mainland(:,1) = lo; obj.mainland(:,2) = la;
+            end
+            
+            if ~isempty(obj.inner)
+                [la,lo]=my_interpm(obj.inner(:,2),obj.inner(:,1),...
+                    obj.gridspace/obj.spacing);
+                obj.inner = []; obj.inner(:,1) = lo; obj.inner(:,2) = la;
+            end
+            clearvars lo la
+            
+            % Smooth the coastline (apply moving average filter).
+            if obj.window > 1
+                disp(['Smoothing coastline with ' ...
+                    num2str(obj.window) ' point window'])
+                if ~isempty(obj.outer)
+                    obj.outer = smooth_coastline(obj.outer,obj.window,0);
+                end
+                if ~isempty(obj.mainland)
+                    obj.mainland = smooth_coastline(obj.mainland,obj.window,0);
+                end
+                if ~isempty(obj.inner)
+                    obj.inner = smooth_coastline(obj.inner,obj.window,0);
+                end
+            else
+                disp('No smoothing of coastline enabled')
+            end
+            
+            % KJR: Coarsen portions of outer, mainland
+            % and inner outside bbox.
+            iboubox = obj.boubox;
+            iboubox(:,1) = 1.10*iboubox(:,1)+(1-1.10)*mean(iboubox(1:end-1,1));
+            iboubox(:,2) = 1.10*iboubox(:,2)+(1-1.10)*mean(iboubox(1:end-1,2));
+            
+            % Coarsen outer
+            obj.outer = coarsen_polygon(obj.outer,iboubox);
+            
+            % Coarsen inner and move parts that overlap with bounding box
+            % to mainland
+            if ~isempty(obj.inner)
+                obj.inner = coarsen_polygon(obj.inner,iboubox);
+                id_del = ismembertol(obj.inner,outerbox,1e-4,'ByRows',true);      
+                if sum(id_del) > 0
+                   % need to change parts of inner to mainland...
+                   isnan1 = find(isnan(obj.inner(:,1))); ns = 1;
+                   innerdel = []; mnadd = [];
+                   for ii = 1:length(isnan1)
+                       ne = isnan1(ii);
+                       sumdel = sum(id_del(ns:ne));
+                       if sumdel > 0
+                           mnadd = [mnadd; obj.inner(ns:ne,:)];
+                           innerdel = [innerdel ns:ne];
+                       end
+                       ns = ne + 1;
+                   end
+                   obj.inner(innerdel,:) = [];
+                   obj.outer = [obj.outer; mnadd];
+                   obj.mainland = [obj.mainland; mnadd];
+                end
+            end
+            
+            % Coarsen mainland and remove parts that overlap with bounding
+            % box (note this doesn't change the polygon used for inpoly,
+            % only changes the distance function used for edgefx)
+            if ~isempty(obj.mainland)
+                obj.mainland = coarsen_polygon(obj.mainland,iboubox);
+                id_del = ismembertol(obj.mainland,outerbox,1e-4,'ByRows',true);      
+                obj.mainland(id_del,:) = []; 
+                while ~isempty(obj.mainland) && isnan(obj.mainland(1))
+                    obj.mainland(1,:) = []; 
+                end                
+            end
+           
+            
+        end
+        
+        function obj = ParseDEM(obj,backup)
+            if nargin < 2 
+              backup = 0 ;
+              fname = obj.demfile ; 
+            else
+              backup = 1 ;   
+              fname = obj.BACKUPdemfile ;
+            end
+            % Process the DEM for the meshing region. 
+            if ~isempty(fname)
                 try
-                    x = double(ncread(obj.demfile,'lon'));
-                    y = double(ncread(obj.demfile,'lat'));
+                    x = double(ncread(fname,'lon'));
+                    y = double(ncread(fname,'lat'));
                 catch
-                    x = double(ncread(obj.demfile,'x'));
-                    y = double(ncread(obj.demfile,'y'));
+                    x = double(ncread(fname,'x'));
+                    y = double(ncread(fname,'y'));
                 end
                 % Find name of z value (use one that has 2 dimensions)
-                finfo = ncinfo(obj.demfile);
+                finfo = ncinfo(fname);
                 for ii = 1:length(finfo.Variables)
                     if length(finfo.Variables(ii).Size) == 2
                         zvarname = finfo.Variables(ii).Name;
@@ -465,7 +443,7 @@ classdef geodata
                     end
                     It = find(x >= bboxt(1,1) & x <= bboxt(1,2));
                     I = [I; It];
-                    demzt = single(ncread(obj.demfile,zvarname,...
+                    demzt = single(ncread(fname,zvarname,...
                         [It(1) J(1)],[length(It) length(J)]));
                     if isempty(demz)
                         demz = demzt;
@@ -481,13 +459,42 @@ classdef geodata
                         x = x1; demz = demz(IA,:);
                     end
                 end
-                obj.Fb   = griddedInterpolant({x,y},demz,...
-                    'linear','nearest');
-                obj.x0y0 = [x(1),y(1)];
-                % clear data from memory
-                clear x y demz
+                % handle DEMS from packed starting from the bottom left 
+                if y(2) < y(1) 
+                  y = flipud(y) ; 
+                  demz = fliplr(demz) ; 
+                end
                 
-                disp(['Read in demfile ',obj.demfile]);
+                % check for any invalid values 
+                bad = abs(demz) > 10e3 ;
+                if ~isempty(find(bad)) > 0 & ~backup
+                    warning('ALERT: Invalid and/or missing DEM values detected..check DEM');
+                    if obj.BACKUPdemfile(1)~=0
+                        disp('Replacing invalid values with back-up DEMfile');
+                        [demx,demy] = ndgrid(x,y) ;
+                        demz(bad) = obj.Fb2(demx(bad),demy(bad)) ;
+                    else
+                        % just replace it with NaNs
+                        demz(bad) = NaN ;
+                    end
+                end
+                
+                % creating back up interpolant
+                if backup
+                    obj.Fb2   = griddedInterpolant({x,y},demz,...
+                        'linear','nearest');
+                    % clear data from memory
+                    clear x y demz
+                else
+                 % main interpolant 
+                    obj.Fb   = griddedInterpolant({x,y},demz,...
+                        'linear','nearest');
+                    obj.x0y0 = [x(1),y(1)];
+                    % clear data from memory
+                    clear x y demz
+                end
+                
+                disp(['Read in demfile ',fname]);
             end
             
             % Handle the case of no dem
@@ -495,84 +502,33 @@ classdef geodata
                 obj.x0y0 = [obj.bbox(1,1), obj.bbox(2,1)];
             end
             
-            % kjr moved to after dem is read to auto-close
-            obj = check_connectedness_inpoly(obj);
-
-            function polyobj = coarsen_polygon(polyobj,iboubox)
-                % coarsen a polygon object
-                idx = find(isnan(polyobj(:,1)));
-                C = mat2cell(polyobj,diff([0;idx]),2);
-                new = cell(length(C),1);
-                % for each segment
-                for iii = 1 : length(C)
-                    j = 0 ; k = 0;
-                    [in] = inpoly(C{iii},iboubox(1:end-1,:));
-                    % Initialise for speed
-                    new{iii} = zeros(length(C{iii}),2);
-                    while j < length(C{iii})-1
-                        j = j + 1 ;
-                        if in(j) % point is in domain keep it
-                            k = k + 1;
-                            new{iii}(k,:) = C{iii}(j,:);
-                        else % pt is out of domain
-                            bd = min([j+200,length(in)-1]) ;
-                            exte = min(200,bd - j);
-                            if sum(in(j:bd))==0 % if next hundred points are out, then we can decimate
-                                k = k + 1 ;
-                                new{iii}(k,:) = C{iii}(j,:);
-                                k = k + 1 ;
-                                new{iii}(k,:) = C{iii}(j+exte,:);
-                                j = j + exte ;
-                            else % otherwise keep
-                                k = k + 1 ;
-                                new{iii}(k,:) = C{iii}(j,:);
-                            end
-                            
-                        end
-                    end
-                    new{iii}(k+1,:) = [NaN NaN] ;
-                    new{iii}(k+2:end,:) = [];
-                end
-                polyobj = cell2mat(new);
-            end
-            
         end
         
-        % WJP: Check for connected polygons and if not connected,
-        %      whether to flip the inpoly result to ensure meshing
-        %      on the coastal side of the polygon
         function obj = check_connectedness_inpoly(obj)
-            gridspace =    abs(obj.h0)/111e3;
+            % Check for connected polygons and if not connected,
+            %  whether to flip the inpoly result to ensure meshing
+            %  on the coastal side of the polygon.
+            
             obj.inpoly_flip = 0;
             % return if outer polygon is connected
             shpEnd = find(isnan(obj.outer(:,1)));
             [~,loc] = max(diff(shpEnd));
             shpEnd = vertcat(0,shpEnd); loc = loc+1;
             if abs(sum(obj.outer(shpEnd(loc)+1,:)) - ...
-                    sum(obj.outer(shpEnd(loc+1)-1,:))) < eps
-                %return;
-            else
-                disp('Warning: Shapefile is unconnected... continuing anyway')
+                    sum(obj.outer(shpEnd(loc+1)-1,:))) > eps
+               disp('Warning: Shapefile is unconnected... continuing anyway')
             end
             
-            % outer polygon is not connected, check for inpoly goodness
-            % read the GSHHS checker
+            % check for inpoly goodness read the GSHHS checker
             ps = Read_shapefile( {'GSHHS_l_L1'}, [], ...
-                obj.bbox, gridspace, obj.boubox, 0 );
-           
-            % kjr call close method to fix gdat.
-            %obj = close(obj) ; 
+                obj.bbox, obj.gridspace, obj.boubox, 0 );
             
-            % make a fake tester grid
+            % make a "fake" tester grid
             x = linspace(obj.bbox(1,1),obj.bbox(1,2),100);
             y = linspace(obj.bbox(2,1),obj.bbox(2,2),100);
             edges = Get_poly_edges( [ps.outer; ps.inner] );
             in_Test = inpoly([x',y'],[ps.outer; ps.inner],edges);
-           if ~isempty(obj.inner)
-               polytester = [obj.outer; obj.inner];
-           else
-                polytester = obj.outer;
-           end
+            polytester = [obj.outer; obj.inner];
             edges = Get_poly_edges( polytester );
             in_Shpf = inpoly([x',y'],polytester,edges);
             % if more than half of thepoints disagree between Test and Shpf
@@ -589,9 +545,6 @@ classdef geodata
             end
         end
         
-        
-        % close geometric countour vectors by clipping with a boubox
-        % updates gdat.outer so that the meshing domain is correctly defined
         function obj = close(obj)
             % Clips the mainland segment with the boubox.
             % Performs a breadth-first search given a seed position
@@ -600,9 +553,9 @@ classdef geodata
             % kjr,und,chl 2018
             
             if isempty(obj.Fb)
-                warning('ALERT: Meshing boundary is not a polygon!') 
+                warning('ALERT: Meshing boundary is not a polygon!')
                 warning('ALERT: DEM is required to clip line segment with polygon')
-                seed=input('Enter coordinate of seed location to clip: '); 
+                seed=input('Enter coordinate of seed location to clip: ');
             else
                 % Guess seed location: submerged portion of domain within
                 % bbox?
@@ -613,10 +566,10 @@ classdef geodata
                 allpts=[demx(:),demy(:)] ;
                 cands = allpts(idx,:);
                 if(isnan(obj.boubox(end,1)))
-                  edges=Get_poly_edges(obj.boubox) ;
-                  [in]=inpoly(cands,obj.boubox,edges) ; %  determine which of these points is in the domain
+                    edges=Get_poly_edges(obj.boubox) ;
+                    [in]=inpoly(cands,obj.boubox,edges) ; %  determine which of these points is in the domain
                 else
-                  [in]=inpoly(cands,obj.boubox) ;       %  determine which of these points is in the domain
+                    [in]=inpoly(cands,obj.boubox) ;       %  determine which of these points is in the domain
                 end
                 cands2=cands(in,:) ;
                 seed = cands2(50,:) ;
@@ -637,21 +590,31 @@ classdef geodata
             new_outer = [lo la] ;
             
             obj.outer = new_outer ;
-     
+            
             % reset this to default
             obj.inpoly_flip = 0 ;
         end
+                
+        function obj = extractContour(obj,ilev)
+            % Extract a geometric contour from the DEM at elevation ilev.
+            [node,edge] = ...
+                getiso2( obj.Fb.GridVectors{1},obj.Fb.GridVectors{2},...
+                double(obj.Fb.Values),ilev) ;
+            
+            polyline = cell2mat(extdom_polygon(edge,node,-1,1,10)') ;
+            
+            obj = geodata('pslg',polyline,'h0',obj.h0,'dem',obj.demfile) ;
+            
+        end
         
-        
-        
-        % Plot mesh boundary
         function plot(obj,type,projection)
+            % Plot mesh boundary
             if nargin == 1
                 type = 'shp';
             end
             
             if nargin < 3
-                projection = 'Transverse Mercator';
+                projection = 'Mercator';
             end
             bufx = 0.2*(obj.bbox(1,2) - obj.bbox(1,1));
             bufy = 0.2*(obj.bbox(2,2) - obj.bbox(2,1));
@@ -660,9 +623,12 @@ classdef geodata
                     'long',mean(obj.bbox(1,:)),'radius',...
                     min(179.9,1.20*max(diff(obj.bbox(2,:)))));
             else
+                lon1 = max(-180,obj.bbox(1,1) - bufx);
+                lon2 = min(+180,obj.bbox(1,2) + bufx);
+                lat1 = max(- 90,obj.bbox(2,1) - bufy);
+                lat2 = min(+ 90,obj.bbox(2,2) + bufy);                
                 m_proj(projection,...
-                    'long',[obj.bbox(1,1) - bufx, obj.bbox(1,2) + bufx],...
-                    'lat',[obj.bbox(2,1) - bufy, obj.bbox(2,2) + bufy]);
+                    'long',[lon1, lon2],'lat',[lat1, lat2]);
             end
             
             switch type
@@ -724,7 +690,7 @@ classdef geodata
                 legend([h2,h3],'inner','weirs','Location','NorthWest')
             end
             %set(gcf, 'Units', 'Normalized', 'OuterPosition', [0 0 1 1]);
-        end
+                end
         
     end
 end
