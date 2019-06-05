@@ -46,8 +46,8 @@ classdef geodata
         % Define well-known variables for longitude and latitude
         % coordinates in Digital Elevation Model NetCDF file (CF
         % compliant).
-        wkv_x = {'x','Longitude','lon'} ;
-        wkv_y = {'y','Latitude', 'lat'} ;
+        wkv_x = {'x','Longitude','longitude','lon'} ;
+        wkv_y = {'y','Latitude', 'latitude','lat'} ;
     end
     
     methods
