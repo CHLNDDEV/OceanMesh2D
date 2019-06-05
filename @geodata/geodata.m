@@ -43,11 +43,6 @@ classdef geodata
         pslg % piecewise liner straight line graph
         spacing = 2 ; %Relative spacing along polygon, large effect on computational efficiency of signed distance.
         gridspace
-        % Define well-known variables for longitude and latitude
-        % coordinates in Digital Elevation Model NetCDF file (CF
-        % compliant).
-        wkv_x = {'x','Longitude','longitude','lon'} ;
-        wkv_y = {'y','Latitude', 'latitude','lat'} ;
     end
     
     methods
@@ -133,6 +128,8 @@ classdef geodata
                         obj.pslg = inp.(fields{i});
                         if obj.pslg(1) ~=0
                             obj.pslg = inp.(fields{i});
+                        else
+                            obj.pslg = [];
                         end
                     case('mainland')
                         obj.mainland = inp.(fields{i});
@@ -185,17 +182,11 @@ classdef geodata
             obj.gridspace    = abs(obj.h0)/111e3; %point spacing along polygon,
             
             % Get bbox information from demfile if not supplied
+            
             if size(obj.bbox,1) == 1 && isempty(obj.pslg) 
-                for i = 1 : length(obj.wkv_x)
-                    try
-                        x = double(ncread(obj.demfile,obj.wkv_x{i}));
-                        y = double(ncread(obj.demfile,obj.wkv_y{i}));
-                    catch
-                        if i == length(obj.wkv_x)
-                           error('Could not locate x/y coordinate in DEM') ; 
-                        end
-                    end
-                end
+                [xvn, yvn] = getdemvarnames(obj); 
+                x = double(ncread(obj.demfile,xvn));
+                y = double(ncread(obj.demfile,yvn));
                 obj.bbox = [min(x) max(x); min(y) max(y)];
             end
             
@@ -390,35 +381,23 @@ classdef geodata
         end
         
         function obj = ParseDEM(obj,backup)
+            fname = obj.demfile ; 
             if nargin < 2 
-              backup = 0 ;
-              fname = obj.demfile ; 
-            else
-              backup = 1 ;   
-              fname = obj.BACKUPdemfile ;
+               backup = 0 ;
+            end
+            if backup 
+               fname = obj.BACKUPdemfile ;
             end
             % Process the DEM for the meshing region. 
             if ~isempty(fname)
                 
-               for i = 1 : length(obj.wkv_x)
-                    try
-                        x = double(ncread(obj.demfile,obj.wkv_x{i}));
-                        y = double(ncread(obj.demfile,obj.wkv_y{i}));
-                    catch
-                        if i == length(obj.wkv_x)
-                           error('Could not locate x/y coordinate in DEM') ; 
-                        end
-                    end
-                end
+                % Find name of x, y (one that has 1 dimensions)
+                % z values (use one that has 2 dimensions)
+                [xvn, yvn, zvn] = getdemvarnames(obj,backup); 
                 
-                % Find name of z value (use one that has 2 dimensions)
-                finfo = ncinfo(fname);
-                for ii = 1:length(finfo.Variables)
-                    if length(finfo.Variables(ii).Size) == 2
-                        zvarname = finfo.Variables(ii).Name;
-                        break
-                    end
-                end
+                % Read x and y
+                x = double(ncread(fname,xvn));
+                y = double(ncread(fname,yvn));
                 modbox = [0 0];
                 if obj.bbox(1,2) > 180 && obj.bbox(1,1) < 180 && min(x) < 0
                     % bbox straddles 180/-180 line
@@ -448,8 +427,8 @@ classdef geodata
                     end
                     It = find(x >= bboxt(1,1) & x <= bboxt(1,2));
                     I = [I; It];
-                    demzt = single(ncread(fname,zvarname,...
-                        [It(1) J(1)],[length(It) length(J)]));
+                    demzt = single(ncread(fname,zvn,...
+                                   [It(1) J(1)],[length(It) length(J)]));
                     if isempty(demz)
                         demz = demzt;
                     else
@@ -472,7 +451,7 @@ classdef geodata
                 
                 % check for any invalid values 
                 bad = abs(demz) > 10e3 ;
-                if ~isempty(find(bad)) > 0 & ~backup
+                if sum(bad(:)) > 0 && ~backup
                     warning('ALERT: Invalid and/or missing DEM values detected..check DEM');
                     if obj.BACKUPdemfile(1)~=0
                         disp('Replacing invalid values with back-up DEMfile');
@@ -507,6 +486,49 @@ classdef geodata
                 obj.x0y0 = [obj.bbox(1,1), obj.bbox(2,1)];
             end
             
+        end
+        
+       function [xvn, yvn, zvn] = getdemvarnames(obj,backup) 
+            fname = obj.demfile ; 
+            if nargin < 2 
+               backup = 0 ;
+            end
+            if backup 
+               fname = obj.BACKUPdemfile ;
+            end
+            % Define well-known variables for longitude and latitude
+            % coordinates in Digital Elevation Model NetCDF file (CF
+            % compliant).
+            xvn = []; yvn = []; zvn = [];
+            wkv_x = {'x','Longitude','longitude','lon'} ;
+            wkv_y = {'y','Latitude', 'latitude','lat'} ;
+            finfo = ncinfo(fname);
+            for ii = 1:length(finfo.Variables)
+                if ~isempty(xvn) && ~isempty(yvn) && ~isempty(zvn); break; end
+                if length(finfo.Variables(ii).Size) == 1
+                    if isempty(xvn) && ...
+                       any(strcmp(finfo.Variables(ii).Name,wkv_x))
+                        xvn = finfo.Variables(ii).Name; 
+                    end
+                    if isempty(yvn) && ...
+                       any(strcmp(finfo.Variables(ii).Name,wkv_y))
+                        yvn = finfo.Variables(ii).Name; 
+                    end
+                elseif length(finfo.Variables(ii).Size) == 2
+                    if isempty(zvn)
+                       zvn = finfo.Variables(ii).Name;
+                    end
+                end
+            end 
+            if isempty(xvn)
+                error('Could not locate x coordinate in DEM') ; 
+            end
+            if isempty(yvn)
+                error('Could not locate y coordinate in DEM') ; 
+            end
+            if isempty(zvn)
+                error('Could not locate z coordinate in DEM') ; 
+            end
         end
         
         function obj = check_connectedness_inpoly(obj)
@@ -695,8 +717,9 @@ classdef geodata
                 legend([h2,h3],'inner','weirs','Location','NorthWest')
             end
             %set(gcf, 'Units', 'Normalized', 'OuterPosition', [0 0 1 1]);
-                end
+        end
         
     end
+    
 end
 
