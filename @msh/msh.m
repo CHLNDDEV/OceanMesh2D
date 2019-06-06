@@ -1645,6 +1645,14 @@ classdef msh
         end
         
         function [bars,barlen] = GetBarLengths(obj,type)
+            % [bars,barlen] = GetBarLengths(obj,type)
+            % Get bars and bar lengths of the elements in msh object
+            % set type = 0 for bar lengths computed using Harvesine formula
+            % set type = 1 for bar lengths computed using CCP with
+            % correction factor for x-direction
+            if nargin < 2
+               type = 0; 
+            end
             bars = [obj.t(:,[1,2]); obj.t(:,[1,3]); obj.t(:,[2,3])]; % Interior bars duplicated
             bars = unique(sort(bars,2),'rows');                      % Bars as node pairs
             if type == 0
