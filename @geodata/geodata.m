@@ -41,7 +41,7 @@ classdef geodata
         Fb2 % linear gridded interpolant of backup DEM
         x0y0 % bottom left of structure grid or position (0,0)
         pslg % piecewise liner straight line graph
-        spacing = 2 ; %Relative spacing along polygon, large effect on computational efficiency of signed distance.
+        spacing = 2.0 ; %Relative spacing along polygon, large effect on computational efficiency of signed distance.
         gridspace
     end
     
@@ -171,16 +171,12 @@ classdef geodata
                         end
                 end
             end
-           
-
             % Basic error handling should go here. 
             % if not bbox and no dem, you're outta luck
             if size(obj.bbox,1) == 1 && isempty(obj.demfile) && isempty(obj.pslg)
                error('No DEM supplied and no bbox supplied, sorry pal'); 
             end
-          
             obj.gridspace    = abs(obj.h0)/111e3; %point spacing along polygon,
-            
             % Get bbox information from demfile if not supplied
             if size(obj.bbox,1) == 1 && isempty(obj.pslg) 
                 obj = ParseDEM(obj,'bbox');
@@ -431,8 +427,8 @@ classdef geodata
                     end
                     It = find(x >= bboxt(1,1) & x <= bboxt(1,2));
                     I = [I; It];
-                    demzt = single(ncread(fname,zvn,...
-                                   [It(1) J(1)],[length(It) length(J)]));
+                    demzt = single(ncread(fname,zvarname,...
+                        [It(1) J(1)],[length(It) length(J)]));
                     if isempty(demz)
                         demz = demzt;
                     else
@@ -454,10 +450,10 @@ classdef geodata
                 end
                 
                 % check for any invalid values 
-                bad = abs(demz) > 10e3 ;
-                if sum(bad(:)) > 0 && ~backup
+                bad = abs(demz) > 11e3 ;
+                if ~isempty(find(bad, 1)) > 0 && ~backup
                     warning('ALERT: Invalid and/or missing DEM values detected..check DEM');
-                    if obj.BACKUPdemfile(1)~=0
+                    if ~isempty(obj.BACKUPdemfile)
                         disp('Replacing invalid values with back-up DEMfile');
                         [demx,demy] = ndgrid(x,y) ;
                         demz(bad) = obj.Fb2(demx(bad),demy(bad)) ;
@@ -526,7 +522,6 @@ classdef geodata
                 end
             end
             
-        end
         
         function obj = check_connectedness_inpoly(obj)
             % Check for connected polygons and if not connected,
@@ -704,16 +699,8 @@ classdef geodata
             m_grid('xtick',10,'tickdir','out','yaxislocation','left','fontsize',10);
             if exist('h1','var') && exist('h2','var') && exist('h3','var')
                 legend([h1 h2,h3],{'mainland' 'inner' 'weirs'},'Location','NorthWest')
-            elseif exist('h1','var')
-                legend(h1,'mainland','Location','NorthWest')
-            elseif exist('h2','var')
-                legend(h2,'inner','Location','NorthWest')
-            elseif exist('h1','var') && exist('h3','var')
-                legend([h1,h3],'mainland','weirs','Location','NorthWest')
-            elseif exist('h2','var')  && exist('h3','var')
-                legend([h2,h3],'inner','weirs','Location','NorthWest')
-            end
-            %set(gcf, 'Units', 'Normalized', 'OuterPosition', [0 0 1 1]);
+            elseif exist('h1','var') && exist('h2','var')
+                legend([h1 h2],{'mainland' 'inner'},'Location','NorthWest')
         end
         
     end

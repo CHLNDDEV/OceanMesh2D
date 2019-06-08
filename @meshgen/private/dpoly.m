@@ -21,7 +21,7 @@ elseif isempty(box_vec)
     box_vec = 1:length(obj.bbox);
 end
 % initialize d with some positive number larger than geps
-d = ones(length(p),1);
+d = 0*p(:,1) + 1;
 for box_num = box_vec
     if ~iscell(obj.outer)
         outer = obj.outer;
@@ -40,8 +40,6 @@ for box_num = box_vec
             ee=Get_poly_edges(pt);
             inside = inpoly(p,pt,ee) ; 
             clearvars pt ee 
-            %inside = (p(:,1) >= bbox(1,1) & p(:,1) <= bbox(1,2) & ...
-            %    p(:,2) >= bbox(2,1) & p(:,2) <= bbox(2,2) );
         else
             inside = true(size(d));
         end
@@ -50,16 +48,13 @@ for box_num = box_vec
             pt=obj.boubox{bn};
             ee=Get_poly_edges(pt);
             inside2 = inpoly(p,pt,ee) ;
-            %             inside2 = (p(:,1) >= obj.bbox{bn}(1,1) & ...
-            %                 p(:,1) <= obj.bbox{bn}(1,2) & ...
-            %                 p(:,2) >= obj.bbox{bn}(2,1) & ...
-            %                 p(:,2) <= obj.bbox{bn}(2,2) );
             inside(inside2) = false;
         end
     end
     
     if sum(inside)~=0
-        [~,d_l] = WrapperForKsearch(pv1, p(inside,:),project);
+        [~,d_l] = WrapperForKsearch(obj.anno{box_num},obj.annData{box_num},...
+                                    p(inside,:),project);
     end
     
     %% Doing the inpoly check

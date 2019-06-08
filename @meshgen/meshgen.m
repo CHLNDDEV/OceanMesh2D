@@ -43,7 +43,11 @@ classdef meshgen
         big_mesh
         ns_fix        % improve spacing for boundary vertices
         qual          % mean, lower 3rd sigma, and the minimum element quality.
+        qual_tol      % tolerance for the accepted negligible change in quality
         proj          % structure containing the m_map projection info
+        anno          % Approx. Nearest Neighbor search object. 
+        annData       % datat contained with KD-tree in anno
+        Fb            % bathymetry data interpolant 
     end
     
     
@@ -77,6 +81,7 @@ classdef meshgen
             addOptional(p,'big_mesh',defval);
             addOptional(p,'ns_fix',defval);
             addOptional(p,'proj',defval);
+            addOptional(p,'qual_tol',defval);
             
             % parse the inputs
             parse(p,varargin{:});
@@ -91,7 +96,8 @@ classdef meshgen
             inp = orderfields(inp,{'h0','bbox','fh','inner','outer','mainland',...
                                    'bou','ef',... %<--OceanMesh classes come after
                                    'egfix','pfix','fixboxes',...
-                                   'plot_on','nscreen','itmax','memory_gb','cleanup',...
+                                   'plot_on','nscreen','itmax',...
+                                   'memory_gb','qual_tol','cleanup',...
                                    'direc_smooth','dj_cutoff',...
                                    'big_mesh','ns_fix','proj'});             
             % get the fieldnames of the edge functions
@@ -140,8 +146,10 @@ classdef meshgen
                         else
                             obj.pfix = [];
                         end
-                        if  ~isempty(obj.bou{1}.weirPfix)
-                           obj.pfix = [obj.pfix ; obj.bou{1}.weirPfix];
+                        for j = 1 : length(obj.bou)
+                            if  ~isempty(obj.bou{j}.weirPfix)
+                                obj.pfix = [obj.pfix ; obj.bou{j}.weirPfix];
+                            end
                         end
                     case('egfix')
                         obj.egfix= inp.(fields{i});
@@ -150,9 +158,11 @@ classdef meshgen
                         else
                             obj.egfix = [];
                         end
-                         if ~isempty(obj.bou{1}.weirEgfix)
-                           obj.egfix = [obj.egfix ; obj.bou{1}.weirEgfix+length(obj.egfix)];
-                         end
+                        for j = 1 : length(obj.bou)
+                            if ~isempty(obj.bou{j}.weirEgfix)
+                                obj.egfix = [obj.egfix ; obj.bou{j}.weirEgfix+length(obj.egfix)];
+                            end
+                        end
                     case('fixboxes')
                         obj.fixboxes= inp.(fields{i});
                     
@@ -183,6 +193,12 @@ classdef meshgen
                             if isa(arg,'geodata')
                                 obj.outer{ee} = obj.bou{ee}.outer;
                                 obj.inner{ee} = obj.bou{ee}.inner;
+                                
+                                % save bathy interpolant to meshgen 
+                                if ~isempty(obj.bou{ee}.Fb) 
+                                  obj.Fb{ee} = obj.bou{ee}.Fb ;   
+                                end
+                                
                                 if ~isempty(obj.inner{ee}) && ...
                                    obj.inner{ee}(1)~= 0
                                     obj.outer{ee} = [obj.outer{ee};
@@ -246,7 +262,7 @@ classdef meshgen
                         
                         % kjr 2018 smooth the outer automatically
                         if length(obj.ef) > 1
-                            obj.ef = smooth_outer(obj.ef);
+                            obj.ef = smooth_outer(obj.ef,obj.Fb);
                         end
                         
                         % Save the ef interpolants into the edgefx
@@ -278,6 +294,13 @@ classdef meshgen
                             obj.itmax = 100;
                             warning('No itmax specified, itmax set to 100');
                         end
+                    case('qual_tol')
+                        obj.qual_tol = inp.(fields{i});
+                        if obj.qual_tol ~=0
+                            obj.qual_tol = inp.(fields{i});
+                        else
+                            obj.qual_tol = 0.01;
+                        end 
                     case('inner')
                         if ~isa(obj.bou,'geodata')
                             obj.inner = inp.(fields{i});
@@ -343,12 +366,38 @@ classdef meshgen
             if isempty(obj.outer), error('no outer boundary specified!'), end
             if isempty(obj.bbox), error('no bounding box specified!'), end
             obj.fd = @dpoly;  % <-default distance fx accepts p and pv (outer polygon).
-            
+            % kjr build ANN object into meshgen
+            obj = createANN(obj) ;
+             
             global MAP_PROJECTION MAP_COORDS MAP_VAR_LIST
             obj.grd.proj    = MAP_PROJECTION ; 
             obj.grd.coord   = MAP_COORDS ; 
             obj.grd.mapvar  = MAP_VAR_LIST ; 
         
+        end
+        
+        % Creates Approximate nearest neighbor objects on start-up
+        function  obj = createANN(obj)
+            
+            box_vec = 1:length(obj.bbox);
+            
+            for box_num = box_vec
+                if ~iscell(obj.outer)
+                    dataset = obj.outer;
+                    dataset(isnan(obj.outer(:,1)),:) = [];
+                else
+                    dataset = obj.outer{box_num};
+                    dataset(isnan(obj.outer{box_num}(:,1)),:) = [];
+                end
+                [dataset(:,1),dataset(:,2)] = m_ll2xy(dataset(:,1),dataset(:,2));
+                dataset(isnan(dataset(:,1)),:) = [];
+                % This line removes the line that can appear in the center for
+                % stereo projection from the bbox
+                dataset(abs(dataset(:,1)) < 1e-6,:) = [];
+                dmy = ann(dataset');
+                obj.anno{box_num} = dmy;
+                obj.annData{box_num}=dataset; 
+            end
         end
 
         function  obj = build(obj)
@@ -359,12 +408,14 @@ classdef meshgen
             %%
             tic
             it = 1 ;
-            imp=10;
-            imp2 = imp;
+            imp = 10;
+            qual_diff = 0;
             Re = 6378.137e3;
             geps = 1e-3*min(obj.h0)/Re; 
             deps = sqrt(eps);
             ttol=0.1; Fscale = 1.2; deltat = 0.1;
+            delIT = 0 ; delImp = 2;
+
             % unpack initial points.
             p = obj.grd.p;
             if isempty(p)
@@ -436,35 +487,49 @@ classdef meshgen
                         max_r0 = 1/h0_l^2;     
                         p1 = p1(rand(size(p1,1),1) < r0/max_r0,:);          % Rejection method
                         p  = [p; p1];                                       % Adding p1 to p
+                        % kjr make sure the corners of the box are added to
+                        % make the tile corner's fill the extent more
+                        % quickly. 
+                        plt = cell2mat(obj.boubox');
+                        plt(isnan(plt(:,1)),:)=[] ; 
+                        p = [p ; plt(1:end-1,:) ] ; 
                     end
                 end
             else
-                disp('User-supplied initial points!'); 
+                disp('User-supplied initial points!');
+                obj.grd.b = [];
                 imp = 10; % number of iterations to do mesh improvements (delete/add)
                 h0_l = obj.h0(end); % finest h0 (in case of a restart of meshgen.build).
             end
             
             % remove pfix/egfix outside of desired subdomain
             nfix = size(obj.pfix,1);    % Number of fixed points
-            negfix = size(obj.egfix,1); % Number of edge constraints.
+            negfix = size(obj.egfix,1); % Number of edge constraints
             if negfix > 0
+                if length(obj.fixboxes)==1 && obj.fixboxes(1)==0 
+                  obj.fixboxes(1)=1 ; 
+                end
+                pfixkeep = setdiff([1:nfix]',unique(obj.egfix(:)));
                 % remove bars if midpoint is outside domain
-                egfix_mid = (obj.pfix(obj.egfix(:,1),:) + obj.pfix(obj.egfix(:,2),:))/2;
+                egfix_mid = (obj.pfix(obj.egfix(:,1),:) + ...
+                             obj.pfix(obj.egfix(:,2),:))/2;
                 for jj = 1 : length(obj.fixboxes)
                     if obj.fixboxes(jj)
-                        % shrink box to avoid constraining boundary edges
                         iboubox = obj.boubox{jj};
-                        iboubox(:,1) = 0.98*iboubox(:,1)+(1-0.98)*mean(iboubox(1:end-1,1));
-                        iboubox(:,2) = 0.98*iboubox(:,2)+(1-0.98)*mean(iboubox(1:end-1,2));
                         inbar(:,jj) = inpoly(egfix_mid,iboubox(1:end-1,:));
                     end
                 end
                 inbar = sum(inbar,2) ;
                 obj.egfix(~inbar,:) = [];
-                tmppfix = obj.pfix(unique(obj.egfix(:)),:);
-                obj.pfix = []; obj.pfix = tmppfix;
+                tmppfix = obj.pfix([unique(obj.egfix(:)); pfixkeep],:);
+                obj.pfix = tmppfix;
                 obj.egfix = renumberEdges(obj.egfix);
-            elseif nfix > 0
+                negfix = size(obj.egfix,1); % Number of edge constraints.
+            end
+            if nfix > 0
+                if length(obj.fixboxes)==1 && obj.fixboxes(1)==0 
+                  obj.fixboxes(1)=1 ; 
+                end
                 % remove pfix if outside domain
                 for jj = 1 : length(obj.fixboxes)
                     if obj.fixboxes(jj)
@@ -472,13 +537,10 @@ classdef meshgen
                     end
                 end
                 inbox = sum(inbox,2) ;
+                inbox(unique(obj.egfix(:))) = 1;
                 obj.pfix(~inbox,:) = [];
+                nfix = size(obj.pfix,1);    % Number of fixed points
             end
-            % updated sizes
-            % remove pfix/egfix outside of domain
-            nfix = size(obj.pfix,1);    % Number of fixed points
-            negfix = size(obj.egfix,1); % Number of edge constraints.
-            
             if nfix >= 0, disp(['Using ',num2str(nfix),' fixed points.']);end
             if negfix > 0
                 if max(obj.egfix(:)) > length(obj.pfix)
@@ -487,9 +549,6 @@ classdef meshgen
                 disp(['Using ',num2str(negfix),' fixed edges.']);
             end
             
-            if ~isempty(obj.pfix) && sum(obj.fixboxes)==0
-                error('INFO: Please specify fixedboxes flags with at least one non-zero!');
-            end
             if ~isempty(obj.pfix); p = [obj.pfix; p]; end
             N = size(p,1); % Number of points N
             disp(['Number of initial points after rejection is ',num2str(N)]);
@@ -503,16 +562,21 @@ classdef meshgen
             disp('Begin iterating...');
             while 1
                 tic
-                if mod(it,obj.nscreen) == 0
+                if ~mod(it,obj.nscreen) && delIT == 0
                     disp(['Iteration =' num2str(it)]) ;
                 end
                 
                 % 3. Retriangulation by the Delaunay algorithm
-                if max(sqrt(sum((p-pold).^2,2))/h0_l*111e3) > ttol         % Any large movement?
+                if max(sqrt(sum((p(1:size(pold,1),:)-pold).^2,2))/h0_l*111e3) > ttol         % Any large movement?
                     p = fixmesh(p);                                        % Ensure only unique points.
                     N = size(p,1); pold = p;                               % Save current positions
-                    t = delaunay_elim(p,obj.fd,geps,0);                    % Delaunay with elimination
+                    [t,p] = delaunay_elim(p,obj.fd,geps,0);                % Delaunay with elimination
                     
+                    if isempty(t) 
+                      disp('Exiting') 
+                      return 
+                    end
+                    N = size(p,1); 
                     % 4. Describe each bar by a unique pair of nodes.
                     bars = [t(:,[1,2]); t(:,[1,3]); t(:,[2,3])];           % Interior bars duplicated
                     bars = unique(sort(bars,2),'rows');                    % Bars as node pairs
@@ -522,9 +586,12 @@ classdef meshgen
                         cla,m_triplot(p(:,1),p(:,2),t)
                         m_grid
                         title(['Iteration = ',num2str(it)]);
-                        if ~isempty(obj.pfix)
-                            hold on;
-                            m_plot(p(1:nfix,1),p(1:nfix,2),'r.')
+                        if negfix > 0
+                            m_plot(reshape(obj.pfix(obj.egfix,1),[],2)',...
+                                 reshape(obj.pfix(obj.egfix,2),[],2)','r-')
+                        end
+                        if nfix > 0
+                            m_plot(obj.pfix(:,1),obj.pfix(:,2),'b.')
                         end
                         plt = cell2mat(obj.boubox');
                         % reduce point spacing for asecthics
@@ -545,41 +612,32 @@ classdef meshgen
                 mq_l3sig = mq_m - 3*mq_s;
                 obj.qual(it,:) = [mq_m,mq_l3sig,mq_l];
                 
-                
-                % kjr april2019 
-                % if there's a triangle with a low geometric quality that
-                % contains a fixed edge, remove the non-fixed vertex
-                if ~isempty(obj.egfix) && mod(it,2) == 0
-                    % returns triangle IDs that have edge locks
-                    TR = triangulation(t,p) ;
-                    elock = edgeAttachments(TR,obj.egfix) ;
-                    tq = gettrimeshquan(p,t);
-                    pmid = squeeze(mean(reshape(p(t,:),[],3,2),2));
-                    numbad=0 ; 
-                    badone=[]; 
-                    for ii = 1 : length(elock)
-                        vals=elock{ii};
-                        for iii = 1 : length(vals)
-                            if tq.qm(vals(iii)) < 0.10 % tria has poor qual
-                                numbad=numbad+1;
-                                badone(numbad)=vals(iii) ; 
-                            end
+                % Improve the quality of triangles next to fixed edges by
+                % deleting the point part of thin triangles without the fixed
+                % point in it. Thin triangles have poor geometric quality <
+                % 10%. 
+                if ~isempty(obj.egfix) && ~mod(it,delImp)
+                    del = heal_fixed_edges(p,t,obj.egfix) ;
+                    if ~isempty(del)
+                        delIT = delIT + 1 ;
+                        if delIT < 5
+                            p(del,:)= [];
+                            pold = inf;
+                            disp(['Deleting ',num2str(length(del)),...
+                                  ' points close to fixed edges']);
+                            continue;
+                        else
+                            % Abandon strategy..if it will not terminate
+                            disp('Moving to next iteration');
                         end
                     end
-                    % for each poor qual tria, delete the vertex tht isn't
-                    % fixed
-                    if ~isempty(badone)
-                        badtria=t(badone,:);
-                        del     = badtria(badtria > nfix) ;
-                        p(del,:)= [];
-                        pold = inf; it = it + 1;
-                        disp(['Deleting ',num2str(length(del)),' points close to fixed edges']);
-                        continue;
-                    end
-                end
+                    delIT = 0 ;
+                 end
+                
                 % Termination quality, mesh quality reached is copacetic.
-                if mod(it,imp2) == 0
-                    if abs(mq_l3sig - obj.qual(max(1,it-imp2),2)) < 0.01
+                if ~mod(it,imp)
+                    qual_diff = mq_l3sig - obj.qual(max(1,it-imp),2);
+                    if abs(qual_diff) < obj.qual_tol
                         % Do the final elimination of small connectivity
                         [t,p] = delaunay_elim(p,obj.fd,geps,1);
                         disp('Quality of mesh is good enough, exit')
@@ -589,7 +647,7 @@ classdef meshgen
                 end
                 
                 % Saving a temp mesh
-                if mod(it,obj.nscreen) == 0
+                if ~mod(it,obj.nscreen) && delIT == 0
                     disp(['Number of nodes is ' num2str(length(p))])
                     disp(['Mean mesh quality is ' num2str(mq_m)])
                     disp(['Min mesh quality is ' num2str(mq_l)])
@@ -601,14 +659,19 @@ classdef meshgen
                 
                 % 6. Move mesh points based on bar lengths L and forces F
                 barvec = pt(bars(:,1),:)- pt(bars(:,2),:);                 % List of bar vectors
-                long   = zeros(length(bars)*2,1);                          % 
-                lat    = zeros(length(bars)*2,1);
-                long(1:2:end) = p(bars(:,1),1); 
-                long(2:2:end) = p(bars(:,2),1);
-                lat(1:2:end)  = p(bars(:,1),2);  
-                lat(2:2:end)  = p(bars(:,2),2);
-                %Get spherical earth distances
-                L = m_lldist(long,lat); L = L(1:2:end)*1e3;                % L = Bar lengths in meters
+                if strcmp(obj.grd.proj.name,'UTM')
+                    % UTM is already in meters (useful for small domains)
+                    L = sqrt(sum(barvec.^2,2))*Re; 
+                else
+                    % Get spherical earth distances
+                    long   = zeros(length(bars)*2,1);                       
+                    lat    = zeros(length(bars)*2,1);
+                    long(1:2:end) = p(bars(:,1),1); 
+                    long(2:2:end) = p(bars(:,2),1);
+                    lat(1:2:end)  = p(bars(:,1),2);  
+                    lat(2:2:end)  = p(bars(:,2),2);
+                    L = m_lldist(long,lat); L = L(1:2:end)*1e3;            % L = Bar lengths in meters
+                end
                 ideal_bars = (p(bars(:,1),:) + p(bars(:,2),:))/2;          % Used to determine what bars are in bbox
                 hbars = 0*ideal_bars(:,1);
                                 
@@ -633,47 +696,52 @@ classdef meshgen
                 LN = L./L0;                                                 % LN = Normalized bar lengths
                 
                 % Mesh improvements (deleting and addition)
-                if mod(it,imp) == 0
-                    % Remove elements with small connectivity
-                    nn = get_small_connectivity(p,t);
-                    disp(['Deleting ' num2str(length(nn)) ' due to small connectivity'])
-                    
-                    % Remove points that are too close (< LN = 0.5)
-                    if any(LN < 0.5)
-                        % Do not delete pfix too close.
-                        nn1 = setdiff(reshape(bars(LN < 0.5,:),[],1),[(1:nfix)']);
-                        disp(['Deleting ' num2str(length(nn1)) ' points too close together'])
-                        nn = unique([nn; nn1]);
-                    end
-                    
-                    % Split long edges however many times to
-                    % better lead to LN of 1
-                    pst = [];
-                    if any(LN > 2)
-                        nsplit = floor(LN);
-                        nsplit(nsplit < 1) = 1;
-                        adding = 0;
-                        % Probably we can just split once?
-                        for jj = 2:2
-                            il = find(nsplit >= jj);
-                            xadd = zeros(length(il),jj-1);
-                            yadd = zeros(length(il),jj-1);
-                            for jjj = 1 : length(il)
-                                deltax = (p(bars(il(jjj),2),1)- p(bars(il(jjj),1),1))/jj;
-                                deltay = (p(bars(il(jjj),2),2)- p(bars(il(jjj),1),2))/jj;
-                                xadd(jjj,:) = p(bars(il(jjj),1),1) + (1:jj-1)*deltax;
-                                yadd(jjj,:) = p(bars(il(jjj),1),2) + (1:jj-1)*deltay;
-                            end
-                            pst = [pst; xadd(:) yadd(:)];
-                            adding = numel(xadd) + adding;
+                if ~mod(it,imp)
+                    nn = []; pst = [];
+                    if qual_diff < imp*0.01 && qual_diff > 0
+                        % Remove elements with small connectivity
+                        nn = get_small_connectivity(p,t);
+                        disp(['Deleting ' num2str(length(nn)) ' due to small connectivity'])
+
+                        % Remove points that are too close (< LN = 0.5)
+                        if any(LN < 0.5)
+                            % Do not delete pfix too close.
+                            nn1 = setdiff(reshape(bars(LN < 0.5,:),[],1),[(1:nfix)']);
+                            disp(['Deleting ' num2str(length(nn1)) ' points too close together'])
+                            nn = unique([nn; nn1]);
                         end
-                        disp(['Adding ',num2str(adding) ,' points.'])
+
+                        % Split long edges however many times to
+                        % better lead to LN of 1
+                        if any(LN > 2)
+                            nsplit = floor(LN);
+                            nsplit(nsplit < 1) = 1;
+                            adding = 0;
+                            % Probably we can just split once?
+                            for jj = 2:2
+                                il = find(nsplit >= jj);
+                                xadd = zeros(length(il),jj-1);
+                                yadd = zeros(length(il),jj-1);
+                                for jjj = 1 : length(il)
+                                    deltax = (p(bars(il(jjj),2),1)- p(bars(il(jjj),1),1))/jj;
+                                    deltay = (p(bars(il(jjj),2),2)- p(bars(il(jjj),1),2))/jj;
+                                    xadd(jjj,:) = p(bars(il(jjj),1),1) + (1:jj-1)*deltax;
+                                    yadd(jjj,:) = p(bars(il(jjj),1),2) + (1:jj-1)*deltay;
+                                end
+                                pst = [pst; xadd(:) yadd(:)];
+                                adding = numel(xadd) + adding;
+                            end
+                            disp(['Adding ',num2str(adding) ,' points.'])
+                        end
+                    end        
+                    if ~isempty(nn) || ~isempty(pst)
+                        % Doing the actual subtracting and add
+                        p(nn,:)= [];
+                        p = [p; pst]; 
+                        pold = inf; 
+                        it = it + 1;
+                        continue;
                     end
-                    % Doing the actual subtracting and add
-                    p(nn,:)= [];
-                    p = [p; pst]; %-->p is duplicated here but 'setdiff' at the top of the while
-                    pold = inf; it = it + 1;
-                    continue;
                 end
                 
                 F    = (1-LN.^4).*exp(-LN.^4)./LN;                         % Bessens-Heckbert edge force
@@ -686,12 +754,12 @@ classdef meshgen
                 [p(:,1),p(:,2)] = m_xy2ll(pt(:,1),pt(:,2));  
                 
                 %7. Bring outside points back to the boundary
-                d = feval(obj.fd,p,obj,[],0); ix = d>0;                    % Find points outside (d>0)
+                d = feval(obj.fd,p,obj,[],1); ix = d > 0;                  % Find points outside (d>0)
                 ix(1:nfix)=0;
                 if sum(ix) > 0
-                    dgradx = (feval(obj.fd,[p(ix,1)+deps,p(ix,2)],obj,[],0)...
+                    dgradx = (feval(obj.fd,[p(ix,1)+deps,p(ix,2)],obj,[])...%,1)...
                               -d(ix))/deps; % Numerical 
-                    dgrady = (feval(obj.fd,[p(ix,1),p(ix,2)+deps],obj,[],0)...
+                    dgrady = (feval(obj.fd,[p(ix,1),p(ix,2)+deps],obj,[])...%,1)...
                               -d(ix))/deps; % gradient
                     dgrad2 = dgradx.^+2 + dgrady.^+2;
                     p(ix,:) = p(ix,:)-[d(ix).*dgradx./dgrad2,...
@@ -721,7 +789,7 @@ classdef meshgen
             if obj.cleanup 
                 % Put the mesh class into the grd part of meshgen and clean
                 obj.grd.p = p; obj.grd.t = t;
-                db = 1;   % delete bad boundaries
+                db = 0.1;   % delete bad boundaries
                 con = 9;  % reduce connectivity to max of 9
                 prj = 1;  % project
                 [obj.grd,qout] = clean(obj.grd,db,obj.direc_smooth,con,...
@@ -730,10 +798,12 @@ classdef meshgen
                 obj.qual(end+1,:) = qout;
             else
                 % Fix mesh on the projected space
-                [p1(:,1),p1(:,2)] = m_ll2xy(p(:,1),p(:,2)); 
-                [p,t1] = fixmesh(p1,t);
+                [p(:,1),p(:,2)] = m_ll2xy(p(:,1),p(:,2)); 
+                [p,t] = fixmesh(p,t);
+                [p(:,1),p(:,2)] = m_xy2ll(p(:,1),p(:,2)); 
                 % Put the mesh class into the grd part of meshgen
-                obj.grd.p = p; obj.grd.t = t1;
+                obj.grd.p = p; obj.grd.t = t;
+                obj.grd.pfix = obj.pfix ;
             end
             
             % Check element order, important for the global meshes crossing
@@ -745,11 +815,7 @@ classdef meshgen
                 hold on
                 % plot the line dividing cleanup and distmesh
                 plot([it it],[0 1],'--k')
-                try
-                    xticks(1:5:obj.itmax);
-                catch
-                    disp('Older MATLAB no xticks!')
-                end
+                xticks(1:5:obj.itmax);
                 xlabel('Iterations'); ylabel('Geometric element quality');
                 title('Geometric element quality with iterations');
                 set(gca,'FontSize',14);
@@ -766,29 +832,38 @@ classdef meshgen
                 % help the convex calc
                 if exist('pt1','var'); clear pt1; end
                 [pt1(:,1),pt1(:,2)] = m_ll2xy(p(:,1),p(:,2));
-                p_s  = pt1 - repmat(mean(pt1),[N,1]);
                 if isempty(obj.egfix)
+                    p_s  = pt1 - repmat(mean(pt1),[N,1]);
                     TR   = delaunayTriangulation(p_s);
                 else
-                    TR   = delaunayTriangulation(p_s(:,1),p_s(:,2),obj.egfix);
+                    TR   = delaunayTriangulation(pt1(:,1),pt1(:,2),obj.egfix);
+                    pt1  = TR.Points;
                 end
                 for kk = 1:final+1
                     if kk > 1
                         % Perform the following below upon exit from the mesh
                         % generation algorithm
-                        nn = get_small_connectivity(p,t);
+                        nn = get_small_connectivity(pt1,t);
+                        nn1 = heal_fixed_edges(pt1,t,obj.egfix) ; 
+                        nn = unique([nn; nn1]) ; 
                         TR.Points(nn,:) = []; 
-                        p(nn,:) = []; pt1(nn,:) = [];
+                        pt1(nn,:) = [];
                     end
                     t = TR.ConnectivityList;
                     pmid = squeeze(mean(reshape(pt1(t,:),[],3,2),2));      % Compute centroids
                     [pmid(:,1),pmid(:,2)] = m_xy2ll(pmid(:,1),pmid(:,2));  % Change back to lat lon
                     t    = t(feval(fd,pmid,obj,[]) < -geps,:);             % Keep interior triangles
-                    % Deleting very straight triangles
-                    tq_n = gettrimeshquan( pt1, t);
-                    bad_ele = any(tq_n.vang < 1*pi/180 | ...
-                                  tq_n.vang > 179*pi/180,2);
-                    t(bad_ele,:) = [];
+                    if kk == 1
+                        % Deleting very straight triangles
+                        tq_n = gettrimeshquan( pt1, t);
+                        bad_ele = any(tq_n.vang < 1*pi/180 | ...
+                                      tq_n.vang > 179*pi/180,2);
+                        t(bad_ele,:) = [];
+                    end
+                end
+                if length(pt1) ~= length(p)
+                    clear p
+                    [p(:,1),p(:,2)] = m_xy2ll(pt1(:,1),pt1(:,2));
                 end
             end
             
@@ -802,6 +877,49 @@ classdef meshgen
                 nn = setdiff(I',[(1:nfix)';bdnodes]);                      % and don't destroy pfix or egfix!
                 return;
             end
+            
+            
+            function del = heal_fixed_edges(p,t,egfix)
+                % kjr april2019
+                % if there's a triangle with a low geometric quality that
+                % contains a fixed edge, remove the non-fixed vertex
+                % perform this on every other iteration to allow non-fixed
+                % points to create equilateral triangles nearby the locked
+                % edge. 
+                % returns points IDs that should be deleted. 
+                TR = triangulation(t,p) ;
+                elock = edgeAttachments(TR,egfix) ;
+                tq = gettrimeshquan(p,t);
+                elock = unique(cell2mat(elock'));
+                dmy = elock(tq.qm(elock) < 0.10);
+%                 numbad = 0 ;
+%                 dmy = [];
+%                 elock = edgeAttachments(TR,egfix) ;
+%                 for c = 1 : length(elock)
+%                    vals = elock{c};
+%                    for cc = 1 : length(vals)
+%                        if tq.qm(vals(cc)) < 0.10 % tria has poor qual
+%                            numbad = numbad + 1;
+%                            dmy(numbad) = vals(cc) ;
+%                        end
+%                    end
+%                 end
+                badtria = t(dmy,:);
+                del     = badtria(badtria > nfix) ;
+%                 % split edge
+%                 disp(['Splitting ',num2str(length(dmy)) ,' fixed edges.'])
+%                 egfix_o = egfix(dmy,:);
+%                 psplit = 0.5*(pfix(egfix_o(:,1),:) + pfix(egfix_o(:,2),:));
+%                 pfix = [pfix; psplit];
+%                 egfix(dmy,:) = [];
+%                 egfix_n = zeros(size(egfix_o).*[2,1]);
+%                 egfix_n(1:2:end,1) = egfix_o(:,1);
+%                 egfix_n(2:2:end,2) = egfix_o(:,2);
+%                 egfix_n(1:2:end,2) = [1:length(psplit)]' + nfix;
+%                 egfix_n(2:2:end,1) = [1:length(psplit)]' + nfix;
+%                 egfix = [egfix; egfix_n];
+            end
+            
             
         end % end distmesh2d_plus
         
@@ -839,3 +957,4 @@ classdef meshgen
     
 end % end class
 
+>>>>>>> dev

@@ -1,4 +1,4 @@
-function [ffun,flag] = limgradStruct(ny,xeglen,yeglen,ffun,dfdx,imax)
+function [ffun,flag] = limgradStruct(ny,xeglen,yeglen,ffun,fdfdx,imax)
 %LIMGRAD impose "gradient-limits" on a function defined over
 %an undirected graph.
 %   [FNEW] = LIMGRADStruct(NY,EGLEN,FFUN,DFDX,IMAX) computes a
@@ -27,7 +27,14 @@ function [ffun,flag] = limgradStruct(ny,xeglen,yeglen,ffun,dfdx,imax)
 %         Last updated: 24/06/2017
 %         Email       : krober10@nd.edu
 %         Keith Roberts, 2017.
-%
+% ---------------------
+%             Modified to have spatially variable fdfdx 
+%             Last updated: 27/04/2019
+%             Keith Roberts, 2019
+
+if length(fdfdx)==1 
+  fdfdx = ffun*0 + fdfdx ; 
+end
 %----------------------------- ASET=ITER if node is "active"
 aset = zeros(size(ffun,1),1) ;
 
@@ -99,7 +106,7 @@ for iter = +1 : imax
             if (ffun(nod1) > ffun(nod2))
                 
                 fun1 = ffun(nod2) ...
-                    + elen * dfdx ;
+                    + elen * fdfdx(nod2) ;
                 
                 if (ffun(nod1) > fun1+ftol)
                     ffun(nod1) = fun1;
@@ -109,7 +116,7 @@ for iter = +1 : imax
             else
                 
                 fun2 = ffun(nod1) ...
-                    + elen * dfdx ;
+                    + elen * fdfdx(nod2) ;
                 
                 if (ffun(nod2) > fun2+ftol)
                     ffun(nod2) = fun2;

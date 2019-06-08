@@ -9,50 +9,33 @@ else
     finputname = finame ;
 end
 
+% open file
 fid = fopen(finputname) ;
 
+% read first title line
 agrid = fgetl(fid) ;
 disp(agrid) ;
 title = agrid ;
 
-N = fscanf(fid,'%g %g',2) ;
+% read number of nodes and elements
+msgline = fgetl(fid) ;
+N = sscanf(msgline,'%d %d %*s') ;
 
-% Val = zeros(N(2),4) ;
-
-%
-% for i = 1: N(2)
-%    Val(i,1:4) = fscanf(fid,'%d %g %g %g \n', 4 ) ;
-% end
-%
-% Nov 15, 2012, improve reading efficiency
+% read the node numbers, position and depth
 Val = fscanf(fid,'%d %g %g %g \n', [4 N(2)])' ;
 
-% idx = zeros(N(1),5) ;
-%
-% for i = 1: N(1)
-%    idx(i,1:5) = fscanf(fid,'%d %d %d %d %d \n', 5) ;
-% end
-%
-% Nov 15, 2012, improve reading efficient
+% read the triangulation
 idx = fscanf(fid,'%d %d %d %d %d \n', [5 N(1)])' ;
 
-%idx = idx(iv,:) ;
-
-% VX = zeros(N(2),2) ;
-% B = zeros(N(2),2) ;
-% EToV = zeros(N(1),3) ;
-
-% Arrange it to a Nodal DG input
-
+% sort read items into vectors/matrices
 EToV = idx(:,3:5) ;
-
+% treat non-sequential ordering
 VX = NaN(max(EToV(:)),2);
 B = NaN(max(EToV(:)),1);
-
 VX(Val(:,1),:) = Val(:,2:3) ;
 B(Val(:,1)) = Val(:,4) ;
 
-if(read_bou)
+if read_bou
     % Read in boundary
     % Open boundary
     msgline = fgetl(fid) ;

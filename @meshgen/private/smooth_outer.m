@@ -1,4 +1,4 @@
- function efs = smooth_outer(efs)
+ function efs = smooth_outer(efs,Fb)
 % This method takes a cell-aray of edge function class instances 
 % and smoothes them together so they blend into each other.
 % Relax gradient of outer edgefx with inner edgefx using limgradStruct
@@ -40,10 +40,46 @@
             end
         end
         % kjr  Oct 2018 consistent with default application of gradient limiting!
-        dx = efs{ii}.h0*cosd(yg(1,:)); 
-        dy = efs{ii}.h0;  
+        dx = efs{ii}.h0*cosd(yg(1,:));
+        dy = efs{ii}.h0;
+        
+        % make g a function of space
+        [xg,yg] = CreateStructGrid(efs{ii});
+        dmy     = xg*0 ;
+        for param = efs{ii}.g'
+            if numel(param)==1 && param~=0
+                lim   = efs{ii}.g;
+                dmy  = dmy + lim ;
+            else
+                lim  = param(1);
+                dp1 = param(2);
+                dp2 = param(3);
+                
+                limidx = (Fb{ii}(xg,yg) < dp1 & ...
+                    Fb{ii}(xg,yg) > dp2) ;
+                
+                dmy( limidx ) = lim;
+            end
+        end
+
+        nn = 0;
+        fdfdx = zeros(size(hh_m,1)*size(hh_m,2),1);
+        for ipos = 1 : efs{ii}.nx
+            for jpos = 1 :efs{ii}.ny
+                nn = nn + 1;
+                fdfdx(nn,1) = dmy(ipos,jpos);
+            end
+        end
+
+        dmy    = [] ; 
+        xg     = [] ; 
+        yg     = [] ; 
+        limidx = [] ;
+
         [hfun,flag] = limgradStruct(efs{ii}.ny,dx,dy,hfun,...
-          efs{ii}.g,sqrt(length(hfun)));
+          fdfdx,sqrt(length(hfun)));
+      
+     
         if flag == 1
             disp('Gradient relaxing converged!');
         else
@@ -64,74 +100,3 @@
     end
  end
         
- function [ hh_m ] = ConvertToPlanarMetres( xg, yg, hh_m ) 
-    %CONVERTTOPLANARMETRES
-    % Given a structured grid with edgelength's defined in hh_m,
-    % convert it to planar metres using the Haversine formula assuming
-    % a spherical earth of radius 6378.137km.
-    % 
-    % INPUTS:
-    % XG : A grid of points in WGS84 containing the x-locations of these
-    %      points.
-    % YG : A grid of points in WGS*4 containing the y-locations of these
-    %      points.
-    % HH_M : A grid the same size as XG and YG containing the edgelength in
-    %      WGS84 degrees 
-    % OUTPUTS: 
-    % HH_M : A grid the same size as XG and YG containing the edglength in
-    %        planar metres assuming the edgelength is orientated in the x-direction at
-    %        each (XG,YG) point. 
-
-    % Try to remove problem near pole
-    ul = 89;
-    yg(yg > ul) = ul; yg(yg < -ul) = -ul;
-
-    ptsx = xg(:)'; 
-    ptsy = yg(:)'; 
-
-    ptsx2 = xg(:)'+hh_m(:)'; 
-    ptsy2 = yg(:)'; 
-
-    blahx = [ptsx; ptsx2]; 
-    blahy = [ptsy; ptsy2]; 
-
-    [temp]=m_lldist(blahx(:),blahy(:),2);
-
-    hh_m = reshape(temp(1:2:end),size(xg,1),size(xg,2))*1e3; 
-
-end
- 
-function [ hh_m ] = ConvertToWGS84( yg, hh_m )
-%CONVERTTOWGS84 Convert a grid of points describing edgelength in space in
-% planar metres to WGS84 degrees.
-% Given a structured grid with edgelength's defined in hh_m,
-% convert from planar metres to WGS84 degrees using inverse Haversine
-% 
-% INPUTS:
-% YG : A grid of points in WGS*4 containing the y-locations of these
-%      points.
-% HH_M : A grid the same size as XG and YG containing the edgelength in
-%      planar metres 
-% OUTPUTS: 
-% HH_M : A grid the same size as XG and YG containing the edglength in
-%        WGS84 degrees assuming the edgelength is orientated in the x-direction at
-%        each (XG,YG) point. 
-
-% Ensure to remove problem at pole
-ul = 89;
-yg(yg > ul) = ul; yg(yg < -ul) = -ul;
-
-% Convert to projected coordinates 
-Re = 6378.137e3; % <-radius of Earth
-
-% We use a simple inverse Harvesine formula by assuming that the hh_m 
-% is applied along a latitude parallel, thus the latitude is constant
-% between two points and we only need to solve for the difference in
-% longitude (the new hh_m)
-el = sin(hh_m./(2*Re));
-hh_m = 2*asind(el./cosd(yg));
-
-end
-
-
- 

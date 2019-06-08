@@ -10,7 +10,8 @@ switch dim
   if nargin<6, nodes=0; end
   if nargin<7, tris=0; end
   
-  trimesh(t,p(:,1),p(:,2),0*p(:,1),'facecolor',bcol,'edgecolor','k','FaceAlpha',0);
+  trimesh(t,p(:,1),p(:,2),0*p(:,1),'facecolor',bcol,'edgecolor','k'); %,...
+        %  'FaceAlpha',0.6);
   if nodes==1
     line(p(:,1),p(:,2),'linest','none','marker','.','col',icol,'markers',24);
   elseif nodes==2

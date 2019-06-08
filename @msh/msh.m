@@ -245,6 +245,10 @@ classdef msh
             if ~isempty(idxl)
                 mesh = 1; type(idxl:idxl+3) = [];
             end    
+            earthres = 0;
+            if strcmp(type,'resoearth')
+                type = 'reso'; earthres = 1;
+            end
             
             switch type
                 % parse aux options first
@@ -410,37 +414,42 @@ classdef msh
                         figure, plot(bpt(:,1),bpt(:,2),'r.');
                     end
                 case('reso')
-%                     % Get bar lengths
-%                     [bars,barlen] = GetBarLengths(obj,0);
-%                     % sort bar lengths in ascending order
-%                     [barlen,IA] = sort(barlen,'descend');
-%                     bars = bars(IA,:);
-%                     % get the maximum bar length for each node
-%                     [B1,IB] = unique(bars(:,1),'first');
-%                     [B2,IC] = unique(bars(:,2),'first');
-%                     d1 = NaN*obj.p(:,1); d2 = NaN*obj.p(:,1);
-%                     d1(B1) = barlen(IB); d2(B2) = barlen(IC);
-%                     z = max(d1,d2);
-%                     [B1,IB] = unique(bars(:,1),'last');
-%                     [B2,IC] = unique(bars(:,2),'last');
-%                     d1 = NaN*obj.p(:,1); d2 = NaN*obj.p(:,1);
-%                     d1(B1) = barlen(IB); d2(B2) = barlen(IC);
-%                     z = 0.5*(z + min(d1,d2));                    
-                    % get the points on the current projection
-                    [X,Y]= m_ll2xy(obj.p(:,1),obj.p(:,2));
-                    % get the circumcenter radius of each element
-                    TR = triangulation(obj.t,X,Y);
-                    [~,cr] = circumcenter(TR);
-                    % Get the element connectivity
-                    [vtoe,nne] = VertToEle(obj.t);
-                    % Make sure null value adds zero contribution
-                    cr(end+1) = 0;
-                    vtoe(vtoe == 0) = length(obj.t) + 1;
-                    % Sum up all element contributions to each node and
-                    % divide by number of connected elements
-                    z = sum(cr(vtoe))./nne;
-                    % scale by earth radius
-                    Re = 6378.137e3; z = Re*z;
+                    % Get bar lengths
+                    if earthres
+                        [bars,barlen] = GetBarLengths(obj,0);
+                        % sort bar lengths in ascending order
+                        [barlen,IA] = sort(barlen,'descend');
+                        bars = bars(IA,:);
+                        % get the maximum bar length for each node
+                        %[B1,IB] = unique(bars(:,1),'first');
+                        %[B2,IC] = unique(bars(:,2),'first');
+                        %d1 = NaN*obj.p(:,1); d2 = NaN*obj.p(:,1);
+                        %d1(B1) = barlen(IB); d2(B2) = barlen(IC);
+                        %z = max(d1,d2);
+                        % get the minimum bar length for each node
+                        [B1,IB] = unique(bars(:,1),'last');
+                        [B2,IC] = unique(bars(:,2),'last');
+                        d1 = NaN*obj.p(:,1); d2 = NaN*obj.p(:,1);
+                        d1(B1) = barlen(IB); d2(B2) = barlen(IC);
+                        %z = 0.5*(z + min(d1,d2));     
+                        z = min(d1,d2);
+                    else
+                        % get the points on the current projection
+                        [X,Y]= m_ll2xy(obj.p(:,1),obj.p(:,2));
+                        % get the circumcenter radius of each element
+                        TR = triangulation(obj.t,X,Y);
+                        [~,cr] = circumcenter(TR);
+                        % Get the element connectivity
+                        [vtoe,nne] = VertToEle(obj.t);
+                        % Make sure null value adds zero contribution
+                        cr(end+1) = 0;
+                        vtoe(vtoe == 0) = length(obj.t) + 1;
+                        % Sum up all element contributions to each node and
+                        % divide by number of connected elements
+                        z = sum(cr(vtoe))./nne;
+                        % scale by earth radius
+                        Re = 6378.137e3; z = Re*z;
+                    end
                     if logaxis
                         q = log10(z); % plot on log scale with base
                     else
@@ -616,7 +625,7 @@ classdef msh
                 otherwise
                     error('Specified type is incorrect');
             end
-            if proj
+            if proj == 1
                 % now add the box
                 m_grid('FontSize',16); %'box','none') %,'FontSize',12);
             end
@@ -804,7 +813,7 @@ classdef msh
             disp('Beginning mesh cleaning and smoothing operations...');
  
             if nargin == 1 || isempty(db)
-                db = 1;
+                db = 0.1;
             end
             if nargin <= 2 || isempty(ds)
                 ds = 1;
@@ -836,23 +845,27 @@ classdef msh
             [obj.p,obj.t] = fixmesh(obj.p,obj.t);
             
             if db
-                % Begin by just deleting poor mesh boundary elements
-                tq = gettrimeshquan(obj.p,obj.t);
-                % Get the elements that have a boundary bar
-                bdbars = extdom_edges2(obj.t,obj.p);
-                bdnodes = unique(bdbars(:));
-                vtoe = VertToEle(obj.t);
-                bele = unique(vtoe(:,bdnodes)); bele(bele == 0) = [];
-                tqbou = tq.qm(bele);
-                % Delete those boundary elements with quality < 0.5
-                obj.t(bele(tqbou < 0.5),:) = [];
+                while 1
+                    % Begin by just deleting poor mesh boundary elements
+                    tq = gettrimeshquan(obj.p,obj.t);
+                    % Get the elements that have a boundary bar
+                    bdbars = extdom_edges2(obj.t,obj.p);
+                    bdnodes = unique(bdbars(:));
+                    vtoe = VertToEle(obj.t);
+                    bele = unique(vtoe(:,bdnodes)); bele(bele == 0) = [];
+                    tqbou = tq.qm(bele);
+                    % Delete those boundary elements with quality < db
+                    if min(tqbou >= db); break; end
+                    obj.t(bele(tqbou < db),:) = [];
+                    [obj.p,obj.t] = fixmesh(obj.p,obj.t);
+                end
             end
             
             % Make mesh traversable
             obj = Make_Mesh_Boundaries_Traversable(obj,dj,nscreen);
             
             % Delete elements with single edge connectivity
-            obj = Fix_single_connec_edge_elements(obj,nscreen);
+            %obj = Fix_single_connec_edge_elements(obj,nscreen);
             
             % Reduce the mesh connectivity to maximum of con-1
             obj = renum(obj);
@@ -873,7 +886,7 @@ classdef msh
                 % Perform the direct smoothing
                 [obj.p,obj.t] = direct_smoother_lur(obj.p,obj.t,pfix,nscreen);
                 tq = gettrimeshquan( obj.p, obj.t);
-                if min(tq.qm) < 0.1
+                if min(tq.qm) < 0.0
                     % Need to clean it again
                     disp(['Overlapping elements due to smoother, ' ...
                           'cleaning again'])
@@ -890,9 +903,11 @@ classdef msh
             mq_l3sig = mq_m - 3*mq_s;
             qual = [mq_m,mq_l3sig,mq_l];
             
-            disp(['number of nodes is ' num2str(length(obj.p))])
-            disp(['mean quality is ' num2str(mq_m)])
-            disp(['min quality is ' num2str(mq_l)])
+            if nscreen
+                disp(['number of nodes is ' num2str(length(obj.p))])
+                disp(['mean quality is ' num2str(mq_m)])
+                disp(['min quality is ' num2str(mq_l)])
+            end
            
             % Do the transformation back
             if proj
@@ -901,6 +916,7 @@ classdef msh
         end
         
         function obj = lim_bathy_slope(obj,dfdx,overland)
+            %obj = lim_bathy_slope(obj,dfdx,overland)
             if nargin < 3
                 overland  = 0;
             end
@@ -930,7 +946,7 @@ classdef msh
         % make nodestrings
         function obj = makens(obj,type,dir,cutlim,depthlim)
             if nargin < 2
-                error('Needs type: one of auto, islands, delete, or outer')
+               error('Needs type: one of auto, islands, delete, or outer')
             end
             if nargin < 4
               cutlim = 10 ; 
@@ -938,10 +954,11 @@ classdef msh
             if nargin < 5
               depthlim = 10 ; 
             end
-            trim = 0; periodic = 0;
-            if strcmp(type(max(1,end-3):end),'trim')
-                type = type(1:end-4); trim = 1;
-            end
+            L = 1e3;
+%             trim = 0; periodic = 0;
+%             if strcmp(type(max(1,end-3):end),'trim')
+%                 type = type(1:end-4); trim = 1;
+%             end
             switch type
                 case('auto')
                     if ~isa(dir,'geodata')
@@ -951,230 +968,161 @@ classdef msh
                     end
                     
                     % Check for global mesh
-                    L = find(obj.p(:,1) < -179, 1);
-                    R = find(obj.p(:,1) > 179, 1);
-                    if ~isempty(L) && ~isempty(R)
-                        periodic = 1;
-                        disp(['Detected global mesh applying automatic' ...
-                            ' periodic BC fix'])
+                    Le = find(obj.p(:,1) < -179, 1);
+                    Ri = find(obj.p(:,1) > 179, 1);
+                    if ~isempty(Le) && ~isempty(Ri)
+                        error('Detected global mesh, cannot apply makens')
                     end
                     
                     % Get the boundaries
                     [etbv,~]  = extdom_edges2(obj.t,obj.p);
                     [~,poly_idx] = extdom_polygon(etbv,obj.p,1);
                     
+                    outerbox = gdat.outer(1:find(isnan(gdat.outer(:,1)),1,'first'),:);
+                    if ~isempty(gdat.mainland)
+                        mainland = gdat.mainland;
+                        mainland(isnan(mainland(:,1)),:) = [];
+                    end
+                    
                     % Get geodata outer and mainland polygons
-                    outer = gdat.outer(~isnan(gdat.outer(:,1)),:);
                     nope = 0; neta = 0; nbou  = 0; nvel  = 0;
-                    % Find the polygon that is a combination of ocean
-                    % and mainland boundaries.
-                    [~,idx] = sort(cellfun(@length,poly_idx),'descend');
-                    for op_ind = idx
-                        % Get distance to outer
-                        idv = poly_idx{op_ind};
-                        [~, d_out] = ourKNNsearch(outer',obj.p(idv,:)',1);
-                        if min(d_out) < gdat.h0/111e3
-                            break;
-                        end
-                    end
-                    % Get geodata outer and mainland polygons
-                    try
-                        outer = [gdat.outer(~isnan(gdat.outer(:,1)),:);
-                            gdat.inner(~isnan(gdat.inner(:,1)),:)];
-                    catch
-                        outer = [gdat.outer(~isnan(gdat.outer(:,1)),:)];
-                    end
-                    try
-                        main = [gdat.mainland(~isnan(gdat.mainland(:,1)),:);
-                            gdat.inner(~isnan(gdat.inner(:,1)),:)];
-                    catch
-                        main = [gdat.mainland(~isnan(gdat.mainland(:,1)),:)] ; 
-                    end
-                    [~, d_out] = ourKNNsearch(outer',obj.p(idv,:)',1);
-                    [~, d_main] = ourKNNsearch(main',obj.p(idv,:)',1);
-                    
-                    % Check for overland areas if DEM exists in gdat
-                    if ~isempty(gdat.Fb)
-                        zvalue = gdat.Fb(obj.p(idv,:));
-                    else
-                        % Dummy all underwater
-                        zvalue = 0*obj.p(idv,1) - 1000;
-                    end
-                    
-                    % Mainland are nodes where shortest distance to
-                    % mainland and outer are the same and where absolute
-                    % distance to mainland is relatively small
-                    if trim
-                        mainland = (abs(d_out - d_main) < gdat.h0/111e3 ...
-                                 & d_main < 5*gdat.h0/111e3) | zvalue > -depthlim;
-                    else
-                        mainland = abs(d_out - d_main) < gdat.h0/111e3 ...
-                                 | zvalue > -depthlim;
-                    end
-                    
-                    % indices of switch
-                    Cuts  = find(diff(mainland) ~= 0);
-                    
-                    if ~periodic
-                        % Do not include open boundary that is smaller than
-                        % cutlim vertices across
-                        rm = false(length(Cuts),1);
-                        for ii = 1:2:length(Cuts)
-                            if ii == length(Cuts)
-                                if length(mainland) - Cuts(ii) + ...
-                                   Cuts(1) - 1  < cutlim
-                                   rm([1 end]) = 1;
-                                end
-                            else
-                                if Cuts(ii+1) - Cuts(ii) < cutlim
-                                    rm(ii:ii+1) = 1;
-                                end
-                            end
-                        end
-                        Cuts(rm) = [];
-                    end
-                    
-                    % Get length of largest island
-                    % Delete the open boundary/mainland polygon
-                    poly_idx(op_ind) = [];
-                    L = 1e3 ; 
-                    if ~isempty(poly_idx)
-                        L = max(L,max(cellfun(@length,poly_idx)));
-                    end
-                    
-                    if isempty(Cuts)
-                        % if no mainland..
-                        % Get ocean
-                        nope = nope + 1;
-                        nvdll(nope) = length(idv);
-                        neta = neta + nvdll(nope);
-                        ibtypee(nope) = 0;
-                        nbdv(1:nvdll(nope),nope) = idv;
-                    else
-                        % loop through each cut
-                        for loop = 1:length(Cuts)
-                            if loop < length(Cuts)
-                                idv_temp = idv(Cuts(loop):Cuts(loop+1));
-                            else
-                                % need to loop back to start
-                                idv_temp = [idv(Cuts(loop):end); idv(1:Cuts(1))];
-                            end
-                            % Break up idv_temp into L chunks
-                            N = ceil(length(idv_temp)/L);
-                            LE = ceil(length(idv_temp)/N);
-                            ns = 1;
-                            for nn = 1:N
-                                ne = min(ns + LE - 1,length(idv_temp));
-                                idv_t = idv_temp(ns:ne);
-                                if ~mainland(Cuts(loop)+1)
-                                    % Get ocean
-                                    nope = nope + 1;
-                                    nvdll(nope) = length(idv_t);
-                                    neta = neta + nvdll(nope);
-                                    ibtypee(nope) = 0;
-                                    nbdv(1:nvdll(nope),nope) = idv_t;
-                                else
-                                    % Get mainland
-                                    nbou = nbou + 1;
-                                    nvell(nbou) = length(idv_t);
-                                    nvel = nvel + nvell(nbou);
-                                    ibtype(nbou) = 20;
-                                    nbvv(1:nvell(nbou),nbou) = idv_t;
-                                end
-                                ns = ne + 1;
-                            end
-                        end
-                    end
-                    
-                    % loop through the remaining polygons (islands)
+        
+                    % loop through all the polygons
                     for poly_count = 1 : length(poly_idx)
                         idv = poly_idx{poly_count};
-                        % islands
-                        nbou = nbou + 1;
-                        nvell(nbou) = length(idv);
-                        nvel = nvel + nvell(nbou);
-                        nbvv(1:nvell(nbou),nbou) = idv';
-                        ibtype(nbou) = 21;
+                        % 
+                        [~,odst] = ourKNNsearch(outerbox(1:end-1,:)',obj.p(idv,:)',1);         
+                        if ~isempty(gdat.mainland)
+                            [~,mdst] = ourKNNsearch(mainland',obj.p(idv,:)',1);
+                        else
+                            mdst = 1e4;
+                        end                        
+                        
+                        if ~isempty(gdat.inner)
+                            [~,idst] = ourKNNsearch(inner',obj.p(idv,:)',1);
+                            if mean(idst) < mean(odst) && ...
+                               mean(idst) < mean(mdst)
+                                % must be an island
+                                nbou = nbou + 1;
+                                nvell(nbou) = length(idv);
+                                nvel = nvel + nvell(nbou);
+                                nbvv(1:nvell(nbou),nbou) = idv';
+                                ibtype(nbou) = 21;
+                                continue;
+                            end
+                        end 
+                        if ~isempty(gdat.mainland)
+                            
+                            % set the bathy values
+                            if ~isempty(gdat.Fb)
+                                zvalue = gdat.Fb(obj.p(idv,:));
+                            else
+                                % Dummy all underwater
+                                zvalue = 0*obj.p(idv,1) - 1e4;
+                            end
+                            
+                            % find the boundaries that are mainland
+                            main = mdst < odst | zvalue > -depthlim;
+                               
+                            % indices of switch
+                            Cuts  = find(diff(main) ~= 0);
+                    
+                            % Do not include open boundary that is 
+                            % smaller than cutlim vertices across
+                            rm = false(length(Cuts),1);
+                            if main(1); st = 1; else; st = 2; end
+                            for ii = st:2:length(Cuts)
+                                if ii == length(Cuts)
+                                    if length(main) - Cuts(ii) + ...
+                                       Cuts(1) - 1  < cutlim
+                                       rm([1 end]) = 1;
+                                    end
+                                else
+                                    if Cuts(ii+1) - Cuts(ii) < cutlim
+                                        rm(ii:ii+1) = 1;
+                                    end
+                                end
+                            end
+                            Cuts(rm) = [];                              
+
+                            if isempty(Cuts)
+                                if sum(main)/length(main) > 0.5
+                                    % get mainland
+                                    nbou = nbou + 1;
+                                    nvell(nbou) = length(idv);
+                                    nvel = nvel + nvell(nbou);
+                                    ibtype(nbou) = 20;
+                                    nbvv(1:nvell(nbou),nbou) = idv';
+                                else
+                                    % get ocean
+                                    nope = nope + 1;
+                                    nvdll(nope) = length(idv);
+                                    neta = neta + nvdll(nope);
+                                    ibtypee(nope) = 0;
+                                    nbdv(1:nvdll(nope),nope) = idv';
+                                end
+                            else
+                                % loop through each cut
+                                for loop = 1:length(Cuts)
+                                    if loop < length(Cuts)
+                                        idv_temp = idv(Cuts(loop):Cuts(loop+1));
+                                    else
+                                        % need to loop back to start
+                                        idv_temp = [idv(Cuts(loop):end); idv(1:Cuts(1))];
+                                    end
+                                    % Break up idv_temp into L chunks
+                                    N = ceil(length(idv_temp)/L);
+                                    LE = ceil(length(idv_temp)/N);
+                                    ns = 1;
+                                    for nn = 1:N
+                                        ne = min(ns + LE - 1,length(idv_temp));
+                                        idv_t = idv_temp(ns:ne);
+                                        if ~main(Cuts(loop)+1)
+                                            % Get ocean
+                                            nope = nope + 1;
+                                            nvdll(nope) = length(idv_t);
+                                            neta = neta + nvdll(nope);
+                                            ibtypee(nope) = 0;
+                                            nbdv(1:nvdll(nope),nope) = idv_t;
+                                        else
+                                            % Get mainland
+                                            nbou = nbou + 1;
+                                            nvell(nbou) = length(idv_t);
+                                            nvel = nvel + nvell(nbou);
+                                            ibtype(nbou) = 20;
+                                            nbvv(1:nvell(nbou),nbou) = idv_t;
+                                        end
+                                        ns = ne + 1;
+                                    end
+                                end
+                            end                                               
+                        else
+                            % must be ocean
+                            nope = nope + 1;
+                            nvdll(nope) = length(idv);
+                            neta = neta + nvdll(nope);
+                            ibtypee(nope) = 0;
+                            nbdv(1:nvdll(nope),nope) = idv';
+                        end
                     end
                     
-                    % ocean boundary
-                    obj.op.nope = nope ;
-                    obj.op.neta = neta ;
-                    obj.op.nvdll = nvdll ;
-                    obj.op.ibtype = ibtypee ;
-                    obj.op.nbdv = nbdv;
+                    if nope > 0
+                        % ocean boundary
+                        obj.op.nope = nope ;
+                        obj.op.neta = neta ;
+                        obj.op.nvdll = nvdll ;
+                        obj.op.ibtype = ibtypee ;
+                        obj.op.nbdv = nbdv;
+                    end
                     
-                    % land boundary
-                    obj.bd.nbou = nbou ;
-                    obj.bd.nvel = nvel ;
-                    obj.bd.nvell = nvell ;
-                    obj.bd.ibtype = ibtype ;
-                    obj.bd.nbvv = nbvv ;
-                    
-                    
-                    if ~periodic; return; end
-                    
-                    %% For periodic Bcs below
-                    % Get open boundary points
-                    opp = obj.op.nbdv(:); opp(opp == 0) = [];
-                    % Get the open boundary points on left side
-                    I = obj.p(opp,2) < 89 & obj.p(opp,1) < 0;
-                    % ensure these are set to -180 correctly
-                    obj.p(opp(I),1) = -180;
-                    % use these as fixed points
-                    % on left side...
-                    pfixL = obj.p(opp(I),:);
-                    eeL = Get_poly_edges([pfixL; NaN NaN]);
-                    eeL(end,:) = [];
-                    % apply flipped to right side..
-                    pfixR = pfixL.* [-1, 1];
-                    eeR = Get_poly_edges([pfixR; NaN NaN]);
-                    eeR(end,:) = [];
-                    pfix = [pfixL; pfixR];
-                    ee = [eeL; eeR+length(pfixL)];
-                    % Make dummy meshopts with the geodata
-                    mshopts = meshgen();
-                    mshopts.pfix = pfix;
-                    mshopts.egfix = ee;
-                    
-                    [pt(:,1),pt(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2));
-                    % Make a new triangulation using obj.p;
-                    DT = delaunayTriangulation(pt);
-                    m2 = obj; m2.t = DT.ConnectivityList;
-                    % Now delete off right hand side and add on left hand side flipped
-                    I  = find(m2.p(:,1) > 179); m2.p(I,:) = [];
-                    m2.p = [m2.p; m2.p(m2.p(:,1) < -179,:) .* [-1, 1]];
-                    I1 = ourKNNsearch(m2.p(m2.t(:,1),:)',pfix',1);
-                    I2 = ourKNNsearch(m2.p(m2.t(:,2),:)',pfix',1);
-                    I3 = ourKNNsearch(m2.p(m2.t(:,3),:)',pfix',1);
-                    bc = baryc(m2);
-                    
-                    % Make polygon to delete internal triangles
-                    bnde=extdom_edges2(obj.t,obj.p);
-                    poly=extdom_polygon(bnde,obj.p,-1);
-                    poly=cell2mat(poly');
-                    ee = Get_poly_edges(poly);
-                    in = inpoly(bc,poly,ee);
-                    % make sure fpix triangles remain
-                    in(I1) = 1; in(I2) = 1; in(I3) = 1;
-                    m2.t(~in,:) = [];
-                    m2.b = []; m2.op = []; m2.bd = [];
-                    mshopts.grd = m2; % get out the msh object
-                    mshopts = clean(mshopts);
-                    
-                    % Get the new match and cleaned grid
-                    obj = mshopts.grd;
-                    
-                    % Now add in the periodic point list
-                    [I,d] = ourKNNsearch(obj.p',obj.p'+[360;0],1);
-                    J = find(d < 1e-5);
-                    % list of points that are same on both sides
-                    periodic_bc_list = [I(J) J];
-                    obj.bd.nbou = 1 ;
-                    obj.bd.nvel = length(periodic_bc_list) ;
-                    obj.bd.nvell = obj.bd.nvel ;
-                    obj.bd.ibtype = 94 ;
-                    obj.bd.nbvv = periodic_bc_list ;
+                    if nbou > 0
+                        % land boundary
+                        obj.bd.nbou = nbou ;
+                        obj.bd.nvel = nvel ;
+                        obj.bd.nvell = nvell ;
+                        obj.bd.ibtype = ibtype ;
+                        obj.bd.nbvv = nbvv ;    
+                    end
                     
                 case('islands')
                     [etbv,~]  = extdom_edges2(obj.t,obj.p);
@@ -1184,8 +1132,8 @@ classdef msh
                     nvel = 0;
                     % the largest polygon will be a combination of ocean and mainland
                     % boundaries. Deal with this first, then remove it from the polygon
-                    poly(max_ind) = [];
-                    poly_idx(max_ind)=[];
+                    %poly(max_ind) = [];
+                    %poly_idx(max_ind)=[];
                     
                     % loop through the remaining polygons
                     for poly_count = 1 : length(poly)
@@ -1207,12 +1155,16 @@ classdef msh
                     obj.op.nbdv = 0;
                     
                     % land boundary
-                    obj.bd.nbou = nbou ;
-                    obj.bd.nvel = nvel ;
-                    obj.bd.nvell = nvell ;
-                    obj.bd.ibtype = ibtype ;
-                    obj.bd.nbvv = nbvv ;
-                    
+                    if nbou == 0
+                        disp('No islands found!')
+                    else
+                        obj.bd.nbou = nbou ;
+                        obj.bd.nvel = nvel ;
+                        obj.bd.nvell = nvell ;
+                        obj.bd.ibtype = ibtype ;
+                        obj.bd.nbvv = nbvv ;
+                    end
+                        
                 case('delete')
                     % have the user select the nodestring '
                     plot(obj,'bd') ;
@@ -1445,6 +1397,8 @@ classdef msh
                 if any(min(obj1.p) < min(obj2.p)) || ...
                    any(max(obj1.p) > max(obj2.p))
                     objt = obj2; objt.p = [objt.p; obj1.p];
+                    objt.p(1,:) = min(objt.p) - 1e-3;
+                    objt.p(2,:) = max(objt.p) + 1e-3;  
                     setProj(objt,1,obj2.proj.name);
                 else
                     % kjr 2018,10,17; Set up projected space imported from msh class
@@ -1465,6 +1419,11 @@ classdef msh
             [p1(:,1),p1(:,2)] = m_ll2xy(p1(:,1),p1(:,2)) ;
             [p2(:,1),p2(:,2)] = m_ll2xy(p2(:,1),p2(:,2)) ;
             
+            [~,d1] = ourKNNsearch(p1',p1',2); 
+            avd1 = mean(d1(:,2)); mvd1 = max(d1(:,2));
+            [~,d2] = ourKNNsearch(p2',p2',2); 
+            avd2 = mean(d2(:,2)); mvd2 = max(d2(:,2));
+            
             disp('Forming outer boundary for base...')
             cell2 = extdom_polygon(extdom_edges2(t2,p2),p2,-1,0);
             poly_vec2 = cell2mat(cell2');
@@ -1472,95 +1431,151 @@ classdef msh
             disp('Forming outer boundary for inset...')
             cell1 = extdom_polygon(extdom_edges2(t1,p1),p1,-1,0);
             poly_vec1 = cell2mat(cell1');
-
+            
             % Delete the region in the global mesh that is in the
             % intersection with inset.
             disp('Calculating intersection...');
-            if exist('polyshape','builtin')
-                PG = polyshape(poly_vec1(:,1),poly_vec1(:,2));
-                PG2 = polyshape(poly_vec2(:,1), poly_vec2(:,2)) ;
-                polyout2 = intersect(PG,PG2) ;
-                poly_vec3 = polyout2.Vertices;
-            else
-                [poly_vec3(:,1),poly_vec3(:,2)] = polybool(...
-                                        'intersection',...
-                                         poly_vec1(:,1),poly_vec1(:,2),...
-                                         poly_vec2(:,1),poly_vec2(:,2));                    
+            [x3,y3] = polybool('intersection',...
+              poly_vec1(:,1),poly_vec1(:,2),poly_vec2(:,1),poly_vec2(:,2));                    
+            if ~isempty(x3)  
+                poly_vec3 = [x3,y3]; poly_vec3(end+1,:) = NaN;
+                [edges3]  = Get_poly_edges(poly_vec3);
+                in1 = inpoly(p2(t2(:,1),:),poly_vec3,edges3);
+                in2 = inpoly(p2(t2(:,2),:),poly_vec3,edges3);
+                in3 = inpoly(p2(t2(:,3),:),poly_vec3,edges3);
+                t2(in1 & in2 & in3,:) = []; 
+                % We need to delete straggling elements that are generated
+                % through the above deletion step
+                pruned2 = msh() ; pruned2.p = p2; pruned2.t = t2;
+                pruned2 = Make_Mesh_Boundaries_Traversable(pruned2,0.25,1);
+                t2 = pruned2.t; p2 = pruned2.p;
+                % get new poly_vec2
+                cell2 = extdom_polygon(extdom_edges2(t2,p2),p2,-1,0);
+                poly_vec2 = cell2mat(cell2');
             end
-            [edges3]  = Get_poly_edges([poly_vec3; NaN NaN]);
-            in1 = inpoly(p2(t2(:,1),:),poly_vec3,edges3);
-            in2 = inpoly(p2(t2(:,2),:),poly_vec3,edges3);
-            in3 = inpoly(p2(t2(:,3),:),poly_vec3,edges3);
-            t2(in1 & in2 & in3,:) = []; 
-            % We need to delete straggling elements that are generated
-            % through the above deletion step
-            pruned2 = msh() ; pruned2.p = p2; pruned2.t = t2;
-            pruned2 = Make_Mesh_Boundaries_Traversable(pruned2,0.25,1);
-            t2 = pruned2.t; p2 = pruned2.p;
-            % get new poly_vec2
-            cell2 = extdom_polygon(extdom_edges2(t2,p2),p2,-1,0);
-            poly_vec2 = cell2mat(cell2');
-            
+            pv1 = poly_vec1(~isnan(poly_vec1(:,1)),:);
+            pv2 = poly_vec2(~isnan(poly_vec2(:,1)),:);
+           
             disp('Merging...')
             DTbase = delaunayTriangulation(p1(:,1),p1(:,2));
-            DTbase.Points(end+(1:length(p2)),:) = p2;
+            DTbase.Points(end+(1:length(p2)),:) = p2; 
+     
+            tq.qm = 0;
             
+            while min(tq.qm) < 0.01
             % Prune triangles outside both domains.
             disp('Pruning...')
+            
             for ii = 1:2 
             % The loop makes sure to remove only small connectivity for the boundaries
                 if ii == 2
-                    % To remove small connectivity
+                    % To remove small connectivity or bad elements
                     [~, enum] = VertToEle(tm);
                     bdbars = extdom_edges2(tm,pm);
                     bdnodes = unique(bdbars(:));
                     I = find(enum <= 4);
                     nn = setdiff(I',bdnodes);  
-                    DTbase.Points(nn,:) = []; 
+                    % delete vertices associated with small/large 
+                    % angle elements
+%                     tq = gettrimeshquan(pm,tm);
+%                     [I,J] = find(tq.vang*180/pi > 179);
+%                     for i = 1:length(I)
+%                         % delete the vertex associated with angle angle
+%                         wn = tm(I(i),:); 
+%                         nn = [nn; wn(J(i))];
+%                     end
+%                     [I,J] = find(tq.vang*180/pi <   1);
+%                     for i = 1:length(I)
+%                         % delete one of the vertices not associated 
+%                         % with small angle
+%                         wn = tm(I(i),:); wn(J(i)) = []; 
+%                         nn = [nn; wn(1)];
+%                     end
+                    DTbase.Points(unique(nn),:) = []; 
                 end
                 
                 pm = DTbase.Points; tm = DTbase.ConnectivityList;
-
+                nei = DTbase.neighbors;
+                
                 pmid = (pm(tm(:,1),:)+pm(tm(:,2),:)+pm(tm(:,3),:))/3;
 
-                % in1 is inside the inset boundary polygon
+                %in1 is inside the inset boundary polygon
                 [edges1] = Get_poly_edges(poly_vec1);
                 in1 = inpoly(pmid,poly_vec1,edges1);
-
-                % in2 is inside the global boundary polygon
+                
+                %in2 is inside the global boundary polygon
                 [edges2] = Get_poly_edges(poly_vec2);
                 in2 = inpoly(pmid,poly_vec2,edges2);
-
-                % in3 is inside the intersection
-                in3 = inpoly(pmid,poly_vec3,edges3);
-
-                % remove triangles that aren't in the global mesh or aren't in
-                % the inset mesh
-                tm((~in1 & ~in2) | ~in1 & in3,:) = [];
-            end
+  
+                %in3 is inside the intersection
+                if exist('poly_vec3','var')
+                    in3 = inpoly(pmid,poly_vec3,edges3);
+                else
+                    in3 = false(size(in1)); 
+                end
                 
-            merge = msh() ; merge.p = pm; merge.t = tm ;
- 
-            % convert back to lat-lon wgs84
-            [merge.p(:,1),merge.p(:,2)] = ...
-                                        m_xy2ll(merge.p(:,1),merge.p(:,2));
+                % this tries to detect triangles in between close together
+                % polygons to try and avoid creating holes
+                [~,dst1] = ourKNNsearch(pv1',pmid',1);
+                [~,dst2] = ourKNNsearch(pv2',pmid',1);
+                in4      = dst1 < 0.5*(avd1 + avd2) & ...
+                           dst2 < 0.5*(avd1 + avd2);
+                
+                % remove triangles that aren't in the global mesh or 
+                % aren't in the inset mesh
+                inn = find((~in1 & ~in2 & ~in4) | (~in1 & in3));
+                % this logic also tries to avoid creating holes 
+                % in the merged mesh
+                del_nei = nei(inn,:);
+                del1 = intersect(del_nei(:,1),inn);
+                del2 = intersect(del_nei(:,2),inn);
+                del3 = intersect(del_nei(:,3),inn);
+                del = unique([del1; del2; del3]);
+                tm(del,:) = [];
+            end
+                        
+                merge = msh() ; merge.p = pm; merge.t = tm ;
             
-            % Clean up the new mesh
-            merge = clean(merge);
+            %tq.qm = 0;
+            
+            %while min(tq.qm) < 0.01
+
+                merge = clean(merge,[],0,[],1e-3,0,[],0);
+
+                % if we don't know the overlap region
+                [~,dst1] = ourKNNsearch(p1',merge.p',1);
+                [~,dst2] = ourKNNsearch(p2',merge.p',1);
+                idx = find(abs(dst1 - dst2) < 0.5*(mvd1 + mvd2));
+                
+                % use local smoother
+                constr = setdiff((1:length(merge.p))',idx);
+                [pm,tm] = smoothmesh(merge.p,merge.t,constr,50,0.01);
+                tq = gettrimeshquan(pm,tm);
+                disp(['min element quality is ', num2str(min(tq.qm))])
+                if min(tq.qm) < 0.01
+                    DTbase = delaunayTriangulation(pm(:,1),pm(:,2));
+                end
+            end
+ 
+            merge.p = pm; merge.t = tm;
+            
+             % convert back to lat-lon wgs84
+            [merge.p(:,1),merge.p(:,2)] = ...
+                                        m_xy2ll(merge.p(:,1),merge.p(:,2));  
             
             merge.proj    = MAP_PROJECTION ;
             merge.coord   = MAP_COORDS ;
-            merge.mapvar  = MAP_VAR_LIST ;
-            
+            merge.mapvar  = MAP_VAR_LIST ;                        
+                                    
             % Check element order
-            merge = CheckElementOrder(merge);
+            merge = CheckElementOrder(merge);             
             
             % Carry over bathy and gradients
             merge.b = 0*merge.p(:,1);
             [idx1,dst1] = ourKNNsearch(obj1.p',merge.p',1);   
             [idx2,dst2] = ourKNNsearch(obj2.p',merge.p',1);   
             merge.b(dst1 <= dst2) = obj1.b(idx1(dst1 <= dst2)); 
-            merge.b(dst2 < dst1) = obj2.b(idx2(dst2 < dst1)); 
+            merge.b(dst2 <  dst1) = obj2.b(idx2(dst2 <  dst1)); 
             if ~isempty(obj1.bx) && ~isempty(obj2.bx)
                 merge.bx = 0*merge.b; merge.by = 0*merge.b;
                 merge.bx(dst1 <= dst2) = obj1.bx(idx1(dst1 <= dst2)); 
@@ -1569,7 +1584,7 @@ classdef msh
                 merge.by(dst2 < dst1) = obj2.by(idx2(dst2 < dst1)); 
             end
             disp(['Note that f13, f15 and boundary conditions etc. have' ...
-                  'not been carried over into the merged mesh'])
+                  'not been carried over into the merged mesh'])                                  
         end
       
         function obj = CheckElementOrder(obj,proj)
@@ -1696,6 +1711,9 @@ classdef msh
         end
 
         function obj = CheckTimestep(obj,dt,varargin)
+            % obj = CheckTimestep(obj,dt,varargin)
+            % varargin(1) is desired CFL (< 1) or maximum iterations (> 1)
+            % varargin(2) is desired dj_cutoff 
             %% Decimate mesh to achieve CFL condition for stability.
             % Takes a mesh and removes triangles and nodes to produce a mesh
             % that satisfies the given timestep requirements of the user by
@@ -1709,6 +1727,7 @@ classdef msh
             type       = 0;       %<-- 0 == Haversine, 1 == CPP with correction factor
             desCFL     = 0.50;    %<-- set desired cfl (generally less than 0.80 for stable).
             desIt = inf;          %<-- desired number of iterations
+            djc   = 0.25;
             if nargin > 2
                 if varargin{1} > 1
                     desIt = varargin{1};
@@ -1716,7 +1735,8 @@ classdef msh
                     desCFL = varargin{1};
                 end
                 if nargin == 4
-                    type = varargin{2}; 
+                    djc = varargin{2};
+                    %type = varargin{2}; 
                 end
             end
             %%
@@ -1752,23 +1772,31 @@ classdef msh
             %% Delete CFL violations
             it  = 0;
             CFL = 999;
+            if ~isempty(obj.pfix)
+                [pf(:,1),pf(:,2)] = m_ll2xy(obj.pfix(:,1),obj.pfix(:,2));
+            end
+            con = 9;
             tic
             while 1
                 [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
                 CFL = CalcCFL(obj,dt,type);
                 [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2));
                 bad = real(CFL) > desCFL;
+                %if ~isempty(obj.pfix)
+                %    fix = ismembertol(obj.p,pf,1e-6,'ByRows',true); 
+                %    bad = bad & fix;
+                %end
                 display(['Number of CFL violations ',num2str(sum(bad))]);
                 disp(['Max CFL is : ',num2str(max(real(CFL)))]);
                 if it == desIt,   break; end
                 if sum(bad) == 0, break; end
+                it = it + 1;
                 obj = DecimateTria(obj,bad);
                 % Clean up the new mesh (already projected) without direct
                 % smoothing (we have used local smooting in DecmimateTria
                 obj.b = []; % (the bathy will cause error in renum)
-                obj = clean(obj,[],0,[],[],[],[],0);
+                obj = clean(obj,[],0,con+floor(it/5),djc,[],[],0);
                 obj.b = F(obj.p(:,1),obj.p(:,2));
-                it = it + 1;
             end
             toc
             disp(['Achieved max CFL of ',num2str(max(real(CFL))),...
@@ -1819,12 +1847,12 @@ classdef msh
                     vtoe = VertToEle(tm);
                     bele = unique(vtoe(:,bdnodes)); bele(bele == 0) = [];
                     tqbou = tq1.qm(bele); 
-                    badbound = bele(tqbou < 0.5);
-                    % Delete those boundary elements with quality < 0.5
+                    badbound = bele(tqbou < 0.1);
+                    % Delete those boundary elements with quality < 0.1
                     tm(badbound,:) = [];
                 end
                 [pm,tm] = fixmesh(pm,tm);
-                if sum(bad) < 100e3
+                if sum(bad) < size(pm,1)*0.1
                     % find all the points nearby each "bad" point.
                     idx = ourKNNsearch(pm',obj.p(find(bad),:)',12);
                     idx = idx(:);
@@ -1832,7 +1860,7 @@ classdef msh
                     constr = setdiff((1:length(pm))',idx);
                     [pm,tm] = smoothmesh(pm,tm,constr,50,0.01);
                 else
-                    error('Adapation would result in potentially catastrophic lose of connectivity, try adapting to a smaller timestep');
+                    warning('Adapation would result in potentially catastrophic lose of connectivity, try adapting to a smaller timestep');
                 end
                 obj.p = pm; obj.t = tm;
             end
@@ -2360,9 +2388,10 @@ classdef msh
             
             
             % kjr convert back to msh obj.
-            obj.p = []; obj.b = []; obj.t =[];
             obj.p = [fem_struct.x,fem_struct.y];
-            obj.b = fem_struct.z;
+            if ~isempty(obj.b)
+                obj.b = fem_struct.z;
+            end
             obj.t = fem_struct.e;
         end
         
@@ -2583,7 +2612,7 @@ classdef msh
             
             dt.Points(end+(1:length(m3.p)),:) = m3.p ;
             
-            tmp = msh();
+            tmp = mfp;
             
             tmp.p = dt.Points ; tmp.t = dt.ConnectivityList; 
             
@@ -2604,10 +2633,9 @@ classdef msh
             bc   = baryc(tmp) ;
             inuw   = inpoly(bc,polyt,ee) ;
                         
-            
             tmp.t(~infp & ~inuw,:) = [] ; 
                        
-            [tmp.p,tmp.t]=fixmesh(tmp.p,tmp.t) ; 
+            [tmp.p,tmp.t] = fixmesh(tmp.p,tmp.t) ; 
             
             mfixed = tmp ;
             
@@ -2624,7 +2652,16 @@ classdef msh
             % NOTE: You can visualize these constraints by 
             % drawedge2(pfix,egfix); 
             % kjr, April 2019
-            [egfix,pfix]=extdom_edges2(obj.t,obj.p) ;
+            [egfix,pfix] = extdom_edges2(obj.t,obj.p) ;
+            if ~isempty(obj.op) && obj.op.nope > 0
+                disp('detected ocean boundary, removing these fixed points')
+                ocean = unique(obj.op.nbdv(:));
+                [~,IA] = intersect(egfix(:,1),ocean);
+                [~,IB] = intersect(egfix(:,2),ocean);
+                IC = unique([IA;IB]);
+                egfix(IC,:) = []; 
+                pfix = obj.p(unique(egfix(:)),:); 
+            end
             egfix = renumberEdges(egfix) ;
         end
         
@@ -2645,7 +2682,7 @@ classdef msh
             boundary = cell2mat(boundary'); 
         end
         
-        function obj = pruneOverlandMesh(obj,elev) 
+        function obj = pruneOverlandMesh(obj,elev,djc) 
             %%%%%%%
             % Removes overland extent greater than certain elevation about 
             % geoid of the mesh.
@@ -2653,17 +2690,22 @@ classdef msh
             % an average depth greater than elev are pruned from the mesh. 
             % OUTPUS: a msh_obj with the overland extents removed. 
             % april 2019, kjr
-            Fb = scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.b,'nearest','none') ; 
+            if nargin < 3
+               djc = 0.25; 
+            end
+            [obj.p(:,1),obj.p(:,2)] =  m_ll2xy(obj.p(:,1),obj.p(:,2)); 
+            Fb = scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.b,'linear','nearest') ; 
             c = (obj.b(obj.t(:,1),:)+obj.b(obj.t(:,2),:)+obj.b(obj.t(:,3),:))/3;
             obj.t(c < -elev,:) = []; 
             [pp,tt] = fixmesh(obj.p,obj.t) ; 
-            obj = msh() ; obj.p = pp; obj.t = tt; 
-            obj = Make_Mesh_Boundaries_Traversable(obj,0.25,1);
+            obj.p = pp; obj.t = tt; 
+            obj = Make_Mesh_Boundaries_Traversable(obj,djc,1);
             obj = renum(obj) ;
             obj.b = Fb(obj.p) ; 
+            [obj.p(:,1),obj.p(:,2)] =  m_xy2ll(obj.p(:,1),obj.p(:,2)); 
         end
         
-        function obj = interpFP(obj,gdat,muw,minb,CAN)
+        function obj = interpFP(obj,gdat,muw,gdatuw,minb,CAN)
             %%%%%%%
             % Interpolate topography onto a mesh with floodplain
             % Interpolates bathymetry underwater using a grid-scale
@@ -2685,12 +2727,12 @@ classdef msh
             % a msh_obj with bathy/topo on its vertices 
             %
             % kjr, april 2019
-            
+
             % parsing some inputs (or set to default)
-            if nargin < 4
+            if nargin < 5
                 minb = 1;
             end
-            if nargin < 5
+            if nargin < 6
                 CAN = 3;
             end
                
@@ -2704,9 +2746,7 @@ classdef msh
             in = inpoly(dmy1.p,bou,ee) ; 
             
             % get the "on"
-            [~, dst] = ourKNNsearch(muw.p',dmy1.p',1);
-            on = dst < 1e-5;  
-            
+            on = ismembertol(dmy1.p,muw.p,1e-5,'ByRows',true);
             
             obj.b = (1:length(obj.p(:,1)))'*0 ; 
             
@@ -2722,27 +2762,54 @@ classdef msh
                 else
                     in2 = inpoly(dmy1.p,gdat{i}.boubox(1:end-1,:)) ;
                 end
-                if ~isempty(muw.b) && ~all(muw.b == 0)
-                    % if already have underwater bathy
-                    idx = ourKNNsearch(muw.p',obj.p',1);
-                    dmy1.b = muw.b(idx);
-                else
-                    dmy1 = interp(obj,gdat(i),'type','depth',...
-                              'K',find((in | on ) & in2)) ;
-                end
-                dmy1.b = max(dmy1.b,minb) ; % bound the maximum depth (1 m by default)
+                dmy1 = interp(obj,gdatuw(i),'type','depth','ignoreOL',1); 
                 
                 dmy2 = interp(obj,gdat(i),'type','depth','N',CAN) ; % use smooth overland
                 
                 if ~isempty(gdat{i}.mainlandb) || ~isempty(gdat{i}.innerb)
-                   riverbound = [gdat{i}.mainlandb; gdat{i}.innerb];
-                   riverbound(isnan(riverbound(:,1)),:) = [];
-                   idx = ourKNNsearch(riverbound(:,1:2)',dmy2.p',1);
-                   dmy2.b = min(0,dmy2.b + riverbound(idx,3)); 
+                    riverbound = [];
+                    if ~isempty(gdat{i}.mainlandb)
+                        notlakem = find(~contains(gdat{i}.mainlandb_type,'lake'));
+                        isnan1 = find(isnan(gdat{i}.mainlandb(:,1)));    
+                        for l = 1:length(notlakem)
+                            if notlakem(l) == 1; isn1 = 1; else
+                            isn1 = isnan1(notlakem(l)-1)+1; end
+                            isn2 = isnan1(notlakem(l))-1;
+                            riverbound = [riverbound; ...
+                                          gdat{i}.mainlandb(isn1:isn2,:)];
+                        end
+                    end
+                    if ~isempty(isempty(gdat{i}.innerb))
+                        notlakei = find(~contains(gdat{i}.innerb_type,'lake'));
+                        isnan1 = find(isnan(gdat{i}.innerb(:,1)));    
+                        for l = 1:length(notlakei)
+                            if notlakei(l) == 1; isn1 = 1; else
+                            isn1 = isnan1(notlakei(l)-1)+1; end
+                            isn2 = isnan1(notlakei(l))-1;
+                            riverbound = [riverbound; ...
+                                          gdat{i}.innerb(isn1:isn2,:)];
+                        end
+                    end
+
+                    % kjr 2018,10,17; Set up projected space imported from msh class
+                    dmyriver = dmy2; 
+                    dmyriver.p = [dmyriver.p; riverbound(:,1:2)];
+                    setProj(dmyriver,1,obj.proj.name)         
+                    [rvb(:,1),rvb(:,2)] = ...
+                                  m_ll2xy(riverbound(:,1),riverbound(:,2));
+                    [dmp(:,1),dmp(:,2)] = m_ll2xy(dmy2.p(:,1),dmy2.p(:,2));                                    
+                    F = scatteredInterpolant(rvb(:,1),rvb(:,2),...
+                                      riverbound(:,3),'natural','nearest');
+                    offset = F(dmp);
+                    % change above land
+                    dmy2.b = min(0,dmy2.b + offset); 
+                    % change minb based on river height
+                    minb = max(1,dmy1.b*0 + minb - offset);
                 end
-                
-                obj.b((in | on )  & in2,1) = dmy1.b((in | on ) & in2,1) ;
-                obj.b(~(in | on ) & in2,1) = dmy2.b(~(in | on ) & in2,1) ;
+                uw = in | on | dmy1.b > 0;
+                dmy1.b = max(dmy1.b,minb); % bound the depth by minb
+                obj.b(uw & in2,1) = dmy1.b(uw & in2,1) ;
+                obj.b(~uw & in2,1) = dmy2.b(~uw & in2,1) ;
                 
             end
           

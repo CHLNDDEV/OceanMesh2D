@@ -17,13 +17,9 @@ function obj = GridData(geodata,obj,varargin)
 %                         K = find( obj.p(:,1) >= lon_min & ...
 %                                   obj.p(:,2) <= lon_max);
 %                         obj = GridData(fname,obj,'K',K);
-%       type (optional) - type is either 'depth', 'slope' 'all' or 'fp'. 
+%       type (optional) - type is either 'depth', 'slope' or 'all'
 %                         'all' is the default (both slope and depth). 
 %                         'slope' to gets the gradients of DEM
-%                         'fp' interpolates the overland with a N=3 and
-%                         underwater with a maximum depth of 1-m. This
-%                         option requires a watertight polygon as a
-%                         NaN-delimited vector.
 %
 %     interp (optional) - interp is either the normal griddedInterpolant
 %                         options in MATLAB or is 'CA' (default). Note: 'CA'
@@ -39,6 +35,8 @@ function obj = GridData(geodata,obj,varargin)
 %
 %   maxdepth (optional) - ensure the maximum depth is bounded in the 
 %                         interpolated region 
+%
+%   ignoreOL (optional) - NaN overland data for more accurate seabed interpolation
 %
 %      Output : obj     - A mesh class object with the following updated:
 %               b       - The depth or vertical difference from the datum
@@ -71,7 +69,7 @@ mindepth = -inf ;
 maxdepth = +inf ; 
 if ~isempty(varargin)
     varargin=varargin{1} ; 
-    names = {'K','type','interp','nan','N','mindepth','maxdepth'};
+    names = {'K','type','interp','nan','N','mindepth','maxdepth','ignoreOL'};
     for ii = 1:length(names)
         ind = find(~cellfun(@isempty,strfind(varargin(1:2:end),names{ii})));
         if ~isempty(ind)
@@ -90,11 +88,19 @@ if ~isempty(varargin)
               mindepth = varargin{ind*2} ; 
             elseif ii ==7 
               maxdepth = varargin{ind*2}  ; 
+            elseif ii ==8
+              ignoreOL = varargin{ind*2} ; 
             end
         end    
     end
 end
 
+if ~exist('ignoreOL','var')
+  ignoreOL = 0 ; 
+end
+if ignoreOL 
+  disp('NaNing overland data before interpolating') 
+end
 if N > 1 
    disp(['Enlarging CA stencil by factor ',num2str(N)]) ;  
 end
@@ -292,14 +298,14 @@ if strcmp(interp,'CA')
     % make sure inside box
     % y
     high = DEM_Y(IDXR(1),IDXT)' > pcon_max(:,2);
-    IDXT(high) = IDXT(high) - 1;
+    IDXT(high) = max(1,IDXT(high) - 1);
     low = DEM_Y(IDXL(1),IDXB)' < pcon_min(:,2);
-    IDXB(low) = IDXB(low) + 1;
+    IDXB(low) = min(size(DEM_Y,2),IDXB(low) + 1);
     % x
     high = DEM_X(IDXR,IDXT(1)) > pcon_max(:,1);
-    IDXR(high) = IDXR(high) - 1;
+    IDXR(high) = max(1,IDXR(high) - 1);
     low = DEM_X(IDXL,IDXB(1)) < pcon_min(:,1);
-    IDXL(low) = IDXL(low) + 1;
+    IDXL(low) = min(size(DEM_X,1),IDXL(low) + 1);
     % Make sure no negative or positive Nx, Ny
     I = IDXL > IDXR;
     IDXL(I) = IDXX(I); IDXR(I) = IDXX(I);
@@ -315,8 +321,16 @@ if strcmp(interp,'CA')
     % Average for the depths    
     if strcmp(type,'depth') || strcmp(type,'all')
         for ii = 1:length(K)
-            b(ii) = mean(reshape(DEM_Z(IDXL(ii):IDXR(ii),...
-                                       IDXB(ii):IDXT(ii)),[],1),'omitnan');
+            %%% MTC special option goes here
+            if(ignoreOL)
+              pts = reshape(DEM_Z(IDXL(ii):IDXR(ii),...
+                  IDXB(ii):IDXT(ii)),[],1);
+              pts(pts < 0) = NaN ;
+            else
+              pts = reshape(DEM_Z(IDXL(ii):IDXR(ii),...
+                  IDXB(ii):IDXT(ii)),[],1);
+           end
+           b(ii) = mean(pts,'omitnan');            
         end
         % Try and fill in the NaNs
         if strcmp(NaNs,'fill')
