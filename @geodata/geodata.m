@@ -51,7 +51,7 @@ classdef geodata
             % Class constructor to parse NetCDF DEM data, NaN-delimited vector,
             % or shapefile that defines polygonal boundary of meshing
             % domain.
-          
+            
             p = inputParser;
             
             defval = 0; % placeholder value if arg is not passed.
@@ -171,14 +171,14 @@ classdef geodata
                         end
                 end
             end
-            % Basic error handling should go here. 
+            % Basic error handling should go here.
             % if not bbox and no dem, you're outta luck
             if size(obj.bbox,1) == 1 && isempty(obj.demfile) && isempty(obj.pslg)
-               error('No DEM supplied and no bbox supplied, sorry pal'); 
+                error('No DEM supplied and no bbox supplied, sorry pal');
             end
             obj.gridspace    = abs(obj.h0)/111e3; %point spacing along polygon,
             % Get bbox information from demfile if not supplied
-            if size(obj.bbox,1) == 1 && isempty(obj.pslg) 
+            if size(obj.bbox,1) == 1 && isempty(obj.pslg)
                 obj = ParseDEM(obj,'bbox');
             end
             
@@ -220,8 +220,8 @@ classdef geodata
             
             disp(['Read in meshing boundary: ',obj.contourfile]);
             
-            if obj.BACKUPdemfile~=0 
-              obj = ParseDEM(obj,'BackUp') ;   
+            if obj.BACKUPdemfile~=0
+                obj = ParseDEM(obj,'BackUp') ;
             end
             
             obj = ParseDEM(obj) ;
@@ -247,7 +247,7 @@ classdef geodata
                 obj.innerb    = polygon_struct.innerb;
                 obj.mainlandb_type = polygon_struct.mainlandb_type;
                 obj.innerb_type    = polygon_struct.innerb_type;
-
+                
                 % Read in the geometric meshing boundary information from a
                 % NaN-delimited vector.
             elseif obj.pslg(1)~=0
@@ -263,11 +263,11 @@ classdef geodata
                 obj.mainlandb = polygon_struct.mainlandb;
                 obj.innerb    = polygon_struct.innerb;
                 obj.mainlandb_type = polygon_struct.mainlandb_type;
-                obj.innerb_type    = polygon_struct.innerb_type; 
-
+                obj.innerb_type    = polygon_struct.innerb_type;
+                
             else
                 % set outer to the boubox
-               obj.outer = obj.boubox;
+                obj.outer = obj.boubox;
             end
             obj = ClassifyShoreline(obj) ;
         end
@@ -337,23 +337,23 @@ classdef geodata
             % to mainland
             if ~isempty(obj.inner)
                 obj.inner = coarsen_polygon(obj.inner,iboubox);
-                id_del = ismembertol(obj.inner,outerbox,1e-4,'ByRows',true);      
+                id_del = ismembertol(obj.inner,outerbox,1e-4,'ByRows',true);
                 if sum(id_del) > 0
-                   % need to change parts of inner to mainland...
-                   isnan1 = find(isnan(obj.inner(:,1))); ns = 1;
-                   innerdel = []; mnadd = [];
-                   for ii = 1:length(isnan1)
-                       ne = isnan1(ii);
-                       sumdel = sum(id_del(ns:ne));
-                       if sumdel > 0
-                           mnadd = [mnadd; obj.inner(ns:ne,:)];
-                           innerdel = [innerdel ns:ne];
-                       end
-                       ns = ne + 1;
-                   end
-                   obj.inner(innerdel,:) = [];
-                   obj.outer = [obj.outer; mnadd];
-                   obj.mainland = [obj.mainland; mnadd];
+                    % need to change parts of inner to mainland...
+                    isnan1 = find(isnan(obj.inner(:,1))); ns = 1;
+                    innerdel = []; mnadd = [];
+                    for ii = 1:length(isnan1)
+                        ne = isnan1(ii);
+                        sumdel = sum(id_del(ns:ne));
+                        if sumdel > 0
+                            mnadd = [mnadd; obj.inner(ns:ne,:)];
+                            innerdel = [innerdel ns:ne];
+                        end
+                        ns = ne + 1;
+                    end
+                    obj.inner(innerdel,:) = [];
+                    obj.outer = [obj.outer; mnadd];
+                    obj.mainland = [obj.mainland; mnadd];
                 end
             end
             
@@ -362,13 +362,13 @@ classdef geodata
             % only changes the distance function used for edgefx)
             if ~isempty(obj.mainland)
                 obj.mainland = coarsen_polygon(obj.mainland,iboubox);
-                id_del = ismembertol(obj.mainland,outerbox,1e-4,'ByRows',true);      
-                obj.mainland(id_del,:) = []; 
+                id_del = ismembertol(obj.mainland,outerbox,1e-4,'ByRows',true);
+                obj.mainland(id_del,:) = [];
                 while ~isempty(obj.mainland) && isnan(obj.mainland(1))
-                    obj.mainland(1,:) = []; 
-                end                
+                    obj.mainland(1,:) = [];
+                end
             end
-           
+            
             
         end
         
@@ -378,16 +378,16 @@ classdef geodata
             % set 'bbox' for reading only bbox
             fname = obj.demfile ; backup = 0;
             if any(strcmp(varargin,'BackUp'))
-               backup = 1;
-               fname = obj.BACKUPdemfile ;
+                backup = 1;
+                fname = obj.BACKUPdemfile ;
             end
             
-            % Process the DEM for the meshing region. 
+            % Process the DEM for the meshing region.
             if ~isempty(fname)
                 
                 % Find name of x, y (one that has 1 dimensions)
                 % z values (use one that has 2 dimensions)
-                [xvn, yvn, zvn] = getdemvarnames(fname); 
+                [xvn, yvn, zvn] = getdemvarnames(fname);
                 
                 % Read x and y
                 x = double(ncread(fname,xvn));
@@ -427,7 +427,7 @@ classdef geodata
                     end
                     It = find(x >= bboxt(1,1) & x <= bboxt(1,2));
                     I = [I; It];
-                    demzt = single(ncread(fname,zvarname,...
+                    demzt = single(ncread(fname,zvn,...
                         [It(1) J(1)],[length(It) length(J)]));
                     if isempty(demz)
                         demz = demzt;
@@ -443,17 +443,17 @@ classdef geodata
                         x = x1; demz = demz(IA,:);
                     end
                 end
-                % handle DEMS from packed starting from the bottom left 
-                if y(2) < y(1) 
-                  y = flipud(y) ; 
-                  demz = fliplr(demz) ; 
+                % handle DEMS from packed starting from the bottom left
+                if y(2) < y(1)
+                    y = flipud(y) ;
+                    demz = fliplr(demz) ;
                 end
                 
-                % check for any invalid values 
-                bad = abs(demz) > 11e3 ;
-                if ~isempty(find(bad, 1)) > 0 && ~backup
+                % check for any invalid values
+                bad = abs(demz) > 10e3 ;
+                if sum(bad(:)) > 0 && ~backup
                     warning('ALERT: Invalid and/or missing DEM values detected..check DEM');
-                    if ~isempty(obj.BACKUPdemfile)
+                    if obj.BACKUPdemfile(1)~=0
                         disp('Replacing invalid values with back-up DEMfile');
                         [demx,demy] = ndgrid(x,y) ;
                         demz(bad) = obj.Fb2(demx(bad),demy(bad)) ;
@@ -470,7 +470,7 @@ classdef geodata
                     % clear data from memory
                     clear x y demz
                 else
-                 % main interpolant 
+                    % main interpolant
                     obj.Fb   = griddedInterpolant({x,y},demz,...
                         'linear','nearest');
                     obj.x0y0 = [x(1),y(1)];
@@ -486,7 +486,7 @@ classdef geodata
                 obj.x0y0 = [obj.bbox(1,1), obj.bbox(2,1)];
             end
             
-            function [xvn, yvn, zvn] = getdemvarnames(fname) 
+            function [xvn, yvn, zvn] = getdemvarnames(fname)
                 % Define well-known variables for longitude and latitude
                 % coordinates in Digital Elevation Model NetCDF file (CF
                 % compliant).
@@ -498,30 +498,33 @@ classdef geodata
                     if ~isempty(xvn) && ~isempty(yvn) && ~isempty(zvn); break; end
                     if length(finfo.Variables(ii).Size) == 1
                         if isempty(xvn) && ...
-                           any(strcmp(finfo.Variables(ii).Name,wkv_x))
-                            xvn = finfo.Variables(ii).Name; 
+                                any(strcmp(finfo.Variables(ii).Name,wkv_x))
+                            xvn = finfo.Variables(ii).Name;
                         end
                         if isempty(yvn) && ...
-                           any(strcmp(finfo.Variables(ii).Name,wkv_y))
-                            yvn = finfo.Variables(ii).Name; 
+                                any(strcmp(finfo.Variables(ii).Name,wkv_y))
+                            yvn = finfo.Variables(ii).Name;
                         end
                     elseif length(finfo.Variables(ii).Size) == 2
                         if isempty(zvn)
-                           zvn = finfo.Variables(ii).Name;
+                            zvn = finfo.Variables(ii).Name;
                         end
                     end
-                end 
+                end
                 if isempty(xvn)
-                    error('Could not locate x coordinate in DEM') ; 
+                    error('Could not locate x coordinate in DEM') ;
                 end
                 if isempty(yvn)
-                    error('Could not locate y coordinate in DEM') ; 
+                    error('Could not locate y coordinate in DEM') ;
                 end
                 if isempty(zvn)
-                    error('Could not locate z coordinate in DEM') ; 
+                    error('Could not locate z coordinate in DEM') ;
                 end
             end
             
+        end
+        
+        
         
         function obj = check_connectedness_inpoly(obj)
             % Check for connected polygons and if not connected,
@@ -535,7 +538,7 @@ classdef geodata
             shpEnd = vertcat(0,shpEnd); loc = loc+1;
             if abs(sum(obj.outer(shpEnd(loc)+1,:)) - ...
                     sum(obj.outer(shpEnd(loc+1)-1,:))) > eps
-               disp('Warning: Shapefile is unconnected... continuing anyway')
+                disp('Warning: Shapefile is unconnected... continuing anyway')
             end
             
             % check for inpoly goodness read the GSHHS checker
@@ -555,7 +558,7 @@ classdef geodata
             if length(find(xor(in_Shpf,in_Test))) > 50
                 obj.inpoly_flip = 1;
                 disp(['Shapefile inpoly is inconsistent ' ...
-                      'with GHSSS test file, flipping the inpoly test'])
+                    'with GHSSS test file, flipping the inpoly test'])
             end
             
             % if flooplaind meshing, flip the inpoly test
@@ -613,7 +616,7 @@ classdef geodata
             % reset this to default
             obj.inpoly_flip = 0 ;
         end
-                
+        
         function obj = extractContour(obj,ilev)
             % Extract a geometric contour from the DEM at elevation ilev.
             [node,edge] = ...
@@ -645,7 +648,7 @@ classdef geodata
                 lon1 = max(-180,obj.bbox(1,1) - bufx);
                 lon2 = min(+180,obj.bbox(1,2) + bufx);
                 lat1 = max(- 90,obj.bbox(2,1) - bufy);
-                lat2 = min(+ 90,obj.bbox(2,2) + bufy);                
+                lat2 = min(+ 90,obj.bbox(2,2) + bufy);
                 m_proj(projection,...
                     'long',[lon1, lon2],'lat',[lat1, lat2]);
             end
@@ -701,6 +704,7 @@ classdef geodata
                 legend([h1 h2,h3],{'mainland' 'inner' 'weirs'},'Location','NorthWest')
             elseif exist('h1','var') && exist('h2','var')
                 legend([h1 h2],{'mainland' 'inner'},'Location','NorthWest')
+            end
         end
         
     end

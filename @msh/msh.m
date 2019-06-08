@@ -943,7 +943,7 @@ classdef msh
             end
         end
         
-        % make nodestrings
+                % make nodestrings
         function obj = makens(obj,type,dir,cutlim,depthlim)
             if nargin < 2
                error('Needs type: one of auto, islands, delete, or outer')
@@ -982,6 +982,10 @@ classdef msh
                     if ~isempty(gdat.mainland)
                         mainland = gdat.mainland;
                         mainland(isnan(mainland(:,1)),:) = [];
+                    end
+                    if ~isempty(gdat.inner)
+                        inner = gdat.inner;
+                        inner(isnan(inner(:,1)),:) = [];
                     end
                     
                     % Get geodata outer and mainland polygons
@@ -1370,6 +1374,8 @@ classdef msh
                     ['Index: ',num2str(ind')]};
             end
         end
+        
+   
         
         function merge = plus(obj1,obj2)
             % Merge together two meshes contained in the msh objects obj1
