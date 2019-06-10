@@ -1,11 +1,11 @@
 % Example_5_JBAY: Mesh the New York Jamaica bay (JBAY) region in 
 % high resolution.
-
 clc; clearvars
 
 addpath(genpath('utilities/'));
 addpath(genpath('datasets/'));
 addpath(genpath('m_map/')); 
+
 %% STEP 1: set mesh extents and set parameters for mesh.
 bbox      = [-73.97 -73.75 	% lon_min lon_max
               40.5 40.68]; 	% lat_min lat_max
@@ -24,7 +24,7 @@ gdat = geodata('shp',coastline,...
                'h0',min_el);
 %% STEP 3: create an edge function class
 fh = edgefx('geodata',gdat,...
-            'fs',3,...
+            'fs',R,...
             'dt',dt,...
             'max_el',max_el,...
             'g',grade);
@@ -36,7 +36,9 @@ mshopts = mshopts.build;
 %% STEP 5: Plot it and save the msh file
 % Get out the msh class and put on bathy and nodestrings
 m = mshopts.grd;
-m = interp(m,gdat); m.b = max(m.b,1); % interpolate bathy to the mesh
-m = makens(m,'auto',gdat); % make the nodestring boundary conditions
+m = interp(m,gdat,'nan','fill','mindepth',1); % interpolate bathy to the 
+                % mesh with fill nan option to make sure corners get values
+m = makens(m,'auto',gdat,[],5); % make the nodestring boundary conditions
+                           % with depth cutoff for open boundary set to 5 m
 plot(m,'bd'); plot(m,'blog'); % plot triangulation and bathy
 save('JBAY_HR.mat','m')

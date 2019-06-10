@@ -15,7 +15,7 @@ bbox = [-71.6 42.7; -64 30; -80 24; -85 38; -71.6 42.7]; %polygon boubox
 min_el    = 1e3;  		        % minimum resolution in meters.
 max_el    = 50e3; 		        % maximum resolution in meters. 
 wl        = 30;                 % 60 elements resolve M2 wavelength.
-dt        = 0;                  % Try to ensure mesh is stable at a 2 s timestep.
+dt        = 0;                  % Automatically set timestep based on nearshore res
 grade     = 0.35;               % mesh grade in decimal percent. 
 R         = 3; 			        % Number of elements to resolve feature.
   
@@ -55,8 +55,8 @@ mshopts = mshopts.build;
 
 %% Plot and save the msh class object/write to fort.14
 m = mshopts.grd; % get out the msh object
-m = interp(m,{gdat1 gdat2}); m.b = max(m.b,1); % interpolate bathy to the mesh
-m = makens(m,'auto',gdat1); % make the nodestring boundary conditions
+m = interp(m,{gdat1 gdat2},'mindepth',1); % interpolate bathy to the mesh with minimum depth of 1 m
+m = makens(m,'auto',gdat1);               % make the nodestring boundary conditions
 plot(m,'bd',1); % plot on native projection with nodestrings
 plot(m,'b',1); % plot bathy on native projection
 save('ECGC_w_NYHR.mat','m'); write(m,'ECGC_w_NYHR');

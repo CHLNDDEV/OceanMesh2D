@@ -464,7 +464,7 @@ classdef msh
                         end
                         view(2);
                     end
-                    cmocean('thermal',numticks(1)-1); cb = colorbar;
+                    cmocean('thermal',numticks(1)); cb = colorbar;
                     if logaxis
                         if length(numticks) == 3
                             desiredTicks = round(10.^(linspace(...
@@ -480,6 +480,8 @@ classdef msh
                         for i = 1 : length(desiredTicks)
                             cb.TickLabels{i} = num2str(desiredTicks(i));
                         end
+                    elseif length(numticks) == 3
+                        caxis([numticks(2) numticks(3)]);
                     end
                     ylabel(cb,'element circumradius [m]','fontsize',15);
                     title('mesh resolution');
@@ -826,6 +828,8 @@ classdef msh
             if nargin <= 7 || isempty(proj)
                 proj = 1;
             end
+            % this turns off fix_single_connect_edge_elements
+            max_conec_it = 0;
             
             % transform pfix to projected coordinates 
             if ~isempty(pfix) && proj
@@ -858,7 +862,7 @@ classdef msh
             obj = Make_Mesh_Boundaries_Traversable(obj,dj,nscreen);
             
             % Delete elements with single edge connectivity
-            %obj = Fix_single_connec_edge_elements(obj,nscreen);
+            obj = Fix_single_connec_edge_elements(obj,max_conec_it,nscreen);
             
             % Reduce the mesh connectivity to maximum of con-1
             obj = renum(obj);
@@ -941,10 +945,10 @@ classdef msh
             if nargin < 2
                error('Needs type: one of auto, islands, delete, or outer')
             end
-            if nargin < 4
+            if nargin < 4 || isempty(cutlim)
               cutlim = 10 ; 
             end
-            if nargin < 5
+            if nargin < 5 || isempty(depthlim)
               depthlim = 10 ; 
             end
             L = 1e3;
@@ -954,7 +958,7 @@ classdef msh
 %             end
             switch type
                 case('auto')
-                    if ~isa(dir,'geodata')
+                    if nargin < 3 || ~isa(dir,'geodata')
                         error('third input must be a geodata class for auto makens')
                     else
                         gdat = dir;
@@ -1197,6 +1201,10 @@ classdef msh
                     obj.bd.nvel = obj.bd.nvel - num_delnodes ;
                     
                 case('outer')
+                    if nargin < 3
+                       error('must specify direction of boundary in third entry') 
+                    end
+                        
                     [bnde,bpts]=extdom_edges2(obj.t,obj.p);
                     
                     % use this to figure out the vstart and vend

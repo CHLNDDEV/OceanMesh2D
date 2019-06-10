@@ -30,6 +30,8 @@ function obj = GridData(geodata,obj,varargin)
 %                         relevant for CA interpolation method). 
 %                         default value N=1. 
 %
+%        nan (optional) - 'fill' to fill in any NaNs appearing in bathy
+%
 %   mindepth (optional) - ensure the minimum depth is bounded in the 
 %                         interpolated region 
 %
@@ -116,6 +118,12 @@ if strcmp(type,'slope')
             'calculating the slopes'])
 end
 
+if strcmp(NaNs,'fill')
+   disp('Fill in NaNs using nearest neighbour interpolation.')
+   warning(['Note that will try and put bathy everywhere on mesh even ' ...
+           'outside of gdat/dem extents unless K logical is set.'])
+end
+
 %% Let's read the LON LAT of DEM if not already geodata
 flipUD = 0;
 if ~isa(geodata,'geodata')
@@ -156,11 +164,13 @@ if length(K) == length(obj.p)
     if isempty(obj.b)
         obj.b = obj.p(:,1)*NaN; 
     end
-    outside = obj.p(:,1) < min(DEM_XA)-DELTA_X | ...
-              obj.p(:,1) > max(DEM_XA)+DELTA_X | ...
-              obj.p(:,2) < min(DEM_YA)-DELTA_Y | ...
-              obj.p(:,2) > max(DEM_YA)+DELTA_Y;
-    K(outside) = [];
+    if ~strcmp(NaNs,'fill')
+        outside = obj.p(:,1) < min(DEM_XA)-DELTA_X | ...
+                  obj.p(:,1) > max(DEM_XA)+DELTA_X | ...
+                  obj.p(:,2) < min(DEM_YA)-DELTA_Y | ...
+                  obj.p(:,2) > max(DEM_YA)+DELTA_Y;
+        K(outside) = [];
+    end
 end
 
 % If the length of DEM_X and DEM_Y is too large then let's break it up by
@@ -256,13 +266,13 @@ if ~isa(geodata,'geodata')
                
     % make into depths (ADCIRC compliant) 
     DEM_Z = -DEM_Z;
-    
-    % bound all depths below mindepth 
-    DEM_Z(DEM_Z < mindepth) = mindepth ; 
-    
-    % bound all depths above maxdepth 
-    DEM_Z(DEM_Z > maxdepth) = maxdepth ; 
 end
+
+% bound all depths below mindepth 
+DEM_Z(DEM_Z < mindepth) = mindepth ; 
+
+% bound all depths above maxdepth 
+DEM_Z(DEM_Z > maxdepth) = maxdepth ; 
 
 %% Make the new bx, by, b and calculate gradients if necessary
 if strcmp(type,'slope') || strcmp(type,'all')

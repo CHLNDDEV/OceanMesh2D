@@ -1,7 +1,8 @@
-function obj = Fix_single_connec_edge_elements(obj,nscreen)
-% obj = Fix_single_connec_edge_elements(obj,nscreen)
+function obj = Fix_single_connec_edge_elements(obj,maxit,nscreen)
+% obj = Fix_single_connec_edge_elements(obj,maxit,nscreen)
 % Elements in a msh object that have only one connecting edge are 
-% exhauastively deleted.
+% deleted (if maxit = [] or inf, then deleted exhaustively, 
+% otherwise will delete a max number of maxit times)
 % The new msh obj is returned. ncscreen ~= 0 will display info to screen
 %
 %  Copyright (C) 2018  Keith Roberts & William Pringle
@@ -21,6 +22,14 @@ function obj = Fix_single_connec_edge_elements(obj,nscreen)
 % 
 %  You should have received a copy of the GNU General Public License
 %  along with this program.  If not, see <http://www.gnu.org/licenses/>.  
+if nargin < 2 || isempty(maxit)
+    maxit = inf;
+end
+if nargin < 3
+    nscreen = 1;
+end
+
+if maxit == 0; return; end 
 
 % Get t and p from mesh object
 t = obj.t; p = obj.p;
@@ -28,7 +37,8 @@ t = obj.t; p = obj.p;
 % Now start the loop
 del = 1;
 old = size(t,1);
-while ~isempty(del)
+it = 0;
+while it < maxit && ~isempty(del)
     tri  = triangulation(t,p) ; 
     nei  = tri.neighbors; 
     conn = ~isnan(nei);
@@ -37,6 +47,7 @@ while ~isempty(del)
     t(del,:) = [];
     % delete disjoint nodes
     [p,t] = fixmesh(p,t);
+    it = it + 1;
 end
 new = size(t,1);
 
