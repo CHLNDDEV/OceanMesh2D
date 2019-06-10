@@ -15,7 +15,7 @@ function [del] = setProj(obj,proj,projtype)
     % process the projtype as a varargin type
     I = find(strcmp(projtype,'long'));
     if ~isempty(I)
-        if size(projtype(I+1)) == 1
+        if length(projtype{I+1}) == 1
             lon_mea = projtype{I+1};
         else
             lon_mi = projtype{I+1}(1); lon_ma = projtype{I+1}(2);
@@ -23,7 +23,7 @@ function [del] = setProj(obj,proj,projtype)
     end
     I = find(strcmp(projtype,'lat'));
     if ~isempty(I)
-        if size(projtype(I+1)) == 1
+        if length(projtype{I+1}) == 1
             lat_mea = projtype{I+1};
         else
             lat_mi = projtype{I+1}(1); lat_ma = projtype{I+1}(2);
@@ -45,7 +45,7 @@ function [del] = setProj(obj,proj,projtype)
         m_proj('equi','lat',[lat_mi lat_ma],'long',[lon_mi lon_ma]) ;
         del = 1;
     else
-        if startsWith(projtype,'ste','IgnoreCase',true)
+        if ~isempty(regexp(projtype,'ste'))
             % Special treatment of Stereographic projection
             if lat_ma < 0
                 % center Antarctica
@@ -53,49 +53,39 @@ function [del] = setProj(obj,proj,projtype)
                       'long',0.5*(lon_mi+lon_ma),...
                       'radius',lat_ma+90);
             else
-                if ~isempty(regexp(projtype,'ste'))
-                    % Special treatment of Stereographic projection
-                    if lat_ma < 0
-                        % center Antarctica
-                        m_proj(projtype,'lat',-90,...
-                              'long',0.5*(lon_mi+lon_ma),...
-                              'radius',lat_ma+90);
-                    else
-                        % center Arctic
-                        lat_mi = max(-88.0001,lat_mi);
-                        m_proj(projtype,'lat',90,...
-                              'long',0.5*(lon_mi+lon_ma),...
-                              'radius',90-lat_mi,'rot',180);
-                    end
-                    m_proj('get') ;
-                elseif  ~isempty(regexp(projtype,'ort')) || ...
-                        ~isempty(regexp(projtype,'gno')) || ...
-                        ~isempty(regexp(projtype,'azi')) || ...
-                        ~isempty(regexp(projtype,'sat'))
-                    m_proj(projtype,'lat',lat_mea,'long',lon_mea,...
-                           'radius',rad,'rot',rot);
-                    m_proj('get') ;
-                    del = 1;
-                elseif ~isempty(regexp(projtype,'obl')) 
-                    % Oblique Mercator projection
-                    asp = (lon_ma-lon_mi)/(lat_ma - lat_mi);
-                    dir = 'hor';
-                    if asp > 1 
-                        asp = 1./asp; dir = 'ver';
-                    end
-                    m_proj(projtype,'lon',[lon_mi lon_ma],...
-                                    'lat',[lat_mi lat_ma],...
-                                    'aspect',asp,'dir',dir) ;
-                    m_proj('get') ;
-                    del = 1;
-                else
-                    % Cylindrical, Conic or Global type projections
-                    del = 1;
-                    m_proj(projtype,'lon',[lon_mi lon_ma],...
-                                    'lat',[lat_mi lat_ma]) ;
-                    m_proj('get') ;
-                end
+                % center Arctic
+                lat_mi = max(-88.0001,lat_mi);
+                m_proj(projtype,'lat',90,...
+                      'long',0.5*(lon_mi+lon_ma),...
+                      'radius',90-lat_mi,'rot',180);
             end
+            m_proj('get') ;
+        elseif  ~isempty(regexp(projtype,'ort')) || ...
+                ~isempty(regexp(projtype,'gno')) || ...
+                ~isempty(regexp(projtype,'azi')) || ...
+                ~isempty(regexp(projtype,'sat'))
+            m_proj(projtype,'lat',lat_mea,'long',lon_mea,...
+                   'radius',rad,'rot',rot);
+            m_proj('get') ;
+            del = 1;
+        elseif ~isempty(regexp(projtype,'obl')) 
+            % Oblique Mercator projection
+            asp = (lon_ma-lon_mi)/(lat_ma - lat_mi);
+            dir = 'hor';
+            if asp > 1 
+                asp = 1./asp; dir = 'ver';
+            end
+            m_proj(projtype,'lon',[lon_mi lon_ma],...
+                            'lat',[lat_mi lat_ma],...
+                            'aspect',asp,'dir',dir) ;
+            m_proj('get') ;
+            del = 1;
+        else
+            % Cylindrical, Conic or Global type projections
+            del = 1;
+            m_proj(projtype,'lon',[lon_mi lon_ma],...
+                            'lat',[lat_mi lat_ma]) ;
+            m_proj('get') ;
         end
     end
 end
