@@ -420,18 +420,11 @@ classdef msh
                         % sort bar lengths in ascending order
                         [barlen,IA] = sort(barlen,'descend');
                         bars = bars(IA,:);
-                        % get the maximum bar length for each node
-                        %[B1,IB] = unique(bars(:,1),'first');
-                        %[B2,IC] = unique(bars(:,2),'first');
-                        %d1 = NaN*obj.p(:,1); d2 = NaN*obj.p(:,1);
-                        %d1(B1) = barlen(IB); d2(B2) = barlen(IC);
-                        %z = max(d1,d2);
                         % get the minimum bar length for each node
                         [B1,IB] = unique(bars(:,1),'last');
                         [B2,IC] = unique(bars(:,2),'last');
                         d1 = NaN*obj.p(:,1); d2 = NaN*obj.p(:,1);
-                        d1(B1) = barlen(IB); d2(B2) = barlen(IC);
-                        %z = 0.5*(z + min(d1,d2));     
+                        d1(B1) = barlen(IB); d2(B2) = barlen(IC);  
                         z = min(d1,d2);
                     else
                         % get the points on the current projection
