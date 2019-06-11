@@ -326,7 +326,11 @@ classdef geodata
             
             % KJR: Coarsen portions of outer, mainland
             % and inner outside bbox.
-            iboubox = obj.boubox;
+            iboubox = [obj.bbox(1,1) obj.bbox(2,1);
+                obj.bbox(1,1) obj.bbox(2,2); ...
+                obj.bbox(1,2) obj.bbox(2,2);
+                obj.bbox(1,2) obj.bbox(2,1); ...
+                obj.bbox(1,1) obj.bbox(2,1); NaN NaN];
             iboubox(:,1) = 1.10*iboubox(:,1)+(1-1.10)*mean(iboubox(1:end-1,1));
             iboubox(:,2) = 1.10*iboubox(:,2)+(1-1.10)*mean(iboubox(1:end-1,2));
             
