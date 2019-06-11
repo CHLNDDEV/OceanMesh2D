@@ -236,22 +236,33 @@ if j > 0
     polygon_struct.mainlandb_type = new_mainb_type;
 end
 % Merge overlapping mainland and inner
-if ~isempty(new_mainb) && k > 0
-    polym = polygon_struct.mainland;
-    mergei = false(k,1);
-    for kk = 1:k
-        polyi = new_island{kk};
-        IA = find(ismembertol(polym,polyi,1e-5,'ByRows',true));
-        if length(IA) > 2
-           [x,y] = polybool('or',polym(:,1),polym(:,2),polyi(:,1),polyi(:,2));
-           polym = [x,y];
-           mergei(kk) = 1;
+if exist('polybool','file') || exist('polyshape','file')
+    if ~isempty(new_mainb) && k > 0
+        polym = polygon_struct.mainland;
+        mergei = false(k,1);
+        for kk = 1:k
+            polyi = new_island{kk};
+            IA = find(ismembertol(polym,polyi,1e-5,'ByRows',true));
+            if length(IA) > 2
+               if exist('polyshape','file')
+                  polyout = union(polyshape(polym),polyshape(polyi));
+                  polym = polyout.Vertices;
+               else
+                  [x,y] = polybool('union',polym(:,1),polym(:,2),...
+                                   polyi(:,1),polyi(:,2));
+                  polym = [x,y];
+               end
+               mergei(kk) = 1;
+            end
         end
+        if ~isnan(polym(end,1)); polym(end+1,:) = NaN; end
+        polygon_struct.mainland = polym;
+        new_island(mergei) = [];
+        polygon_struct.inner = cell2mat(new_island');
     end
-    if ~isnan(polym(end,1)); polym(end+1,:) = NaN; end
-    polygon_struct.mainland = polym;
-    new_island(mergei) = [];
-    polygon_struct.inner = cell2mat(new_island');
+else
+    warning(['no polyshape or polybool available to merge possible ' ...
+             'overlapping of mainland and inner'])
 end
 % Remove parts of inner and mainland overlapping with outer 
 polygon_struct.outer = [polygon_struct.outer; polygon_struct.mainland];
