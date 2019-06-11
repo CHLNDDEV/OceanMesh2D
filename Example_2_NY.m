@@ -23,12 +23,13 @@ fh = edgefx('geodata',gdat,...
             'max_el',max_el,'dt',dt,'g',grade);
 %% STEP 4: Pass your edgefx class object along with some meshing options and
 % build the mesh...
-mshopts = meshgen('ef',fh,'bou',gdat,'plot_on',1);
+mshopts = meshgen('ef',fh,'bou',gdat,'proj','utm','plot_on',1);
 mshopts = mshopts.build; 
 %% STEP 5: Plot it and write a triangulation fort.14 compliant file to disk.
 % Get out the msh class and put on bathy and nodestrings
 m = mshopts.grd;
-m = interp(m,gdat); m.b = max(m.b,1); % interpolate bathy to the mesh
-m = makens(m,'auto',gdat); % make the nodestring boundary conditions
-plot(m,'bd'); plot(m,'blog'); % plot triangulation and bathy
-write(m,'NY_HR');
+m = interp(m,gdat,'mindepth',1); % interpolate bathy to the mesh with minimum depth of 1 m
+m = makens(m,'auto',gdat,[],5);  % make the nodestring boundary conditions 
+                                 % with min depth of 5 m on open boundary
+plot(m,'bd'); plot(m,'blog');    % plot triangulation, and bathy on log scale
+write(m,'NY_HR');                % write to ADCIRC compliant ascii file

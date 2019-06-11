@@ -40,7 +40,7 @@ classdef edgefx
         fl   % slope filter parameters
         ch   % channels
         chd  % matrix containing channel fx values.
-        AngOfRe
+        AngOfRe % Angle of reslope
         g    % max allowable grade of mesh.
         dt   % theoretical simulateable timestep
         
@@ -575,8 +575,7 @@ classdef edgefx
         %% Channel edgefunction
         function obj = chfx(obj,feat)
             
-            ang_of_reslope=obj.AngOfRe ;
-            % ang_of_reslope = 60;                                           % Estimate width of channel using tangent of this angle times depth.
+            ang_of_reslope=obj.AngOfRe ;      % Estimate width of channel using tangent of this angle times depth.
             
             % STEP 1: Calculate the width of each channel using a v-shape approx to
             % channel's cross sectional area.
@@ -668,13 +667,14 @@ classdef edgefx
                 val = obj.F.Values;
                 tt = 'Total EdgeLength Function';
             end
+            
             figure;
             m_proj('merc',...
                 'long',[obj.bbox(1,1) obj.bbox(1,2)],...
                 'lat',[obj.bbox(2,1) obj.bbox(2,2)])
-            hold on; m_fastscatter(xgrid(obj.boudist < 0),...
-                ygrid(obj.boudist < 0),...
-                val(obj.boudist < 0));
+            hold on; m_fastscatter(xgrid,...
+                ygrid,...
+                val);
             cb = colorbar; ylabel(cb,'edgelength in meters');
             colormap(lansey)
             m_grid() %'xtick',10,'tickdir','out',...
@@ -887,6 +887,14 @@ classdef edgefx
                 
                 if ~isempty(obj.Channels)
                     obj.Channels = [];
+                end
+                
+                if ~isempty(obj.ch) 
+                   obj.ch = [];
+                end
+                
+                if ~isempty(obj.boudist) 
+                   obj.boudist = []; 
                 end
             end
         end

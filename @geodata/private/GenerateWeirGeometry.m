@@ -49,7 +49,6 @@ new_below=crestline(2:end-1,:) - width*u(2:end-1,:) ;
 
 % create ibconn_pts 
 ibconn_pts = [new_above new_below] ; 
-
 ke_right_point_mid = crestline(end,:) ; 
 ke_left_point_mid  = crestline(1,:) ; 
 

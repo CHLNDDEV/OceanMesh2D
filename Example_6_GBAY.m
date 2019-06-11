@@ -13,12 +13,12 @@ min_el    = 60;  		% Minimum mesh resolution in meters.
 max_el    = 1e3;        % Maximum mesh resolution in meters.
 %% STEP 2: specify geographical datasets and process the geographical data
 %% to be used later with other OceanMesh classes...
-coastline = 'us_medium_shoreline_polyline';
+coastline = 'us_medium_shoreline_polygon';
 demfile   = 'galveston_13_mhw_2007.nc';
 gdat = geodata('shp',coastline,...
-    'dem',demfile,...
-    'bbox',bbox,...
-    'h0',min_el);
+               'dem',demfile,...
+               'bbox',bbox,...
+               'h0',min_el);
 load ECGC_Thalwegs.mat % Load the Channel thalweg data
 %% STEP 3: create an edge function class
 fh = edgefx('geodata',gdat,...
@@ -34,7 +34,7 @@ mshopts = meshgen('ef',fh,'bou',gdat,'plot_on',1,'proj','lambert');
 mshopts = mshopts.build;
 %% STEP 5: Plot it and write a triangulation fort.14 compliant file to disk.
 m = mshopts.grd;
-m = interp(m,gdat); m.b = max(m.b,1); % interpolate bathy to the mesh
+m = interp(m,gdat,'mindepth',1,'nan','fill'); % interpolate bathy to the mesh
 m = makens(m,'auto',gdat); % make the nodestring boundary conditions
 plot(m,'bd'); plot(m,'blog'); % plot triangulation and bathy
 write(m,'HoustonShipChannel');
