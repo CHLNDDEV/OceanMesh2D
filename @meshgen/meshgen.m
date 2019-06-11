@@ -440,7 +440,7 @@ classdef meshgen
                                       /(h0_l/111e3)^2);
                     noblks = ceil(num_points*2*8/obj.memory_gb*1e-9);
                     len = abs(bbox_l(1,1)-bbox_l(2,1));
-                    blklen = floor(len)/noblks;
+                    blklen = len/noblks;
                     st = bbox_l(1,1) ; ed = st + blklen; ns = 1;
                     %% 1. Create initial distribution in bounding box
                     %% (equilateral triangles)
