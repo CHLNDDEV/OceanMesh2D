@@ -21,7 +21,7 @@ function polygon_struct = Read_shapefile( finputname, polygon, bbox, ...
 % Written by William Pringle and Keith Roberts, CHL,UND, 2017
 % Edits by Keith Roberts, July 2018. 
 %% Loop over all the filenames and get the shapefile within bbox
-SG = [];
+SG = []; sr = 1;
 if bbox(1,2) > 180 && bbox(1,1) < 180
     % bbox straddles 180/-180 line
     loop = 2; minus = 0;

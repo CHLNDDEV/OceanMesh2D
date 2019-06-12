@@ -11,6 +11,6 @@ if isempty(MAP_PROJECTION)
     return;
 end
 
-[X,Y] = m_ll2xy(long,lat,'clip','on');
+[X,Y] = m_ll2xy(long,lat,'clip','point');
 hold on; h = trisurf(tri,X,Y,z,'facecolor', 'interp', 'edgecolor', 'none');
 end

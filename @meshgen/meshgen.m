@@ -153,7 +153,7 @@ classdef meshgen
                         end
                     case('egfix')
                         obj.egfix= inp.(fields{i});
-                        if obj.egfix(1)~=0
+                        if ~isempty(obj.egfix) && obj.egfix(1)~=0
                             obj.egfix = inp.(fields{i});
                         else
                             obj.egfix = [];
@@ -490,9 +490,9 @@ classdef meshgen
                         % kjr make sure the corners of the box are added to
                         % make the tile corner's fill the extent more
                         % quickly. 
-                        plt = cell2mat(obj.boubox');
-                        plt(isnan(plt(:,1)),:)=[] ; 
-                        p = [p ; plt(1:end-1,:) ] ; 
+                        plt = cell2mat(obj.boubox')
+                        plt(isnan(plt(:,1)),:)=[] ;
+                        p = [p ; plt(1:end-1,:) ] ;
                     end
                 end
             else
@@ -583,7 +583,12 @@ classdef meshgen
                     
                     % 5. Graphical output of the current mesh
                     if obj.plot_on >= 1 && (mod(it,obj.nscreen)==0 || it == 1)
-                        cla,m_triplot(p(:,1),p(:,2),t)
+                        cla, hold on ; 
+                        plt = cell2mat(obj.boubox');
+                        % reduce point spacing for asecthics
+                        [plt2(:,2),plt2(:,1)] = my_interpm(plt(:,2),plt(:,1),0.1) ; 
+                        m_plot(plt2(:,1),plt2(:,2),'g','linewi',2)
+                        m_triplot(p(:,1),p(:,2),t)
                         m_grid
                         title(['Iteration = ',num2str(it)]);
                         if negfix > 0
@@ -593,11 +598,7 @@ classdef meshgen
                         if nfix > 0
                             m_plot(obj.pfix(:,1),obj.pfix(:,2),'b.')
                         end
-                        plt = cell2mat(obj.boubox');
-                        % reduce point spacing for asecthics
-                        [plt2(:,2),plt2(:,1)] = my_interpm(plt(:,2),plt(:,1),0.1) ; 
-                        hold on ; axis manual
-                        m_plot(plt2(:,1),plt2(:,2),'g','linewi',2)
+                        axis manual
                         drawnow
                     end
                 end

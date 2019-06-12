@@ -454,7 +454,7 @@ classdef geodata
                 end
                 
                 % check for any invalid values
-                bad = abs(demz) > 10e3 ;
+                bad = abs(demz) > 15e3 ;
                 if sum(bad(:)) > 0 && ~backup
                     warning('ALERT: Invalid and/or missing DEM values detected..check DEM');
                     if obj.BACKUPdemfile(1)~=0

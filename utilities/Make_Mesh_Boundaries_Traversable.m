@@ -198,7 +198,7 @@ count = cellfun('length',I);
 del_elem_idx = [];
 for i = nodes_on_edge(count > 2)'
     con_elem = vtoe(1:nne(i),i);
-    n = 0; del_elem = [];
+    n = 0; con_elem(con_elem == 0) = []; del_elem = [];
     for elem = con_elem'
         I = etbv(:) == t(elem,1); 
         J = etbv(:) == t(elem,2); 

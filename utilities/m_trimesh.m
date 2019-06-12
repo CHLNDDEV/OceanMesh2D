@@ -13,7 +13,7 @@ end
 
 [X,Y]=m_ll2xy(long,lat,'clip','on');  
 
-hold on; trimesh(tri,X,Y,z,'facecolor', 'none'); 
+hold on; h = trimesh(tri,X,Y,z,'facecolor', 'none'); 
 %trimesh(tri,X,Y,z,'facecolor', 'flat', 'edgecolor', 'none'); 
 
 %m_coast('patch','red') ; 
