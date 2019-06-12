@@ -93,8 +93,8 @@ while any(active)
         tsel = bnde(st+r-1,:); tsel_inv = fliplr(tsel) ;
         sel=tsel(tsel~=v_next);
         
-        if(line)
-            if(isempty(sel))
+        if line
+            if isempty(sel)
                 break
             end
         end

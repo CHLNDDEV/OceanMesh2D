@@ -804,6 +804,17 @@ classdef msh
         end
         
         function [obj,qual] = clean(obj,db,ds,con,dj,nscreen,pfix,proj)
+            % [obj,qual] = clean(obj,db,ds,con,dj,nscreen,pfix,proj)
+            % obj - msh object
+            % db  - boundary element cutoff quality (default = 0.1)
+            % ds  - perform direct smoother? (default = 1)
+            % con - upper bound on connectivity (default = 9)
+            % dj  - dj_cutoff (default = 0.25)
+            % nscreen - print info to screen? (default = 1)
+            % pfix - fixed points to keep
+            % proj -to project or not (default = 1)
+            % delete singly connected elements or not (default = 1)
+            
             % Fixing up the mesh automatically
             disp('Beginning mesh cleaning and smoothing operations...');
  
@@ -830,6 +841,13 @@ classdef msh
             end
             % this turns off fix_single_connect_edge_elements
             max_conec_it = 0;
+            
+            global MAP_PROJECTION MAP_VAR_LIST MAP_COORDS
+            if ~isempty(obj.coord)
+                MAP_PROJECTION = obj.proj ;
+                MAP_VAR_LIST   = obj.mapvar ;
+                MAP_COORDS     = obj.coord ;
+            end          
             
             % transform pfix to projected coordinates 
             if ~isempty(pfix) && proj
@@ -867,10 +885,12 @@ classdef msh
             % Reduce the mesh connectivity to maximum of con-1
             obj = renum(obj);
             % May not always work without error
-            try
-               obj = bound_con_int(obj,con);
-            catch
-               warning('Could not reduce connectivity mesh');
+            if con > 6
+                try
+                   obj = bound_con_int(obj,con);
+                catch
+                   warning('Could not reduce connectivity mesh');
+                end
             end
             
             % Try to fix spacing on the coastline
@@ -921,22 +941,25 @@ classdef msh
             imax = 100;
             [edge,elen] = GetBarLengths(obj,0);  
             bt = obj.b; 
-            if overland
+            if overland == -1
+                I = bt < 0; 
+                word = 'bathymetric';
+            elseif overland
                 I = bt > 0; 
                 word = 'topographic';
             else
-                I = bt < 0; 
-                word = 'bathymetric';
+                I = [];
+                word = 'topobathy';
             end
             bt(I) = 0;
             [bnew,flag] = limgrad(edge,elen,bt,dfdx,imax);
             if flag
                obj.b(~I) = bnew(~I);
                disp(['Successfully limited ' word ' slope to ' ...
-                      num2str(dfdx) ' in limgrad function']) 
+                    num2str(dfdx) ' in limgrad function']) 
             else
-               warning(['Could not limit ' word ' slope to ' ...
-                        num2str(dfdx) ' in limgrad function']) 
+               warning(['Could not limit ' word ' slope to  ' ...
+                       num2str(dfdx) ' in limgrad function']) 
             end
         end
         
@@ -1376,9 +1399,7 @@ classdef msh
             end
         end
         
-   
-        
-        function merge = plus(obj1,obj2)
+        function merge = plus(obj1,obj2,tight)
             % Merge together two meshes contained in the msh objects obj1
             % and obj2. Uses MATLAB's implementation of the Boywer-Watson
             % incremental triangulation and then applies mesh cleaning
@@ -1395,6 +1416,10 @@ classdef msh
             %
             % kjr, und, chl, sept. 2017 Version 1.0.
             %    UPDATED by kjr, und, chl, oct. 2018, Version 1.5
+            
+            if nargin < 3
+                tight = 1;
+            end
             
             p1 = obj1.p; t1 = obj1.t;
             p2 = obj2.p; t2 = obj2.t;
@@ -1427,9 +1452,10 @@ classdef msh
             [p2(:,1),p2(:,2)] = m_ll2xy(p2(:,1),p2(:,2)) ;
             
             [~,d1] = ourKNNsearch(p1',p1',2); 
-            avd1 = mean(d1(:,2)); mvd1 = max(d1(:,2));
+            mvd1 = max(d1(:,2));
             [~,d2] = ourKNNsearch(p2',p2',2); 
-            avd2 = mean(d2(:,2)); mvd2 = max(d2(:,2));
+            mvd2 = max(d2(:,2));
+            overlap = 0.5*(mvd1 + mvd2);
             
             disp('Forming outer boundary for base...')
             cell2 = extdom_polygon(extdom_edges2(t2,p2),p2,-1,0);
@@ -1444,7 +1470,7 @@ classdef msh
             disp('Calculating intersection...');
             [x3,y3] = polybool('intersection',...
               poly_vec1(:,1),poly_vec1(:,2),poly_vec2(:,1),poly_vec2(:,2));                    
-            if ~isempty(x3)  
+            if ~isempty(x3)
                 poly_vec3 = [x3,y3]; poly_vec3(end+1,:) = NaN;
                 [edges3]  = Get_poly_edges(poly_vec3);
                 in1 = inpoly(p2(t2(:,1),:),poly_vec3,edges3);
@@ -1454,22 +1480,24 @@ classdef msh
                 % We need to delete straggling elements that are generated
                 % through the above deletion step
                 pruned2 = msh() ; pruned2.p = p2; pruned2.t = t2;
-                pruned2 = Make_Mesh_Boundaries_Traversable(pruned2,0.25,1);
+                pruned2 = Make_Mesh_Boundaries_Traversable(pruned2,1e-4,1);
                 t2 = pruned2.t; p2 = pruned2.p;
                 % get new poly_vec2
-                cell2 = extdom_polygon(extdom_edges2(t2,p2),p2,-1,0);
-                poly_vec2 = cell2mat(cell2');
+                if tight
+                    cell2 = extdom_polygon(extdom_edges2(t2,p2),p2,-1,0);
+                    poly_vec2 = cell2mat(cell2');
+                end
             end
-            pv1 = poly_vec1(~isnan(poly_vec1(:,1)),:);
-            pv2 = poly_vec2(~isnan(poly_vec2(:,1)),:);
+            %pv1 = poly_vec1(~isnan(poly_vec1(:,1)),:);
+            %pv2 = poly_vec2(~isnan(poly_vec2(:,1)),:);
            
             disp('Merging...')
             DTbase = delaunayTriangulation(p1(:,1),p1(:,2));
             DTbase.Points(end+(1:length(p2)),:) = p2; 
      
-            tq.qm = 0;
+            tq.qm = -1;
             
-            while min(tq.qm) < 0.01
+            while min(tq.qm) < 0.0
             % Prune triangles outside both domains.
             disp('Pruning...')
             
@@ -1502,7 +1530,7 @@ classdef msh
                 end
                 
                 pm = DTbase.Points; tm = DTbase.ConnectivityList;
-                nei = DTbase.neighbors;
+                %nei = DTbase.neighbors;
                 
                 pmid = (pm(tm(:,1),:)+pm(tm(:,2),:)+pm(tm(:,3),:))/3;
 
@@ -1515,7 +1543,7 @@ classdef msh
                 in2 = inpoly(pmid,poly_vec2,edges2);
   
                 %in3 is inside the intersection
-                if exist('poly_vec3','var')
+                if exist('poly_vec3','var') && tight
                     in3 = inpoly(pmid,poly_vec3,edges3);
                 else
                     in3 = false(size(in1)); 
@@ -1523,21 +1551,20 @@ classdef msh
                 
                 % this tries to detect triangles in between close together
                 % polygons to try and avoid creating holes
-                [~,dst1] = ourKNNsearch(pv1',pmid',1);
-                [~,dst2] = ourKNNsearch(pv2',pmid',1);
-                in4      = dst1 < 0.5*(avd1 + avd2) & ...
-                           dst2 < 0.5*(avd1 + avd2);
-                
+                %[~,dst1] = ourKNNsearch(pv1',pmid',1);
+                %[~,dst2] = ourKNNsearch(pv2',pmid',1);
+                %in4      = dst1 < discut & dst2 < discut;
+                %
                 % remove triangles that aren't in the global mesh or 
                 % aren't in the inset mesh
-                inn = find((~in1 & ~in2 & ~in4) | (~in1 & in3));
+                del = (~in1 & ~in2) | (~in1 & in3);
                 % this logic also tries to avoid creating holes 
                 % in the merged mesh
-                del_nei = nei(inn,:);
-                del1 = intersect(del_nei(:,1),inn);
-                del2 = intersect(del_nei(:,2),inn);
-                del3 = intersect(del_nei(:,3),inn);
-                del = unique([del1; del2; del3]);
+                %del_nei = nei(find(del),:);
+                %del1 = intersect(del_nei(:,1),find(del));
+                %del2 = intersect(del_nei(:,2),find(del));
+                %del3 = intersect(del_nei(:,3),find(del));
+                %del = unique([del1; del2; del3]);
                 tm(del,:) = [];
             end
                         
@@ -1547,19 +1574,19 @@ classdef msh
             
             %while min(tq.qm) < 0.01
 
-                merge = clean(merge,[],0,[],1e-3,0,[],0);
+                merge = clean(merge,0,0,[],1e-4,0,[],0,0);
 
                 % if we don't know the overlap region
                 [~,dst1] = ourKNNsearch(p1',merge.p',1);
                 [~,dst2] = ourKNNsearch(p2',merge.p',1);
-                idx = find(abs(dst1 - dst2) < 0.5*(mvd1 + mvd2));
+                idx = find(abs(dst1 - dst2) < overlap);
                 
                 % use local smoother
                 constr = setdiff((1:length(merge.p))',idx);
                 [pm,tm] = smoothmesh(merge.p,merge.t,constr,50,0.01);
                 tq = gettrimeshquan(pm,tm);
                 disp(['min element quality is ', num2str(min(tq.qm))])
-                if min(tq.qm) < 0.01
+                if min(tq.qm) < 0.0
                     DTbase = delaunayTriangulation(pm(:,1),pm(:,2));
                 end
             end
@@ -1734,7 +1761,6 @@ classdef msh
             type       = 0;       %<-- 0 == Haversine, 1 == CPP with correction factor
             desCFL     = 0.50;    %<-- set desired cfl (generally less than 0.80 for stable).
             desIt = inf;          %<-- desired number of iterations
-            djc   = 0.25;
             if nargin > 2
                 if varargin{1} > 1
                     desIt = varargin{1};
@@ -1742,8 +1768,7 @@ classdef msh
                     desCFL = varargin{1};
                 end
                 if nargin == 4
-                    djc = varargin{2};
-                    %type = varargin{2}; 
+                    type = varargin{2}; 
                 end
             end
             %%
@@ -1781,6 +1806,8 @@ classdef msh
             CFL = 999;
             if ~isempty(obj.pfix)
                 [pf(:,1),pf(:,2)] = m_ll2xy(obj.pfix(:,1),obj.pfix(:,2));
+            else
+                pf = [];
             end
             con = 9;
             tic
@@ -1802,7 +1829,7 @@ classdef msh
                 % Clean up the new mesh (already projected) without direct
                 % smoothing (we have used local smooting in DecmimateTria
                 obj.b = []; % (the bathy will cause error in renum)
-                obj = clean(obj,[],0,con+floor(it/5),djc,[],[],0);
+                obj = clean(obj,0,0,con+floor(it/5),1e-4,[],pf,0,0);
                 obj.b = F(obj.p(:,1),obj.p(:,2));
             end
             toc
@@ -2127,6 +2154,51 @@ classdef msh
             
         end
         
+        function obj = xor(mcom,mglobal)
+            % Trivially combines mcom with mglobal using the projection on
+            % the mglobal msh object
+            global MAP_PROJECTION MAP_VAR_LIST MAP_COORDS
+            pp = [mglobal.p; mcom.p]; 
+            if ~isempty(mglobal.b)
+                bb = [mglobal.b; mcom.b];
+            end
+            if ~isempty(mglobal.bx)
+                bbx = [mglobal.bx; mcom.bx]; bby = [mglobal.by; mcom.by];
+            end
+            tt = [mglobal.t; mcom.t + length(mglobal.p)];
+            % kjr 2018,10,17; Set up projected space imported from msh class
+            MAP_PROJECTION = mglobal.proj ;
+            MAP_VAR_LIST   = mglobal.mapvar ;
+            MAP_COORDS     = mglobal.coord ;
+            [x,y] = m_ll2xy(pp(:,1),pp(:,2));
+            if ~isempty(find(isnan(x), 1))
+            	objt = mglobal; objt.p = [objt.p; mcom.p];
+                objt.p(1,:) = min(objt.p) - 1e-3;
+                objt.p(2,:) = max(objt.p) + 1e-3;  
+                setProj(objt,1,mglobal.proj.name);
+                [x,y] = m_ll2xy(pp(:,1),pp(:,2));
+            end
+            [pt,tt,pix] = fixmesh([x,y],tt,1e-8); 
+            [x,y] = m_xy2ll(pt(:,1),pt(:,2));
+            if ~isempty(find(isnan(x), 1))
+             	warning('found nans') 
+            end            
+            obj = msh();
+            obj.proj = MAP_PROJECTION ; 
+            obj.coord = MAP_COORDS ; 
+            obj.mapvar = MAP_VAR_LIST;
+            repeat = tt(:,1) - tt(:,2) == 0 | tt(:,3) - tt(:,2) == 0 | tt(:,3) - tt(:,1) == 0;
+            tt(repeat,:) = [];
+            obj.p = [x,y]; obj.t = tt; 
+            if ~isempty(mglobal.b)
+                obj.b = bb(pix); 
+            end
+            if ~isempty(mglobal.bx)
+                obj.bx = bbx(pix); obj.by = bby(pix);
+            end
+            obj = renum(obj);
+            obj = CheckElementOrder(obj);
+        end
         
         function obj = bound_con_int(obj,nvl) %nvu,
             %  bound_con_int updates all interior nodes that are connected
@@ -2809,7 +2881,7 @@ classdef msh
                                       riverbound(:,3),'natural','nearest');
                     offset = F(dmp);
                     % change above land
-                    dmy2.b = min(0,dmy2.b + offset); 
+                    dmy2.b = min(-0.2,dmy2.b + offset); 
                     % change minb based on river height
                     minb = max(1,dmy1.b*0 + minb - offset);
                 end
