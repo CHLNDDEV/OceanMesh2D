@@ -2154,28 +2154,36 @@ classdef msh
             
         end
         
-        function obj = xor(mcom,mglobal)
-            % Trivially combines mcom with mglobal using the projection on
-            % the mglobal msh object
+        function obj = xor(obj1,obj2)
+            % Trivially combines obj1 with obj2 using the projection on
+            % the obj2 msh object
             global MAP_PROJECTION MAP_VAR_LIST MAP_COORDS
-            pp = [mglobal.p; mcom.p]; 
-            if ~isempty(mglobal.b)
-                bb = [mglobal.b; mcom.b];
+            pp = [obj2.p; obj1.p]; 
+            if ~isempty(obj2.b)
+                bb = [obj2.b; obj1.b];
             end
-            if ~isempty(mglobal.bx)
-                bbx = [mglobal.bx; mcom.bx]; bby = [mglobal.by; mcom.by];
+            if ~isempty(obj2.bx)
+                bbx = [obj2.bx; obj1.bx]; bby = [obj2.by; obj1.by];
             end
-            tt = [mglobal.t; mcom.t + length(mglobal.p)];
+            tt = [obj2.t; obj1.t + length(obj2.p)];
             % kjr 2018,10,17; Set up projected space imported from msh class
-            MAP_PROJECTION = mglobal.proj ;
-            MAP_VAR_LIST   = mglobal.mapvar ;
-            MAP_COORDS     = mglobal.coord ;
+            if any(min(obj1.p) < min(obj2.p)) || ...
+               any(max(obj1.p) > max(obj2.p))
+                    objt = obj2; objt.p = [objt.p; obj1.p];
+                    objt.p(1,:) = min(objt.p) - 1e-3;
+                    objt.p(2,:) = max(objt.p) + 1e-3;  
+                    setProj(objt,1,obj2.proj.name);
+            else
+                MAP_PROJECTION = obj2.proj ;
+                MAP_VAR_LIST   = obj2.mapvar ;
+                MAP_COORDS     = obj2.coord ;
+            end
             [x,y] = m_ll2xy(pp(:,1),pp(:,2));
             if ~isempty(find(isnan(x), 1))
-            	objt = mglobal; objt.p = [objt.p; mcom.p];
+            	objt = obj2; objt.p = [objt.p; obj1.p];
                 objt.p(1,:) = min(objt.p) - 1e-3;
                 objt.p(2,:) = max(objt.p) + 1e-3;  
-                setProj(objt,1,mglobal.proj.name);
+                setProj(objt,1,obj2.proj.name);
                 [x,y] = m_ll2xy(pp(:,1),pp(:,2));
             end
             [pt,tt,pix] = fixmesh([x,y],tt,1e-8); 
@@ -2187,13 +2195,16 @@ classdef msh
             obj.proj = MAP_PROJECTION ; 
             obj.coord = MAP_COORDS ; 
             obj.mapvar = MAP_VAR_LIST;
-            repeat = tt(:,1) - tt(:,2) == 0 | tt(:,3) - tt(:,2) == 0 | tt(:,3) - tt(:,1) == 0;
-            tt(repeat,:) = [];
-            obj.p = [x,y]; obj.t = tt; 
-            if ~isempty(mglobal.b)
+            repeat = tt(:,1) - tt(:,2) == 0 | ...
+                     tt(:,3) - tt(:,2) == 0 | ...
+                     tt(:,3) - tt(:,1) == 0;
+            tt(repeat,:) = []; 
+            [pt,tt,pix1] = fixmesh([x,y],tt,1e-8); 
+            obj.p = pt; obj.t = tt; pix = pix(pix1);
+            if ~isempty(obj2.b)
                 obj.b = bb(pix); 
             end
-            if ~isempty(mglobal.bx)
+            if ~isempty(obj2.bx)
                 obj.bx = bbx(pix); obj.by = bby(pix);
             end
             obj = renum(obj);
