@@ -177,7 +177,8 @@ end
 
 % if empty 
 if isempty(boudat)
-    if(type==1)
+    if type==1
+        nbou = 0; nvel = 0; nvell = []; nbbv = [] ; 
         type2 = input('What kind of flux boundary is it, 20(island),2(River)?');
         for ii = 1 : length(poly)
             nbou = nbou + 1;

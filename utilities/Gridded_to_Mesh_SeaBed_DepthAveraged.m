@@ -28,6 +28,9 @@ end
 % Get the ndgrid of lon_N and lat_N
 [Lon,Lat] = ndgrid(lon_N,lat_N);
 
+% Make sure in -180/180 format
+lon_M(lon_M > 180) = lon_M(lon_M > 180) - 360;
+
 %% Do the interpolation at each depth contour
 % initialisation
 Nb = zeros(size(B)); Nm = zeros(size(B)); Nmw = zeros(size(B)); 
