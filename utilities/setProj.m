@@ -37,14 +37,14 @@ function [del] = setProj(obj,proj,projtype)
     if ~isempty(I)
         rot = projtype{I+1};
     end
-    if ~ischar(projtype)
-       projtype = projtype{1};
-    end
     if proj == 0
         % normal geographic coordinates
         m_proj('equi','lat',[lat_mi lat_ma],'long',[lon_mi lon_ma]) ;
         del = 1;
     else
+        if ~ischar(projtype)
+            projtype = projtype{1};
+        end
         if ~isempty(regexp(projtype,'ste'))
             % Special treatment of Stereographic projection
             if lat_ma < 0
