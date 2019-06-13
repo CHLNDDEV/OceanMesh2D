@@ -341,24 +341,24 @@ classdef geodata
             % to mainland
             if ~isempty(obj.inner)
                 obj.inner = coarsen_polygon(obj.inner,iboubox);
-                id_del = ismembertol(obj.inner,outerbox,1e-4,'ByRows',true);
-                if sum(id_del) > 0
-                    % need to change parts of inner to mainland...
-                    isnan1 = find(isnan(obj.inner(:,1))); ns = 1;
-                    innerdel = []; mnadd = [];
-                    for ii = 1:length(isnan1)
-                        ne = isnan1(ii);
-                        sumdel = sum(id_del(ns:ne));
-                        if sumdel > 0
-                            mnadd = [mnadd; obj.inner(ns:ne,:)];
-                            innerdel = [innerdel ns:ne];
-                        end
-                        ns = ne + 1;
-                    end
-                    obj.inner(innerdel,:) = [];
-                    obj.outer = [obj.outer; mnadd];
-                    obj.mainland = [obj.mainland; mnadd];
-                end
+%                 id_del = ismembertol(obj.inner,outerbox,1e-4,'ByRows',true);
+%                 if sum(id_del) > 0
+%                     % need to change parts of inner to mainland...
+%                     isnan1 = find(isnan(obj.inner(:,1))); ns = 1;
+%                     innerdel = []; mnadd = [];
+%                     for ii = 1:length(isnan1)
+%                         ne = isnan1(ii);
+%                         sumdel = sum(id_del(ns:ne));
+%                         if sumdel > 0
+%                             mnadd = [mnadd; obj.inner(ns:ne,:)];
+%                             innerdel = [innerdel ns:ne];
+%                         end
+%                         ns = ne + 1;
+%                     end
+%                     obj.inner(innerdel,:) = [];
+%                     obj.outer = [obj.outer; mnadd];
+%                     obj.mainland = [obj.mainland; mnadd];
+%                 end
             end
             
             % Coarsen mainland and remove parts that overlap with bounding
@@ -366,11 +366,11 @@ classdef geodata
             % only changes the distance function used for edgefx)
             if ~isempty(obj.mainland)
                 obj.mainland = coarsen_polygon(obj.mainland,iboubox);
-                id_del = ismembertol(obj.mainland,outerbox,1e-4,'ByRows',true);
-                obj.mainland(id_del,:) = [];
-                while ~isempty(obj.mainland) && isnan(obj.mainland(1))
-                    obj.mainland(1,:) = [];
-                end
+%                 id_del = ismembertol(obj.mainland,outerbox,1e-4,'ByRows',true);
+%                 obj.mainland(id_del,:) = [];
+%                 while ~isempty(obj.mainland) && isnan(obj.mainland(1))
+%                     obj.mainland(1,:) = [];
+%                 end
             end
             
             
