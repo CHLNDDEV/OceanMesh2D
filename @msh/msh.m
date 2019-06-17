@@ -803,63 +803,107 @@ classdef msh
             end
         end
         
-        function [obj,qual] = clean(obj,db,ds,con,dj,nscreen,pfix,proj)
-            % [obj,qual] = clean(obj,db,ds,con,dj,nscreen,pfix,proj)
+        function [obj,qual] = clean(obj,varargin)
+            % [obj,qual] = clean(obj,varargin)
             % obj - msh object
-            % db  - boundary element cutoff quality (default = 0.1)
-            % ds  - perform direct smoother? (default = 1)
-            % con - upper bound on connectivity (default = 9)
-            % dj  - dj_cutoff (default = 0.25)
-            % nscreen - print info to screen? (default = 1)
-            % pfix - fixed points to keep
-            % proj -to project or not (default = 1)
-            % delete singly connected elements or not (default = 1)
+            % varargin - optional base cleaning type followed by optional
+            % name-value pairs as listed below:
+            %
+            % base cleaning types: 'medium' (or 'default'), 'passive', 'aggressive'
+            %
+            % optional name-value pairs
+            % 'db'  - boundary element cutoff quality (0 - 1)
+            % 'ds'  - perform direct smoother? (0 or 1)
+            % 'con' - upper bound on connectivity (6-19)
+            % 'djc' - dj_cutoff (0 - 1 [area portion] or > 1 [km^2])
+            % 'sc_maxit' - max iterations for deletion of singly connected
+            %         elements ( >= 0, if set to 0 operation not performed)
+            % 'mqa' - allowable minimum element quality (0 - 1); setting
+            %         this too value high may prevent convergence
+            % 'nscreen' - print info to screen? (default = 1)
+            % 'pfix' - fixed points to keep (default empty)
+            % 'proj' -to project or not (default = 1)
+            
+            if iscell(varargin{1}); varargin = varargin{1}; end
+            
+            % keep for parsing to recursive function
+            varargino = varargin;
             
             % Fixing up the mesh automatically
             disp('Beginning mesh cleaning and smoothing operations...');
  
-            if nargin == 1 || isempty(db)
-                db = 0.1;
+            %process categorical cleaning options
+            if any(strcmp(varargin,'passive'))
+                disp('Employing passive option')
+                opt.db = 0.025; opt.ds = 0; opt.con = 10; opt.djc = 1e-4; 
+                opt.sc_maxit = 0; opt.mqa = 1e-4;
+                varargin(strcmp(varargin,'passive')) = [];
+            elseif any(strcmp(varargin,'aggressive'))
+                disp('Employing aggressive option')
+                opt.db = 0.25; opt.ds = 1; opt.con = 9; opt.djc = 0.25; 
+                opt.sc_maxit = inf; opt.mqa = 0.2;
+                varargin(strcmp(varargin,'aggressive')) = [];
+            else
+                disp('Employing default (medium) option')
+                opt.db = 0.1; opt.ds = 1; opt.con = 9; opt.djc = 0.1; 
+                opt.sc_maxit = 1; opt.mqa = 0.1;
+                varargin(strcmp(varargin,'default')) = []; 
+                varargin(strcmp(varargin,'medium')) = []; 
             end
-            if nargin <= 2 || isempty(ds)
-                ds = 1;
+            % set defaults
+            opt.nscreen = 1; opt.projL = 1; pfixV = []; 
+            % process user-defined individual cleaning options
+            optstring = {'nscreen','pfix','proj','con','djc','db','ds',...
+                         'sc_maxit','mqa'};
+            for ii = 1:2:length(varargin)
+                jj = find(strcmp(varargin{ii},optstring));
+                if isempty(jj)
+                    error(['Unrecognized input option: ' varargin{ii}])
+                elseif jj == 1
+                    opt.nscreen = varargin{ii + 1};
+                elseif jj == 2
+                    pfixV = varargin{ii + 1};
+                elseif jj == 3
+                    opt.projL = varargin{ii + 1};
+                elseif jj == 4
+                    opt.con = varargin{ii + 1};
+                elseif jj == 5
+                    opt.djc  = varargin{ii + 1};
+                elseif jj == 6
+                    opt.db = varargin{ii + 1};
+                elseif jj == 7
+                    opt.ds  = varargin{ii + 1};
+                elseif jj == 8
+                    opt.sc_maxit  = varargin{ii + 1};
+                elseif jj == 9
+                    opt.mqa  = varargin{ii + 1};
+                end
             end
-            if nargin <= 3 || isempty(con)
-                con = 9;
-            end
-            if nargin <= 4 || isempty(dj)
-                dj = 0.25;
-            end
-            if nargin <= 5 || isempty(nscreen)
-                nscreen = 1;
-            end
-            if nargin <= 6
-                pfix = [];
-            end
-            if nargin <= 7 || isempty(proj)
-                proj = 1;
-            end
-            % this turns off fix_single_connect_edge_elements
-            max_conec_it = 0;
             
-            global MAP_PROJECTION MAP_VAR_LIST MAP_COORDS
-            if ~isempty(obj.coord)
-                MAP_PROJECTION = obj.proj ;
-                MAP_VAR_LIST   = obj.mapvar ;
-                MAP_COORDS     = obj.coord ;
-            end          
+            % display options
+            disp('the following cleaning options have been enabled..')
+            disp(opt)
+            disp(['length of pfix = ' length(pfixV)])
             
-            % transform pfix to projected coordinates 
-            if ~isempty(pfix) && proj
-               [pfix(:,1),pfix(:,2)] = m_ll2xy(pfix(:,1),pfix(:,2)); 
+            if opt.projL
+                global MAP_PROJECTION MAP_VAR_LIST MAP_COORDS
+                if ~isempty(obj.coord)
+                    MAP_PROJECTION = obj.proj ;
+                    MAP_VAR_LIST   = obj.mapvar ;
+                    MAP_COORDS     = obj.coord ;
+                end     
+                % transform to projected coordinates 
+                [obj.p(:,1),obj.p(:,2)] =  m_ll2xy(obj.p(:,1),obj.p(:,2));
+                if ~isempty(pfixV)
+                   [pfixV(:,1),pfixV(:,2)] = m_ll2xy(pfixV(:,1),pfixV(:,2)); 
+                end
             end
-            % transform coordinates to projected space and "fix"
-            if proj
-                [obj.p(:,1),obj.p(:,2)] =  m_ll2xy(obj.p(:,1),obj.p(:,2)); 
-            end
+            
+            % "fix" mesh
             [obj.p,obj.t] = fixmesh(obj.p,obj.t);
             
-            if db
+            if opt.db
+                LT = size(obj.t,1);
                 while 1
                     % Begin by just deleting poor mesh boundary elements
                     tq = gettrimeshquan(obj.p,obj.t);
@@ -869,65 +913,71 @@ classdef msh
                     vtoe = VertToEle(obj.t);
                     bele = unique(vtoe(:,bdnodes)); bele(bele == 0) = [];
                     tqbou = tq.qm(bele);
-                    % Delete those boundary elements with quality < db
-                    if min(tqbou >= db); break; end
-                    obj.t(bele(tqbou < db),:) = [];
+                    % Delete those boundary elements with quality < opt.db
+                    if min(tqbou) >= opt.db; break; end
+                    obj.t(bele(tqbou < opt.db),:) = [];
                     [obj.p,obj.t] = fixmesh(obj.p,obj.t);
+                end
+                if opt.nscreen
+                    disp(['Deleted ' num2str(LT-size(obj.t,1)) ...
+                          ' bad boundary elements'])
                 end
             end
             
             % Make mesh traversable
-            obj = Make_Mesh_Boundaries_Traversable(obj,dj,nscreen);
+            obj = Make_Mesh_Boundaries_Traversable(obj,opt.djc,opt.nscreen);
             
             % Delete elements with single edge connectivity
-            obj = Fix_single_connec_edge_elements(obj,max_conec_it,nscreen);
+            obj = Fix_single_connec_edge_elements(obj,opt.sc_maxit,opt.nscreen);
             
             % Reduce the mesh connectivity to maximum of con-1
             obj = renum(obj);
             % May not always work without error
-            if con > 6
-                try
-                   obj = bound_con_int(obj,con);
-                catch
-                   warning('Could not reduce connectivity mesh');
-                end
+            if opt.con > 6
+                %try
+                   obj = bound_con_int(obj,opt.con);
+                %catch
+                %   warning('Could not reduce connectivity mesh');
+                %end
             end
-            
-            % Try to fix spacing on the coastline
-            %if obj.ns_fix && negfix == 0
-            %    obj = nearshorefix(obj);
-            %end
-            
+           
             % Now do the smoothing if required
-            if ds
+            if opt.ds
                 % Perform the direct smoothing
-                [obj.p,obj.t] = direct_smoother_lur(obj.p,obj.t,pfix,nscreen);
-                tq = gettrimeshquan( obj.p, obj.t);
-                if min(tq.qm) < 0.0
-                    % Need to clean it again
-                    disp(['Overlapping elements due to smoother, ' ...
-                          'cleaning again'])
-                    % repeat without projecting (already projected)
-                    obj = clean(obj,db,ds,con,dj,nscreen,pfix,0);
-                end
+                [obj.p,obj.t] = direct_smoother_lur(obj.p,obj.t,...
+                                                    pfixV,opt.nscreen);
             end
-            
+           
             % Checking and displaying element quality
-            tq = gettrimeshquan( obj.p, obj.t);
+            tq = gettrimeshquan( obj.p, obj.t);            
             mq_m = mean(tq.qm);
             mq_l = min(tq.qm);
             mq_s = std(tq.qm);
             mq_l3sig = mq_m - 3*mq_s;
             qual = [mq_m,mq_l3sig,mq_l];
             
-            if nscreen
+            if mq_l < opt.mqa
+                % Need to clean it again
+                disp('Poor or overlapping elements, cleaning again')
+                % repeat without projecting (already projected)
+                ii = find(strcmp(varargino,'proj'));
+                if ~isempty(ii)
+                    varargino{ii+1} = 0;
+                else
+                    varargino{end+1} = 'proj';
+                    varargino{end+1} = 0;
+                end
+                obj = clean(obj,varargino(:));
+            end
+            
+            if opt.nscreen
                 disp(['number of nodes is ' num2str(length(obj.p))])
                 disp(['mean quality is ' num2str(mq_m)])
                 disp(['min quality is ' num2str(mq_l)])
             end
            
             % Do the transformation back
-            if proj
+            if opt.projL
                 [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
             end
         end
@@ -1424,80 +1474,78 @@ classdef msh
             p1 = obj1.p; t1 = obj1.t;
             p2 = obj2.p; t2 = obj2.t;
             
-            global MAP_PROJECTION MAP_COORDS MAP_VAR_LIST
-            if ~isempty(obj2.coord)
-                if any(min(obj1.p) < min(obj2.p)) || ...
-                   any(max(obj1.p) > max(obj2.p))
-                    objt = obj2; objt.p = [objt.p; obj1.p];
-                    objt.p(1,:) = min(objt.p) - 1e-3;
-                    objt.p(2,:) = max(objt.p) + 1e-3;  
-                    setProj(objt,1,obj2.proj.name);
-                else
-                    % kjr 2018,10,17; Set up projected space imported from msh class
-                    MAP_PROJECTION = obj2.proj ;
-                    MAP_VAR_LIST   = obj2.mapvar ;
-                    MAP_COORDS     = obj2.coord ;
-                end
+            merge = msh(); 
+            merge.p(1,:) = min(min(p1),min(p2)) - 1e-3;
+            merge.p(2,:) = max(max(p1),max(p2)) + 1e-3;
+            if ~isempty(obj2.proj)
+                [~,merge] = setProj(merge,1,obj2.proj.name,1);
             else
-                %if ~isempty(obj1.proj)
-                %    projname = obj1.proj.name;
-                %else
-                projname = 'stereo';
-                %end
-                setProj(obj2,1,projname);
+                [~,merge] = setProj(merge,1,'stereo',1);
             end
+            merge.p = [];
             
             % project both meshes into the space of the global mesh
             [p1(:,1),p1(:,2)] = m_ll2xy(p1(:,1),p1(:,2)) ;
             [p2(:,1),p2(:,2)] = m_ll2xy(p2(:,1),p2(:,2)) ;
             
-            [~,d1] = ourKNNsearch(p1',p1',2); 
-            mvd1 = max(d1(:,2));
-            [~,d2] = ourKNNsearch(p2',p2',2); 
-            mvd2 = max(d2(:,2));
+            [~,d1] = ourKNNsearch(p1',p1',2); d1 = d1(:,2);
+            mvd1 = max(d1); 
+            [~,d2] = ourKNNsearch(p2',p2',2); d2 = d2(:,2);
+            mvd2 = max(d2);
+            midi = min(min(d2),min(d1)); 
             overlap = 0.5*(mvd1 + mvd2);
             
             disp('Forming outer boundary for base...')
             cell2 = extdom_polygon(extdom_edges2(t2,p2),p2,-1,0);
             poly_vec2 = cell2mat(cell2');
+            edges2 = Get_poly_edges(poly_vec2);
                         
             disp('Forming outer boundary for inset...')
             cell1 = extdom_polygon(extdom_edges2(t1,p1),p1,-1,0);
             poly_vec1 = cell2mat(cell1');
+            edges1 = Get_poly_edges(poly_vec1);
             
             % Delete the region in the global mesh that is in the
             % intersection with inset.
-            disp('Calculating intersection...');
-            [x3,y3] = polybool('intersection',...
-              poly_vec1(:,1),poly_vec1(:,2),poly_vec2(:,1),poly_vec2(:,2));                    
-            if ~isempty(x3)
-                poly_vec3 = [x3,y3]; poly_vec3(end+1,:) = NaN;
-                [edges3]  = Get_poly_edges(poly_vec3);
-                in1 = inpoly(p2(t2(:,1),:),poly_vec3,edges3);
-                in2 = inpoly(p2(t2(:,2),:),poly_vec3,edges3);
-                in3 = inpoly(p2(t2(:,3),:),poly_vec3,edges3);
-                t2(in1 & in2 & in3,:) = []; 
-                % We need to delete straggling elements that are generated
-                % through the above deletion step
-                pruned2 = msh() ; pruned2.p = p2; pruned2.t = t2;
-                pruned2 = Make_Mesh_Boundaries_Traversable(pruned2,1e-4,1);
-                t2 = pruned2.t; p2 = pruned2.p;
-                % get new poly_vec2
-                if tight
-                    cell2 = extdom_polygon(extdom_edges2(t2,p2),p2,-1,0);
-                    poly_vec2 = cell2mat(cell2');
+            if tight > -1
+                disp('Calculating intersection...');
+                [x3,y3] = polybool('intersection',poly_vec1(:,1),...
+                             poly_vec1(:,2),poly_vec2(:,1),poly_vec2(:,2));                    
+                if ~isempty(x3)
+                    poly_vec3 = [x3,y3]; poly_vec3(end+1,:) = NaN;
+                    [edges3]  = Get_poly_edges(poly_vec3);
+                    in1 = inpoly(p2(t2(:,1),:),poly_vec3,edges3);
+                    in2 = inpoly(p2(t2(:,2),:),poly_vec3,edges3);
+                    in3 = inpoly(p2(t2(:,3),:),poly_vec3,edges3);
+                    t2(in1 & in2 & in3,:) = []; 
+                    % We need to delete straggling elements that are generated
+                    % through the above deletion step
+                    pruned2 = msh() ; pruned2.p = p2; pruned2.t = t2;
+                    pruned2 = Make_Mesh_Boundaries_Traversable(pruned2,1e-4,1);
+                    t2 = pruned2.t; p2 = pruned2.p;
+                    % get new poly_vec2
+                    if tight
+                        cell2 = extdom_polygon(extdom_edges2(t2,p2),p2,-1,0);
+                        poly_vec2 = cell2mat(cell2');
+                        edges2 = Get_poly_edges(poly_vec2);
+                    end
                 end
             end
-            %pv1 = poly_vec1(~isnan(poly_vec1(:,1)),:);
-            %pv2 = poly_vec2(~isnan(poly_vec2(:,1)),:);
-           
+            
+            
             disp('Merging...')
             DTbase = delaunayTriangulation(p1(:,1),p1(:,2));
             DTbase.Points(end+(1:length(p2)),:) = p2; 
-     
+            % delete too close points
+            [kk,dst] = ourKNNsearch(DTbase.Points',DTbase.Points',2);
+            dst = dst(:,2); kk = kk(:,2);
+            %ind = [1:length(kk)]';
+            del = kk(dst < midi); % ind(dst < midi)];
+            DTbase.Points(double(unique(del)),:) = [];
+            
             tq.qm = -1;
             
-            while min(tq.qm) < 0.0
+            while min(tq.qm) < 1e-4
             % Prune triangles outside both domains.
             disp('Pruning...')
             
@@ -1509,7 +1557,8 @@ classdef msh
                     bdbars = extdom_edges2(tm,pm);
                     bdnodes = unique(bdbars(:));
                     I = find(enum <= 4);
-                    nn = setdiff(I',bdnodes);  
+                    nn = setdiff(I',bdnodes); 
+                    
                     % delete vertices associated with small/large 
                     % angle elements
 %                     tq = gettrimeshquan(pm,tm);
@@ -1526,7 +1575,19 @@ classdef msh
 %                         wn = tm(I(i),:); wn(J(i)) = []; 
 %                         nn = [nn; wn(1)];
 %                     end
-                    DTbase.Points(unique(nn),:) = []; 
+                    
+                    
+                    % add vertices assoicated with extra large connectivity
+                    %[adj,xadj,nnv] = Vert2Vert( tm );
+                    
+                    %nn = [nn; find(nnv > 20)];
+                    DTbase.Points(nn,:) = [];
+                    
+                    % nnv > 20
+                    %for nn = find(nnv > 20)'
+                    %    nei = unique(adj(xadj(nn):xadj(nn+1)-1));
+                    %    DTbase.Points(end+1:end+nnv(nn),:) = 0.5*(pm(nn,:) + pm(nei,:));
+                    %end
                 end
                 
                 pm = DTbase.Points; tm = DTbase.ConnectivityList;
@@ -1535,15 +1596,13 @@ classdef msh
                 pmid = (pm(tm(:,1),:)+pm(tm(:,2),:)+pm(tm(:,3),:))/3;
 
                 %in1 is inside the inset boundary polygon
-                [edges1] = Get_poly_edges(poly_vec1);
                 in1 = inpoly(pmid,poly_vec1,edges1);
                 
                 %in2 is inside the global boundary polygon
-                [edges2] = Get_poly_edges(poly_vec2);
                 in2 = inpoly(pmid,poly_vec2,edges2);
   
                 %in3 is inside the intersection
-                if exist('poly_vec3','var') && tight
+                if exist('poly_vec3','var') && tight == 1
                     in3 = inpoly(pmid,poly_vec3,edges3);
                 else
                     in3 = false(size(in1)); 
@@ -1568,13 +1627,9 @@ classdef msh
                 tm(del,:) = [];
             end
                         
-                merge = msh() ; merge.p = pm; merge.t = tm ;
+                merge.p = pm; merge.t = tm ;
             
-            %tq.qm = 0;
-            
-            %while min(tq.qm) < 0.01
-
-                merge = clean(merge,0,0,[],1e-4,0,[],0,0);
+                merge = clean(merge,'passive','proj',0);
 
                 % if we don't know the overlap region
                 [~,dst1] = ourKNNsearch(p1',merge.p',1);
@@ -1586,7 +1641,7 @@ classdef msh
                 [pm,tm] = smoothmesh(merge.p,merge.t,constr,50,0.01);
                 tq = gettrimeshquan(pm,tm);
                 disp(['min element quality is ', num2str(min(tq.qm))])
-                if min(tq.qm) < 0.0
+                if min(tq.qm) < 1e-4
                     DTbase = delaunayTriangulation(pm(:,1),pm(:,2));
                 end
             end
@@ -1596,11 +1651,7 @@ classdef msh
              % convert back to lat-lon wgs84
             [merge.p(:,1),merge.p(:,2)] = ...
                                         m_xy2ll(merge.p(:,1),merge.p(:,2));  
-            
-            merge.proj    = MAP_PROJECTION ;
-            merge.coord   = MAP_COORDS ;
-            merge.mapvar  = MAP_VAR_LIST ;                        
-                                    
+                                               
             % Check element order
             merge = CheckElementOrder(merge);             
             
@@ -1608,14 +1659,19 @@ classdef msh
             merge.b = 0*merge.p(:,1);
             [idx1,dst1] = ourKNNsearch(obj1.p',merge.p',1);   
             [idx2,dst2] = ourKNNsearch(obj2.p',merge.p',1);   
-            merge.b(dst1 <= dst2) = obj1.b(idx1(dst1 <= dst2)); 
-            merge.b(dst2 <  dst1) = obj2.b(idx2(dst2 <  dst1)); 
+            merge.b( dst1 <= dst2) = obj1.b( idx1(dst1 <= dst2)); 
+            merge.b( dst2 <  dst1 ) = obj2.b( idx2(dst2 <  dst1) );
+            % ensure depth of the first mesh is preserved
+            in1 = inpoly(pm,poly_vec1,edges1);
+            merge.b( in1 ) = obj1.b( idx1(in1) ); 
             if ~isempty(obj1.bx) && ~isempty(obj2.bx)
                 merge.bx = 0*merge.b; merge.by = 0*merge.b;
-                merge.bx(dst1 <= dst2) = obj1.bx(idx1(dst1 <= dst2)); 
                 merge.bx(dst2 < dst1) = obj2.bx(idx2(dst2 < dst1)); 
-                merge.by(dst1 <= dst2) = obj1.by(idx1(dst1 <= dst2)); 
+                merge.bx(dst1 <= dst2) = obj1.bx(idx1(dst1 <= dst2)); 
+                merge.bx( in1 ) = obj1.bx( idx1(in1) ); 
                 merge.by(dst2 < dst1) = obj2.by(idx2(dst2 < dst1)); 
+                merge.by(dst1 <= dst2) = obj1.by(idx1(dst1 <= dst2)); 
+                merge.by( in1 ) = obj1.by( idx1(in1) ); 
             end
             disp(['Note that f13, f15 and boundary conditions etc. have' ...
                   'not been carried over into the merged mesh'])                                  
@@ -1825,11 +1881,11 @@ classdef msh
                 if it == desIt,   break; end
                 if sum(bad) == 0, break; end
                 it = it + 1;
-                obj = DecimateTria(obj,bad);
+                obj = DecimateTria(obj,find(bad));
                 % Clean up the new mesh (already projected) without direct
                 % smoothing (we have used local smooting in DecmimateTria
                 obj.b = []; % (the bathy will cause error in renum)
-                obj = clean(obj,0,0,con+floor(it/5),1e-4,[],pf,0,0);
+                obj = clean(obj,'passive','proj',0,'pfix',pf);
                 obj.b = F(obj.p(:,1),obj.p(:,2));
             end
             toc
@@ -1857,49 +1913,51 @@ classdef msh
             % Check Element order
             obj = CheckElementOrder(obj);
             return;
-            
-            function obj = DecimateTria(obj,bad)
-                % form outer polygon of mesh for cleaning up.
-                bnde = extdom_edges2(obj.t,obj.p);
-                poly1 = extdom_polygon(bnde,obj.p,-1);
-                poly_vec1 = cell2mat(poly1');
-                [edges1]  = Get_poly_edges(poly_vec1);
-                % delete the points that violate the cfl, locally retriangulate, and then locally smooth
-                DTbase = delaunayTriangulation(obj.p(:,1),obj.p(:,2));
-                DTbase.Points(find(bad),:) = [];
-                pm   = DTbase.Points; tm = DTbase.ConnectivityList;
-                pmid = (pm(tm(:,1),:)+pm(tm(:,2),:)+pm(tm(:,3),:))/3;
-                in1  = inpoly(pmid,poly_vec1,edges1);
-                tm(~in1,:) = []; [pm,tm] = fixmesh(pm,tm);
-                % Delete shitty boundary elements iteratively
-                badbound = 1;
-                while ~isempty(find(badbound, 1))
-                    tq1 = gettrimeshquan(pm,tm);
-                    % Get the elements that have a boundary bar
-                    bnde = extdom_edges2(tm,pm);
-                    bdnodes = unique(bnde(:));
-                    vtoe = VertToEle(tm);
-                    bele = unique(vtoe(:,bdnodes)); bele(bele == 0) = [];
-                    tqbou = tq1.qm(bele); 
-                    badbound = bele(tqbou < 0.1);
-                    % Delete those boundary elements with quality < 0.1
-                    tm(badbound,:) = [];
-                end
-                [pm,tm] = fixmesh(pm,tm);
-                if sum(bad) < size(pm,1)*0.1
-                    % find all the points nearby each "bad" point.
-                    idx = ourKNNsearch(pm',obj.p(find(bad),:)',12);
-                    idx = idx(:);
-                    idx = unique(idx);
-                    constr = setdiff((1:length(pm))',idx);
-                    [pm,tm] = smoothmesh(pm,tm,constr,50,0.01);
-                else
-                    warning('Adapation would result in potentially catastrophic lose of connectivity, try adapting to a smaller timestep');
-                end
-                obj.p = pm; obj.t = tm;
-            end
+           
         end
         
+        function obj = DecimateTria(obj,bad,badbound)
+            % form outer polygon of mesh for cleaning up.
+            bnde = extdom_edges2(obj.t,obj.p);
+            poly1 = extdom_polygon(bnde,obj.p,-1);
+            poly_vec1 = cell2mat(poly1');
+            [edges1]  = Get_poly_edges(poly_vec1);
+            % delete the points that violate the cfl, locally retriangulate, and then locally smooth
+            DTbase = delaunayTriangulation(obj.p(:,1),obj.p(:,2));
+            DTbase.Points(bad,:) = [];
+            pm   = DTbase.Points; tm = DTbase.ConnectivityList;
+            pmid = (pm(tm(:,1),:)+pm(tm(:,2),:)+pm(tm(:,3),:))/3;
+            in1  = inpoly(pmid,poly_vec1,edges1);
+            tm(~in1,:) = []; [pm,tm] = fixmesh(pm,tm);
+            % Delete shitty boundary elements iteratively
+            if nargin < 3
+                badbound = 1;
+            end
+            while ~isempty(badbound)
+                tq1 = gettrimeshquan(pm,tm);
+                % Get the elements that have a boundary bar
+                bnde = extdom_edges2(tm,pm);
+                bdnodes = unique(bnde(:));
+                vtoe = VertToEle(tm);
+                bele = unique(vtoe(:,bdnodes)); bele(bele == 0) = [];
+                tqbou = tq1.qm(bele); 
+                badbound = bele(tqbou < 0.1);
+                % Delete those boundary elements with quality < 0.1
+                tm(badbound,:) = [];
+            end
+            [pm,tm] = fixmesh(pm,tm);
+            if length(bad) < size(pm,1)*0.1
+                % find all the points nearby each "bad" point.
+                idx = ourKNNsearch(pm',obj.p(bad,:)',12);
+                idx = idx(:);
+                idx = unique(idx);
+                constr = setdiff((1:length(pm))',idx);
+                [pm,tm] = smoothmesh(pm,tm,constr,50,0.01);
+            else
+                warning('Adapation would result in potentially catastrophic lose of connectivity, try adapting to a smaller timestep');
+            end
+            obj.p = pm; obj.t = tm;
+        end        
         
         function [] = GatherStationsFromKML(obj,kmlfile,ofname,varargin)
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2186,7 +2244,7 @@ classdef msh
                 setProj(objt,1,obj2.proj.name);
                 [x,y] = m_ll2xy(pp(:,1),pp(:,2));
             end
-            [pt,tt,pix] = fixmesh([x,y],tt,1e-8); 
+            [pt,tt,pix] = fixmesh([x,y],tt,1e-6); 
             [x,y] = m_xy2ll(pt(:,1),pt(:,2));
             if ~isempty(find(isnan(x), 1))
              	warning('found nans') 
@@ -2195,12 +2253,19 @@ classdef msh
             obj.proj = MAP_PROJECTION ; 
             obj.coord = MAP_COORDS ; 
             obj.mapvar = MAP_VAR_LIST;
+            pt = [x,y];
             repeat = tt(:,1) - tt(:,2) == 0 | ...
                      tt(:,3) - tt(:,2) == 0 | ...
                      tt(:,3) - tt(:,1) == 0;
-            tt(repeat,:) = []; 
-            [pt,tt,pix1] = fixmesh([x,y],tt,1e-8); 
-            obj.p = pt; obj.t = tt; pix = pix(pix1);
+            while sum(repeat) > 0
+                tt(repeat,:) = []; 
+                [pt,tt,pix1] = fixmesh(pt,tt,1e-6); 
+                pix = pix(pix1);
+                repeat = tt(:,1) - tt(:,2) == 0 | ...
+                         tt(:,3) - tt(:,2) == 0 | ...
+                         tt(:,3) - tt(:,1) == 0;
+            end
+            obj.p = pt; obj.t = tt; 
             if ~isempty(obj2.b)
                 obj.b = bb(pix); 
             end
@@ -2319,7 +2384,8 @@ classdef msh
                 fem_struct.nei = ele2nei(fem_struct.e,fem_struct.x,fem_struct.y);
                 disp(' ');
                 disp('The neigbor list was successfully added.');
-                nc = size(fem_struct.nei(tmpnodes,:),2);
+                [~,J1] = find(fem_struct.nei(tmpnodes,:)~=0);
+                nc = max(J1); clear J1
             end
             
             nelems_orig = nelems;
@@ -2327,8 +2393,7 @@ classdef msh
             nc_orig = nc;
             
             [~,J1] = find(fem_struct.nei(bndrynodes,:)~=0);
-            highbndry = max(J1);
-            clear J1
+            highbndry = max(J1); clear J1
             
             %nsmall = any(fem_struct.nei(j,nvu+1));
             

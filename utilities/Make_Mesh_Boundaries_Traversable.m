@@ -112,7 +112,8 @@ t1 = t; t = [];
 global MAP_PROJECTION
 if isempty(MAP_PROJECTION)
     % need to project
-    m_proj('Azimuthal Equal-area','lon',[min(p(:,1)),max(p(:,1))],...
+    m_proj('Albers Equal-Area Conic',...
+           'lon',[min(p(:,1)),max(p(:,1))],...
            'lat',[min(p(:,2)),max(p(:,2))]) ;
     % Do the transformation
     [X,Y] = m_ll2xy(p(:,1),p(:,2)); 

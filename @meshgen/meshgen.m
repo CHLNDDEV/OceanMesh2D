@@ -36,7 +36,7 @@ classdef meshgen
         boubox        % the bbox as a polygon 2-tuple
         inpoly_flip   % used to flip the inpoly test to determine the signed distance.
         memory_gb     % memory in GB allowed to use for initial rejector
-        cleanup       % logical flag to trigger cleaning of topology (default on).
+        cleanup       % logical flag or string to trigger cleaning of topology (default is on).
         direc_smooth  % logical flag to trigger direct smoothing of mesh in the cleanup
         dj_cutoff     % the cutoff area fraction for disjoint portions to delete
         grd = msh();  % create empty mesh class to return p and t in.
@@ -322,6 +322,11 @@ classdef meshgen
                         end
                     case('cleanup')
                         obj.cleanup = inp.(fields{i});
+                        if isempty(obj.cleanup) || obj.cleanup == 0
+                            obj.cleanup = 'none';
+                        elseif obj.cleanup == 1
+                            obj.cleanup = 'default'; 
+                        end
                     case('dj_cutoff')
                         obj.dj_cutoff = inp.(fields{i});
                     case('direc_smooth')
@@ -341,11 +346,12 @@ classdef meshgen
                             lon_mi = -180; lon_ma = 180; 
                             lat_mi = -90; lat_ma = 90;
                         end 
-                        % Set up projected space 
-                        dmy = msh() ; 
-                        dmy.p(:,1) = [lon_mi; lon_ma];
-                        dmy.p(:,2) = [lat_mi; lat_ma];
-                        del = setProj(dmy,1,obj.proj) ;
+                        % Set up projected space (inserts projection info
+                        % into the msh object)
+                        obj.grd.p(:,1) = [lon_mi; lon_ma];
+                        obj.grd.p(:,2) = [lat_mi; lat_ma];
+                        [~,obj.grd] = setProj(obj.grd,1,obj.proj,1) ;
+                        obj.grd.p = [];
                 end
             end
             
@@ -369,10 +375,10 @@ classdef meshgen
             % kjr build ANN object into meshgen
             obj = createANN(obj) ;
              
-            global MAP_PROJECTION MAP_COORDS MAP_VAR_LIST
-            obj.grd.proj    = MAP_PROJECTION ; 
-            obj.grd.coord   = MAP_COORDS ; 
-            obj.grd.mapvar  = MAP_VAR_LIST ; 
+%             global MAP_PROJECTION MAP_COORDS MAP_VAR_LIST
+%             obj.grd.proj    = MAP_PROJECTION ; 
+%             obj.grd.coord   = MAP_COORDS ; 
+%             obj.grd.mapvar  = MAP_VAR_LIST ; 
         
         end
         
@@ -787,14 +793,11 @@ classdef meshgen
             
             %% Doing the final cleaning and fixing to the mesh...
             % Clean up the mesh if specified
-            if obj.cleanup 
+            if ~strcmp(obj.cleanup,'none') 
                 % Put the mesh class into the grd part of meshgen and clean
                 obj.grd.p = p; obj.grd.t = t;
-                db = 0.1;   % delete bad boundaries
-                con = 9;  % reduce connectivity to max of 9
-                prj = 1;  % project
-                [obj.grd,qout] = clean(obj.grd,db,obj.direc_smooth,con,...
-                                   obj.dj_cutoff,obj.nscreen,obj.pfix,prj);
+                [obj.grd,qout] = clean(obj.grd,obj.cleanup,...
+                'nscreen',obj.nscreen,'djc',obj.dj_cutoff,'pfix',obj.pfix);
                 obj.grd.pfix = obj.pfix ;
                 obj.qual(end+1,:) = qout;
             else

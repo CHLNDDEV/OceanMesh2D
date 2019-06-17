@@ -172,6 +172,9 @@ if length(K) == length(obj.p)
                   obj.p(:,2) < min(DEM_YA)-DELTA_Y | ...
                   obj.p(:,2) > max(DEM_YA)+DELTA_Y;
         K(outside) = [];
+        if isempty(K)
+            error('no mesh vertices contained within DEM bounds')
+        end
     end
 end
 

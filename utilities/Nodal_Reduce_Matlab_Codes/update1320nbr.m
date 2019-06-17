@@ -52,9 +52,8 @@ enodes = fem_struct.e;
 %Adds new nodes,determines connectivity, and labels the bad node, 
 %neighboring nodesm and neighboring elements.
 badnode = jj;
-[nbrelem,J] = find(enodes == badnode);
+[nbrelem,~] = find(enodes == badnode);
 [nnodes,trnc] = size(nei);
-nelems = size(enodes,1);
 temp1 = sum(ismember(nei(jj,:),0));
 nc = trnc - temp1;
 nbrnode = nei(badnode,1:nc);
@@ -100,11 +99,11 @@ testang(6) = sum([ang([spb(6):nc])]);
 %Test to make sure no node is trying to cover more than half of the 
 %circle.
 testr = 1;
-while testang > 180 & testr ~=0
-    hightmp = find(testang > 180);
+while testang > 180 && testr ~=0
+    hightemp = find(testang > 180);
     spb(vod(hightemp + 1)) = spb(vod(hightemp + 1)) - 1;
     test = find(testang > 180);
-	[testr,testc] = size(test);
+	[testr,~] = size(test);
 end    
 
 %First guess of the new coordinates and bathymetry.
@@ -203,7 +202,7 @@ stoptol = 10e-8 * inrad;
 tol = stoptol + 10;
 i = 1;
 imax = 20;
-while i <= imax & tol > stoptol
+while i <= imax && tol > stoptol
     M2(7,1) = sum([M(2,1),M(1,1),M(3,1),M(5,1),M(4,1),M(6,1)]);
     M2(7,2) = sum([M(2,2),M(1,2),M(3,2),M(5,2),M(4,2),M(6,2)]);
     M2(7,3) = sum([M(2,3),M(1,3),M(3,3),M(5,3),M(4,3),M(6,3)]);
@@ -266,7 +265,7 @@ while i <= imax & tol > stoptol
     
 	tol = max(sqrt((M2(:,1)-M(:,1)).^2 + (M2(:,2)-M(:,2)).^2));
     
-    M = M2;;
+    M = M2;
     x([([newnode(1:6)]),badnode]) = ([M(:,1)]);
     y([([newnode(1:6)]),badnode]) = ([M(:,2)]);
     z([([newnode(1:6)]),badnode]) = ([M(:,3)]);
