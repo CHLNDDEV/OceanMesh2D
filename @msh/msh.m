@@ -1450,19 +1450,32 @@ classdef msh
         end
         
         function merge = plus(obj1,obj2,tight)
+            % merge = plus(obj1,obj2,tight)
             % Merge together two meshes contained in the msh objects obj1
             % and obj2. Uses MATLAB's implementation of the Boywer-Watson
             % incremental triangulation and then applies mesh cleaning
             % algorithms to "fix" the intersection zone between meshes.
             %
             % INPUTS:
-            % mesh1: msh() class of inset mesh.
-            % mesh2: msh() class of base mesh.
+            % obj1: msh() class of inset mesh.
+            % obj2: msh() class of base mesh.
+            % tight: = 1 (default) updates boundary of obj2 (for removal of 
+            %          triangles) after removing insersection(obj1,obj2) 
+            %          from obj2 (best for merging overlapping and 
+            %          agreeable meshes)
+            %        = 0 does not update boundary of obj2 (for removal of 
+            %          triangles) after removing insersection(obj1,obj2) 
+            %          from obj2 (perhaps good for avoiding holes when
+            %          merging disparate resolution meshes)
+            %        = -1 does not remove intersection(obj1,obj2) from obj2
+            %          (assumes there is no overlap, good for merging
+            %          [almost] non-overlapping meshes)
             %
             % OUPUTS:
             % a msh object with...
             % pm: np x 2 coordinates of vertices of the merged mesh.
             % tm: nt x 3 matrix representing the 2-d simplices.
+            % topo-bathy and topo-bathy gradients are also carried over
             %
             % kjr, und, chl, sept. 2017 Version 1.0.
             %    UPDATED by kjr, und, chl, oct. 2018, Version 1.5
@@ -1474,6 +1487,7 @@ classdef msh
             p1 = obj1.p; t1 = obj1.t;
             p2 = obj2.p; t2 = obj2.t;
             
+            % create new mesh object and insert the projection information
             merge = msh(); 
             merge.p(1,:) = min(min(p1),min(p2)) - 1e-3;
             merge.p(2,:) = max(max(p1),max(p2)) + 1e-3;
@@ -1532,7 +1546,6 @@ classdef msh
                 end
             end
             
-            
             disp('Merging...')
             DTbase = delaunayTriangulation(p1(:,1),p1(:,2));
             DTbase.Points(end+(1:length(p2)),:) = p2; 
@@ -1558,40 +1571,10 @@ classdef msh
                     bdnodes = unique(bdbars(:));
                     I = find(enum <= 4);
                     nn = setdiff(I',bdnodes); 
-                    
-                    % delete vertices associated with small/large 
-                    % angle elements
-%                     tq = gettrimeshquan(pm,tm);
-%                     [I,J] = find(tq.vang*180/pi > 179);
-%                     for i = 1:length(I)
-%                         % delete the vertex associated with angle angle
-%                         wn = tm(I(i),:); 
-%                         nn = [nn; wn(J(i))];
-%                     end
-%                     [I,J] = find(tq.vang*180/pi <   1);
-%                     for i = 1:length(I)
-%                         % delete one of the vertices not associated 
-%                         % with small angle
-%                         wn = tm(I(i),:); wn(J(i)) = []; 
-%                         nn = [nn; wn(1)];
-%                     end
-                    
-                    
-                    % add vertices assoicated with extra large connectivity
-                    %[adj,xadj,nnv] = Vert2Vert( tm );
-                    
-                    %nn = [nn; find(nnv > 20)];
                     DTbase.Points(nn,:) = [];
-                    
-                    % nnv > 20
-                    %for nn = find(nnv > 20)'
-                    %    nei = unique(adj(xadj(nn):xadj(nn+1)-1));
-                    %    DTbase.Points(end+1:end+nnv(nn),:) = 0.5*(pm(nn,:) + pm(nei,:));
-                    %end
                 end
                 
                 pm = DTbase.Points; tm = DTbase.ConnectivityList;
-                %nei = DTbase.neighbors;
                 
                 pmid = (pm(tm(:,1),:)+pm(tm(:,2),:)+pm(tm(:,3),:))/3;
 
@@ -1608,30 +1591,19 @@ classdef msh
                     in3 = false(size(in1)); 
                 end
                 
-                % this tries to detect triangles in between close together
-                % polygons to try and avoid creating holes
-                %[~,dst1] = ourKNNsearch(pv1',pmid',1);
-                %[~,dst2] = ourKNNsearch(pv2',pmid',1);
-                %in4      = dst1 < discut & dst2 < discut;
-                %
                 % remove triangles that aren't in the global mesh or 
                 % aren't in the inset mesh
                 del = (~in1 & ~in2) | (~in1 & in3);
-                % this logic also tries to avoid creating holes 
-                % in the merged mesh
-                %del_nei = nei(find(del),:);
-                %del1 = intersect(del_nei(:,1),find(del));
-                %del2 = intersect(del_nei(:,2),find(del));
-                %del3 = intersect(del_nei(:,3),find(del));
-                %del = unique([del1; del2; del3]);
                 tm(del,:) = [];
             end
-                        
+            
+                % add pm and tm to the new merge msh object 
                 merge.p = pm; merge.t = tm ;
             
+                % clean the msh object
                 merge = clean(merge,'passive','proj',0);
 
-                % if we don't know the overlap region
+                % the overlap region to smooth
                 [~,dst1] = ourKNNsearch(p1',merge.p',1);
                 [~,dst2] = ourKNNsearch(p2',merge.p',1);
                 idx = find(abs(dst1 - dst2) < overlap);
@@ -1645,10 +1617,11 @@ classdef msh
                     DTbase = delaunayTriangulation(pm(:,1),pm(:,2));
                 end
             end
- 
+            
+            % add pm and tm to the new merge msh object
             merge.p = pm; merge.t = tm;
             
-             % convert back to lat-lon wgs84
+            % convert back to lat-lon wgs84
             [merge.p(:,1),merge.p(:,2)] = ...
                                         m_xy2ll(merge.p(:,1),merge.p(:,2));  
                                                
