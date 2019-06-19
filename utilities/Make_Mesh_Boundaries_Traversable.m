@@ -107,6 +107,14 @@ end
 % dj_cutoff < 1
 %    proportion of the total mesh area
 function t = delete_exterior_elements(p,t,dj_cutoff,nscreen)
+%
+if dj_cutoff <= 0
+    if nscreen
+        disp('dj_cutoff is zero; do nothing in delete_exterior_elements')
+    end
+    % do nothing
+    return; 
+end
 L = size(t,1); 
 t1 = t; t = [];
 global MAP_PROJECTION
@@ -167,10 +175,6 @@ elseif dj_cutoff > 0
         An = sum(polyarea(X(t1(:,1:3))',Y(t1(:,1:3))')); 
         
     end
-elseif dj_cutoff < 0
-    error('Keep cannot be negative 0')
-else
-    % keep is zero, do nothing
 end
 if nscreen
     disp(['  ACCEPTED: deleting ' num2str(L-size(t,1)) ...

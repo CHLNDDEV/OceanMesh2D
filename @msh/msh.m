@@ -835,7 +835,7 @@ classdef msh
             %process categorical cleaning options
             if any(strcmp(varargin,'passive'))
                 disp('Employing passive option')
-                opt.db = 0.025; opt.ds = 0; opt.con = 10; opt.djc = 1e-4; 
+                opt.db = 0.025; opt.ds = 0; opt.con = 10; opt.djc = 0; 
                 opt.sc_maxit = 0; opt.mqa = 1e-4;
                 varargin(strcmp(varargin,'passive')) = [];
             elseif any(strcmp(varargin,'aggressive'))
@@ -984,6 +984,9 @@ classdef msh
         
         function obj = lim_bathy_slope(obj,dfdx,overland)
             %obj = lim_bathy_slope(obj,dfdx,overland)
+            % overland = 0; limits both bathy and topography
+            % overland = 1; limits only topography
+            % overland = -1; limits on bathy
             if nargin < 3
                 overland  = 0;
             end
