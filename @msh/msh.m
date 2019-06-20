@@ -66,7 +66,7 @@ classdef msh
                 DATASET_DIR_EXISTS=1 ;
             end
             if DATASET_DIR_EXISTS~=1
-                error('Where''s the datasets directory? Chief, you need to read the user guide')
+                warning('We suggest you to place your at in a datasets directory. Chief, you need to read the user guide')
             end
 
             if nargin == 0

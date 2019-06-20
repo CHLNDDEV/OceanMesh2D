@@ -84,8 +84,8 @@ classdef edgefx
             if exist('datasets','dir')==7
               DATASET_DIR_EXISTS=1 ;
             end
-            if DATASET_DIR_EXISTS~=1 
-              error('Where''s the datasets directory? Chief, you need to read the user guide')
+            if DATASET_DIR_EXISTS~=1
+                warning('We suggest you to place your at in a datasets directory. Chief, you need to read the user guide')
             end
 
             p = inputParser;
