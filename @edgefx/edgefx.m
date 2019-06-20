@@ -63,10 +63,7 @@ classdef edgefx
         function obj = edgefx(varargin)
             % Check for m_map dir
             M_MAP_EXISTS=0 ;
-            if exist('m_map','dir')==7
-              M_MAP_EXISTS=1 ;
-            end
-            if exist('m_map1.4','dir')==7 
+            if exist('m_proj','file')==2
               M_MAP_EXISTS=1 ;
             end
             if M_MAP_EXISTS~=1 
