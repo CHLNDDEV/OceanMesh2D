@@ -66,6 +66,7 @@ K  = (1:nn)';        % K is all of the grid
 type = 'all';
 interp = 'CA';
 NaNs = 'ignore';
+ignoreOL = 0 ;
 N    = 1 ; 
 mindepth = -inf ; 
 maxdepth = +inf ; 
@@ -97,20 +98,17 @@ if ~isempty(varargin)
     end
 end
 
-if ~exist('ignoreOL','var')
-  ignoreOL = 0 ; 
-end
 if ignoreOL 
-  disp('NaNing overland data before interpolating') 
+    disp('NaNing overland data before interpolating') 
 end
 if N > 1 
-   disp(['Enlarging CA stencil by factor ',num2str(N)]) ;  
+    disp(['Enlarging CA stencil by factor ',num2str(N)]) ;  
 end
 if mindepth > -inf 
-   disp(['Bounding minimum depth to ',num2str(mindepth), ' meters.']) ;  
+    disp(['Bounding minimum depth to ',num2str(mindepth), ' meters.']) ;  
 end
 if maxdepth < inf 
-   disp(['Bounding maximum depth to ',num2str(maxdepth), ' meters.']) ;  
+    disp(['Bounding maximum depth to ',num2str(maxdepth), ' meters.']) ;  
 end
 
 if strcmp(type,'slope')
@@ -119,9 +117,9 @@ if strcmp(type,'slope')
 end
 
 if strcmp(NaNs,'fill')
-   disp('Fill in NaNs using nearest neighbour interpolation.')
-   warning(['Note that will try and put bathy everywhere on mesh even ' ...
-           'outside of gdat/dem extents unless K logical is set.'])
+    disp('Fill in NaNs using nearest neighbour interpolation.')
+    warning(['Note that will try and put bathy everywhere on mesh even ' ...
+             'outside of gdat/dem extents unless K logical is set.'])
 end
 
 %% Let's read the LON LAT of DEM if not already geodata
@@ -145,6 +143,9 @@ else
     DEM_XA = geodata.Fb.GridVectors{1};
     DEM_YA = geodata.Fb.GridVectors{2};
     DEM_Z  = -geodata.Fb.Values;
+    if ignoreOL
+       DEM_Z(DEM_Z <= 0) = NaN ;
+    end
     DELTA_X = mean(diff(DEM_XA));
     DELTA_Y = mean(diff(DEM_YA));
     [DEM_X,DEM_Y] = ndgrid(DEM_XA,DEM_YA);
@@ -271,6 +272,10 @@ if ~isa(geodata,'geodata')
                
     % make into depths (ADCIRC compliant) 
     DEM_Z = -DEM_Z;
+    
+    if ignoreOL
+       DEM_Z(DEM_Z <= 0) = NaN ;
+    end
 end
 
 % bound all depths below mindepth 
@@ -336,16 +341,9 @@ if strcmp(interp,'CA')
     % Average for the depths    
     if strcmp(type,'depth') || strcmp(type,'all')
         for ii = 1:length(K)
-            %%% MTC special option goes here
-            if(ignoreOL)
-              pts = reshape(DEM_Z(IDXL(ii):IDXR(ii),...
-                  IDXB(ii):IDXT(ii)),[],1);
-              pts(pts < 0) = NaN ;
-            else
-              pts = reshape(DEM_Z(IDXL(ii):IDXR(ii),...
-                  IDXB(ii):IDXT(ii)),[],1);
-           end
-           b(ii) = mean(pts,'omitnan');            
+            pts = reshape(DEM_Z(IDXL(ii):IDXR(ii),...
+                                IDXB(ii):IDXT(ii)),[],1);
+            b(ii) = mean(pts,'omitnan');            
         end
         % Try and fill in the NaNs
         if strcmp(NaNs,'fill')
