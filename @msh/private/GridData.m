@@ -88,11 +88,11 @@ if ~isempty(varargin)
             elseif ii == 5 
                 N = varargin{ind*2} ; 
             elseif ii ==6 
-              mindepth = varargin{ind*2} ; 
+                mindepth = varargin{ind*2} ; 
             elseif ii ==7 
-              maxdepth = varargin{ind*2}  ; 
+                maxdepth = varargin{ind*2}  ; 
             elseif ii ==8
-              ignoreOL = varargin{ind*2} ; 
+                ignoreOL = varargin{ind*2} ; 
             end
         end    
     end

@@ -2,6 +2,10 @@ classdef geodata
     %   GEODATA: Geographical data class
     %   Handles geographical data describing coastlines or other features in
     %   the form of a shapefile and topobathy in the form of a DEM
+    %
+    %   SEE "help geodata.geodata" for help about the 'geodata' method of 
+    %   this class which you are likely trying to call
+    %
     %   Copyright (C) 2018  Keith Roberts & William Pringle
     %
     %   This program is free software: you can redistribute it and/or modify
@@ -51,6 +55,29 @@ classdef geodata
             % Class constructor to parse NetCDF DEM data, NaN-delimited vector,
             % or shapefile that defines polygonal boundary of meshing
             % domain.
+            % 
+            % The following name-value pairs are available
+            % 'h0' (required): the minimum desired mesh size [m]
+            % 'bbox' (optional only if supply a dem): either a [2 x 2] bounding box 
+            %     or a NaN-delimited polygon meshing domain 
+            % 'shp' (required unless supply pslg): the geometric description of
+            % the shoreline or some other contour as a shapefile
+            % 'pslg' (required unless supply shp): the geometric description of
+            % the shoreline or some other contour as a NaN-delimited polygon
+            % 'dem' (optional): the topo-bathymetric data
+            % 'backupdem' (optional): back-up topo-bathymetric data to
+            %    replace possible NaNs in the dem
+            % 'fp' (optional): set to 1 to designate a floodplain mesh and 
+            %    hence flip the inpolygon test
+            % 'weirs' (optional): a 2-tuple of weir geographical locations
+            % 'window' (optional): the moving mean smoothing window of the
+            %    geometry (shp or pslg); set to 5 by default.
+            
+            % check requirement for m_mapping toolbox 
+            if ~exist('m_proj','file')
+                error(['Chief, the m_map toolbox cannot be located...' ...
+                       'DOWNLOAD IT AND ADD IT TO YOUR PATH'])
+            end
             
             p = inputParser;
             
@@ -64,7 +91,6 @@ classdef geodata
             addOptional(p,'fp',defval);
             addOptional(p,'weirs',defval);
             addOptional(p,'pslg',defval);
-            addOptional(p,'boubox',defval);
             addOptional(p,'window',defval);
             
             % parse the inputs
@@ -141,8 +167,6 @@ classdef geodata
                         if obj.inner(1) ~=0
                             obj.inner = inp.(fields{i});
                         end
-                    case('boubox')
-                        obj.boubox = inp.(fields{i}) ;
                     case('window')
                         obj.window = inp.(fields{i}) ;
                         if obj.window == 0
@@ -197,7 +221,7 @@ classdef geodata
                     obj.boubox(end+1,:) = [NaN NaN];
                 end
                 obj.bbox = [min(obj.boubox(:,1)) max(obj.boubox(:,1))
-                    min(obj.boubox(:,2)) max(obj.boubox(:,2))] ;
+                            min(obj.boubox(:,2)) max(obj.boubox(:,2))] ;
             end
             
             obj = ParseShoreline(obj) ;
