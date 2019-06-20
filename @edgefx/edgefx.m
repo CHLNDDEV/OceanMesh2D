@@ -61,6 +61,24 @@ classdef edgefx
         
         %% Class constructor/pass it a shape class and edgefx params.
         function obj = edgefx(varargin)
+            % Check for m_map dir
+            M_MAP_EXISTS=0 ;
+            if exist('m_proj','file')==2
+              M_MAP_EXISTS=1 ;
+            end
+            if M_MAP_EXISTS~=1 
+              error('Where''s m_map? Chief, you need to read the user guide')
+            end
+
+            % Check for utilties dir
+            UTIL_DIR_EXISTS=0 ;
+            if exist('inpoly.m','file')
+              UTIL_DIR_EXISTS=1 ;
+            end
+            if UTIL_DIR_EXISTS~=1 
+              error('Where''s the utilities directory? Chief, you need to read the user guide')
+            end
+
             p = inputParser;
             
             defval = 0; % placeholder value if arg is not passed.

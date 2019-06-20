@@ -42,6 +42,33 @@ classdef msh
     methods
         % constructor/read mesh into class.
         function obj = msh(fname,type)
+            % Check for m_map dir
+            M_MAP_EXISTS=0 ;
+            if exist('m_map','m_proj')==2
+              M_MAP_EXISTS=1 ;
+            end
+            if M_MAP_EXISTS~=1 
+              error('Where''s m_map? Chief, you need to read the user guide')
+            end
+
+            % Check for utilties dir
+            UTIL_DIR_EXISTS=0 ;
+            if exist('inpoly.m','file')
+              UTIL_DIR_EXISTS=1 ;
+            end
+            if UTIL_DIR_EXISTS~=1 
+              error('Where''s the utilities directory? Chief, you need to read the user guide')
+            end
+            
+            % Check for dataset dir
+            DATASET_DIR_EXISTS=0 ;
+            if exist('datasets','dir')==7
+                DATASET_DIR_EXISTS=1 ;
+            end
+            if DATASET_DIR_EXISTS~=1
+                warning('We suggest you to place your files in a datasets directory. Chief, you need to read the user guide')
+            end
+
             if nargin == 0
                 obj.title = 'OceanMesh2D';
                 return
