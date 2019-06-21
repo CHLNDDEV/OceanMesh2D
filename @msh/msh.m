@@ -232,7 +232,7 @@ classdef msh
                      obj.p(obj.t(:,3),1) obj.p(obj.t(:,1),1)];
                 dxt = diff(xt,[],2);
                 obj.t(abs(dxt(:,1)) > 180 | abs(dxt(:,2)) > 180 | ...
-                    abs(dxt(:,2)) > 180,:) = [];
+                      abs(dxt(:,3)) > 180,:) = [];
             end
             
             logaxis = 0;
@@ -824,8 +824,9 @@ classdef msh
             % 'pfix' - fixed points to keep (default empty)
             % 'proj' -to project or not (default = 1)
             
-            if iscell(varargin{1}); varargin = varargin{1}; end
-            
+            if ~isempty(varargin)
+                if iscell(varargin{1}); varargin = varargin{1}; end
+            end
             % keep for parsing to recursive function
             varargino = varargin;
             
@@ -1842,6 +1843,7 @@ classdef msh
                 pf = [];
             end
             con = 9;
+            badnump = 1e10;
             tic
             while 1
                 [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
@@ -1854,15 +1856,18 @@ classdef msh
                 %end
                 display(['Number of CFL violations ',num2str(sum(bad))]);
                 disp(['Max CFL is : ',num2str(max(real(CFL)))]);
-                if it == desIt,   break; end
-                if sum(bad) == 0, break; end
+                if it == desIt; break; end
+                badnum = sum(bad);
+                if badnum == 0; break; end
+                if badnump - badnum <= 0; con = con + 1; end
                 it = it + 1;
                 obj = DecimateTria(obj,find(bad));
                 % Clean up the new mesh (already projected) without direct
                 % smoothing (we have used local smooting in DecmimateTria
                 obj.b = []; % (the bathy will cause error in renum)
-                obj = clean(obj,'passive','proj',0,'pfix',pf);
+                obj = clean(obj,'passive','proj',0,'pfix',pf,'con',con);
                 obj.b = F(obj.p(:,1),obj.p(:,2));
+                badnump = badnum;
             end
             toc
             disp(['Achieved max CFL of ',num2str(max(real(CFL))),...
