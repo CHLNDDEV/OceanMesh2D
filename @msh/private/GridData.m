@@ -125,13 +125,9 @@ end
 %% Let's read the LON LAT of DEM if not already geodata
 flipUD = 0;
 if ~isa(geodata,'geodata')
-    try
-        DEM_XA = double(ncread(geodata,'lon'));
-        DEM_YA = double(ncread(geodata,'lat'));
-    catch
-        DEM_XA = double(ncread(geodata,'x'));
-        DEM_YA = double(ncread(geodata,'y'));
-    end
+    [xvn, yvn, zvn] = getdemvarnames(geodata);
+    DEM_XA = double(ncread(geodata,xvn));
+    DEM_YA = double(ncread(geodata,yvn));
     DELTA_X = mean(diff(DEM_XA));
     DELTA_Y = mean(diff(DEM_YA));
     if DELTA_Y < 0
@@ -255,16 +251,8 @@ if ~isa(geodata,'geodata')
     if exist('DEM_X','var')
         clear DEM_X DEM_Y DEM_Z
     end
-    [DEM_X,DEM_Y] = ndgrid(DEM_XA(I),DEM_YA(J));
-    
-    finfo = ncinfo(geodata);
-    for ii = 1:length(finfo.Variables)
-        if length(finfo.Variables(ii).Size) == 2
-            zvarname = finfo.Variables(ii).Name;
-            break
-        end
-    end
-    DEM_Z = single(ncread(geodata,zvarname,...
+    [DEM_X,DEM_Y] = ndgrid(DEM_XA(I),DEM_YA(J));  
+    DEM_Z = single(ncread(geodata,zvn,...
                    [I(1) J(1)],[length(I) length(J)]));
     if flipUD
        DEM_Z = fliplr(DEM_Z);
@@ -424,4 +412,40 @@ if strcmp(type,'slope') || strcmp(type,'all')
 end
 obj.p(lon_change,1) = obj.p(lon_change,1) - lon_dir*360;
 %EOF
+end
+
+function [xvn, yvn, zvn] = getdemvarnames(fname)
+    % Define well-known variables for longitude and latitude
+    % coordinates in Digital Elevation Model NetCDF file (CF
+    % compliant).
+    xvn = []; yvn = []; zvn = [];
+    wkv_x = {'x','Longitude','longitude','lon','lon_z'} ;
+    wkv_y = {'y','Latitude', 'latitude','lat','lat_z'} ;
+    finfo = ncinfo(fname);
+    for ii = 1:length(finfo.Variables)
+        if ~isempty(xvn) && ~isempty(yvn) && ~isempty(zvn); break; end
+        if length(finfo.Variables(ii).Size) == 1
+            if isempty(xvn) && ...
+                    any(strcmp(finfo.Variables(ii).Name,wkv_x))
+                xvn = finfo.Variables(ii).Name;
+            end
+            if isempty(yvn) && ...
+                    any(strcmp(finfo.Variables(ii).Name,wkv_y))
+                yvn = finfo.Variables(ii).Name;
+            end
+        elseif length(finfo.Variables(ii).Size) == 2
+            if isempty(zvn)
+                zvn = finfo.Variables(ii).Name;
+            end
+        end
+    end
+    if isempty(xvn)
+        error('Could not locate x coordinate in DEM') ;
+    end
+    if isempty(yvn)
+        error('Could not locate y coordinate in DEM') ;
+    end
+    if isempty(zvn)
+        error('Could not locate z coordinate in DEM') ;
+    end
 end

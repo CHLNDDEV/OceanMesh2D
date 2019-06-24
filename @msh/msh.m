@@ -544,9 +544,10 @@ classdef msh
                         ii = find(contains({obj.f13.defval.Atr(:).AttrName},'quadratic'));
                         defval  = obj.f13.defval.Atr(ii).Val;
                         userval = obj.f13.userval.Atr(ii).Val;
-                        values = max(userval(2:end,:)',[],2);
+                        values = obj.p(:,1)*0 + defval;
+                        values(userval(1,:)) = userval(2,:);
                         figure;
-                        fastscatter(obj.p(userval(1,:),1),obj.p(userval(1,:),2),values);
+                        fastscatter(obj.p(:,1),obj.p(:,2),values);
                         nouq = length(unique(values));
                         colormap(jet(nouq));
                         colorbar;

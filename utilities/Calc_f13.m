@@ -1,50 +1,71 @@
-function obj = Calc_f13_inpoly(obj,attribute,polys,cfvals,inverse,Cf_val_on_mesh)
-% obj = Calc_f13_inpoly(obj,attribute,polys,cfvals,inverse,Cf_val_on_mesh)
-% Input a msh class object with bathy data and get back the specified
+function obj = Calc_f13(obj,attribute,varargin) 
+% obj = Calc_f13(obj,attribute,varargin)
+% Input a msh class object and get back the specified
 % attribute in a f13 structure of the obj
 %
 %  Inputs:   1) A msh class obj with bathy on it
 %            2) The attribute indicator
 %               Attributes currently supported:
 %              'Cf' ('quadratic_friction_coefficient_at_sea_floor')
-%              'EV' ('average_horizontal_eddy_viscosity_in_sea_water_wrt_depth')
-%               etc. 
-%            3) A cell-arry of polygons in which you would like to alter 
+%              'Ev' ('average_horizontal_eddy_viscosity_in_sea_water_wrt_depth')
+%              'Mn' ('mannings_n_at_sea_floor')
+%              'Ss' ('surface_submergence_state')
+%
+%            3) then either: 
+%              'inpoly' followed by...
+%            - A cell-arry of polygons in which you would like to alter 
 %               the attribute.
-%            4) A set of attribute values that correspond 1-to-1 with the
+%            - A set of attribute values that correspond 1-to-1 with the
 %               cell of polygons.
+%            - (optional) A set of 0 or 1's that correspond 1-to-1 with the
+%               cell of polygons as to whether the in or out polygon is
+%               selected
+%
+%            or 'assign' followed by...
+%            - an array of values to assign with length the same as the 
+%              number of vertices in the msh obj 
 %
 %  Outputs: 1) msh class obj with attribute values populating the f13 struct
 %
 %  Author:      Keith Roberts, WP to make it for general attribute
-%  Created:     April 5 2018, July 5 2018
+%  Created:     April 5 2018, July 5 2018, June 6 2019 (cleaning up)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-if nargin < 5
-    inverse = 0*cfvals;
-end
 
 if strcmpi(attribute,'Cf')
     attrname = 'quadratic_friction_coefficient_at_sea_floor';
     default_val = 0.0025; % Default Cf
-elseif strcmpi(attribute,'EV')
+elseif strcmpi(attribute,'Ev')
     attrname = 'average_horizontal_eddy_viscosity_in_sea_water_wrt_depth';
     default_val = 0.05; % Default smagorinsky eddy viscosity
-elseif strcmpi(attribute,'mannings_n_at_sea_floor')
+elseif strcmpi(attribute,'Mn')
     attrname = 'mannings_n_at_sea_floor';
     default_val = 0.020;
-elseif strcmpi(attribute,'surface_submergence_state')
+elseif strcmpi(attribute,'Ss')
     attrname = 'surface_submergence_state';
     default_val = 0;
 else
     error(['Attribute ' attribute ' not currently supported'])
 end
 
+if strcmpi(varargin{1},'inpoly')
+    polys = varargin{2};
+    cfvals = varargin{3};
+    if length(varargin) < 4
+        inverse = 0*cfvals;
+    else
+        inverse = varargin{4};
+    end
+elseif strcmpi(varargin{1},'assign')
+     Cf_val_on_mesh = varargin{2};
+else
+    error(['First varargin entry (' varargin{1} ') unsupported'])
+end
+
 %% Make into f13 struct
 if isempty(obj.f13)
-    % Add internal_tide as first entry in f13 struct
+    % Add this as first entry in f13 struct
     obj.f13.AGRID = obj.title;
-    obj.f13.NumOfNodes = length(obj.b);
+    obj.f13.NumOfNodes = length(obj.p);
     obj.f13.nAttr = 1;
     NA = 1;
 else
@@ -74,7 +95,7 @@ obj.f13.defval.Atr(NA).Val = default_val ;
 % User Values
 obj.f13.userval.Atr(NA).AttrName = attrname ;
 cf = obj.p(:,1)*0 + default_val;
-if nargin < 6
+if strcmpi(varargin{1},'inpoly')
     for i = 1 : length(polys)
         in = inpoly([obj.p(:,1),obj.p(:,2)],polys{i});
         if inverse(i)

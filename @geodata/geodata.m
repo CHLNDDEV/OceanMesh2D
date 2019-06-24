@@ -552,8 +552,6 @@ classdef geodata
             
         end
         
-        
-        
         function obj = check_connectedness_inpoly(obj)
             % Check for connected polygons and if not connected,
             %  whether to flip the inpoly result to ensure meshing
