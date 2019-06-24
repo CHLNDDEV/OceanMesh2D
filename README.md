@@ -1,8 +1,11 @@
 # `OceanMesh2D:`
 ## `Precise distance-based two-dimensional automated mesh generation toolbox intended for coast ocean/shallow water flow models`
 
-## `IMPORTANT NOTE:`
+## IMPORTANT NOTE:
 This is the `DEVELOPMENT` branch, where the code is being constantly updated. It is recommended to use the default `PROJECTION` branch (unless there is a specific new feature that you require) as we cannot guaranteed the new developments do not break other parts of the code without further testing. 
+
+## `DISCLAIMER: `
+The boundary of the meshing domain must be a polygon (first point equals the last and non-self intersecting) but it does not need to be simplified. Read the user guide for more information about the inputs.
 
 <p align="center">
   <img src = "Example1.png"> &nbsp &nbsp &nbsp &nbsp
@@ -11,10 +14,6 @@ This is the `DEVELOPMENT` branch, where the code is being constantly updated. It
   <img src = "Globalocean.jpg"> &nbsp &nbsp &nbsp &nbsp
 </p>
 OceanMesh2D is a set of user-friendly MATLAB functions to generate two-dimensional (2D) unstructured meshes for coastal ocean circulation problems. These meshes are based on a variety of feature driven geometric and bathymetric mesh size functions, which are generated according to user-defined parameters. Mesh generation is achieved through a force-balance algorithm combined with a number of topological improvement strategies aimed at improving the worst case triangle quality. The software embeds the mesh generation process into an object-orientated framework that contains pre- and post-processing workflows, which makes mesh generation flexible, reproducible, and script-able. 
-
-## `DISCLAIMER: `
-The boundary of the meshing domain must be a polygon (first point equals the last and non-self intersecting) but it does not need to be simplified. Read the user guide for more information about the inputs.
-
 
 ## `Code framework` 
 `OceanMesh2D`  consists of four standalone classes that are called in sequence. It requires no paid toolboxes to build meshes and has been tested to work with a trial version of MATLAB.
