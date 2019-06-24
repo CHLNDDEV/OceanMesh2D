@@ -1,4 +1,8 @@
-## `OceanMesh2D: Precise distance-based two-dimensional automated mesh generation toolbox intended for coast ocean/shallow water flow models`
+# `OceanMesh2D:`
+## `Precise distance-based two-dimensional automated mesh generation toolbox intended for coast ocean/shallow water flow models`
+
+## `IMPORTANT NOTE:`
+This is the `DEVELOPMENT` branch, where the code is being constantly updated. It is recommended to use the default `PROJECTION` branch (unless there is a specific new feature that you require) as we cannot guaranteed the new developments do not break other parts of the code without further testing. 
 
 <p align="center">
   <img src = "Example1.png"> &nbsp &nbsp &nbsp &nbsp
