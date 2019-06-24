@@ -1,4 +1,11 @@
-## `OceanMesh2D: Precise distance-based two-dimensional automated mesh generation toolbox intended for coast ocean/shallow water flow models`
+# `OceanMesh2D:`
+## `Precise distance-based two-dimensional automated mesh generation toolbox intended for coast ocean/shallow water flow models`
+
+## IMPORTANT NOTE:
+This is the legacy `MASTER` branch, and is not recommended unless for example you want to reproduce the results from the GMD paper referenced at the bottom here. Otherwise, it is recommended to use the default `PROJECTION` branch.
+
+## `DISCLAIMER: `
+The boundary of the meshing domain must be a polygon (first point equals the last and non-self intersecting) but it does not need to be simplified. Read the user guide for more information about the inputs.
 
 <p align="center">
   <img src = "nesting.png"> &nbsp &nbsp &nbsp &nbsp
@@ -43,9 +50,9 @@ Development paper[1]└── Example_6_GBAY.m %<- An example of the polyline/th
 If you make use of `OceanMesh2D` please include a reference to the following:
 ```
 
-[1] - Roberts, K. J., Pringle, W. J., and Westerink, J. J., 2018. 
+[1] - Roberts, K. J., Pringle, W. J., and Westerink, J. J., 2019. 
       OceanMesh2D 1.0: MATLAB-based software for two-dimensional unstructured mesh generation in coastal ocean modeling, 
-      Geosci. Model Dev. Discuss., https://doi.org/10.5194/gmd-2018-203, in review.
+      Geosci. Model Dev. (GMD), https://doi.org/10.5194/gmd-12-1847-2019.
 [2] - Roberts, K. J., Pringle, W. J, 2018. 
       OceanMesh2D: User guide - Precise distance-based two-dimensional automated mesh generation toolbox intended for coastal
       ocean/shallow water. https://doi.org/10.13140/RG.2.2.21840.61446/2.       
