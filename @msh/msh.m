@@ -44,7 +44,7 @@ classdef msh
         function obj = msh(fname,type)
             % Check for m_map dir
             M_MAP_EXISTS=0 ;
-            if exist('m_map','m_proj')==2
+            if exist('m_proj','file')==2
               M_MAP_EXISTS=1 ;
             end
             if M_MAP_EXISTS~=1 
