@@ -739,6 +739,36 @@ classdef edgefx
             
             [xg,yg] = CreateStructGrid(obj);
             
+            % Before grading, ensure edgefx reflects the spacing in
+            % proximity to constraints.
+            if ~isempty(feat.weirs)
+                % form temporary mesh size function interpolat
+                % if spacing is negative -999 then it will use the mesh
+                % size function to determine the spacing. 
+                %Ftmp = griddedInterpolant(xg,yg,hh_m,'linear','nearest');
+
+                for i =1:length(feat.weirs)
+                    % get spacing in meters along the face of the weir
+                    weir_spacing = feat.weirs{i}(1,4);
+                    % get crestline points in wgs84
+                    txy = feat.weirs{i}(:,1:2) ;
+                    xy=[];
+                    [xy(:,2),xy(:,1)]=my_interpm(txy(:,2),txy(:,1),...
+                        (obj.h0/2)/111e3);
+                    % edit the mesh size function in proximity to the weir
+                    for j = 1 : length(xy)
+                        nidx = 10 ;
+                        % return the indices into the mesh size function
+                        [lidx] = FindLinearIdx(xy(j,1),xy(j,2),xg,yg);
+                        [r,c]  = ind2sub(size(xg),lidx);
+                        [cid,rid]=ndgrid((c-nidx:c+nidx)',(r-nidx:r+nidx)');    % grid of nearby points
+                        rid = [rid(:);r]; cid=[cid(:);c];
+                        hh_m(rid,cid) = weir_spacing ;
+                    end
+                end
+            end
+            
+            
             % enforce all mesh resolution bounds,grade and enforce the CFL in planar metres
             if(~isinf(obj.max_el_ns))
                 nearshore = abs(obj.boudist) < 100;

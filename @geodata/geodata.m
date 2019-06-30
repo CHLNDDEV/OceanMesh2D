@@ -187,7 +187,16 @@ classdef geodata
                             for ii = 1 : noWeirs
                                 crestlines = obj.weirs{ii}(:,1:2) ;
                                 width      = obj.weirs{ii}(1,3) ;
-                                [tempPfix,tmpEgfix,obj.ibconn_pts{ii}] = GenerateWeirGeometry(crestlines,width,2*(obj.h0/111e3),0) ;
+                                % user-defined spacing along face of weir
+                                if obj.weirs{ii}(1,4)~=0
+                                    [tempPfix,tmpEgfix,obj.ibconn_pts{ii}] = GenerateWeirGeometry(crestlines,width,...
+                                          obj.weirs{ii}(1,4)/111e3,0) ;
+                                else
+                                % by default spacing along face of weir is
+                                % MIN_EL
+                                    [tempPfix,tmpEgfix,obj.ibconn_pts{ii}] = GenerateWeirGeometry(crestlines,width,...
+                                        2*(obj.h0/111e3),0) ;
+                                end
                                 [tmpEgfix]=renumberEdges(tmpEgfix) ;
                                 weirLength(ii) = length(tempPfix) ;
                                 if ii~=1
@@ -229,7 +238,7 @@ classdef geodata
             end
             
             obj = ParseShoreline(obj) ;
-            
+      
             % kjr Add the weir faux islands to the inner geometry
             if ~isempty(obj.weirPfix)
                 idx = [0; cumsum(weirLength)']+1 ;
@@ -278,7 +287,7 @@ classdef geodata
                 
                 % Read in the geometric meshing boundary information from a
                 % NaN-delimited vector.
-            elseif obj.pslg(1)~=0
+            elseif ~isempty(obj.pslg)
                 
                 % Handle the case for user defined mesh boundary information
                 polygon_struct = Read_shapefile( [], obj.pslg, ...
@@ -482,7 +491,8 @@ classdef geodata
                 end
                 
                 % check for any invalid values
-                bad = abs(demz) > 15e3 ;
+                %bad = abs(demz) > 15e3 ;
+                bad = isnan(demz); 
                 if sum(bad(:)) > 0 && ~backup
                     warning('ALERT: Invalid and/or missing DEM values detected..check DEM');
                     if ~isempty(obj.BACKUPdemfile)

@@ -181,6 +181,7 @@ classdef meshgen
                                 obj.egfix = [obj.egfix ; obj.bou{j}.weirEgfix+length(obj.egfix)];
                             end
                         end
+                       obj.egfix=renumberEdges(obj.egfix);
                     case('fixboxes')
                         obj.fixboxes= inp.(fields{i});
                     
