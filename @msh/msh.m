@@ -37,6 +37,7 @@ classdef msh
         coord  % Description of projected space (m_mapv1.4)
         mapvar % Description of projected space (m_mapv1.4)
         pfix   % fixed points that were constrained in msh
+        egfix  % fixed eges that were constraind in msh
     end
     
     methods
@@ -1429,10 +1430,10 @@ classdef msh
             global MAP_PROJECTION MAP_COORDS MAP_VAR_LIST
             if ~isempty(obj2.coord)
                 if any(min(obj1.p) < min(obj2.p)) || ...
-                   any(max(obj1.p) > max(obj2.p))
+                        any(max(obj1.p) > max(obj2.p))
                     objt = obj2; objt.p = [objt.p; obj1.p];
                     objt.p(1,:) = min(objt.p) - 1e-3;
-                    objt.p(2,:) = max(objt.p) + 1e-3;  
+                    objt.p(2,:) = max(objt.p) + 1e-3;
                     setProj(objt,1,obj2.proj.name);
                 else
                     % kjr 2018,10,17; Set up projected space imported from msh class
@@ -1453,15 +1454,15 @@ classdef msh
             [p1(:,1),p1(:,2)] = m_ll2xy(p1(:,1),p1(:,2)) ;
             [p2(:,1),p2(:,2)] = m_ll2xy(p2(:,1),p2(:,2)) ;
             
-            [~,d1] = ourKNNsearch(p1',p1',2); 
+            [~,d1] = ourKNNsearch(p1',p1',2);
             avd1 = mean(d1(:,2)); mvd1 = max(d1(:,2));
-            [~,d2] = ourKNNsearch(p2',p2',2); 
+            [~,d2] = ourKNNsearch(p2',p2',2);
             avd2 = mean(d2(:,2)); mvd2 = max(d2(:,2));
             
             disp('Forming outer boundary for base...')
             cell2 = extdom_polygon(extdom_edges2(t2,p2),p2,-1,0);
             poly_vec2 = cell2mat(cell2');
-                        
+            
             disp('Forming outer boundary for inset...')
             cell1 = extdom_polygon(extdom_edges2(t1,p1),p1,-1,0);
             poly_vec1 = cell2mat(cell1');
@@ -1470,14 +1471,14 @@ classdef msh
             % intersection with inset.
             disp('Calculating intersection...');
             [x3,y3] = polybool('intersection',...
-              poly_vec1(:,1),poly_vec1(:,2),poly_vec2(:,1),poly_vec2(:,2));                    
-            if ~isempty(x3)  
+                poly_vec1(:,1),poly_vec1(:,2),poly_vec2(:,1),poly_vec2(:,2));
+            if ~isempty(x3)
                 poly_vec3 = [x3,y3]; poly_vec3(end+1,:) = NaN;
                 [edges3]  = Get_poly_edges(poly_vec3);
                 in1 = inpoly(p2(t2(:,1),:),poly_vec3,edges3);
                 in2 = inpoly(p2(t2(:,2),:),poly_vec3,edges3);
                 in3 = inpoly(p2(t2(:,3),:),poly_vec3,edges3);
-                t2(in1 & in2 & in3,:) = []; 
+                t2(in1 & in2 & in3,:) = [];
                 % We need to delete straggling elements that are generated
                 % through the above deletion step
                 pruned2 = msh() ; pruned2.p = p2; pruned2.t = t2;
@@ -1489,93 +1490,78 @@ classdef msh
             end
             pv1 = poly_vec1(~isnan(poly_vec1(:,1)),:);
             pv2 = poly_vec2(~isnan(poly_vec2(:,1)),:);
-           
+            
             disp('Merging...')
-            DTbase = delaunayTriangulation(p1(:,1),p1(:,2));
-            DTbase.Points(end+(1:length(p2)),:) = p2; 
-     
+            if isempty(obj1.egfix)
+                DTbase = delaunayTriangulation(p1(:,1),p1(:,2));
+            else
+                DTbase = delaunayTriangulation(p1(:,1),p1(:,2),obj1.egfix);
+            end
+            DTbase.Points(end+(1:length(p2)),:) = p2;
+            
             tq.qm = 0;
             
             while min(tq.qm) < 0.01
-            % Prune triangles outside both domains.
-            disp('Pruning...')
-            
-            for ii = 1:2 
-            % The loop makes sure to remove only small connectivity for the boundaries
-                if ii == 2
-                    % To remove small connectivity or bad elements
-                    [~, enum] = VertToEle(tm);
-                    bdbars = extdom_edges2(tm,pm);
-                    bdnodes = unique(bdbars(:));
-                    I = find(enum <= 4);
-                    nn = setdiff(I',bdnodes);  
-                    % delete vertices associated with small/large 
-                    % angle elements
-%                     tq = gettrimeshquan(pm,tm);
-%                     [I,J] = find(tq.vang*180/pi > 179);
-%                     for i = 1:length(I)
-%                         % delete the vertex associated with angle angle
-%                         wn = tm(I(i),:); 
-%                         nn = [nn; wn(J(i))];
-%                     end
-%                     [I,J] = find(tq.vang*180/pi <   1);
-%                     for i = 1:length(I)
-%                         % delete one of the vertices not associated 
-%                         % with small angle
-%                         wn = tm(I(i),:); wn(J(i)) = []; 
-%                         nn = [nn; wn(1)];
-%                     end
-                    DTbase.Points(unique(nn),:) = []; 
-                end
+                % Prune triangles outside both domains.
+                disp('Pruning...')
                 
-                pm = DTbase.Points; tm = DTbase.ConnectivityList;
-                nei = DTbase.neighbors;
-                
-                pmid = (pm(tm(:,1),:)+pm(tm(:,2),:)+pm(tm(:,3),:))/3;
-
-                %in1 is inside the inset boundary polygon
-                [edges1] = Get_poly_edges(poly_vec1);
-                in1 = inpoly(pmid,poly_vec1,edges1);
-                
-                %in2 is inside the global boundary polygon
-                [edges2] = Get_poly_edges(poly_vec2);
-                in2 = inpoly(pmid,poly_vec2,edges2);
-  
-                %in3 is inside the intersection
-                if exist('poly_vec3','var')
-                    in3 = inpoly(pmid,poly_vec3,edges3);
-                else
-                    in3 = false(size(in1)); 
-                end
-                
-                % this tries to detect triangles in between close together
-                % polygons to try and avoid creating holes
-                [~,dst1] = ourKNNsearch(pv1',pmid',1);
-                [~,dst2] = ourKNNsearch(pv2',pmid',1);
-                in4      = dst1 < 0.5*(avd1 + avd2) & ...
-                           dst2 < 0.5*(avd1 + avd2);
-                
-                % remove triangles that aren't in the global mesh or 
-                % aren't in the inset mesh
-                inn = find((~in1 & ~in2 & ~in4) | (~in1 & in3));
-                % this logic also tries to avoid creating holes 
-                % in the merged mesh
-                del_nei = nei(inn,:);
-                del1 = intersect(del_nei(:,1),inn);
-                del2 = intersect(del_nei(:,2),inn);
-                del3 = intersect(del_nei(:,3),inn);
-                del = unique([del1; del2; del3]);
-                tm(del,:) = [];
-            end
+                for ii = 1:2
+                    % The loop makes sure to remove only small connectivity for the boundaries
+                    if ii == 2
+                        % To remove small connectivity or bad elements
+                        [~, enum] = VertToEle(tm);
+                        bdbars = extdom_edges2(tm,pm);
+                        bdnodes = unique(bdbars(:));
+                        I = find(enum <= 4);
+                        nn = setdiff(I',bdnodes);
                         
+                        DTbase.Points(unique(nn),:) = [];
+                    end
+                    
+                    pm = DTbase.Points; tm = DTbase.ConnectivityList;
+                    nei = DTbase.neighbors;
+                    
+                    pmid = (pm(tm(:,1),:)+pm(tm(:,2),:)+pm(tm(:,3),:))/3;
+                    
+                    %in1 is inside the inset boundary polygon
+                    [edges1] = Get_poly_edges(poly_vec1);
+                    in1 = inpoly(pmid,poly_vec1,edges1);
+                    
+                    %in2 is inside the global boundary polygon
+                    [edges2] = Get_poly_edges(poly_vec2);
+                    in2 = inpoly(pmid,poly_vec2,edges2);
+                    
+                    %in3 is inside the intersection
+                    if exist('poly_vec3','var')
+                        in3 = inpoly(pmid,poly_vec3,edges3);
+                    else
+                        in3 = false(size(in1));
+                    end
+                    
+                    % this tries to detect triangles in between close together
+                    % polygons to try and avoid creating holes
+                    [~,dst1] = ourKNNsearch(pv1',pmid',1);
+                    [~,dst2] = ourKNNsearch(pv2',pmid',1);
+                    in4      = dst1 < 0.5*(avd1 + avd2) & ...
+                        dst2 < 0.5*(avd1 + avd2);
+                    
+                    % remove triangles that aren't in the global mesh or
+                    % aren't in the inset mesh
+                    inn = find((~in1 & ~in2 & ~in4) | (~in1 & in3));
+                    % this logic also tries to avoid creating holes
+                    % in the merged mesh
+                    del_nei = nei(inn,:);
+                    del1 = intersect(del_nei(:,1),inn);
+                    del2 = intersect(del_nei(:,2),inn);
+                    del3 = intersect(del_nei(:,3),inn);
+                    del = unique([del1; del2; del3]);
+                    tm(del,:) = [];
+                end
+                
                 merge = msh() ; merge.p = pm; merge.t = tm ;
-            
-            %tq.qm = 0;
-            
-            %while min(tq.qm) < 0.01
-
+                
                 merge = clean(merge,[],0,[],1e-3,0,[],0);
-
+                
                 % if we don't know the overlap region
                 [~,dst1] = ourKNNsearch(p1',merge.p',1);
                 [~,dst2] = ourKNNsearch(p2',merge.p',1);
@@ -1590,7 +1576,7 @@ classdef msh
                     DTbase = delaunayTriangulation(pm(:,1),pm(:,2));
                 end
             end
- 
+            
             merge.p = pm; merge.t = tm;
             
              % convert back to lat-lon wgs84
