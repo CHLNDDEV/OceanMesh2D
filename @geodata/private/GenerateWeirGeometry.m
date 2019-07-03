@@ -26,6 +26,7 @@ function [weirPfix,weirEgfix,ibconn_pts] = GenerateWeirGeometry(crestline,width,
 %    updated by KJR May, 23, 2019, CHL,UND first and last point correspond to knife
 %    edges that are the minimum element size long 
 
+
 tmp = crestline ; crestline = [] ; 
 
 [crestline(:,2),crestline(:,1)] = my_interpm(tmp(:,2),tmp(:,1),spacing) ; 

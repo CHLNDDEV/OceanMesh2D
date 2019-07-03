@@ -181,6 +181,7 @@ classdef meshgen
                                 obj.egfix = [obj.egfix ; obj.bou{j}.weirEgfix+length(obj.egfix)];
                             end
                         end
+                       obj.egfix=renumberEdges(obj.egfix);
                     case('fixboxes')
                         obj.fixboxes= inp.(fields{i});
                     
@@ -813,6 +814,7 @@ classdef meshgen
                 [obj.grd,qout] = clean(obj.grd,db,obj.direc_smooth,con,...
                                    obj.dj_cutoff,obj.nscreen,obj.pfix,prj);
                 obj.grd.pfix = obj.pfix ;
+                obj.grd.egfix= obj.egfix ;
                 obj.qual(end+1,:) = qout;
             else
                 % Fix mesh on the projected space
@@ -822,6 +824,7 @@ classdef meshgen
                 % Put the mesh class into the grd part of meshgen
                 obj.grd.p = p; obj.grd.t = t;
                 obj.grd.pfix = obj.pfix ;
+                obj.grd.egfix= obj.egfix ;
             end
             
             % Check element order, important for the global meshes crossing
@@ -910,32 +913,8 @@ classdef meshgen
                 tq = gettrimeshquan(p,t);
                 elock = unique(cell2mat(elock'));
                 dmy = elock(tq.qm(elock) < 0.10);
-%                 numbad = 0 ;
-%                 dmy = [];
-%                 elock = edgeAttachments(TR,egfix) ;
-%                 for c = 1 : length(elock)
-%                    vals = elock{c};
-%                    for cc = 1 : length(vals)
-%                        if tq.qm(vals(cc)) < 0.10 % tria has poor qual
-%                            numbad = numbad + 1;
-%                            dmy(numbad) = vals(cc) ;
-%                        end
-%                    end
-%                 end
                 badtria = t(dmy,:);
                 del     = badtria(badtria > nfix) ;
-%                 % split edge
-%                 disp(['Splitting ',num2str(length(dmy)) ,' fixed edges.'])
-%                 egfix_o = egfix(dmy,:);
-%                 psplit = 0.5*(pfix(egfix_o(:,1),:) + pfix(egfix_o(:,2),:));
-%                 pfix = [pfix; psplit];
-%                 egfix(dmy,:) = [];
-%                 egfix_n = zeros(size(egfix_o).*[2,1]);
-%                 egfix_n(1:2:end,1) = egfix_o(:,1);
-%                 egfix_n(2:2:end,2) = egfix_o(:,2);
-%                 egfix_n(1:2:end,2) = [1:length(psplit)]' + nfix;
-%                 egfix_n(2:2:end,1) = [1:length(psplit)]' + nfix;
-%                 egfix = [egfix; egfix_n];
             end
             
             
