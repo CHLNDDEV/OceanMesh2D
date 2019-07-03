@@ -120,6 +120,10 @@ classdef msh
                 if isempty(obj.p)
                     error('No mesh, cannot write.')
                 end
+                
+                % renumber it use RCM by default
+                obj = renum(obj) ; 
+                
                 if isempty(obj.b)
                     b_t = 0*obj.p(:,1);
                 else
@@ -892,19 +896,12 @@ classdef msh
             % Delete elements with single edge connectivity
             obj = Fix_single_connec_edge_elements(obj,max_conec_it,nscreen);
             
-            % Reduce the mesh connectivity to maximum of con-1
-            obj = renum(obj);
             % May not always work without error
             try
                obj = bound_con_int(obj,con);
             catch
                warning('Could not reduce connectivity mesh');
             end
-            
-            % Try to fix spacing on the coastline
-            %if obj.ns_fix && negfix == 0
-            %    obj = nearshorefix(obj);
-            %end
             
             % Now do the smoothing if required
             if ds
@@ -1407,25 +1404,47 @@ classdef msh
    
         
         function merge = plus(obj1,obj2)
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % Merge together two meshes contained in the msh objects obj1
-            % and obj2. Uses MATLAB's implementation of the Boywer-Watson
+            % and obj2. It uses MATLAB's implementation of the Boywer-Watson
             % incremental triangulation and then applies mesh cleaning
             % algorithms to "fix" the intersection zone between meshes.
             %
+            % NOTE: msh obj1 can contain fixed points and these will be
+            % preserved in the merger.
+            %
+            % HINT: if you intend to use this a priori, perhaps you should
+            % ensure the mesh size functions are similar.
+            %
             % INPUTS:
-            % mesh1: msh() class of inset mesh.
+            % mesh1: msh() class of inset mesh (INSET MUST BE FIRST).
             % mesh2: msh() class of base mesh.
             %
             % OUPUTS:
-            % a msh object with...
-            % pm: np x 2 coordinates of vertices of the merged mesh.
-            % tm: nt x 3 matrix representing the 2-d simplices.
+            % a msh object in which the msh obj1's connectivity and bathymetry 
+            % is carried over (along with fixed points and edges from obj1).
             %
             % kjr, und, chl, sept. 2017 Version 1.0.
-            %    UPDATED by kjr, und, chl, oct. 2018, Version 1.5
-            
+            % kjr, und, chl, oct. 2018, Version 1.5
+            % kjr, usp. july 2019. Support for carrying over weirs and pfix. 
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
             p1 = obj1.p; t1 = obj1.t;
             p2 = obj2.p; t2 = obj2.t;
+            
+            pfix1=[]; egfix1=[];
+            pfix2=[]; egfix2=[];
+            pfix=[];  egfix =[] ;
+            
+            pfix1  = obj1.pfix  ;   nfix1 = length(pfix1) ;
+            egfix1 = obj1.egfix ; negfix1 = length(egfix1) ;
+            pfix2  = obj2.pfix  ;   nfix2 = length(pfix2) ;
+            egfix2 = obj2.egfix ; negfix2 = length(egfix2) ;
+            
+            % all combined edge constraints 
+            nfix   = nfix1+nfix2 ; 
+            egfix  = [egfix1 ; egfix2+nfix1] ; 
+            pfix   = [pfix1 ; pfix2] ;
             
             global MAP_PROJECTION MAP_COORDS MAP_VAR_LIST
             if ~isempty(obj2.coord)
@@ -1442,17 +1461,22 @@ classdef msh
                     MAP_COORDS     = obj2.coord ;
                 end
             else
-                %if ~isempty(obj1.proj)
-                %    projname = obj1.proj.name;
-                %else
                 projname = 'stereo';
-                %end
                 setProj(obj2,1,projname);
             end
-            
+           
             % project both meshes into the space of the global mesh
             [p1(:,1),p1(:,2)] = m_ll2xy(p1(:,1),p1(:,2)) ;
             [p2(:,1),p2(:,2)] = m_ll2xy(p2(:,1),p2(:,2)) ;
+            if nfix1 > 0
+              [pfix1(:,1),pfix1(:,2)] = m_ll2xy(pfix1(:,1),pfix1(:,2)) ;
+            end
+            if nfix2 > 0 
+              [pfix2(:,1),pfix2(:,2)] = m_ll2xy(pfix2(:,1),pfix2(:,2)) ;
+            end
+            if nfix > 0
+              [pfix(:,1),pfix(:,2)] = m_ll2xy(pfix(:,1),pfix(:,2)) ;
+            end
             
             [~,d1] = ourKNNsearch(p1',p1',2);
             avd1 = mean(d1(:,2)); mvd1 = max(d1(:,2));
@@ -1460,12 +1484,21 @@ classdef msh
             avd2 = mean(d2(:,2)); mvd2 = max(d2(:,2));
             
             disp('Forming outer boundary for base...')
-            cell2 = extdom_polygon(extdom_edges2(t2,p2),p2,-1,0);
-            poly_vec2 = cell2mat(cell2');
+            try
+                cell2 = extdom_polygon(extdom_edges2(t2,p2),p2,-1,0);
+                poly_vec2 = cell2mat(cell2');
+            catch
+                error('Mesh 2 is invalid. Please execute msh.clean on object');
+            end
+            
             
             disp('Forming outer boundary for inset...')
-            cell1 = extdom_polygon(extdom_edges2(t1,p1),p1,-1,0);
-            poly_vec1 = cell2mat(cell1');
+            try
+                cell1 = extdom_polygon(extdom_edges2(t1,p1),p1,-1,0);
+                poly_vec1 = cell2mat(cell1');
+            catch
+                error('Mesh 1 is invalid. Please execute msh.clean on object');
+            end
             
             % Delete the region in the global mesh that is in the
             % intersection with inset.
@@ -1492,15 +1525,27 @@ classdef msh
             pv2 = poly_vec2(~isnan(poly_vec2(:,1)),:);
             
             disp('Merging...')
-            if isempty(obj1.egfix)
+            if isempty(egfix1)
                 DTbase = delaunayTriangulation(p1(:,1),p1(:,2));
             else
-                DTbase = delaunayTriangulation(p1(:,1),p1(:,2),obj1.egfix);
+                DTbase = delaunayTriangulation(p1(:,1),p1(:,2),egfix1);
             end
             DTbase.Points(end+(1:length(p2)),:) = p2;
             
-            tq.qm = 0;
+            % ensure obj2's edge constraints are obeyed.
+            if ~isempty(egfix2)
+                DTbase = delaunayTriangulation(DTbase.Points(:,1),DTbase.Points(:,2),...
+                    egfix2+length(p1));
+                % we must shuffle around the Points in DTbase to ensure all
+                % pfix are preprended at the top of the Points array.
+                pm = DTbase.Points ; 
+                tm = DTbase.ConnectivityList ; 
+                
+                pm = fixmesh([pfix; pm]) ; % this will delete points that are duplicate later on in the list
+                DTbase = delaunayTriangulation(pm,egfix);
+            end
             
+            tq.qm = 0;
             while min(tq.qm) < 0.01
                 % Prune triangles outside both domains.
                 disp('Pruning...')
@@ -1513,8 +1558,7 @@ classdef msh
                         bdbars = extdom_edges2(tm,pm);
                         bdnodes = unique(bdbars(:));
                         I = find(enum <= 4);
-                        nn = setdiff(I',bdnodes);
-                        
+                        nn = setdiff(I',[(1:nfix)';bdnodes]);  
                         DTbase.Points(unique(nn),:) = [];
                     end
                     
@@ -1559,16 +1603,19 @@ classdef msh
                 end
                 
                 merge = msh() ; merge.p = pm; merge.t = tm ;
-                
-                merge = clean(merge,[],0,[],1e-3,0,[],0);
+                merge = clean(merge,[],0,[],1e-3,0,pfix,0);
                 
                 % if we don't know the overlap region
                 [~,dst1] = ourKNNsearch(p1',merge.p',1);
                 [~,dst2] = ourKNNsearch(p2',merge.p',1);
                 idx = find(abs(dst1 - dst2) < 0.5*(mvd1 + mvd2));
                 
-                % use local smoother
+                % use smoother around intersection while obeying constraints)
                 constr = setdiff((1:length(merge.p))',idx);
+                if nfix > 0
+                  constr=[(1:nfix)'; constr] ; 
+                  [constr]=unique(constr);
+                end
                 [pm,tm] = smoothmesh(merge.p,merge.t,constr,50,0.01);
                 tq = gettrimeshquan(pm,tm);
                 disp(['min element quality is ', num2str(min(tq.qm))])
@@ -1578,10 +1625,15 @@ classdef msh
             end
             
             merge.p = pm; merge.t = tm;
+            merge.pfix  = pfix ; merge.egfix = egfix ;
             
              % convert back to lat-lon wgs84
             [merge.p(:,1),merge.p(:,2)] = ...
-                                        m_xy2ll(merge.p(:,1),merge.p(:,2));  
+                m_xy2ll(merge.p(:,1),merge.p(:,2));
+            if nfix > 0
+                [merge.pfix(:,1),merge.pfix(:,2)] = ...
+                    m_xy2ll(pfix(:,1),pfix(:,2));
+            end
             
             merge.proj    = MAP_PROJECTION ;
             merge.coord   = MAP_COORDS ;
