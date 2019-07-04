@@ -26,17 +26,14 @@ OceanMesh2D is a set of user-friendly MATLAB functions to generate two-dimension
 
 ## `Starting Out`
 
-Clone or download and unzip the current <a href="https://github.com/CHLNDDEV/OceanMesh2D/archive/Projection.zip">repository</a>, 
+Clone or download and unzip the current [repository](https://github.com/CHLNDDEV/OceanMesh2D/archive/Projection.zip)
 
-Read the user guide available here:
-https://www.overleaf.com/read/hsqjhvtbkgvj#/54715995/ (dynamic version, click download PDF), or https://doi.org/10.13140/RG.2.2.21840.61446/2 (static version)
+PLEASE READ THE USER GUIDE!
+A recent pdf of the user guide is located in this branch. For a continually updated version click [here](https://www.overleaf.com/read/hsqjhvtbkgvj#/54715995/) (wait for compilation and then click download PDF)
 
-The data for the following examples can be downloaded here: 
- https://drive.google.com/open?id=1LeQJFKaVCM2K59pKO9jDcB02yjTmJPmL
+Download the data for the following examples [here](https://drive.google.com/open?id=1LeQJFKaVCM2K59pKO9jDcB02yjTmJPmL)
  
-and here: http://www.soest.hawaii.edu/pwessel/gshhg/ (download the GSHH global coastline ESRI shapefile zip archive)
- 
-and here: ftp://topex.ucsd.edu/pub/srtm15_plus/ (download the SRTM15_PLUS global topobathy DEM "SRTM15+V2.nc")
+in addition to [here](http://www.soest.hawaii.edu/pwessel/gshhg/gshhg-shp-2.3.7.zip) for the GSHHG ESRI shapefile and here: "ftp://topex.ucsd.edu/pub/srtm15_plus/SRTM15+V2.nc" for the latest SRTM15_PLUS global topobathy DEM.
 ```
 Featured in  ┌╼ Example_1_NZ.m   %<- A simple mesh around South Island New Zealand that uses GSHHS shoreline. 
 user guide   ├── Example_2_NY.m   %<- A high-resolution mesh around the New York/Manhattan area that uses a DEM created from LiDAR data.  
