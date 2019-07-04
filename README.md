@@ -26,13 +26,12 @@ OceanMesh2D is a set of user-friendly MATLAB functions to generate two-dimension
 
 ## `Starting Out`
 
-Clone or download and unzip the current <a href="https://github.com/CHLNDDEV/OceanMesh2D/archive/Projection.zip">repository</a>, 
+Clone or download and unzip the current [repository](https://github.com/CHLNDDEV/OceanMesh2D/archive/Projection.zip)
 
-Read the user guide available here:
-https://www.overleaf.com/read/hsqjhvtbkgvj#/54715995/ (dynamic version wait for compilation and then click download PDF)
+PLEASE READ THE USER GUIDE!
+A recent pdf of the user guide is located in this branch. For a continually updated version click [here](https://www.overleaf.com/read/hsqjhvtbkgvj#/54715995/) (wait for compilation and then click download PDF)
 
-The data for the following examples can be downloaded here: 
- https://drive.google.com/open?id=1LeQJFKaVCM2K59pKO9jDcB02yjTmJPmL
+Download the data for the following examples [here](https://drive.google.com/open?id=1LeQJFKaVCM2K59pKO9jDcB02yjTmJPmL)
  
 and here: http://www.soest.hawaii.edu/pwessel/gshhg/ (download the GSHH global coastline ESRI shapefile zip archive)
  
