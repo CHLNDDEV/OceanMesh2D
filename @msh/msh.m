@@ -837,18 +837,18 @@ classdef msh
             %process categorical cleaning options
             if any(strcmp(varargin,'passive'))
                 disp('Employing passive option')
-                opt.db = 0.025; opt.ds = 0; opt.con = 10; opt.djc = 0; 
+                opt.db = 0.025; opt.ds = 0; opt.con = 10; opt.djc = 1e-4; 
                 opt.sc_maxit = 0; opt.mqa = 1e-4;
                 varargin(strcmp(varargin,'passive')) = [];
             elseif any(strcmp(varargin,'aggressive'))
                 disp('Employing aggressive option')
                 opt.db = 0.25; opt.ds = 1; opt.con = 9; opt.djc = 0.25; 
-                opt.sc_maxit = inf; opt.mqa = 0.2;
+                opt.sc_maxit = inf; opt.mqa = 0.1;
                 varargin(strcmp(varargin,'aggressive')) = [];
             else
                 disp('Employing default (medium) option')
                 opt.db = 0.1; opt.ds = 1; opt.con = 9; opt.djc = 0.1; 
-                opt.sc_maxit = 1; opt.mqa = 0.1;
+                opt.sc_maxit = 1; opt.mqa = 0.025;
                 varargin(strcmp(varargin,'default')) = []; 
                 varargin(strcmp(varargin,'medium')) = []; 
             end
@@ -1209,6 +1209,13 @@ classdef msh
                     
                     nbou = 0;
                     nvel = 0;
+                    if nargin < 3
+                        ibt = 21;
+                    else
+                        ibt = dir;
+                        disp(['setting ibtype to ' num2str(ibt)])
+                    end
+                        
                     % the largest polygon will be a combination of ocean and mainland
                     % boundaries. Deal with this first, then remove it from the polygon
                     %poly(max_ind) = [];
@@ -1223,7 +1230,7 @@ classdef msh
                         nvell(nbou) = length(vso);
                         nvel = nvel + nvell(nbou);
                         nbvv(1:nvell(nbou),nbou) = idv';
-                        ibtype(nbou) = 21;
+                        ibtype(nbou) = ibt;
                     end
                     
                     % ocean boundary
@@ -1696,8 +1703,19 @@ classdef msh
             end
         end
             
-        function [out1,barlen,bars] = CalcCFL(obj,dt,type)
+        function [out1,barlen,bars] = CalcCFL(obj,dt,lgw,type)
+            %[out1,barlen,bars] = CalcCFL(obj,dt,lgw,type)
+            % obj : msh object
+            % dt  : the timestep, empty to get dt (out1 to be DT)
+            % lgw : include linear gravity wave component?
+            % type : 0 - use spherical haversine distances, 
+            %        1 - use CPP distances
+            
             if nargin < 3
+                % include the linear gravity wave component
+                lgw = 1;
+            end
+            if nargin < 4
                 % use spherical haversine distances
                 type = 0;
             end
@@ -1713,16 +1731,18 @@ classdef msh
             d1(B1) = barlen(IB); d2(B2) = barlen(IC);
             d = min(d1,d2);
             
-            % wavespeed in ocean (second term represents orbital
-            % velocity at 0 degree phase for 1-m amp. wave).
-            U = sqrt(g*max(obj.b,1)) + sqrt(g./max(obj.b,1));
+            % the velocity component of CFL:
+            % linear gravity wave speed + 
+            % estimate of maximum orbital velocity for 1-m amp. wave
+            dp = max(obj.b,1); % limit depth to at least 1 m
+            U = lgw*sqrt(g*dp) + sqrt(g./dp); 
             if nargin > 1 && ~isempty(dt)
                 % Get CFL from input dt
-                CFL = dt*U(:)./d;  % <-- from the wave celerity
+                CFL = dt*U./d;  
                 out1 = CFL;
             else
                 CFL = 1.0;
-                dt = d.*CFL./U; % <-- from the wave celerity
+                dt = d.*CFL./U; 
                 out1 = dt;
             end
         end
@@ -1777,7 +1797,7 @@ classdef msh
                 y = R * latr;
             end
         end
-
+        
         function obj = CheckTimestep(obj,dt,varargin)
             % obj = CheckTimestep(obj,dt,varargin)
             % varargin(1) is desired CFL (< 1) or maximum iterations (> 1)
@@ -1793,6 +1813,7 @@ classdef msh
             % using the msh clean, and CFL calc type option
             
             type       = 0;       %<-- 0 == Haversine, 1 == CPP with correction factor
+            lgw        = 1;       %<-- include linear gravity wave in CFL est.
             desCFL     = 0.50;    %<-- set desired cfl (generally less than 0.80 for stable).
             desIt = inf;          %<-- desired number of iterations
             if nargin > 2
@@ -1848,7 +1869,7 @@ classdef msh
             tic
             while 1
                 [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
-                CFL = CalcCFL(obj,dt,type);
+                CFL = CalcCFL(obj,dt,lgw,type);
                 [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2));
                 bad = real(CFL) > desCFL;
                 %if ~isempty(obj.pfix)
