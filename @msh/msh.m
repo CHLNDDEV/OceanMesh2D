@@ -264,7 +264,7 @@ classdef msh
                      obj.p(obj.t(:,3),1) obj.p(obj.t(:,1),1)];
                 dxt = diff(xt,[],2);
                 obj.t(abs(dxt(:,1)) > 180 | abs(dxt(:,2)) > 180 | ...
-                    abs(dxt(:,2)) > 180,:) = [];
+                      abs(dxt(:,3)) > 180,:) = [];
             end
             
             logaxis = 0;
@@ -576,9 +576,10 @@ classdef msh
                         ii = find(contains({obj.f13.defval.Atr(:).AttrName},'quadratic'));
                         defval  = obj.f13.defval.Atr(ii).Val;
                         userval = obj.f13.userval.Atr(ii).Val;
-                        values = max(userval(2:end,:)',[],2);
+                        values = obj.p(:,1)*0 + defval;
+                        values(userval(1,:)) = userval(2,:);
                         figure;
-                        fastscatter(obj.p(userval(1,:),1),obj.p(userval(1,:),2),values);
+                        fastscatter(obj.p(:,1),obj.p(:,2),values);
                         nouq = length(unique(values));
                         colormap(jet(nouq));
                         colorbar;
@@ -835,45 +836,108 @@ classdef msh
             end
         end
         
-        function [obj,qual] = clean(obj,db,ds,con,dj,nscreen,pfix,proj)
+        function [obj,qual] = clean(obj,varargin)
+            % [obj,qual] = clean(obj,varargin)
+            % obj - msh object
+            % varargin - optional base cleaning type followed by optional
+            % name-value pairs as listed below:
+            %
+            % base cleaning types: 'medium' (or 'default'), 'passive', 'aggressive'
+            %
+            % optional name-value pairs
+            % 'db'  - boundary element cutoff quality (0 - 1)
+            % 'ds'  - perform direct smoother? (0 or 1)
+            % 'con' - upper bound on connectivity (6-19)
+            % 'djc' - dj_cutoff (0 - 1 [area portion] or > 1 [km^2])
+            % 'sc_maxit' - max iterations for deletion of singly connected
+            %         elements ( >= 0, if set to 0 operation not performed)
+            % 'mqa' - allowable minimum element quality (0 - 1); setting
+            %         this too value high may prevent convergence
+            % 'nscreen' - print info to screen? (default = 1)
+            % 'pfix' - fixed points to keep (default empty)
+            % 'proj' -to project or not (default = 1)
+            
+            if ~isempty(varargin)
+                if iscell(varargin{1}); varargin = varargin{1}; end
+            end
+            % keep for parsing to recursive function
+            varargino = varargin;
+            
             % Fixing up the mesh automatically
             disp('Beginning mesh cleaning and smoothing operations...');
  
-            if nargin == 1 || isempty(db)
-                db = 0.1;
+            %process categorical cleaning options
+            if any(strcmp(varargin,'passive'))
+                disp('Employing passive option')
+                opt.db = 0.025; opt.ds = 0; opt.con = 10; opt.djc = 1e-4; 
+                opt.sc_maxit = 0; opt.mqa = 1e-4;
+                varargin(strcmp(varargin,'passive')) = [];
+            elseif any(strcmp(varargin,'aggressive'))
+                disp('Employing aggressive option')
+                opt.db = 0.25; opt.ds = 1; opt.con = 9; opt.djc = 0.25; 
+                opt.sc_maxit = inf; opt.mqa = 0.1;
+                varargin(strcmp(varargin,'aggressive')) = [];
+            else
+                disp('Employing default (medium) option')
+                opt.db = 0.1; opt.ds = 1; opt.con = 9; opt.djc = 0.1; 
+                opt.sc_maxit = 1; opt.mqa = 0.025;
+                varargin(strcmp(varargin,'default')) = []; 
+                varargin(strcmp(varargin,'medium')) = []; 
             end
-            if nargin <= 2 || isempty(ds)
-                ds = 1;
+            % set defaults
+            opt.nscreen = 1; opt.projL = 1; pfixV = []; 
+            % process user-defined individual cleaning options
+            optstring = {'nscreen','pfix','proj','con','djc','db','ds',...
+                         'sc_maxit','mqa'};
+            for ii = 1:2:length(varargin)
+                jj = find(strcmp(varargin{ii},optstring));
+                if isempty(jj)
+                    error(['Unrecognized input option: ' varargin{ii}])
+                elseif jj == 1
+                    opt.nscreen = varargin{ii + 1};
+                elseif jj == 2
+                    pfixV = varargin{ii + 1};
+                elseif jj == 3
+                    opt.projL = varargin{ii + 1};
+                elseif jj == 4
+                    opt.con = varargin{ii + 1};
+                elseif jj == 5
+                    opt.djc  = varargin{ii + 1};
+                elseif jj == 6
+                    opt.db = varargin{ii + 1};
+                elseif jj == 7
+                    opt.ds  = varargin{ii + 1};
+                elseif jj == 8
+                    opt.sc_maxit  = varargin{ii + 1};
+                elseif jj == 9
+                    opt.mqa  = varargin{ii + 1};
+                end
             end
-            if nargin <= 3 || isempty(con)
-                con = 9;
-            end
-            if nargin <= 4 || isempty(dj)
-                dj = 0.25;
-            end
-            if nargin <= 5 || isempty(nscreen)
-                nscreen = 1;
-            end
-            if nargin <= 6
-                pfix = [];
-            end
-            if nargin <= 7 || isempty(proj)
-                proj = 1;
-            end
-            % this turns off fix_single_connect_edge_elements
-            max_conec_it = 0;
             
-            % transform pfix to projected coordinates 
-            if ~isempty(pfix) && proj
-               [pfix(:,1),pfix(:,2)] = m_ll2xy(pfix(:,1),pfix(:,2)); 
+            % display options
+            disp('the following cleaning options have been enabled..')
+            disp(opt)
+            disp(['length of pfix = ' length(pfixV)])
+            
+            if opt.projL
+                global MAP_PROJECTION MAP_VAR_LIST MAP_COORDS
+                if ~isempty(obj.coord)
+                    MAP_PROJECTION = obj.proj ;
+                    MAP_VAR_LIST   = obj.mapvar ;
+                    MAP_COORDS     = obj.coord ;
+                end     
+                % transform to projected coordinates 
+                [obj.p(:,1),obj.p(:,2)] =  m_ll2xy(obj.p(:,1),obj.p(:,2));
+                if ~isempty(pfixV)
+                   [pfixV(:,1),pfixV(:,2)] = m_ll2xy(pfixV(:,1),pfixV(:,2)); 
+                end
             end
-            % transform coordinates to projected space and "fix"
-            if proj
-                [obj.p(:,1),obj.p(:,2)] =  m_ll2xy(obj.p(:,1),obj.p(:,2)); 
-            end
+            
+            % "fix" mesh
             [obj.p,obj.t] = fixmesh(obj.p,obj.t);
             
-            if db
+            if opt.db
+                LT = size(obj.t,1);
                 while 1
                     % Begin by just deleting poor mesh boundary elements
                     tq = gettrimeshquan(obj.p,obj.t);
@@ -883,56 +947,71 @@ classdef msh
                     vtoe = VertToEle(obj.t);
                     bele = unique(vtoe(:,bdnodes)); bele(bele == 0) = [];
                     tqbou = tq.qm(bele);
-                    % Delete those boundary elements with quality < db
-                    if min(tqbou >= db); break; end
-                    obj.t(bele(tqbou < db),:) = [];
+                    % Delete those boundary elements with quality < opt.db
+                    if min(tqbou) >= opt.db; break; end
+                    obj.t(bele(tqbou < opt.db),:) = [];
                     [obj.p,obj.t] = fixmesh(obj.p,obj.t);
+                end
+                if opt.nscreen
+                    disp(['Deleted ' num2str(LT-size(obj.t,1)) ...
+                          ' bad boundary elements'])
                 end
             end
             
             % Make mesh traversable
-            obj = Make_Mesh_Boundaries_Traversable(obj,dj,nscreen);
+            obj = Make_Mesh_Boundaries_Traversable(obj,opt.djc,opt.nscreen);
             
             % Delete elements with single edge connectivity
-            obj = Fix_single_connec_edge_elements(obj,max_conec_it,nscreen);
+            obj = Fix_single_connec_edge_elements(obj,opt.sc_maxit,opt.nscreen);
             
+            % Reduce the mesh connectivity to maximum of con-1
+            obj = renum(obj);
             % May not always work without error
-            try
-               obj = bound_con_int(obj,con);
-            catch
-               warning('Could not reduce connectivity mesh');
-            end
-            
-            % Now do the smoothing if required
-            if ds
-                % Perform the direct smoothing
-                [obj.p,obj.t] = direct_smoother_lur(obj.p,obj.t,pfix,nscreen);
-                tq = gettrimeshquan( obj.p, obj.t);
-                if min(tq.qm) < 0.0
-                    % Need to clean it again
-                    disp(['Overlapping elements due to smoother, ' ...
-                          'cleaning again'])
-                    % repeat without projecting (already projected)
-                    obj = clean(obj,db,ds,con,dj,nscreen,pfix,0);
+            if opt.con > 6
+                try
+                   obj = bound_con_int(obj,opt.con);
+                catch
+                   warning('Could not reduce connectivity mesh');
                 end
             end
-            
+           
+            % Now do the smoothing if required
+            if opt.ds
+                % Perform the direct smoothing
+                [obj.p,obj.t] = direct_smoother_lur(obj.p,obj.t,...
+                                                    pfixV,opt.nscreen);
+            end
+           
             % Checking and displaying element quality
-            tq = gettrimeshquan( obj.p, obj.t);
+            tq = gettrimeshquan( obj.p, obj.t);            
             mq_m = mean(tq.qm);
             mq_l = min(tq.qm);
             mq_s = std(tq.qm);
             mq_l3sig = mq_m - 3*mq_s;
             qual = [mq_m,mq_l3sig,mq_l];
             
-            if nscreen
+            if mq_l < opt.mqa
+                % Need to clean it again
+                disp('Poor or overlapping elements, cleaning again')
+                % repeat without projecting (already projected)
+                ii = find(strcmp(varargino,'proj'));
+                if ~isempty(ii)
+                    varargino{ii+1} = 0;
+                else
+                    varargino{end+1} = 'proj';
+                    varargino{end+1} = 0;
+                end
+                obj = clean(obj,varargino(:));
+            end
+            
+            if opt.nscreen
                 disp(['number of nodes is ' num2str(length(obj.p))])
                 disp(['mean quality is ' num2str(mq_m)])
                 disp(['min quality is ' num2str(mq_l)])
             end
            
             % Do the transformation back
-            if proj
+            if opt.projL
                 [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
             end
         end
@@ -1603,7 +1682,7 @@ classdef msh
                 end
                 
                 merge = msh() ; merge.p = pm; merge.t = tm ;
-                merge = clean(merge,[],0,[],1e-3,0,pfix,0);
+				merge = clean(merge,'passive','proj',0,'pfix',pfix);
                 
                 % if we don't know the overlap region
                 [~,dst1] = ourKNNsearch(p1',merge.p',1);
@@ -1848,6 +1927,7 @@ classdef msh
                 [pf(:,1),pf(:,2)] = m_ll2xy(obj.pfix(:,1),obj.pfix(:,2));
             end
             con = 9;
+			badnump = 1e10;
             tic
             while 1
                 [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
@@ -1861,13 +1941,15 @@ classdef msh
                 display(['Number of CFL violations ',num2str(sum(bad))]);
                 disp(['Max CFL is : ',num2str(max(real(CFL)))]);
                 if it == desIt,   break; end
-                if sum(bad) == 0, break; end
+				badnum = sum(bad);
+                if badnum == 0; break; end
+                if badnump - badnum <= 0; con = con + 1; end
                 it = it + 1;
                 obj = DecimateTria(obj,bad);
                 % Clean up the new mesh (already projected) without direct
                 % smoothing (we have used local smooting in DecmimateTria
                 obj.b = []; % (the bathy will cause error in renum)
-                obj = clean(obj,[],0,con+floor(it/5),djc,[],[],0);
+                obj = clean(obj,'passive','proj',0,'pfix',pf,'con',con);
                 obj.b = F(obj.p(:,1),obj.p(:,2));
             end
             toc

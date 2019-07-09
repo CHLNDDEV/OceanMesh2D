@@ -36,7 +36,7 @@ classdef meshgen
         boubox        % the bbox as a polygon 2-tuple
         inpoly_flip   % used to flip the inpoly test to determine the signed distance.
         memory_gb     % memory in GB allowed to use for initial rejector
-        cleanup       % logical flag to trigger cleaning of topology (default on).
+        cleanup       % logical flag or string to trigger cleaning of topology (default is on).
         direc_smooth  % logical flag to trigger direct smoothing of mesh in the cleanup
         dj_cutoff     % the cutoff area fraction for disjoint portions to delete
         grd = msh();  % create empty mesh class to return p and t in.
@@ -171,7 +171,7 @@ classdef meshgen
                         end
                     case('egfix')
                         obj.egfix= inp.(fields{i});
-                        if obj.egfix(1)~=0
+                        if ~isempty(obj.egfix) && obj.egfix(1)~=0
                             obj.egfix = inp.(fields{i});
                         else
                             obj.egfix = [];
@@ -181,7 +181,7 @@ classdef meshgen
                                 obj.egfix = [obj.egfix ; obj.bou{j}.weirEgfix+length(obj.egfix)];
                             end
                         end
-                       obj.egfix=renumberEdges(obj.egfix);
+                        obj.egfix = renumberEdges(obj.egfix);
                     case('fixboxes')
                         obj.fixboxes= inp.(fields{i});
                     
@@ -341,6 +341,11 @@ classdef meshgen
                         end
                     case('cleanup')
                         obj.cleanup = inp.(fields{i});
+                        if isempty(obj.cleanup) || obj.cleanup == 0
+                            obj.cleanup = 'none';
+                        elseif obj.cleanup == 1
+                            obj.cleanup = 'default'; 
+                        end
                     case('dj_cutoff')
                         obj.dj_cutoff = inp.(fields{i});
                     case('direc_smooth')
@@ -805,16 +810,14 @@ classdef meshgen
             
             %% Doing the final cleaning and fixing to the mesh...
             % Clean up the mesh if specified
-            if obj.cleanup 
+            if ~strcmp(obj.cleanup,'none') 
                 % Put the mesh class into the grd part of meshgen and clean
                 obj.grd.p = p; obj.grd.t = t;
-                db = 0.1;   % delete bad boundaries
-                con = 9;  % reduce connectivity to max of 9
-                prj = 1;  % project
-                [obj.grd,qout] = clean(obj.grd,db,obj.direc_smooth,con,...
-                                   obj.dj_cutoff,obj.nscreen,obj.pfix,prj);
+                [obj.grd,qout] = clean(obj.grd,obj.cleanup,...
+                                       'nscreen',obj.nscreen,'djc',obj.dj_cutoff,...
+									    'pfix',obj.pfix);
                 obj.grd.pfix = obj.pfix ;
-                obj.grd.egfix= obj.egfix ;
+				obj.grd.egfix= obj.egfix ;
                 obj.qual(end+1,:) = qout;
             else
                 % Fix mesh on the projected space
