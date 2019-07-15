@@ -1501,15 +1501,17 @@ classdef msh
             % obj2: msh() class of base mesh.
             % tight: = 1 (default) updates boundary of obj2 (for removal of 
             %          triangles) after removing intersection(obj1,obj2) 
-            %          from obj2 (best for merging overlapping and 
-            %          agreeable meshes)
+            %          from obj2 (best for merging overlapping meshes that 
+            %          have similar resolution/mesh size functions)
             %        = 0 does not update boundary of obj2 (for removal of 
             %          triangles) after removing insersection(obj1,obj2) 
-            %          from obj2 (perhaps good for avoiding holes when
-            %          merging disparate resolution meshes)
+            %          from obj2 (good for avoiding holes when merging 
+            %          meshes with disparate resolution/mesh size functions)
             %        = -1 does not remove intersection(obj1,obj2) from obj2
             %          (assumes there is no overlap, best for merging
-            %          [almost] non-overlapping meshes)
+            %          [almost] non-overlapping meshes - ought to have 
+            %          matching or close to matching vertices but this is 
+            %          NOT a requirement)
             %
             % OUPUTS:
             % merge: a msh object in which the msh obj1's connectivity and 
