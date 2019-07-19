@@ -35,20 +35,33 @@ if maxit == 0; return; end
 t = obj.t; p = obj.p;
 
 % Now start the loop
-del = 1;
 old = size(t,1);
-it = 0;
+
+it = 0;  del = 1;
 while it < maxit && ~isempty(del)
     tri  = triangulation(t,p) ; 
     nei  = tri.neighbors; 
     conn = ~isnan(nei);
     nnei = sum(conn,2);
-    del  = find(nnei==1);
+    del  = find(nnei == 1);
+
+    it = it + 1; 
+    nei2 = find(nnei == 2);
+    ii = del;
+    while it < maxit && ~isempty(ii)
+        [~,i1] = intersect(nei(nei2,1),ii);
+        [~,i2] = intersect(nei(nei2,2),ii);
+        [~,i3] = intersect(nei(nei2,3),ii);
+        ii = nei2([i1; i2; i3]); 
+        ii = setdiff(ii,del);
+        del = ([del; ii]);
+        it = it + 1;
+    end
     t(del,:) = [];
     % delete disjoint nodes
     [p,t] = fixmesh(p,t);
-    it = it + 1;
 end
+
 new = size(t,1);
 
 if nscreen
