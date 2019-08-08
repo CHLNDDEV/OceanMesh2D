@@ -44,10 +44,10 @@ if (size(finputname,1)~=0)
             end
             if minus 
                bboxt(:,1) = bboxt(:,1) - 360; 
-            end
-            % The shaperead is much faster if it is available
+            end          
             % Read the structure
             try 
+                % The shaperead is faster if it is available
                 S = shaperead(fname{1},'BoundingBox',bboxt);
                 % Get rid of unwanted components;
                 D = struct2cell(S);
@@ -55,6 +55,8 @@ if (size(finputname,1)~=0)
                 disp('Read shapefile with shaperead')
                 sr = 1;
             catch
+                % If only m_shaperead is available or if some error occured
+                % with shaperead (e.g., 3D shapefile, m_shaperead may work)
                 disp('Reading shapefile with m_shaperead')
                 % This uses m_map (slower but free)
                 S = m_shaperead(fname{1},reshape(bboxt',4,1));
@@ -165,11 +167,14 @@ j = 0 ; k = 0 ; height = []; new_islandb = []; new_mainb = [];
 new_islandb_type = []; new_mainb_type = [];
 for i = 1 : size(tmpC,1)
     if sr
+        % using shaperead
         points = tmpC{i,1}(1:end-1,:) ;
         In     = tmpInC{i,1}(1:end-1) ;
     else
+        % using m_shaperead
         points = tmpC{i,1}(1:end,:) ;
         if size(points,2) == 3
+            % if 3-D shapefile
             height = points(:,3); 
             points = points(:,1:2); 
             type   = tmpC{i,2};
