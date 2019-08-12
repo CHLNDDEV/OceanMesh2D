@@ -1002,9 +1002,7 @@ classdef msh
                     varargino{end+1} = 0;
                 end
                 obj = clean(obj,varargino(:));
-            end
-            
-            if opt.nscreen
+            elseif opt.nscreen
                 disp(['number of nodes is ' num2str(length(obj.p))])
                 disp(['mean quality is ' num2str(mq_m)])
                 disp(['min quality is ' num2str(mq_l)])
