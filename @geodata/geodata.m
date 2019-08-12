@@ -657,7 +657,7 @@ classdef geodata
         
         function plot(obj,type,projection)
             % Plot mesh boundary
-            if nargin == 1
+            if nargin == 1 || isempty(type)
                 type = 'shp';
             end
             
@@ -666,17 +666,19 @@ classdef geodata
             end
             bufx = 0.2*(obj.bbox(1,2) - obj.bbox(1,1));
             bufy = 0.2*(obj.bbox(2,2) - obj.bbox(2,1));
-            if startsWith(projection,'ste')
-                m_proj(projection,'lat',min(obj.bbox(2,:)),...
-                    'long',mean(obj.bbox(1,:)),'radius',...
-                    min(179.9,1.20*max(diff(obj.bbox(2,:)))));
-            else
-                lon1 = max(-180,obj.bbox(1,1) - bufx);
-                lon2 = min(+180,obj.bbox(1,2) + bufx);
-                lat1 = max(- 90,obj.bbox(2,1) - bufy);
-                lat2 = min(+ 90,obj.bbox(2,2) + bufy);
-                m_proj(projection,...
-                    'long',[lon1, lon2],'lat',[lat1, lat2]);
+            if ~isempty(projection)
+                if startsWith(projection,'ste')
+                    m_proj(projection,'lat',min(obj.bbox(2,:)),...
+                        'long',mean(obj.bbox(1,:)),'radius',...
+                        min(179.9,1.20*max(diff(obj.bbox(2,:)))));
+                else
+                    lon1 = max(-180,obj.bbox(1,1) - bufx);
+                    lon2 = min(+180,obj.bbox(1,2) + bufx);
+                    lat1 = max(- 90,obj.bbox(2,1) - bufy);
+                    lat2 = min(+ 90,obj.bbox(2,2) + bufy);
+                    m_proj(projection,...
+                          'long',[lon1, lon2],'lat',[lat1, lat2]);
+                end
             end
             
             switch type
