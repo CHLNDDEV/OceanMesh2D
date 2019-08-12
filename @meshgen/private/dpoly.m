@@ -83,19 +83,20 @@ for box_num = box_vec
     % in_outer are the points inside the outer meshing domain.
     %
     % "in" is defined as the intersection of the in = in_boubox && in_outer
-    %
-    % Note: the boubox is pre-pended when forming outer.
-    firstNaN = find(isnan(outer(:,1)),1,'first') ;
-    in_boubox = inpoly(p(inside,:),outer(1:firstNaN-1,:)) ;
     
-    % Check if the points are inside the meshing domain (omega)
-    edges = Get_poly_edges( outer );
     if sum(inside)~=0
+        % Check if the points are inside the meshing domain (omega)
+        % Note: the boubox is pre-pended when forming outer.
+        firstNaN = find(isnan(outer(:,1)),1,'first') ;
+        in_boubox = inpoly(p(inside,:),outer(1:firstNaN-1,:)) ;
+        % now check if inside the full boundary
+        edges = Get_poly_edges( outer );
         in_outer    = inpoly(p(inside,:),outer,edges);
         if inpoly_flip
             in_outer = ~in_outer;
         end
     else
+        in_boubox   = d_l*0;
         in_outer    = d_l*0;
     end
     
@@ -106,4 +107,5 @@ for box_num = box_vec
     
     d(inside) = d_l;
 end
+% EOF
 end
