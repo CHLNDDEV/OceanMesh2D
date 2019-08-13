@@ -8,6 +8,7 @@ function obj = Calc_f13_inpoly(obj,attribute,polys,cfvals,inverse,Cf_val_on_mesh
 %               Attributes currently supported:
 %              'Cf' ('quadratic_friction_coefficient_at_sea_floor')
 %              'EV' ('average_horizontal_eddy_viscosity_in_sea_water_wrt_depth')
+%              'Adv' ('advection_state')
 %               etc. 
 %            3) A cell-arry of polygons in which you would like to alter 
 %               the attribute.
@@ -36,6 +37,9 @@ elseif strcmpi(attribute,'mannings_n_at_sea_floor')
 elseif strcmpi(attribute,'surface_submergence_state')
     attrname = 'surface_submergence_state';
     default_val = 0;
+elseif strcmpi(attribute,'Adv')
+    attrname = 'advection_state';
+    default_val = -1e4;
 else
     error(['Attribute ' attribute ' not currently supported'])
 end

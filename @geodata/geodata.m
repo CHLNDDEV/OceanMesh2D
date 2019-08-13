@@ -682,7 +682,7 @@ classdef geodata
             end
             bufx = 0.2*(obj.bbox(1,2) - obj.bbox(1,1));
             bufy = 0.2*(obj.bbox(2,2) - obj.bbox(2,1));
-            if startsWith(projection,'ste')
+            if ~isempty(regexp(projection,'ste'))
                 m_proj(projection,'lat',min(obj.bbox(2,:)),...
                     'long',mean(obj.bbox(1,:)),'radius',...
                     min(179.9,1.20*max(diff(obj.bbox(2,:)))));
