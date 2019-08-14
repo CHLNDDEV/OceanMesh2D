@@ -970,9 +970,7 @@ classdef msh
                     varargino{end+1} = 0;
                 end
                 obj = clean(obj,varargino(:));
-            end
-            
-            if opt.nscreen
+            elseif opt.nscreen
                 disp(['number of nodes is ' num2str(length(obj.p))])
                 disp(['mean quality is ' num2str(mq_m)])
                 disp(['min quality is ' num2str(mq_l)])
@@ -1734,8 +1732,9 @@ classdef msh
             % the velocity component of CFL:
             % linear gravity wave speed + 
             % estimate of maximum orbital velocity for 1-m amp. wave
+            % (use 2-m if no linear gravity wave)
             dp = max(obj.b,1); % limit depth to at least 1 m
-            U = lgw*sqrt(g*dp) + sqrt(g./dp); 
+            U = lgw*sqrt(g*dp) + (2-lgw)*sqrt(g./dp); 
             if nargin > 1 && ~isempty(dt)
                 % Get CFL from input dt
                 CFL = dt*U./d;  
@@ -1823,7 +1822,7 @@ classdef msh
                     desCFL = varargin{1};
                 end
                 if nargin == 4
-                    type = varargin{2}; 
+                    lgw = varargin{2}; %type 
                 end
             end
             %%
@@ -2180,8 +2179,9 @@ classdef msh
             ef(~in) = NaN;
         end
         
-        function [centroids]=baryc(obj)
+        function [centroids,bc] = baryc(obj)
             centroids = (obj.p(obj.t(:,1),:)+obj.p(obj.t(:,2),:)+obj.p(obj.t(:,3),:))/3;
+            bc = (obj.b(obj.t(:,1))+obj.b(obj.t(:,2))+obj.b(obj.t(:,3)))/3;
         end
         
         function [obj3] = minus(obj1,obj2)
