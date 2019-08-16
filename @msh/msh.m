@@ -1934,6 +1934,8 @@ classdef msh
             CFL = 999;
             if ~isempty(obj.pfix)
                 [pf(:,1),pf(:,2)] = m_ll2xy(obj.pfix(:,1),obj.pfix(:,2));
+            else
+                pf = [];
             end
             con = 9;
 			badnump = 1e10;
