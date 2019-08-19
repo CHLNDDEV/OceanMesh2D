@@ -54,6 +54,9 @@ If you make use of `OceanMesh2D` please include a reference to the following:
       Geoscientific Model Development, 12, 1847-1868. https://doi.org/10.5194/gmd-12-1847-2019.
 [2] - Roberts, K. J., Pringle, W. J, 2018. 
       OceanMesh2D: User guide - Precise distance-based two-dimensional automated mesh generation toolbox intended for coastal
-      ocean/shallow water. https://doi.org/10.13140/RG.2.2.21840.61446/2.       
+      ocean/shallow water. https://doi.org/10.13140/RG.2.2.21840.61446/2.     
+[3] - Roberts, Keith J. Unstructured Mesh Generation and Dynamic Load Balancing for Coastal Ocean Hydrodynamic Simulation, 2019.
+      https://curate.nd.edu/show/4q77fr0022c
+
 
 ```
