@@ -1493,7 +1493,7 @@ classdef msh
             if nargin < 3
                 tight = 1;
             end
-            
+ 
             p1 = obj1.p; t1 = obj1.t;
             p2 = obj2.p; t2 = obj2.t;
             
@@ -1507,7 +1507,7 @@ classdef msh
                 [~,merge] = setProj(merge,1,'stereo',1);
             end
             merge.p = [];
-            
+                      
             % project both meshes into the space of the global mesh
             [p1(:,1),p1(:,2)] = m_ll2xy(p1(:,1),p1(:,2)) ;
             [p2(:,1),p2(:,2)] = m_ll2xy(p2(:,1),p2(:,2)) ;
@@ -1639,22 +1639,24 @@ classdef msh
             merge = CheckElementOrder(merge);             
             
             % Carry over bathy and gradients
-            merge.b = 0*merge.p(:,1);
-            [idx1,dst1] = ourKNNsearch(obj1.p',merge.p',1);   
-            [idx2,dst2] = ourKNNsearch(obj2.p',merge.p',1);   
-            merge.b( dst1 <= dst2) = obj1.b( idx1(dst1 <= dst2)); 
-            merge.b( dst2 <  dst1 ) = obj2.b( idx2(dst2 <  dst1) );
-            % ensure depth of the first mesh is preserved
-            in1 = inpoly(pm,poly_vec1,edges1);
-            merge.b( in1 ) = obj1.b( idx1(in1) ); 
-            if ~isempty(obj1.bx) && ~isempty(obj2.bx)
-                merge.bx = 0*merge.b; merge.by = 0*merge.b;
-                merge.bx(dst2 < dst1) = obj2.bx(idx2(dst2 < dst1)); 
-                merge.bx(dst1 <= dst2) = obj1.bx(idx1(dst1 <= dst2)); 
-                merge.bx( in1 ) = obj1.bx( idx1(in1) ); 
-                merge.by(dst2 < dst1) = obj2.by(idx2(dst2 < dst1)); 
-                merge.by(dst1 <= dst2) = obj1.by(idx1(dst1 <= dst2)); 
-                merge.by( in1 ) = obj1.by( idx1(in1) ); 
+            if ~isempty(obj1.b) && ~isempty(obj2.b)
+                merge.b = 0*merge.p(:,1);
+                [idx1,dst1] = ourKNNsearch(obj1.p',merge.p',1);   
+                [idx2,dst2] = ourKNNsearch(obj2.p',merge.p',1);   
+                merge.b( dst1 <= dst2) = obj1.b( idx1(dst1 <= dst2)); 
+                merge.b( dst2 <  dst1 ) = obj2.b( idx2(dst2 <  dst1) );
+                % ensure depth of the first mesh is preserved
+                in1 = inpoly(pm,poly_vec1,edges1);
+                merge.b( in1 ) = obj1.b( idx1(in1) ); 
+                if ~isempty(obj1.bx) && ~isempty(obj2.bx)
+                    merge.bx = 0*merge.b; merge.by = 0*merge.b;
+                    merge.bx(dst2 < dst1) = obj2.bx(idx2(dst2 < dst1)); 
+                    merge.bx(dst1 <= dst2) = obj1.bx(idx1(dst1 <= dst2)); 
+                    merge.bx( in1 ) = obj1.bx( idx1(in1) ); 
+                    merge.by(dst2 < dst1) = obj2.by(idx2(dst2 < dst1)); 
+                    merge.by(dst1 <= dst2) = obj1.by(idx1(dst1 <= dst2)); 
+                    merge.by( in1 ) = obj1.by( idx1(in1) ); 
+                end
             end
             disp(['Note that f13, f15 and boundary conditions etc. have' ...
                   'not been carried over into the merged mesh'])                                  
