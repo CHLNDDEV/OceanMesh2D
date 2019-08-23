@@ -101,7 +101,9 @@ testang(6) = sum([ang([spb(6):nc])]);
 test = find(testang > 180);
 while ~isempty(test)
     hightemp = find(testang > 180);
-    spb(vod(hightemp + 1)) = spb(vod(hightemp + 1)) - 1;
+    hhtempplus = hightemp + 1;
+    if hhtempplus == 7; break; end
+    spb(vod(hhtempplus)) = spb(vod(hhtempplus)) - 1;
     testang(1) = sum([ang([spb(1):(spb(2)-1)])]);
     testang(2) = sum([ang([spb(2):(spb(3)-1)])]);
     testang(3) = sum([ang([spb(3):(spb(4)-1)])]);
