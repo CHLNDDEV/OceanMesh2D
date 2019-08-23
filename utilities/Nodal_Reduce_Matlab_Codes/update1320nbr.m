@@ -98,12 +98,17 @@ testang(6) = sum([ang([spb(6):nc])]);
 
 %Test to make sure no node is trying to cover more than half of the 
 %circle.
-testr = 1;
-while testang > 180 && testr ~=0
+test = find(testang > 180);
+while ~isempty(test)
     hightemp = find(testang > 180);
     spb(vod(hightemp + 1)) = spb(vod(hightemp + 1)) - 1;
+    testang(1) = sum([ang([spb(1):(spb(2)-1)])]);
+    testang(2) = sum([ang([spb(2):(spb(3)-1)])]);
+    testang(3) = sum([ang([spb(3):(spb(4)-1)])]);
+    testang(4) = sum([ang([spb(4):(spb(5)-1)])]);
+    testang(5) = sum([ang([spb(5):(spb(6)-1)])]);
+    testang(6) = sum([ang([spb(6):nc])]);
     test = find(testang > 180);
-	[testr,~] = size(test);
 end    
 
 %First guess of the new coordinates and bathymetry.
