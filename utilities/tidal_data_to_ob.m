@@ -114,12 +114,8 @@ for j = 1:obj.f15.nbfr
     K = find(Re_now == 0); Re_now(K) = []; 
     Im_now(I) = []; Im_now = Im_now(Kd); Im_now(K) = [];   
     xx = x; yy = y; xx(K) = []; yy(K) = []; 
-    if min(size(const_t)) > 1
-        % Make into complex number
-        Z = Re_now - Im_now*1i;
-    else
-        Z = Re_now - Im_now*1i;
-    end
+    % Make into complex number
+    Z = Re_now - Im_now*1i;
     % Do the scattered Interpolation
     F = scatteredInterpolant(xx,yy,Z,'natural');
     BZ = F(b_x,b_y);  
