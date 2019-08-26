@@ -273,6 +273,9 @@ end
 % Tidal potential and harmonic analysis stuff
 if ~isempty(const)
     % Get the tidal factors etc based on ts and te 
+    if ischar(const)
+        const = {const};
+    end
     obj = tide_fac(obj,ts,te,const);
     
     % Harmonic analysis stuff (copy in tidal potential)
