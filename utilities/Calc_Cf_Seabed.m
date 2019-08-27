@@ -20,13 +20,15 @@ function obj = Calc_Cf_Seabed(obj,datatables,uf,depth_cutoff)
 %       obj: msh class obj
 %       datatables: list of txt filenames of the usSEABED data
 %       uf: vector of the flow velocities to use - must be same length as the
-%       vertices in the msh class obj
-%       depth_cutoff: the depth cutoff to switch to default Cf of 0.0025
+%           vertices in the msh class obj
+%       depth_cutoff: a 2-tuple for lower and upper limit on the depth, 
+%           respectively. The upper limit is where we switch to default Cf 
+%           of 0.0025
 %
 % Output: msh class obj with the f13 struct populated for the 
 %         quadratic_friction_coefficient_at_sea_floor attribute
 %
-% Creation: 8/26/2019 William Pringle
+% Creation: 8/26-27/2019 William Pringle
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % The attribute name and default value we are using
@@ -40,43 +42,57 @@ end
 
 % set depth into h vector
 h = obj.b;
-h = max(h,1); % make sure at least one meter deep
+h = max(h,depth_cutoff(1)); % make sure at least depth_cutoff(1) deep
 
 if length(uf) ~= 1 && length(uf) ~= length(h)
    error('Input velocity vector uf must have same length as mesh vertices')
 end 
 
 %% Read and Process the usSeabed data
-Loc = []; Phi = [];
+Loc = []; Phi = []; CrShSt = []; RH = [];
 for tn = datatables
     T = readtable(tn);
     Loc = [Loc; T.Longitude T.Latitude];
     Phi =  [Phi; T.Grainsize];
+    if sum(strcmp('Lgcrshst',fieldnames(T))) > 0
+        CrShSt = [CrShSt; T.Lgcrshst];
+    elseif sum(strcmp('LgCrShSt',fieldnames(T))) > 0
+        CrShSt = [CrShSt; T.LgCrShSt];
+    else
+        error('No crit chear stress field in datatable')
+    end
+    RH = [RH; T.Roughness];
 end
 
-% remove null data
-Loc(Phi == -99,:) = []; Phi(Phi == -99) = [];
+% Get rid of null data and extract the vertical roughness height only
+VRLoc = Loc(~strcmp(RH,'-99') & ~cellfun('isempty',RH),:);
+RH = RH(~strcmp(RH,'-99') & ~cellfun('isempty',RH));
+VR = 0*VRLoc(:,1);
+for ii = 1:length(RH)
+    RHchar = RH{ii};
+    VR(ii) = str2double(RHchar(1:strfind(RHchar,':')-1));
+end
 
-% Make the scatteredInterpolant for Phi
-F = scatteredInterpolant(Loc,Phi,'nearest','none');
+% Make the scatteredInterpolant for Phi & Shear stress
+% note that null data is value equal to -99
+Fp = scatteredInterpolant(Loc(Phi > -99,:),Phi(Phi > -99),'nearest','none');
+Fc = scatteredInterpolant(Loc(CrShSt > -99,:),CrShSt(CrShSt > -99),'nearest','none');
+Fv = scatteredInterpolant(VRLoc,VR,'nearest','none');
 
 %% Set the sediment and flow properties
-g = 9.81; % gravity
 dgrav = 2e-3;
 dsand = 6.2e-5;
 dsilt = 3.2e-5;
 D0 = 1e-3; % the reference diameter
-d50 = D0*2.^(-F(obj.p)); % get the median sediment diameter in meters
+d50 = D0*2.^(-Fp(obj.p)); % get the median sediment diameter in meters
+Ucrit2 = 10.^Fc(obj.p); % get the critical shear stress in kPa 
+VR = 2.^Fv(obj.p)/100; % vertical roughness height in meters
+
+% Calculate mobility parameter from the knowledge of critical shear stress
+% (avoids having to guess the density)
+mob = uf.^2./Ucrit2;
 
 %% Now Follow Appendix A from Pringle et al., 2018 to get ks roughness
-% "guess" the specific density based on grain size
-s = ((d50 - dsilt)*1.722 + (dsand-d50)*1.2)/(dsand-dsilt);
-s(d50 < dsilt) = 1.2;
-s(d50 > dsand) = 1.722;
-
-% calculate the mobility parameter
-mob = uf.^2./(g*(s-1).*d50);
-
 % get the ripple and mega-ripple roughness factors
 fsc = min(1,(0.25*dgrav./d50).^(1.5));
 ffs = min(1,d50./(1.5*dsand));
@@ -86,15 +102,17 @@ ksr = fsc.*d50.*(85-65*tanh(0.0015*(mob-150)));
 ksm = max(min(0.02,200*d50),2e-5*ffs.*h.*(1-exp(-0.05*mob)).*(500-mob));
 ksd = max(0,8e-5*ffs.*h.*(1-exp(-0.02*mob)).*(600-mob));
 
-% get the total roughness
+% get the total equivalent sand roughness
 ks = max(20*dsilt,sqrt(ksr.^2 + ksm.^2 + ksd.^2));
 
 %% Convert to Cf
+% Max of the ks or the vertical roughness height
+ks = max(ks,VR);
 z0 = ks/30;
 kappa = 0.4;
 Cf = (kappa./log(0.5*h./z0)).^2;
 % just set deep areas to default roughness
-Cf(h > depth_cutoff | isnan(d50)) = default_val;
+Cf(h > depth_cutoff(2) | isnan(d50)) = default_val;
 
 %% Make into f13 struct
 if isempty(obj.f13)
@@ -134,12 +152,5 @@ obj.f13.userval.Atr(NA).usernumnodes = numnodes ;
 % Print out list of nodes for each
 K = find(Cf ~= default_val);
 obj.f13.userval.Atr(NA).Val = [K Cf(K)]';
-
-if ~isempty(obj.f15)
-    % Change attribute in obj.f15
-    disp('Adding on Cf attribute name in fort.15 struct')
-    obj.f15.nwp = obj.f15.nwp + 1;
-    obj.f15.AttrName(obj.f15.nwp).name = attrname;
-end
 
 end
