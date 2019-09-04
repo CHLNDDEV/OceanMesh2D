@@ -107,9 +107,11 @@ ks = max(20*dsilt,sqrt(ksr.^2 + ksm.^2 + ksd.^2));
 
 %% Convert to Cf
 % Max of the ks or the vertical roughness height
-ks = max(ks,VR);
+g = 9.81;
+%ks = max(ks,VR);
 z0 = ks/30;
 kappa = 0.4;
+%Cf = 4*g./(18*log(12*h./ks)).^2;
 Cf = (kappa./log(0.5*h./z0)).^2;
 % just set deep areas to default roughness
 Cf(h > depth_cutoff(2) | isnan(d50)) = default_val;

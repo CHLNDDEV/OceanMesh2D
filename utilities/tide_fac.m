@@ -21,8 +21,10 @@ t = linspace(ts,te,1000)';
 lat = mean(obj.p(:,2));
 
 %% Allow for an entry just to be major8 to get the major eight constituents
-if strcmp(incnstit{1},'major8')
-   incnstit = {'M2','S2','N2','K2','K1','O1','Q1','P1'};
+if any(strcmp(incnstit,'major8'))
+   % add  major eight to the constituent
+   incnstit(strcmp(incnstit,'major8')) = [];
+   incnstit = [incnstit {'M2','S2','N2','K2','K1','O1','Q1','P1'}];
    disp('Using the major eight harmonic tidal constituents')
    disp(incnstit)
 end

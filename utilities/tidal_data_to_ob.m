@@ -83,7 +83,9 @@ for j = 1:obj.f15.nbfr
     % Read the current consituent
     if ~isempty(cidx)
         tidal_database(cidx:cidx+1) = lower(const{j});
-        const_t = ncread(tidal_database,'con');
+        if exist(tidal_database,'file')
+            const_t = ncread(tidal_database,'con');
+        end
     end
     k = find(startsWith(string(const_t'),lower(const{j})));
     if isempty(k)
