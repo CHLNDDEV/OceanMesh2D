@@ -132,8 +132,7 @@ if ~isa(geodata,'geodata')
     DELTA_Y = mean(diff(DEM_YA));
     if DELTA_Y < 0
        flipUD = 1;
-       DEM_YA = flipud(DEM_YA);
-       DELTA_Y = mean(diff(DEM_YA));
+       DELTA_Y = -DELTA_Y;
     end
 else
     DEM_XA = geodata.Fb.GridVectors{1};
@@ -255,6 +254,9 @@ if ~isa(geodata,'geodata')
     DEM_Z = single(ncread(geodata,zvn,...
                    [I(1) J(1)],[length(I) length(J)]));
     if flipUD
+       % handle DEMS from packed starting from the bottom left
+       DEM_YA = flipud(DEM_YA) ;
+       DEM_Y = fliplr(DEM_Y);
        DEM_Z = fliplr(DEM_Z);
     end
                

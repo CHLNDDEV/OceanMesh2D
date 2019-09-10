@@ -1736,7 +1736,7 @@ classdef msh
             % estimate of maximum orbital velocity for 1-m amp. wave
             % (use 2-m if no linear gravity wave)
             dp = max(obj.b,1); % limit depth to at least 1 m
-            U = lgw*sqrt(g*dp) + (2-lgw)*sqrt(g./dp); 
+            U = lgw*sqrt(g*dp) + sqrt(g./dp); %*(2-lgw) 
             if nargin > 1 && ~isempty(dt)
                 % Get CFL from input dt
                 CFL = dt*U./d;  
