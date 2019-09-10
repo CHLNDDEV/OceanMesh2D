@@ -1,4 +1,5 @@
 function [Fx,Fy] = comptide_eflux( b, eamp, ephs, uamp, uphs, vamp, vphs, bcut )
+% [Fx,Fy] = comptide_eflux( b, eamp, ephs, uamp, uphs, vamp, vphs, bcut )
 % calculate the tidal enegry flux averaged 
 % over one tidal cycle:
 %
@@ -11,12 +12,12 @@ function [Fx,Fy] = comptide_eflux( b, eamp, ephs, uamp, uphs, vamp, vphs, bcut )
 %
 % Note:
 %  Amplitude in meter
-%  Phase in  radian
+%  Phase in degs
 %
 % Return:  Fx/(\rho*g) 
 %          Fy/(\rho*g)
-Fx = 0.5*b.*(uamp.*eamp).*cos( uphs - ephs ) ; 
-Fy = 0.5*b.*(vamp.*eamp).*cos( vphs - ephs ) ; 
+Fx = 0.5*b.*(uamp.*eamp).*cosd( uphs - ephs ) ; 
+Fy = 0.5*b.*(vamp.*eamp).*cosd( vphs - ephs ) ; 
 
 bc = 0 ; 
 if ( nargin > 7 )

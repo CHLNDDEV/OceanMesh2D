@@ -1016,16 +1016,21 @@ classdef msh
             end
         end
         
-                % make nodestrings
-        function obj = makens(obj,type,dir,cutlim,depthlim)
+        function obj = makens(obj,type,varargin) %dir,cutlim,depthlim)
+            % obj = makens(obj,type,dir,cutlim,depthlim)
+            %
+            % Puts on nodestring boundaries required for ADCIRC
+            % simulations
+            %
+            % obj: msh class obj
+            % type: 'auto','islands','periodic','weirs', or 'outer'
+            % dir (semi-optional): 0, 1 or a gdat class for auto type
+            % cutlim (optional): lower limit of ocean boundary length in vertices
+            % depthlim (optiona): lower limit of seabed depth that ocean boundary
+            %           can exist at
+            % 
             if nargin < 2
-               error('Needs type: one of auto, islands, delete, or outer')
-            end
-            if nargin < 4 || isempty(cutlim)
-              cutlim = 10 ; 
-            end
-            if nargin < 5 || isempty(depthlim)
-              depthlim = 10 ; 
+               error('Needs type: one of auto, islands, periodic, weir or outer')
             end
             L = 1e3;
 %             trim = 0; periodic = 0;
@@ -1034,12 +1039,20 @@ classdef msh
 %             end
             switch type
                 case('auto')
-                    if nargin < 3 || ~isa(dir,'geodata')
+                    if isempty(varargin) 
                         error('third input must be a geodata class for auto makens')
-                    else
-                        gdat = dir;
                     end
-                    
+                    gdat = varargin{1};
+                    if ~isa(gdat,'geodata')
+                        error('third input must be a geodata class for auto makens')
+                    end
+                    cutlim = 10; depthlim = 10;
+                    if length(varargin) > 1
+                        cutlim = varargin{2};
+                    end
+                    if length(varargin) > 2
+                        depthlim = varargin{3}; 
+                    end
                     % Check for global mesh
                     Le = find(obj.p(:,1) < -179, 1);
                     Ri = find(obj.p(:,1) > 179, 1);
@@ -1202,51 +1215,69 @@ classdef msh
                     end
                     
                 case('islands')
-                    [etbv,~]  = extdom_edges2(obj.t,obj.p);
-                    [poly,poly_idx,max_ind] = extdom_polygon(etbv,obj.p,1);
                     
                     nbou = 0;
                     nvel = 0;
-                    if nargin < 3
-                        ibt = 21;
-                    else
-                        ibt = dir;
-                        disp(['setting ibtype to ' num2str(ibt)])
+                    ibt = 21;
+                    if ~isempty(varargin)
+                        ibt = varargin{1};
                     end
-                        
+                    disp(['setting ibtype to ' num2str(ibt)])
+                    
+                    [etbv,~]  = extdom_edges2(obj.t,obj.p);
+                    [poly,poly_idx,max_ind] = extdom_polygon(etbv,obj.p,1);
+                    
                     % the largest polygon will be a combination of ocean and mainland
                     % boundaries. Deal with this first, then remove it from the polygon
-                    %poly(max_ind) = [];
-                    %poly_idx(max_ind)=[];
+                    poly(max_ind) = [];
+                    poly_idx(max_ind) = [];
                     
                     % loop through the remaining polygons
-                    for poly_count = 1 : length(poly)
-                        vso = poly{poly_count};
-                        idv = poly_idx{poly_count};
+                    nvell = zeros(1,length(poly)); ibtype = nvell + ibt;
+                    nbvv  = zeros(max(cellfun('length',poly_idx)),length(poly));
+                    for nbou = 1 : length(poly)
+                        vso = poly{nbou};
+                        idv = poly_idx{nbou};
                         % islands
-                        nbou = nbou + 1;
                         nvell(nbou) = length(vso);
                         nvel = nvel + nvell(nbou);
-                        nbvv(1:nvell(nbou),nbou) = idv';
-                        ibtype(nbou) = ibt;
+                        nbvv(1:nvell(nbou),nbou) = int32(idv');
                     end
+                    nbvv = int32(nbvv);
                     
                     % ocean boundary
-                    obj.op.nope = 0 ;
-                    obj.op.neta = 0 ;
-                    obj.op.nvdll = 0 ;
-                    obj.op.ibtype = 0 ;
-                    obj.op.nbdv = 0;
+                    if isempty(obj.op)
+                        obj.op.nope = 0 ;
+                        obj.op.neta = 0 ;
+                        obj.op.nvdll = 0 ;
+                        obj.op.ibtype = 0 ;
+                        obj.op.nbdv = 0;
+                    end
                     
                     % land boundary
                     if nbou == 0
                         disp('No islands found!')
                     else
-                        obj.bd.nbou = nbou ;
-                        obj.bd.nvel = nvel ;
-                        obj.bd.nvell = nvell ;
-                        obj.bd.ibtype = ibtype ;
-                        obj.bd.nbvv = nbvv ;
+                        if isempty(obj.bd)
+                            obj.bd.nbou = nbou ;
+                            obj.bd.nvel = nvel ;
+                            obj.bd.nvell = nvell ;
+                            obj.bd.ibtype = ibtype ;
+                            obj.bd.nbvv = nbvv ;
+                        else
+                            obj.bd.nbou = obj.bd.nbou + nbou ;
+                            obj.bd.nvel = obj.bd.nvel + nvel ;
+                            maxold = max(obj.bd.nvell);
+                            maxnew = max(nvell);
+                            if maxold < maxnew
+                                obj.bd.nbvv(end+1:end+maxnew-maxold,:) = 0;
+                            elseif maxold > maxnew
+                                nbvv(end+1:end+maxold-maxnew,:) = 0;
+                            end
+                            obj.bd.nvell = [obj.bd.nvell nvell];
+                            obj.bd.ibtype = [obj.bd.ibtype ibtype];
+                            obj.bd.nbvv = [obj.bd.nbvv nbvv];
+                        end
                     end
                         
                 case('delete')
@@ -1284,30 +1315,40 @@ classdef msh
                     obj.bd.nvel = obj.bd.nvel - num_delnodes ;
                     
                 case('outer')
-                    if nargin < 3
+                    if isempty(varargin)
                        error('must specify direction of boundary in third entry') 
                     end
+                    dir = varargin{1};
                         
-                    [bnde,bpts]=extdom_edges2(obj.t,obj.p);
+                    [bnde,bpts] = extdom_edges2(obj.t,obj.p);
                     
-                    % use this to figure out the vstart and vend
-                    figure, plot(bpts(:,1),bpts(:,2),'k.');
-                    %hold on; fastscatter(obj.p(:,1),obj.p(:,2),obj.b) ;
-                    caxis([-10 10]) ; axis equal ;
-                    title('use data cursor to identify vstart and vend');
-                    dcm_obj = datacursormode(gcf);
-                    set(dcm_obj,'UpdateFcn',{@myupdatefcn2,bpts})
-                    
-                    % Use data cursor to get the values of the boundary nodes.
-                    vstart=input('Enter the value for vstart : ');
-                    vend=input('Enter the value for vend : ');
-                    bndidx=unique(bnde(:));
-                    
-                    vstart= bndidx(vstart);
-                    vend  = bndidx(vend);
-                    
+                    if length(varargin) < 3
+                        % use this to figure out the vstart and vend
+                        figure, plot(bpts(:,1),bpts(:,2),'k.');
+                        %hold on; fastscatter(obj.p(:,1),obj.p(:,2),obj.b) ;
+                        caxis([-10 10]) ; axis equal ;
+                        title('use data cursor to identify vstart and vend');
+                        dcm_obj = datacursormode(gcf);
+                        set(dcm_obj,'UpdateFcn',{@myupdatefcn2,bpts})
+
+                        % Use data cursor to get the values of the boundary nodes.
+                        vstart=input('Enter the value for vstart : ');
+                        vend=input('Enter the value for vend : ');
+
+                        bndidx = unique(bnde(:));
+                        vstart = bndidx(vstart);
+                        vend   = bndidx(vend);    
+                    else
+                        vstart = varargin{2}; vend = varargin{3};
+                        if length(varargin) >= 5
+                           type = varargin{4}; type2 = varargin{5};
+                           [~,~,obj.op,obj.bd] = extract_boundary(vstart,vend,bnde,obj.p,...
+                           	dir,obj.op,obj.bd,type,type2); %<--updates op and bd.
+                           return;
+                        end
+                    end
                     [~,~,obj.op,obj.bd] = extract_boundary(vstart,vend,bnde,obj.p,...
-                        dir,obj.op,obj.bd); %<--updates op and bd.
+                    	dir,obj.op,obj.bd); %<--updates op and bd.
                 case('periodic')
                     % get elements that straddle the -180/180 boundary
                     bars = [obj.t(:,[1,2]); obj.t(:,[1,3]); obj.t(:,[2,3])]; % Interior bars duplicated
@@ -1326,10 +1367,12 @@ classdef msh
                     return;
                     
                 case('weirs')
-                    if ~isa(dir,'geodata')
+                    if isempty(varargin)
+                        error('Third input must be a geodata class obj')
+                    end
+                    gdat = varargin{1};
+                    if ~isa(gdat,'geodata')
                         error('The third input must be a geodata class object you used create the mesh with.')
-                    else
-                        gdat = dir;
                     end
                     
                     % identifying and adding internal weir type boundaries (ibtype=24)

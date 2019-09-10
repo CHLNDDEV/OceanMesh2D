@@ -1,5 +1,5 @@
-function [error_matrix,error_values,sta_locs,OBSERVED_AMP,MODELED_AMP] = ...
-                                      ValidateTides(fort53,stadat,varargin)
+function [error_matrix,error_values,sta_locs,OBSERVED_AMP,MODELED_AMP,...
+          OBSERVED_PHS,MODELED_PHS] = ValidateTides(fort53,stadat,varargin)
 % [error_matrix,error_values,sta_locs,OBSERVED_AMP,MODELED_AMP] = 
 %                                     ValidateTides(fort53,stadat,varargin)
 % Calculates the complex root mean square error of the major 8

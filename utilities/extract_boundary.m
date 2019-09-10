@@ -1,4 +1,4 @@
-function [poly,poly_idx,opendat,boudat] = extract_boundary(v_start,v_end,bnde,pts,order,opendat,boudat)
+function [poly,poly_idx,opendat,boudat] = extract_boundary(v_start,v_end,bnde,pts,order,opendat,boudat,type,type2)
 % DESCRIPTION: Given a set of boundary edges and a starting and ending index
 %              of a singly- or multi-polygonal region, organize them in a
 %              winding order and/or add them to an existing opendat/boudat
@@ -36,8 +36,9 @@ function [poly,poly_idx,opendat,boudat] = extract_boundary(v_start,v_end,bnde,pt
 bnde= unique(bnde,'rows');
 active = true(size(bnde,1),1);
 p = 0;
+exceed = 50e3; %100e3;
 
-[rt,dmy] = find(v_start==bnde);
+[rt,~] = find(v_start==bnde);
 if isempty(rt), disp('v_start does not exist on boundary, check numbering'); return; end
 r  = rt(order+1); % change this only here to from 1 to 2 or 2 to 1 to go left or right
 tsel = bnde(r,:);
@@ -49,7 +50,7 @@ cut = true;
 while cut
     p = p + 1;
     if(p > 1 )
-        [rt,dmy] = find(v_next==bnde & active);
+        [rt,~] = find(v_next==bnde & active);
         r  = rt(1);
         tsel = bnde(r,:);
         sel  = tsel(tsel~=v_next);
@@ -74,7 +75,7 @@ while cut
         active(r) = 0;
         v_next = sel;
         % exceeded max xize, break
-        if(k > 100e3),disp('exceed'); break, end
+        if (k > exceed),disp('exceed'); break, end
         % reached ending vertex, break
         if(v_next==v_end), cut=false; disp('reached ending'); end
         % exhausted all edges and couldn't connect
@@ -82,8 +83,8 @@ while cut
     end
     poly{p}     = temp;
     poly_idx{p} = temp2;
-    [area]=parea(poly{p}(:,1),poly{p}(:,2));
-    if(order==0) % ccw
+    [area] = parea(poly{p}(:,1),poly{p}(:,2));
+    if order == 0 % ccw
         if sign(area)<0
             poly{p} = flipud(poly{p});
             poly_idx{p} = flipud(poly_idx{p});
@@ -99,7 +100,9 @@ for ii = 1 : p
     hold on; plot(poly{ii}(:,1),poly{ii}(:,2),'r-','linewi',2);
 end
 
-type = input('What kind of boundary is this, 1 (flux) or 2 (elevation)?');
+if ~exist('type','var') 
+   type = input('What kind of boundary is this, 1 (flux) or 2 (elevation)?');
+end
 
 % if populated
 if ~isempty(boudat)
@@ -109,12 +112,14 @@ if ~isempty(boudat)
         nvell= boudat.nvell;
         nbvv = boudat.nbvv;
         ibtype = boudat.ibtype;
-        type2 = input('What kind of flux boundary is it, 20(island),22(River)?');
+        if ~exist('type2','var') 
+           type2 = input('What kind of flux boundary is it, 20(island),22(River)?');
+        end
         for ii = 1 : length(poly)
             nbou = nbou + 1;
             nvell(nbou) = length(poly{ii}(:,1));
             nvel = nvel + nvell(nbou);
-            nbvv(1:nvell(nbou),nbou) = poly_idx{ii}(:);
+            nbvv(1:nvell(nbou),nbou) = int32(poly_idx{ii}(:));
             ibtype(nbou) = type2;
         end
         boudat.nbou = nbou ;
@@ -179,7 +184,9 @@ end
 if isempty(boudat)
     if type==1
         nbou = 0; nvel = 0; nvell = []; nbbv = [] ; 
-        type2 = input('What kind of flux boundary is it, 20(island),2(River)?');
+        if ~exist('type2','var') 
+           type2 = input('What kind of flux boundary is it, 20(island),2(River)?');
+        end
         for ii = 1 : length(poly)
             nbou = nbou + 1;
             nvell(nbou) = length(poly{ii}(:,1));
