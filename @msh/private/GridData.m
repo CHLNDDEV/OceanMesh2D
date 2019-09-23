@@ -1,5 +1,5 @@
 function obj = GridData(geodata,obj,varargin)
-% obj = GridData(geodata,obj,varagin);
+% obj = GridData(geodata,obj,varargin);
 % GridData: Uses the cell-averaged approach to interpolate the nodes
 %           on the unstructured grid to the DEM.          
 %       Input : geodata - either a geodata class or a filename of the netcdf DEM

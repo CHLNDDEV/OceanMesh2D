@@ -222,9 +222,9 @@ for i = 1:6
     addconn = ([badnode,newnode([1:5]),badnode]);
     tmp = nei(nbrnode((2*i)-1),:);
 	ij = find(tmp == badnode);
-    ik = min((find(tmp == 0)) + 1);
+    ik = find(tmp == 0, 1 ) + 1;
     if isempty(ik)  % TCM 08/13/2007 -- Added this check in case ik was empty.
-      ik= size(nei,2)+1;
+      ik = size(nei,2)+1;
     end
     fem.nei(nbrnode((2*i)-1),1:ik) = ([tmp(1:(ij-1)),addconn(i+1),addconn(i),tmp((ij+1):(ik-1))]);
 end
@@ -233,7 +233,11 @@ end
 for i = 1:5
     tmp = nei(nbrnode(2*i),:);
     ij = find(tmp == badnode);
-    fem.nei(nbrnode(2*i),1:end) = ([tmp(1:(ij-1)),newnode(i),tmp((ij+1):end)]);
+    ik = find(tmp == 0, 1 );
+    if isempty(ik)  % WJP -- Added this check in case ik was empty.
+      ik = size(nei,2);
+    end
+    fem.nei(nbrnode(2*i),1:ik) = ([tmp(1:(ij-1)),newnode(i),tmp((ij+1):ik)]);
 end    
    
 %Determine the triqual for the final form to see if has very low quality
