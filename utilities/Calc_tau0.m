@@ -20,16 +20,16 @@ function obj = Calc_tau0(obj,varargin)
 
 attrname = 'primitive_weighting_in_continuity_equation';
 
-if isempty(obj.b)
-    error('No bathymetry data in grid to calculate the tau0 coefficients')
-end
-
 %% Test optional arguments
 % default
 MinDepth = 10; % m 
 Distance = 2; % km
+opt = -3; % calculate tau0 using -3 option
+mm  = 2/3; % consistent mass matrix
+kappa = 0.4; % GWCE weight
+sf = 0.6; % suggested safety factor
 if ~isempty(varargin)
-    names = {'depth','distance'};
+    names = {'depth','distance','opt'};
     for ii = 1:length(names)
         ind = find(~cellfun(@isempty,strfind(varargin(1:2:end),names{ii})));
         if ~isempty(ind)
@@ -37,9 +37,28 @@ if ~isempty(varargin)
                 MinDepth = varargin{ind*2};
             elseif ii == 2
                 Distance = varargin{ind*2};
+            elseif ii == 3
+                opt = varargin{ind*2};
             end
         end    
     end
+end
+
+if opt > 0
+   dt = opt;
+   obj.f15.tau0 = sf*4*(2-mm)*(3*kappa-1)/dt;
+   obj.f15.a00b00c00 = [kappa kappa 1-2*kappa];
+   obj.f15.IM = 511111;
+   disp(['Computed constant value of tau0 = ' num2str(obj.f15.tau0) ' based on...'])
+   disp(['mm = ' num2str(mm)])
+   disp(['kappa = ' num2str(kappa)])
+   disp(['sf = ' num2str(sf)])
+   disp(['dt = ' num2str(dt)])
+   return;
+end
+
+if isempty(obj.b) || all(obj.b) == 0
+    error('No bathymetry data in grid to calculate the tau0 coefficients')
 end
 
 %% Get all the unique bar edges and distances
