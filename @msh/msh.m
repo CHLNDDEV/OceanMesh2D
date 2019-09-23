@@ -837,17 +837,17 @@ classdef msh
             %process categorical cleaning options
             if any(strcmp(varargin,'passive'))
                 disp('Employing passive option')
-                opt.db = 0.025; opt.ds = 0; opt.con = 10; opt.djc = 1e-4; 
+                opt.db = 0.1; opt.ds = 0; opt.con = 10; opt.djc = 1e-4; 
                 opt.sc_maxit = 0; opt.mqa = 1e-4;
                 varargin(strcmp(varargin,'passive')) = [];
             elseif any(strcmp(varargin,'aggressive'))
                 disp('Employing aggressive option')
-                opt.db = 0.25; opt.ds = 1; opt.con = 9; opt.djc = 0.25; 
+                opt.db = 0.5; opt.ds = 1; opt.con = 9; opt.djc = 0.25; 
                 opt.sc_maxit = inf; opt.mqa = 0.1;
                 varargin(strcmp(varargin,'aggressive')) = [];
             else
                 disp('Employing default (medium) option')
-                opt.db = 0.1; opt.ds = 1; opt.con = 9; opt.djc = 0.1; 
+                opt.db = 0.25; opt.ds = 1; opt.con = 9; opt.djc = 0.1; 
                 opt.sc_maxit = 1; opt.mqa = 0.025;
                 varargin(strcmp(varargin,'default')) = []; 
                 varargin(strcmp(varargin,'medium')) = []; 
@@ -1502,8 +1502,8 @@ classdef msh
             end
         end
         
-        function merge = plus(obj1,obj2,tight)
-            % merge = plus(obj1,obj2,tight)
+        function merge = plus(obj1,obj2,tight,cleanargin)
+            % merge = plus(obj1,obj2,tight,cleanargin)
             % Merge together two meshes contained in the msh objects obj1
             % and obj2. Uses MATLAB's implementation of the Boywer-Watson
             % incremental triangulation and then applies mesh cleaning
@@ -1535,6 +1535,15 @@ classdef msh
             
             if nargin < 3
                 tight = 1;
+            end
+            if nargin < 4
+                cleanargin = {'passive','proj',0};
+            else
+                if ~iscell(cleanargin)
+                   error('cleanargin must be a cell') 
+                end
+                cleanargin{end+1} = 'proj';
+                cleanargin{end+1} = 0;
             end
  
             p1 = obj1.p; t1 = obj1.t;
@@ -1605,8 +1614,7 @@ classdef msh
             % delete too close points
             [kk,dst] = ourKNNsearch(DTbase.Points',DTbase.Points',2);
             dst = dst(:,2); kk = kk(:,2);
-            %ind = [1:length(kk)]';
-            del = kk(dst < midi); % ind(dst < midi)];
+            del = kk(dst < midi);
             DTbase.Points(double(unique(del)),:) = [];
             
             tq.qm = -1;
@@ -1654,7 +1662,7 @@ classdef msh
                 merge.p = pm; merge.t = tm ;
             
                 % clean the msh object
-                merge = clean(merge,'passive','proj',0);
+                merge = clean(merge,cleanargin,'proj',0);
 
                 % the overlap region to smooth
                 [~,dst1] = ourKNNsearch(p1',merge.p',1);
