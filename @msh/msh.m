@@ -514,8 +514,10 @@ classdef msh
                         ii = find(contains({obj.f13.defval.Atr(:).AttrName},'primitive'));
                         defval  = obj.f13.defval.Atr(ii).Val;
                         userval = obj.f13.userval.Atr(ii).Val;
+                        tau0 = 0*obj.p(:,1) + defval;
+                        tau0(userval(1,:)) = userval(2,:)'; 
                         figure;
-                        fastscatter(obj.p(userval(1,:),1),obj.p(userval(1,:),2),userval(2,:)');
+                        fastscatter(obj.p(:,1),obj.p(:,2),tau0);
                         colormap([1 0 0; 0 1 0; 0 0 1]);
                         colorbar;
                     else
@@ -837,7 +839,7 @@ classdef msh
             %process categorical cleaning options
             if any(strcmp(varargin,'passive'))
                 disp('Employing passive option')
-                opt.db = 0.1; opt.ds = 0; opt.con = 10; opt.djc = 1e-4; 
+                opt.db = 0.1; opt.ds = 0; opt.con = 10; opt.djc = 0; 
                 opt.sc_maxit = 0; opt.mqa = 1e-4;
                 varargin(strcmp(varargin,'passive')) = [];
             elseif any(strcmp(varargin,'aggressive'))
@@ -997,17 +999,18 @@ classdef msh
             if overland == -1
                 I = bt < 0; 
                 word = 'bathymetric';
-            elseif overland
-                I = bt > 0; 
+            elseif overland == 1
+                I = bt > 0;
                 word = 'topographic';
             else
-                I = [];
+                I = false(size(bt));
                 word = 'topobathy';
+                overland = -1;
             end
-            bt(I) = 0;
+            bt(I) = 0; bt(~I) = -overland*bt(~I);
             [bnew,flag] = limgrad(edge,elen,bt,dfdx,imax);
             if flag
-               obj.b(~I) = bnew(~I);
+               obj.b(~I) = -overland*bnew(~I);
                disp(['Successfully limited ' word ' slope to ' ...
                     num2str(dfdx) ' in limgrad function']) 
             else
@@ -1559,16 +1562,16 @@ classdef msh
                 [~,merge] = setProj(merge,1,'stereo',1);
             end
             merge.p = [];
-                      
+
             % project both meshes into the space of the global mesh
             [p1(:,1),p1(:,2)] = m_ll2xy(p1(:,1),p1(:,2)) ;
             [p2(:,1),p2(:,2)] = m_ll2xy(p2(:,1),p2(:,2)) ;
-            
-            [~,d1] = ourKNNsearch(p1',p1',2); d1 = d1(:,2);
+ 
+            [~,d1] = GetBarLengths(obj1,-1);
+            [~,d2] = GetBarLengths(obj2,-1);
             mvd1 = max(d1); 
-            [~,d2] = ourKNNsearch(p2',p2',2); d2 = d2(:,2);
             mvd2 = max(d2);
-            midi = min(min(d2),min(d1)); 
+            midi = min(d1); %midi = min(min(d2),min(d1)); 
             overlap = 0.5*(mvd1 + mvd2);
             
             disp('Forming outer boundary for base...')
@@ -1612,10 +1615,13 @@ classdef msh
             DTbase = delaunayTriangulation(p1(:,1),p1(:,2));
             DTbase.Points(end+(1:length(p2)),:) = p2; 
             % delete too close points
-            [kk,dst] = ourKNNsearch(DTbase.Points',DTbase.Points',2);
-            dst = dst(:,2); kk = kk(:,2);
-            del = kk(dst < midi);
-            DTbase.Points(double(unique(del)),:) = [];
+            del = 1;
+            while ~isempty(del)
+                merge.p = DTbase.Points; merge.t = DTbase.ConnectivityList;
+                [bars,dst] = GetBarLengths(merge,-2);
+                del = bars(dst < midi,1);
+                DTbase.Points(unique(del),:) = [];
+            end
             
             tq.qm = -1;
             
@@ -1694,11 +1700,18 @@ classdef msh
                 merge.b = 0*merge.p(:,1);
                 [idx1,dst1] = ourKNNsearch(obj1.p',merge.p',1);   
                 [idx2,dst2] = ourKNNsearch(obj2.p',merge.p',1);   
-                merge.b( dst1 <= dst2) = obj1.b( idx1(dst1 <= dst2)); 
+                merge.b( dst1 <= dst2) = obj1.b( idx1(dst1 <= dst2) ); 
                 merge.b( dst2 <  dst1 ) = obj2.b( idx2(dst2 <  dst1) );
-                % ensure depth of the first mesh is preserved
-                in1 = inpoly(pm,poly_vec1,edges1);
-                merge.b( in1 ) = obj1.b( idx1(in1) ); 
+                merge.b( dst1 <= 2*midi ) = obj1.b( idx1(dst1 <= 2*midi ) ); 
+                % ensure depth of the first mesh is preserved by inpoly of
+                % the element barycenter
+%                 bc = baryc(merge);
+%                 ine1 = inpoly(bc,poly_vec1,edges1);
+%                 in1 = false(size(obj1.b));
+%                 in1(merge.t(ine1,1)) = true;
+%                 in1(merge.t(ine1,2)) = true;
+%                 in1(merge.t(ine1,3)) = true;
+%                 merge.b( in1 ) = obj1.b( idx1(in1) ); 
                 if ~isempty(obj1.bx) && ~isempty(obj2.bx)
                     merge.bx = 0*merge.b; merge.by = 0*merge.b;
                     merge.bx(dst2 < dst1) = obj2.bx(idx2(dst2 < dst1)); 
@@ -1837,6 +1850,14 @@ classdef msh
                 sfac = sfac.*ceil(sfac/10); 
                 [x, y] = CPP_conv( obj.p(:,1), obj.p(:,2) );
                 barlen = hypot(diff(x(bars),[],2)./sfac,diff(y(bars),[],2));
+            else
+                % do projection
+                if type == -1 
+                    [x,y] = m_ll2xy(obj.p(:,1),obj.p(:,2)) ;
+                else
+                    x = obj.p(:,1); y = obj.p(:,2);
+                end
+                barlen = hypot(diff(x(bars),[],2),diff(y(bars),[],2));
             end
             
             function [ x,y ] = CPP_conv( lon,lat )
