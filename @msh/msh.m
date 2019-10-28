@@ -1567,7 +1567,7 @@ classdef msh
             [p1(:,1),p1(:,2)] = m_ll2xy(p1(:,1),p1(:,2)) ;
             [p2(:,1),p2(:,2)] = m_ll2xy(p2(:,1),p2(:,2)) ;
  
-            [~,d1] = GetBarLengths(obj1,-1);
+            [~,d1,d1min] = GetBarLengths(obj1,-1);
             [~,d2] = GetBarLengths(obj2,-1);
             mvd1 = max(d1); 
             mvd2 = max(d2);
@@ -1611,17 +1611,22 @@ classdef msh
                 end
             end
             
+             % delete too close points before merging
+            [kk,dst] = ourKNNsearch(p2',p1',1);
+            p2del = kk(dst < d1min);
+            p2(p2del,:) = [];
+            
             disp('Merging...')
             DTbase = delaunayTriangulation(p1(:,1),p1(:,2));
             DTbase.Points(end+(1:length(p2)),:) = p2; 
-            % delete too close points
-            del = 1;
-            while ~isempty(del)
-                merge.p = DTbase.Points; merge.t = DTbase.ConnectivityList;
-                [bars,dst] = GetBarLengths(merge,-2);
-                del = bars(dst < midi,1);
-                DTbase.Points(unique(del),:) = [];
-            end
+%           
+%             del = 1;
+%             while ~isempty(del)
+%                 merge.p = DTbase.Points; merge.t = DTbase.ConnectivityList;
+%                 [bars,dst] = GetBarLengths(merge,-2);
+%                 del = bars(dst < midi,1);
+%                 DTbase.Points(unique(del),:) = [];
+%             end
             
             tq.qm = -1;
             
@@ -1698,13 +1703,14 @@ classdef msh
             % Carry over bathy and gradients
             if ~isempty(obj1.b) && ~isempty(obj2.b)
                 merge.b = 0*merge.p(:,1);
+                obj2.p(p2del,:) = []; obj2.b(p2del) = [];
                 [idx1,dst1] = ourKNNsearch(obj1.p',merge.p',1);   
                 [idx2,dst2] = ourKNNsearch(obj2.p',merge.p',1);   
                 merge.b( dst1 <= dst2) = obj1.b( idx1(dst1 <= dst2) ); 
                 merge.b( dst2 <  dst1 ) = obj2.b( idx2(dst2 <  dst1) );
-                merge.b( dst1 <= 2*midi ) = obj1.b( idx1(dst1 <= 2*midi ) ); 
-                % ensure depth of the first mesh is preserved by inpoly of
-                % the element barycenter
+%                merge.b( dst1 <= 2*midi ) = obj1.b( idx1(dst1 <= 2*midi ) ); 
+%                % ensure depth of the first mesh is preserved by inpoly of
+%                % the element barycenter
 %                 bc = baryc(merge);
 %                 ine1 = inpoly(bc,poly_vec1,edges1);
 %                 in1 = false(size(obj1.b));
@@ -1714,6 +1720,7 @@ classdef msh
 %                 merge.b( in1 ) = obj1.b( idx1(in1) ); 
                 if ~isempty(obj1.bx) && ~isempty(obj2.bx)
                     merge.bx = 0*merge.b; merge.by = 0*merge.b;
+                    obj2.bx(p2del) = []; obj2.by(p2del) = [];
                     merge.bx(dst2 < dst1) = obj2.bx(idx2(dst2 < dst1)); 
                     merge.bx(dst1 <= dst2) = obj1.bx(idx1(dst1 <= dst2)); 
                     merge.bx( in1 ) = obj1.bx( idx1(in1) ); 
@@ -1784,16 +1791,7 @@ classdef msh
                 type = 0;
             end
             g      = 9.81;        % gravity
-            [bars,barlen] = GetBarLengths(obj,type);
-            % sort bar lengths in ascending order
-            [barlen,IA] = sort(barlen,'ascend');
-            bars = bars(IA,:);
-            % get the minimum bar length for each node
-            [B1,IB] = unique(bars(:,1),'first');
-            [B2,IC] = unique(bars(:,2),'first');
-            d1 = NaN*obj.p(:,1); d2 = NaN*obj.p(:,1);
-            d1(B1) = barlen(IB); d2(B2) = barlen(IC);
-            d = min(d1,d2);
+            [bars,barlen,d] = GetBarLengths(obj,type);
             
             % the velocity component of CFL:
             % linear gravity wave speed + 
@@ -1812,7 +1810,7 @@ classdef msh
             end
         end
         
-        function [bars,barlen] = GetBarLengths(obj,type)
+        function [bars,barlen,minbarlen] = GetBarLengths(obj,type)
             % [bars,barlen] = GetBarLengths(obj,type)
             % Get bars and bar lengths of the elements in msh object
             % set type = 0 for bar lengths computed using Harvesine formula
@@ -1859,7 +1857,18 @@ classdef msh
                 end
                 barlen = hypot(diff(x(bars),[],2),diff(y(bars),[],2));
             end
-            
+            if nargout > 2
+                % sort bar lengths in ascending order
+                [barlen,IA] = sort(barlen,'ascend');
+                bars = bars(IA,:);
+                % get the minimum bar length for each node
+                [B1,IB] = unique(bars(:,1),'first');
+                [B2,IC] = unique(bars(:,2),'first');
+                d1 = NaN*obj.p(:,1); d2 = NaN*obj.p(:,1);
+                d1(B1) = barlen(IB); d2(B2) = barlen(IC);
+                minbarlen = min(d1,d2);
+            end
+                
             function [ x,y ] = CPP_conv( lon,lat )
                 %CPP_conv Converts lat and lon to x and y
                 lon0 =  mean(lon) * pi/180; lat0 = mean(lat) * pi/180;
