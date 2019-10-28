@@ -57,6 +57,8 @@ If you make use of `OceanMesh2D` please include a reference to the following:
       ocean/shallow water. https://doi.org/10.13140/RG.2.2.21840.61446/2.     
 [3] - Roberts, Keith J. Unstructured Mesh Generation and Dynamic Load Balancing for Coastal Ocean Hydrodynamic Simulation, 2019.
       https://curate.nd.edu/show/4q77fr0022c
+[4] - Roberts, Keith J., Pringle W.J., Westerink J. J. Contreras, M.T., Wirasaet, D.. On the automatic and a priori design of                   unstructured mesh resolution for coastal ocean circulation models. https://doi.org/10.1016/j.ocemod.2019.101509
+
 
 
 ```
