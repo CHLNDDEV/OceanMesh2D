@@ -840,7 +840,7 @@ classdef msh
             if any(strcmp(varargin,'passive'))
                 disp('Employing passive option')
                 opt.db = 0.1; opt.ds = 0; opt.con = 10; opt.djc = 0; 
-                opt.sc_maxit = 0; opt.mqa = 1e-4;
+                opt.sc_maxit = 0; opt.mqa = 0;
                 varargin(strcmp(varargin,'passive')) = [];
             elseif any(strcmp(varargin,'aggressive'))
                 disp('Employing aggressive option')
@@ -1571,21 +1571,23 @@ classdef msh
             [~,d2] = GetBarLengths(obj2,-1);
             mvd1 = max(d1); 
             mvd2 = max(d2);
-            midi = min(d1); %midi = min(min(d2),min(d1)); 
+            % midi = min(d1); %midi = min(min(d2),min(d1)); 
             overlap = 0.5*(mvd1 + mvd2);
             
+            %% Getting outer boundary for base
             disp('Forming outer boundary for base...')
             cell2 = extdom_polygon(extdom_edges2(t2,p2),p2,-1,0);
             poly_vec2 = cell2mat(cell2');
             edges2 = Get_poly_edges(poly_vec2);
-                        
+                     
+            %% Getting outer boundary for inset
             disp('Forming outer boundary for inset...')
             cell1 = extdom_polygon(extdom_edges2(t1,p1),p1,-1,0);
             poly_vec1 = cell2mat(cell1');
             edges1 = Get_poly_edges(poly_vec1);
             
-            % Delete the region in the global mesh that is in the
-            % intersection with inset.
+            %% Delete the region in the global mesh that is in the
+            %% intersection with inset.
             if tight > -1
                 disp('Calculating intersection...');
                 [x3,y3] = polybool('intersection',poly_vec1(:,1),...
@@ -1611,29 +1613,31 @@ classdef msh
                 end
             end
             
-             % delete too close points before merging
+            %% Merging
+            disp('Merging...')
+            % set the first mesh
+            DTbase = delaunayTriangulation(p1(:,1),p1(:,2));
+            % constrain edges if (almost) no overlap
+            if tight == -1
+                pm = DTbase.Points; tm = DTbase.ConnectivityList;
+                pmid = (pm(tm(:,1),:)+pm(tm(:,2),:)+pm(tm(:,3),:))/3;
+                in1 = inpoly(pmid,poly_vec1,edges1);
+                tm(~in1,:) = [];
+                etbv  = extdom_edges2(tm,pm);
+                DTbase.Constraints = etbv;
+            end
+            % delete too close p2 points before merging
             [kk,dst] = ourKNNsearch(p2',p1',1);
             p2del = kk(dst < d1min);
             p2(p2del,:) = [];
-            
-            disp('Merging...')
-            DTbase = delaunayTriangulation(p1(:,1),p1(:,2));
+            % add in the p2 points
             DTbase.Points(end+(1:length(p2)),:) = p2; 
-%           
-%             del = 1;
-%             while ~isempty(del)
-%                 merge.p = DTbase.Points; merge.t = DTbase.ConnectivityList;
-%                 [bars,dst] = GetBarLengths(merge,-2);
-%                 del = bars(dst < midi,1);
-%                 DTbase.Points(unique(del),:) = [];
-%             end
             
+            %% Pruning
+            disp('Pruning...')
             tq.qm = -1;
-            
             while min(tq.qm) < 1e-4
             % Prune triangles outside both domains.
-            disp('Pruning...')
-            
             for ii = 1:2 
             % The loop makes sure to remove only small connectivity for the boundaries
                 if ii == 2
@@ -1675,14 +1679,15 @@ classdef msh
                 % clean the msh object
                 merge = clean(merge,cleanargin,'proj',0);
 
-                % the overlap region to smooth
-                [~,dst1] = ourKNNsearch(p1',merge.p',1);
-                [~,dst2] = ourKNNsearch(p2',merge.p',1);
-                idx = find(abs(dst1 - dst2) < overlap);
+                % use local smoother in the overlap region
+                if tight > -1
+                    [~,dst1] = ourKNNsearch(p1',merge.p',1);
+                    [~,dst2] = ourKNNsearch(p2',merge.p',1);
+                    idx = find(abs(dst1 - dst2) < overlap);
+                    constr = setdiff((1:length(merge.p))',idx);
+                    [pm,tm] = smoothmesh(merge.p,merge.t,constr,50,0.01);
+                end
                 
-                % use local smoother
-                constr = setdiff((1:length(merge.p))',idx);
-                [pm,tm] = smoothmesh(merge.p,merge.t,constr,50,0.01);
                 tq = gettrimeshquan(pm,tm);
                 disp(['min element quality is ', num2str(min(tq.qm))])
                 if min(tq.qm) < 1e-4
@@ -1696,7 +1701,7 @@ classdef msh
             % convert back to lat-lon wgs84
             [merge.p(:,1),merge.p(:,2)] = ...
                                         m_xy2ll(merge.p(:,1),merge.p(:,2));  
-                                               
+                   
             % Check element order
             merge = CheckElementOrder(merge);             
             
@@ -1708,16 +1713,6 @@ classdef msh
                 [idx2,dst2] = ourKNNsearch(obj2.p',merge.p',1);   
                 merge.b( dst1 <= dst2) = obj1.b( idx1(dst1 <= dst2) ); 
                 merge.b( dst2 <  dst1 ) = obj2.b( idx2(dst2 <  dst1) );
-%                merge.b( dst1 <= 2*midi ) = obj1.b( idx1(dst1 <= 2*midi ) ); 
-%                % ensure depth of the first mesh is preserved by inpoly of
-%                % the element barycenter
-%                 bc = baryc(merge);
-%                 ine1 = inpoly(bc,poly_vec1,edges1);
-%                 in1 = false(size(obj1.b));
-%                 in1(merge.t(ine1,1)) = true;
-%                 in1(merge.t(ine1,2)) = true;
-%                 in1(merge.t(ine1,3)) = true;
-%                 merge.b( in1 ) = obj1.b( idx1(in1) ); 
                 if ~isempty(obj1.bx) && ~isempty(obj2.bx)
                     merge.bx = 0*merge.b; merge.by = 0*merge.b;
                     obj2.bx(p2del) = []; obj2.by(p2del) = [];
@@ -1729,8 +1724,8 @@ classdef msh
                     merge.by( in1 ) = obj1.by( idx1(in1) ); 
                 end
             end
-            disp(['Note that f13, f15 and boundary conditions etc. have' ...
-                  'not been carried over into the merged mesh'])                                  
+            disp(['Note that f13, f15 and boundary conditions etc. ' ...
+                  'have not been carried over into the merged mesh'])                                  
         end
       
         function obj = CheckElementOrder(obj,proj)
