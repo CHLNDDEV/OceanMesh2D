@@ -1635,8 +1635,8 @@ classdef msh
             
             %% Pruning
             disp('Pruning...')
-            tq.qm = -1;
-            while min(tq.qm) < 1e-4
+            tq.qm = -1; minq = 1e-3;
+            while min(tq.qm) < minq
             % Prune triangles outside both domains.
             for ii = 1:2 
             % The loop makes sure to remove only small connectivity for the boundaries
@@ -1690,7 +1690,8 @@ classdef msh
                 
                 tq = gettrimeshquan(pm,tm);
                 disp(['min element quality is ', num2str(min(tq.qm))])
-                if min(tq.qm) < 1e-4
+                if tight == -1; break; end
+                if min(tq.qm) < minq
                     DTbase = delaunayTriangulation(pm(:,1),pm(:,2));
                 end
             end
