@@ -808,17 +808,9 @@ classdef edgefx
             
             obj = release_memory(obj) ;
 
-            disp('Relaxing the gradient');
-            % relax gradient
-            hfun = zeros(size(hh_m,1)*size(hh_m,2),1);
-            nn = 0;
-            for ipos = 1 : obj.nx
-                for jpos = 1 : obj.ny
-                    nn = nn + 1;
-                    hfun(nn,1) = hh_m(ipos,jpos);
-                end
-            end
-            
+            disp('Relaxing the mesh size gradient');
+            hfun = reshape(hh_m',[numel(hh_m),1]); 
+
             dx = obj.h0*cosd(min(yg(1,:),85)); % for gradient function
             dy = obj.h0;               % for gradient function
             % make g a function of space
@@ -839,14 +831,8 @@ classdef edgefx
                     dmy( limidx ) = lim;
                 end
             end
-            nn = 0;
-            fdfdx = zeros(size(hh_m,1)*size(hh_m,2),1);
-            for ipos = 1 : obj.nx
-                for jpos = 1 : obj.ny
-                    nn = nn + 1;
-                    fdfdx(nn,1) = dmy(ipos,jpos);
-                end
-            end
+            fdfdx = reshape(dmy',[numel(dmy),1]); 
+            clearvars dmy; 
             
             [hfun,flag] = limgradStruct(obj.ny,dx,dy,hfun,...
                 fdfdx,sqrt(length(hfun)));
@@ -857,16 +843,9 @@ classdef edgefx
                     'please check your edge functions']);
             end
             % reshape it back
-            nn = 0;
-            for ipos = 1 : obj.nx
-                for jpos = 1 : obj.ny
-                    nn = nn+1;
-                    hh_m(ipos,jpos) = hfun(nn);
-                end
-            end
+            hh_m = reshape(hfun,[obj.ny,obj.nx])';
             clearvars hfun fdfdx
             
-            % enforce the CFL if present
             % Limit CFL if dt >= 0, dt = 0 finds dt automatically.
             if obj.dt >= 0
                 if isempty(feat.Fb); error('No DEM supplied Can''t CFL limit.'); end
