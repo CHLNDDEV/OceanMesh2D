@@ -16,7 +16,7 @@ if isrow(lon)
 end
 ny=size(lat,1);
 nx=size(lon,1);
-if nx~=ny || nx<2 || ny<2 || maxdiff<10^-8
+if nx~=ny || nx<2 || ny<2 || maxdiff<10^-12
     error('Error: Wrong input!');
 end
 
