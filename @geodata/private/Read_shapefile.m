@@ -62,7 +62,7 @@ if (size(finputname,1)~=0)
                 S = m_shaperead(fname{1},reshape(bboxt',4,1));
                 % Let's just keep the x-y data
                 D = S.ncst;
-                if isfield(S,'dbf')
+                if isfield(S,'dbf')  || isfield(S,'dbfdata')
                     code = S.dbfdata(:,1);
                     S = cell2struct([D code]',{'points' 'type'},1);
                 else
