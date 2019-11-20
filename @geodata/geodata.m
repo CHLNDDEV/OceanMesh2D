@@ -190,6 +190,9 @@ classdef geodata
                             for ii = 1 : noWeirs
                                 crestlines = obj.weirs{ii}(:,1:2) ;
                                 width      = obj.weirs{ii}(1,3) ;
+                                if width==0 
+                                  error('Please specify non-zero width of weir!');
+                                end
                                 % user-defined spacing along face of weir
                                 if obj.weirs{ii}(1,4)~=0
                                     [tempPfix,tmpEgfix,obj.ibconn_pts{ii}] = GenerateWeirGeometry(crestlines,width,...
