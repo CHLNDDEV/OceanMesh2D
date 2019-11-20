@@ -878,7 +878,7 @@ classdef msh
                 opt.sc_maxit = inf; opt.mqa = 0.1;
                 varargin(strcmp(varargin,'aggressive')) = [];
             else
-                disp('Employing default (medium) option')
+                disp('Employing default (medium) option or user-specified opts')
                 opt.db = 0.1; opt.ds = 1; opt.con = 9; opt.djc = 0.1; 
                 opt.sc_maxit = 1; opt.mqa = 0.025;
                 varargin(strcmp(varargin,'default')) = []; 
@@ -915,9 +915,9 @@ classdef msh
             end
             
             % display options
-            disp('the following cleaning options have been enabled..')
+            disp('INFO: The following cleaning options have been enabled..')
             disp(opt)
-            disp(['length of pfix = ' length(pfixV)])
+            disp(['length of pfix = ' num2str(length(pfixV))])
             
             if opt.projL
                 global MAP_PROJECTION MAP_VAR_LIST MAP_COORDS
