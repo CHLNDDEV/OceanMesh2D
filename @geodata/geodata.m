@@ -178,7 +178,9 @@ classdef geodata
                             obj.window = 5;
                         end
                     case('weirs')
-                        if ~iscell(inp.(fields{i})), continue; end
+                        if ~iscell(inp.(fields{i})), 
+                          error('Data for weirs must be in a cell-array. Please see the user guide.'); 
+                        end
                         obj.weirs = inp.(fields{i}) ;
                         noWeirs   = length(obj.weirs) ;
                         disp(['INFO: User has passed ',num2str(noWeirs),' weir crestlines.']) ;
