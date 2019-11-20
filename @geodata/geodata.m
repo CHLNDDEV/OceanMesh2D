@@ -178,7 +178,7 @@ classdef geodata
                             obj.window = 5;
                         end
                     case('weirs')
-                        if inp.(fields{i})==0, continue; end
+                        if ~iscell(inp.(fields{i}))  && inp.(fields{i})==0, continue; end
                         if ~iscell(inp.(fields{i})), 
                           error('Data for weirs must be in a cell-array. Please see the user guide.'); 
                         end
