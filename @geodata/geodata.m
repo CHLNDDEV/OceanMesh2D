@@ -178,7 +178,10 @@ classdef geodata
                             obj.window = 5;
                         end
                     case('weirs')
-                        if ~iscell(inp.(fields{i})), continue; end
+                        if ~iscell(inp.(fields{i}))  && inp.(fields{i})==0, continue; end
+                        if ~iscell(inp.(fields{i})), 
+                          error('Data for weirs must be in a cell-array. Please see the user guide.'); 
+                        end
                         obj.weirs = inp.(fields{i}) ;
                         noWeirs   = length(obj.weirs) ;
                         disp(['INFO: User has passed ',num2str(noWeirs),' weir crestlines.']) ;
@@ -187,6 +190,9 @@ classdef geodata
                             for ii = 1 : noWeirs
                                 crestlines = obj.weirs{ii}(:,1:2) ;
                                 width      = obj.weirs{ii}(1,3) ;
+                                if width==0 
+                                  error('Please specify non-zero width of weir!');
+                                end
                                 % user-defined spacing along face of weir
                                 if obj.weirs{ii}(1,4)~=0
                                     [tempPfix,tmpEgfix,obj.ibconn_pts{ii}] = GenerateWeirGeometry(crestlines,width,...
