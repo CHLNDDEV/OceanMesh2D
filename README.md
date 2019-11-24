@@ -8,6 +8,7 @@ This is the default and recommended `PROJECTION` branch. Please use it unless yo
 The boundary of the meshing domain must be a polygon (first point equals the last and non-self intersecting) but it does not need to be simplified. Read the user guide for more information about the inputs.
 
 <p align="center">
+  <img src = "VizGiglo.png"> &nbsp &nbsp &nbsp &nbsp
   <img src = "Example1.png"> &nbsp &nbsp &nbsp &nbsp
   <img src = "nesting.png"> &nbsp &nbsp &nbsp &nbsp
   <img src = "ResoNA.png"> &nbsp &nbsp &nbsp &nbsp
