@@ -49,7 +49,7 @@ classdef msh
               M_MAP_EXISTS=1 ;
             end
             if M_MAP_EXISTS~=1 
-              error('Where''s m_map? Chief, you need to read the user guide')
+              error('Where''s m_map? Please read the user guide')
             end
 
             % Check for utilties dir
@@ -58,7 +58,7 @@ classdef msh
               UTIL_DIR_EXISTS=1 ;
             end
             if UTIL_DIR_EXISTS~=1 
-              error('Where''s the utilities directory? Chief, you need to read the user guide')
+              error('Where''s the utilities directory? Please read the user guide')
             end
             
             % Check for dataset dir
@@ -67,7 +67,7 @@ classdef msh
                 DATASET_DIR_EXISTS=1 ;
             end
             if DATASET_DIR_EXISTS~=1
-                warning('We suggest you to place your files in a datasets directory. Chief, you need to read the user guide')
+                warning('We suggest you to place your files in a datasets directory. Please read the user guide')
             end
 
             if nargin == 0
@@ -869,17 +869,17 @@ classdef msh
             %process categorical cleaning options
             if any(strcmp(varargin,'passive'))
                 disp('Employing passive option')
-                opt.db = 0.025; opt.ds = 0; opt.con = 10; opt.djc = 1e-4; 
+                opt.db = 0.1; opt.ds = 0; opt.con = 10; opt.djc = 0; 
                 opt.sc_maxit = 0; opt.mqa = 1e-4;
                 varargin(strcmp(varargin,'passive')) = [];
             elseif any(strcmp(varargin,'aggressive'))
                 disp('Employing aggressive option')
-                opt.db = 0.25; opt.ds = 1; opt.con = 9; opt.djc = 0.25; 
+                opt.db = 0.5; opt.ds = 1; opt.con = 9; opt.djc = 0.25; 
                 opt.sc_maxit = inf; opt.mqa = 0.1;
                 varargin(strcmp(varargin,'aggressive')) = [];
             else
                 disp('Employing default (medium) option or user-specified opts')
-                opt.db = 0.1; opt.ds = 1; opt.con = 9; opt.djc = 0.1; 
+                opt.db = 0.25; opt.ds = 1; opt.con = 9; opt.djc = 0.1; 
                 opt.sc_maxit = 1; opt.mqa = 0.025;
                 varargin(strcmp(varargin,'default')) = []; 
                 varargin(strcmp(varargin,'medium')) = []; 
@@ -1480,8 +1480,8 @@ classdef msh
         
    
         
-        function merge = plus(obj1,obj2,tight)
-            % merge = plus(obj1,obj2,tight)
+        function merge = plus(obj1,obj2,tight,cleanargin)
+            % merge = plus(obj1,obj2,tight,cleanargin)
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % Merge together two meshes contained in the msh objects obj1
             % and obj2. It uses MATLAB's implementation of the Boywer-Watson
@@ -1510,32 +1510,43 @@ classdef msh
             %          [almost] non-overlapping meshes - ought to have 
             %          matching or close to matching vertices but this is 
             %          NOT a requirement)
+            % cleanargin: = a cell-array of arguments for the clean 
+            %          operator. Default is {'passive'}.
             %
             % OUPUTS:
             % merge: a msh object in which the msh obj1's connectivity and 
-            % bathymetry is carried over (along with fixed points and edges
-            % from obj1).
+            % bathymetry is carried over (along with fixed points
+            % from obj1 and obj2).
             %
             % kjr, und, chl, sept. 2017 Version 1.0.
             % kjr, und, chl, oct. 2018, Version 1.5
             % kjr, usp. july 2019. Support for carrying over weirs and pfix. 
             % wjp, inserting the 'tight' options optimizied for certain
             % situations
+            % kjr, usp. nov 2019. Better merging wrt to fixed constraints. 
+            %                     now collapses thin triangles incrementally 
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
             if nargin < 3
                 tight = 1;
+            end
+            if nargin < 4
+                cleanargin = {'passive','proj',0};
+            else
+                if ~iscell(cleanargin)
+                   error('cleanargin must be a cell') 
+                end
+                cleanargin{end+1} = 'proj';
+                cleanargin{end+1} = 0;
             end
             
             p1 = obj1.p; t1 = obj1.t;
             p2 = obj2.p; t2 = obj2.t;
             
-            pfix1 = obj1.pfix; nfix1 = length(pfix1); egfix1 = obj1.egfix; 
-            pfix2 = obj2.pfix; nfix2 = length(pfix2); egfix2 = obj2.egfix; 
+            pfix1 = obj1.pfix; nfix1 = length(pfix1); 
+            pfix2 = obj2.pfix; nfix2 = length(pfix2); 
             
             % all combined edge constraints 
-            nfix   = nfix1+nfix2 ; 
-            egfixx  = [egfix1; egfix2+nfix1] ; 
+            nfix    = nfix1+nfix2 ; 
             pfixx   = [pfix1; pfix2] ;
             
             global MAP_PROJECTION MAP_COORDS MAP_VAR_LIST
@@ -1563,12 +1574,7 @@ classdef msh
             if nfix > 0
                 [pfixx(:,1),pfixx(:,2)] = m_ll2xy(pfixx(:,1),pfixx(:,2)) ;
             end
-            
-            [~,d1] = ourKNNsearch(p1',p1',2);
-            [~,d2] = ourKNNsearch(p2',p2',2);
-            mvd1 = max(d1); mvd2 = max(d2);
-            midi = min(min(d2),min(d1)); 
-            overlap = 0.5*(mvd1 + mvd2);
+           
             
             disp('Forming outer boundary for base...')
             try
@@ -1582,7 +1588,8 @@ classdef msh
             
             disp('Forming outer boundary for inset...')
             try
-                cell1 = extdom_polygon(extdom_edges2(t1,p1),p1,-1,0);
+                [cell1,~,max_index] = extdom_polygon(extdom_edges2(t1,p1),p1,-1,0);
+                bigInset=cell1{max_index};
                 poly_vec1 = cell2mat(cell1');
                 [edges1] = Get_poly_edges(poly_vec1);
             catch
@@ -1605,8 +1612,10 @@ classdef msh
                     % We need to delete straggling elements that are
                     %  generated through the above deletion step
                     pruned2 = msh() ; pruned2.p = p2; pruned2.t = t2;
-                    pruned2 = Make_Mesh_Boundaries_Traversable(pruned2,0.25,1);
-                    t2 = pruned2.t; p2 = pruned2.p;
+                    % kjr, the dj_cutoff in the following call was lowered to
+                    % 0.01!
+                    pruned2 = Make_Mesh_Boundaries_Traversable(pruned2,0.01,1);
+                    t2 = pruned2.t; p2 = pruned2.p;                    
                     % get new poly_vec2
                     if tight
                         cell2 = extdom_polygon(extdom_edges2(t2,p2),p2,-1,0);
@@ -1615,33 +1624,10 @@ classdef msh
                     end
                 end
             end
-            pv1 = poly_vec1(~isnan(poly_vec1(:,1)),:);
-            pv2 = poly_vec2(~isnan(poly_vec2(:,1)),:);
             
             disp('Merging...')
-            if isempty(egfix1)
-                DTbase = delaunayTriangulation(p1);
-            else
-                DTbase = delaunayTriangulation(p1,egfix1);
-            end
+            DTbase = delaunayTriangulation(p1);
             DTbase.Points(end+(1:length(p2)),:) = p2;
-
-            % delete points that are too close together
-            [kk,dst] = ourKNNsearch(DTbase.Points',DTbase.Points',2);
-            dst = dst(:,2); kk = kk(:,2);
-            del = kk(dst < midi); 
-            DTbase.Points(double(unique(del)),:) = [];
-            
-            % ensure obj2's edge constraints are obeyed.
-            if ~isempty(egfix2)
-                DTbase = delaunayTriangulation(DTbase.Points,egfix2+length(p1));
-                % we must shuffle around the Points in DTbase to ensure all
-                % pfix are preprended at the top of the Points array.
-                pm = DTbase.Points ; 
-                tm = DTbase.ConnectivityList ; 
-                pm = fixmesh([pfixx; pm]) ; % this will delete points that are duplicate later on in the list
-                DTbase = delaunayTriangulation(pm,egfixx);
-            end
             
             tq.qm = 0;
             while min(tq.qm) < 1e-4
@@ -1661,7 +1647,6 @@ classdef msh
                     end
                     
                     pm = DTbase.Points; tm = DTbase.ConnectivityList;
-                    nei = DTbase.neighbors;
                     
                     pmid = (pm(tm(:,1),:)+pm(tm(:,2),:)+pm(tm(:,3),:))/3;
                     
@@ -1685,33 +1670,42 @@ classdef msh
                 end
                 
                 merge = msh() ; merge.p = pm; merge.t = tm ;
-				merge = clean(merge,'passive','proj',0,'pfix',pfixx);
+                merge = clean(merge,cleanargin,'pfix',pfixx);
                 
-                % if we don't know the overlap region
-                [~,dst1] = ourKNNsearch(p1',merge.p',1);
-                [~,dst2] = ourKNNsearch(p2',merge.p',1);
-                idx = find(abs(dst1 - dst2) < overlap);
-                
-                % use smoother around intersection while obeying constraints)
-                constr = setdiff((1:length(merge.p))',idx);
-                if nfix > 0
-                   constr = [(1:nfix)'; constr] ; 
-                   constr = unique(constr);
+                % use same thin element cutoff as the db option
+                I = find(strcmp(cleanargin,'db'));
+                if ~isempty(I)
+                    th = cleanargin{I + 1};
+                else
+                    % default thin element cutoff (same as passive db)
+                    th = 0.1;
                 end
-                [pm,tm] = smoothmesh(merge.p,merge.t,constr,50,0.01);
+	
+                % kjr, collapse small triangles together 
+                [merge.p,merge.t] = collapse_thin_triangles(merge.p,merge.t,th);  
+
+                % kjr, do a direct smooth on everything inside of an 
+                % enlarged convex hull of the inset. 
+                k = convhull(bigInset(1:end-1,1),bigInset(1:end-1,2));
+                xout = bigInset(k,1); yout = bigInset(k,2);
+                [xe,ye] = enlargePoly(xout,yout,1.35);
+                in = inpoly(merge.p,[xe,ye]);
+                locked = [merge.p(~in,:); pfixx];
+                [pm,tm] = direct_smoother_lur(merge.p,merge.t,locked,0);
+                
                 tq = gettrimeshquan(pm,tm);
                 disp(['min element quality is ', num2str(min(tq.qm))])
-                if min(tq.qm) < 1e-4
-                    DTbase = delaunayTriangulation(pm(:,1),pm(:,2));
-                end
             end
             
             merge.p = pm; merge.t = tm;
-            merge.pfix  = pfixx ; merge.egfix = egfixx ;
+            merge.pfix  = pfixx ; 
+            % edges don't move but they are no longer valid after merger
+            merge.egfix = [];
             
             % convert back to lat-lon wgs84
             [merge.p(:,1),merge.p(:,2)] = ...
                 m_xy2ll(merge.p(:,1),merge.p(:,2));
+
             if nfix > 0
                 [merge.pfix(:,1),merge.pfix(:,2)] = ...
                     m_xy2ll(pfixx(:,1),pfixx(:,2));
@@ -1725,28 +1719,30 @@ classdef msh
             merge = CheckElementOrder(merge);             
             
             % Carry over bathy and gradients
-            merge.b = 0*merge.p(:,1);
-            
-            [idx1,dst1] = ourKNNsearch(obj1.p',merge.p',1);   
-            [idx2,dst2] = ourKNNsearch(obj2.p',merge.p',1);   
-            merge.b( dst1 <= dst2) = obj1.b( idx1(dst1 <= dst2)); 
-            merge.b( dst2 <  dst1 ) = obj2.b( idx2(dst2 <  dst1) );
-            % ensure depth of the first mesh is preserved as a priority
-            in1 = inpoly(pm,poly_vec1,edges1);
-            merge.b( in1 ) = obj1.b( idx1(in1) ); 
-            if ~isempty(obj1.bx) && ~isempty(obj2.bx)
-                merge.bx = 0*merge.b; merge.by = 0*merge.b;
-                merge.bx(dst2 < dst1) = obj2.bx(idx2(dst2 < dst1)); 
-                merge.bx(dst1 <= dst2) = obj1.bx(idx1(dst1 <= dst2)); 
-                merge.bx( in1 ) = obj1.bx( idx1(in1) ); 
-                merge.by(dst2 < dst1) = obj2.by(idx2(dst2 < dst1)); 
-                merge.by(dst1 <= dst2) = obj1.by(idx1(dst1 <= dst2)); 
-                merge.by( in1 ) = obj1.by( idx1(in1) ); 
+            if ~isempty(obj1.b) && ~isempty(obj2.b)
+                merge.b = 0*merge.p(:,1);
+                [idx1,dst1] = ourKNNsearch(obj1.p',merge.p',1);   
+                [idx2,dst2] = ourKNNsearch(obj2.p',merge.p',1);   
+                merge.b( dst1 <= dst2) = obj1.b( idx1(dst1 <= dst2)); 
+                merge.b( dst2 <  dst1 ) = obj2.b( idx2(dst2 <  dst1) );
+                % ensure depth of the first mesh is preserved as a priority
+                in1 = inpoly(pm,poly_vec1,edges1);
+                merge.b( in1 ) = obj1.b( idx1(in1) ); 
+                if ~isempty(obj1.bx) && ~isempty(obj2.bx)
+                    merge.bx = 0*merge.b; merge.by = 0*merge.b;
+                    merge.bx(dst2 < dst1) = obj2.bx(idx2(dst2 < dst1)); 
+                    merge.bx(dst1 <= dst2) = obj1.bx(idx1(dst1 <= dst2)); 
+                    merge.bx( in1 ) = obj1.bx( idx1(in1) ); 
+                    merge.by(dst2 < dst1) = obj2.by(idx2(dst2 < dst1)); 
+                    merge.by(dst1 <= dst2) = obj1.by(idx1(dst1 <= dst2)); 
+                    merge.by( in1 ) = obj1.by( idx1(in1) ); 
+                end
             end
             disp(['Note that f13, f15 and boundary conditions etc. have' ...
                   'not been carried over into the merged mesh'])                                  
         end
-      
+
+                  
         function obj = CheckElementOrder(obj,proj)
             if nargin == 1
                proj = 0; 

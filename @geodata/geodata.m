@@ -58,7 +58,7 @@ classdef geodata
               M_MAP_EXISTS=1 ;
             end
             if M_MAP_EXISTS~=1 
-              error('Where''s m_map? Chief, you need to read the user guide')
+              error('Where''s m_map? Please read the user guide')
             end
 
             % Check for utilties dir
@@ -67,7 +67,7 @@ classdef geodata
               UTIL_DIR_EXISTS=1; 
             end
             if UTIL_DIR_EXISTS~=1 
-              error('Where''s the utilities directory? Chief, you need to read the user guide')
+              error('Where''s the utilities directory? Please read the user guide')
             end
 
             % Check for dataset dir
@@ -76,7 +76,7 @@ classdef geodata
                 DATASET_DIR_EXISTS=1 ;
             end
             if DATASET_DIR_EXISTS~=1
-                warning('We suggest you to place your files in a datasets directory. Chief, you need to read the user guide')
+                warning('We suggest you to place your files in a directory called "datasets". Please read the user guide')
             end
 
 

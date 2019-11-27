@@ -45,6 +45,7 @@ function [del] = setProj(obj,proj,projtype)
         if ~ischar(projtype)
             projtype = projtype{1};
         end
+        projtype = lower(projtype);
         if ~isempty(regexp(projtype,'ste'))
             % Special treatment of Stereographic projection
             if lat_ma < 0

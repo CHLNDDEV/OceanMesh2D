@@ -65,7 +65,7 @@ p = obj.p; t = obj.t;
 
 % WJP sometimes we may wanna delete some exterior portions even with a valid
 % mesh so allow entry even in this case.
-if numel(etbv) == numel(vxe)
+if dj_cutoff > 0 && numel(etbv) == numel(vxe)
     etbv(end+1,:) = 1; 
 end
 % Loop until all the nodes only have two boundary edges
@@ -107,6 +107,14 @@ end
 % dj_cutoff < 1
 %    proportion of the total mesh area
 function t = delete_exterior_elements(p,t,dj_cutoff,nscreen)
+%
+if dj_cutoff <= 0
+    if nscreen
+        disp('dj_cutoff is zero; do nothing in delete_exterior_elements')
+    end
+    % do nothing
+    return; 
+end
 L = size(t,1); 
 t1 = t; t = [];
 global MAP_PROJECTION
