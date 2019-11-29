@@ -413,11 +413,14 @@ classdef meshgen
                     dataset = obj.outer{box_num};
                     dataset(isnan(obj.outer{box_num}(:,1)),:) = [];
                 end
+                if all(abs(obj.bbox{box_num}(1,:)) == 180)
+                    % This line removes the line that can appear in the 
+                    % center for a global mesh
+                    dataset(abs(dataset(:,1)) > 180-1e-6,:) = [];
+                    dataset(abs(dataset(:,1)) < 1e-6,:) = [];
+                end
                 [dataset(:,1),dataset(:,2)] = m_ll2xy(dataset(:,1),dataset(:,2));
                 dataset(isnan(dataset(:,1)),:) = [];
-                % This line removes the line that can appear in the center for
-                % stereo projection from the bbox
-                dataset(abs(dataset(:,1)) < 1e-6,:) = [];
                 dmy = ann(dataset');
                 obj.anno{box_num} = dmy;
                 obj.annData{box_num}=dataset; 
