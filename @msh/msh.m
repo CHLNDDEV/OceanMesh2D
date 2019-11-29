@@ -956,6 +956,9 @@ classdef msh
                     disp(['Deleted ' num2str(LT-size(obj.t,1)) ...
                           ' bad boundary elements'])
                 end
+                % kjr, collapse small triangles together 
+                [obj.p,obj.t] = ...
+                    collapse_thin_triangles(obj.p,obj.t,opt.db); 
             end
             
             % Make mesh traversable
@@ -1478,8 +1481,7 @@ classdef msh
             end
         end
         
-   
-        
+
         function merge = plus(obj1,obj2,tight,cleanargin)
             % merge = plus(obj1,obj2,tight,cleanargin)
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1530,13 +1532,15 @@ classdef msh
                 tight = 1;
             end
             if nargin < 4
-                cleanargin = {'passive','proj',0};
+                cleanargin = {'djc',0,'sc_maxit',0,'proj',0,'pfix',[]};
             else
                 if ~iscell(cleanargin)
                    error('cleanargin must be a cell') 
                 end
                 cleanargin{end+1} = 'proj';
                 cleanargin{end+1} = 0;
+                cleanargin{end+1} = 'pfix';
+                cleanargin{end+1} = [];
             end
             
             p1 = obj1.p; t1 = obj1.t;
@@ -1572,9 +1576,44 @@ classdef msh
             [p1(:,1),p1(:,2)] = m_ll2xy(p1(:,1),p1(:,2)) ;
             [p2(:,1),p2(:,2)] = m_ll2xy(p2(:,1),p2(:,2)) ;
             if nfix > 0
-                [pfixx(:,1),pfixx(:,2)] = m_ll2xy(pfixx(:,1),pfixx(:,2)) ;
+                [pfixx(:,1),pfixx(:,2)] = m_ll2xy(pfixx(:,1),pfixx(:,2));
             end
-           
+
+            % checking for weirs in obj1 to keep
+            if any(obj1.bd.ibtype == 24)
+                disp('Weirs found in obj1, extracting to ensure they are preserved')
+                % get the weir indices
+                weir_nodes = [];
+                for ii = 1:obj1.bd.nbou
+                    if obj1.bd.ibtype(ii) ~= 24; continue; end 
+                    nodes = full(obj1.bd.nbvv(1:obj1.bd.nvell(ii),ii));
+                    nodes2 = full(obj1.bd.ibconn(1:obj1.bd.nvell(ii),ii));
+                    weir_nodes = [weir_nodes; nodes; nodes2];
+                end
+                % retrieve elements connected to weir nodes
+                vtoe = VertToEle(t1); 
+                connec_eles = vtoe(:,weir_nodes);
+                connec_eles(connec_eles == 0) = [];
+                connec_eles = unique(connec_eles)';
+                tw = t1(connec_eles,:);
+                % retrieve all other elements
+                unconnec_eles = setdiff([1:length(t1)]',connec_eles);
+                tn = t1(unconnec_eles,:);
+                p1o = p1;
+                [p1,t1] = fixmesh(p1,tn);
+                % ensure that the new obj1 is traversable
+                objn = msh(); objn.t = t1; objn.p = p1; 
+                objn = Make_Mesh_Boundaries_Traversable(objn,0,1);
+                % add the deleted elements into the weir triangulation
+                twadd = setdiff(t1,objn.t,'rows');
+                [~,~,I] = intersect(p1(twadd,:),p1o,'rows','stable');
+                twadd = reshape(I,3,3);
+                % finalize the weir mesh and the obj1 mesh
+                [pw,tw] = fixmesh(p1o,[tw; twadd]);
+                p1 = objn.p; t1 = objn.t;
+                % clear unnecessary vars from memory
+                clear vtoe unconnec_eles connec_eles objn p1o
+            end
             
             disp('Forming outer boundary for base...')
             try
@@ -1627,81 +1666,81 @@ classdef msh
             
             disp('Merging...')
             DTbase = delaunayTriangulation(p1);
+            if ~isempty(obj1.egfix)
+                DTbase.Constraints = obj1.egfix;
+            end
             DTbase.Points(end+(1:length(p2)),:) = p2;
-            
-            tq.qm = 0;
-            while min(tq.qm) < 1e-4
-                % Prune triangles outside both domains.
-                disp('Pruning...')
-                
-                for ii = 1:2
-                    % The loop makes sure to remove only small connectivity for the boundaries
-                    if ii == 2
-                        % To remove small connectivity or bad elements
-                        [~, enum] = VertToEle(tm);
-                        bdbars = extdom_edges2(tm,pm);
-                        bdnodes = unique(bdbars(:));
-                        I = find(enum <= 4);
-                        nn = setdiff(I',[(1:nfix)';bdnodes]);  
-                        DTbase.Points(unique(nn),:) = [];
-                    end
-                    
-                    pm = DTbase.Points; tm = DTbase.ConnectivityList;
-                    
-                    pmid = (pm(tm(:,1),:)+pm(tm(:,2),:)+pm(tm(:,3),:))/3;
-                    
-                    %in1 is inside the inset boundary polygon
-                    in1 = inpoly(pmid,poly_vec1,edges1);
-                    
-                    %in2 is inside the global boundary polygon
-                    in2 = inpoly(pmid,poly_vec2,edges2);
-                    
-                    %in3 is inside the intersection
-                    if exist('poly_vec3','var') && tight == 1
-                        in3 = inpoly(pmid,poly_vec3,edges3);
-                    else
-                        in3 = false(size(in1)); 
-                    end
-                    
-                    % remove triangles that aren't in the global mesh or 
-                    % aren't in the inset mesh
-                    del = (~in1 & ~in2) | (~in1 & in3);
-                    tm(del,:) = [];
-                end
-                
-                merge = msh() ; merge.p = pm; merge.t = tm ;
-                merge = clean(merge,cleanargin,'pfix',pfixx);
-                
-                % use same thin element cutoff as the db option
-                I = find(strcmp(cleanargin,'db'));
-                if ~isempty(I)
-                    th = cleanargin{I + 1};
-                else
-                    % default thin element cutoff (same as passive db)
-                    th = 0.1;
-                end
-	
-                % kjr, collapse small triangles together 
-                [merge.p,merge.t] = collapse_thin_triangles(merge.p,merge.t,th);  
-
-                % kjr, do a direct smooth on everything inside of an 
-                % enlarged convex hull of the inset. 
-                k = convhull(bigInset(1:end-1,1),bigInset(1:end-1,2));
-                xout = bigInset(k,1); yout = bigInset(k,2);
-                [xe,ye] = enlargePoly(xout,yout,1.35);
-                in = inpoly(merge.p,[xe,ye]);
-                locked = [merge.p(~in,:); pfixx];
-                [pm,tm] = direct_smoother_lur(merge.p,merge.t,locked,0);
-                
-                tq = gettrimeshquan(pm,tm);
-                disp(['min element quality is ', num2str(min(tq.qm))])
+            if nfix > 0
+                bdx = ourKNNsearch(DTbase.Points',pfixx',1);
+            else
+                bdx = [];
             end
             
-            merge.p = pm; merge.t = tm;
+            % Prune triangles outside both domains.
+            disp('Pruning...')
+
+            for ii = 1:2
+                % The loop makes sure to remove only small connectivity for the boundaries
+                if ii == 2
+                    % To remove small connectivity or bad elements
+                    [~, enum] = VertToEle(tm);
+                    bdbars = extdom_edges2(tm,pm);
+                    bdnodes = unique(bdbars(:));
+                    I = find(enum <= 4);
+                    nn = setdiff(I',[bdx; bdnodes]); 
+                    DTbase.Points(unique(nn),:) = [];
+                end
+
+                pm = DTbase.Points; tm = DTbase.ConnectivityList;
+
+                pmid = (pm(tm(:,1),:)+pm(tm(:,2),:)+pm(tm(:,3),:))/3;
+
+                %in1 is inside the inset boundary polygon
+                in1 = inpoly(pmid,poly_vec1,edges1);
+
+                %in2 is inside the global boundary polygon
+                in2 = inpoly(pmid,poly_vec2,edges2);
+
+                %in3 is inside the intersection
+                if exist('poly_vec3','var') && tight == 1
+                    in3 = inpoly(pmid,poly_vec3,edges3);
+                else
+                    in3 = false(size(in1)); 
+                end
+
+                % remove triangles that aren't in the global mesh or 
+                % aren't in the inset mesh
+                del = (~in1 & ~in2) | (~in1 & in3);
+                tm(del,:) = [];
+            end
+
+            merge = msh() ; merge.p = pm; merge.t = tm ;
+            clear pm tm pmid p1 t1 p2 t2
+            
+            % kjr, add fixed points to everything outside of an 
+            % enlarged convex hull of the inset. 
+            k = convhull(bigInset(1:end-1,1),bigInset(1:end-1,2));
+            xout = bigInset(k,1); yout = bigInset(k,2);
+            [xe,ye] = enlargePoly(xout,yout,1.35);
+            in = inpoly(merge.p,[xe,ye]);
+            locked = [merge.p(~in,:); pfixx];
+            cleanargin{end} = locked;
+            % iteration is done in clean if smoothing creates neg quality
+            merge = clean(merge,cleanargin);       
+            
             merge.pfix  = pfixx ; 
             % edges don't move but they are no longer valid after merger
             merge.egfix = [];
-            
+           
+            % put the weirs back
+            if any(obj1.bd.ibtype == 24)
+                disp('Putting the weirs back into merged obj')
+                tw = tw + length(merge.p);
+                merge.p = [merge.p; pw];
+                merge.t = [merge.t; tw];
+                [merge.p, merge.t] = fixmesh(merge.p,merge.t);
+            end
+                
             % convert back to lat-lon wgs84
             [merge.p(:,1),merge.p(:,2)] = ...
                 m_xy2ll(merge.p(:,1),merge.p(:,2));
@@ -1720,26 +1759,58 @@ classdef msh
             
             % Carry over bathy and gradients
             if ~isempty(obj1.b) && ~isempty(obj2.b)
+                disp('Carrying over bathy and slope values.')
                 merge.b = 0*merge.p(:,1);
                 [idx1,dst1] = ourKNNsearch(obj1.p',merge.p',1);   
                 [idx2,dst2] = ourKNNsearch(obj2.p',merge.p',1);   
                 merge.b( dst1 <= dst2) = obj1.b( idx1(dst1 <= dst2)); 
                 merge.b( dst2 <  dst1 ) = obj2.b( idx2(dst2 <  dst1) );
                 % ensure depth of the first mesh is preserved as a priority
-                in1 = inpoly(pm,poly_vec1,edges1);
-                merge.b( in1 ) = obj1.b( idx1(in1) ); 
+                %in1 = inpoly(pm,poly_vec1,edges1);
+                %merge.b( in1 ) = obj1.b( idx1(in1) ); 
                 if ~isempty(obj1.bx) && ~isempty(obj2.bx)
                     merge.bx = 0*merge.b; merge.by = 0*merge.b;
                     merge.bx(dst2 < dst1) = obj2.bx(idx2(dst2 < dst1)); 
                     merge.bx(dst1 <= dst2) = obj1.bx(idx1(dst1 <= dst2)); 
-                    merge.bx( in1 ) = obj1.bx( idx1(in1) ); 
+                    %merge.bx( in1 ) = obj1.bx( idx1(in1) ); 
                     merge.by(dst2 < dst1) = obj2.by(idx2(dst2 < dst1)); 
                     merge.by(dst1 <= dst2) = obj1.by(idx1(dst1 <= dst2)); 
-                    merge.by( in1 ) = obj1.by( idx1(in1) ); 
+                    %merge.by( in1 ) = obj1.by( idx1(in1) ); 
                 end
             end
-            disp(['Note that f13, f15 and boundary conditions etc. have' ...
-                  'not been carried over into the merged mesh'])                                  
+            
+            if ~isempty(obj1.f13)
+                disp('Carrying over obj1 f13 data.')
+                merge.f13 = obj1.f13;
+                for ii = 1:length(merge.f13.nAttr)
+                    idx = merge.f13.userval.Atr(ii).Val(1,:)';
+                    idx1 = ourKNNsearch(merge.p',obj1.p(idx,:)',1);
+                    merge.f13.userval.Atr(ii).Val(1,:) = idx1';
+                end
+            end
+            
+            if any(obj1.bd.ibtype == 24)
+                disp('Carrying over obj1 weir nodestrings.')
+                idx1 = ourKNNsearch(merge.p',obj1.p',1);  
+                merge.bd = obj1.bd;
+                nw = merge.bd.ibtype ~= 24;
+                merge.bd.ibtype(nw) = [];
+                merge.bd.nvell(nw) = [];
+                merge.bd.nbvv(:,nw) = [];
+                merge.bd.ibconn(:,nw) = [];
+                merge.bd.barinht(:,nw) = [];
+                merge.bd.barincfsb(:,nw) = [];
+                merge.bd.barincfsp(:,nw) = [];
+                merge.bd.nbou = length(merge.bd.nvell);
+                merge.bd.nvel = 2*sum(merge.bd.nvell);
+                for ii = 1:merge.bd.nbou
+                    nodes = full(merge.bd.nbvv(1:merge.bd.nvell(ii),ii));
+                    nodes2 = full(merge.bd.ibconn(1:merge.bd.nvell(ii),ii));
+                    merge.bd.nbvv(1:merge.bd.nvell(ii),ii) = idx1(nodes);
+                    merge.bd.ibconn(1:merge.bd.nvell(ii),ii) = idx1(nodes2);
+                end
+            end
+            disp('NB: f15, obj2 f13 data, non-weir nodestrings etc. are not carried over.')                                  
         end
 
                   

@@ -8,12 +8,6 @@ function d = dpoly(obj,feat,varargin)
 % d is the distance from point, p to closest point on polygon
 % (d is  negative if inside the bounded polygon, pv and positive if outside)
 % by Keith Roberts and William Pringle 2017-2018.
-%% Doing the distance calc
-if ~isempty(obj.lmsl)
-    pv = [obj.lmsl.mainland; obj.lmsl.inner];
-else
-    pv = [feat.mainland; feat.inner];
-end
 if nargin == 3
     p  = varargin{1};
 else
@@ -21,30 +15,39 @@ else
     p = [xg(:),yg(:)];
     clearvars xg yg
 end
+%% Doing the distance + inpoly calc
+if ~isempty(obj.lmsl)
+    pv = [obj.lmsl.mainland; obj.lmsl.inner];
+    pg = [obj.lmsl.outer; obj.lmsl.inner];
+else
+    pv = [feat.mainland; feat.inner];
+    pg = [feat.outer; feat.inner];
+end
+edges = Get_poly_edges( pg );
 pv1 = pv; % <-dup for inpoly to work
 pv1(isnan(pv(:,1)),:) = []; clear pv;
-d = 0*p(:,1);
+d = 0*p(:,1); in = false(size(d));
 noblks = ceil(length(p)*2*8*1e-9);
 blklen = floor(length(p)/noblks);
 ns = 1;
+disp(['Memory management: number of loops in dpoly = ' num2str(noblks)])
+tic
 for blks = 1:noblks
     if blks == noblks
         ne = length(p); 
     else
         ne = ns + blklen - 1;
     end
+    %% Doing the distance check
     [~,d(ns:ne)] = WrapperForKsearch(pv1, p(ns:ne,:), 1);
+    
+    %% Doing the inpoly check
+    in(ns:ne) = inpoly(p(ns:ne,:), pg, edges);
+    
     ns = ne + 1;
 end
+toc
 
-%% Doing the inpoly check
-if ~isempty(obj.lmsl)
-    edges = Get_poly_edges( [obj.lmsl.outer; obj.lmsl.inner] );
-    in = inpoly(p,[obj.lmsl.outer; obj.lmsl.inner],edges);
-else
-    edges = Get_poly_edges( [feat.outer; feat.inner] );
-    in = inpoly(p,[feat.outer; feat.inner],edges);
-end
 % d is negative if inside polygon and vice versa.
 if feat.inpoly_flip
     d = (-1).^(~in).*d;

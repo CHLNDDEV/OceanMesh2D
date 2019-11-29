@@ -1,9 +1,15 @@
-function [del] = setProj(obj,proj,projtype)
-    %del = setProj(obj,proj,projtype)
+function [del,obj] = setProj(obj,proj,projtype,insert)
+    % [del,obj] = setProj(obj,proj,projtype)
     % kjr generic function to parse projected space options
     % returns del flag to delete overlapping elements when plotting
     % global models.
+    % if insert = 1, then automatically insert the global m_proj variables
+    % into the msh obj. insert is 0 by default. 
 
+    if nargin < 4
+        insert = 0;
+    end
+    
     % process bounds of mesh
     lon_mi = min(obj.p(:,1)); lon_ma = max(obj.p(:,1));
     lat_mi = min(obj.p(:,2)); lat_ma = max(obj.p(:,2));
@@ -52,13 +58,13 @@ function [del] = setProj(obj,proj,projtype)
                 % center Antarctica
                 m_proj(projtype,'lat',-90,...
                       'long',0.5*(lon_mi+lon_ma),...
-                      'radius',lat_ma+90);
+                      'radius',lat_ma+90,'rot',rot);
             else
                 % center Arctic
                 lat_mi = max(-88.0001,lat_mi);
                 m_proj(projtype,'lat',90,...
                       'long',0.5*(lon_mi+lon_ma),...
-                      'radius',90-lat_mi,'rot',180);
+                      'radius',90-lat_mi,'rot',rot);
             end
             m_proj('get') ;
         elseif  ~isempty(regexp(projtype,'ort')) || ...
@@ -88,5 +94,11 @@ function [del] = setProj(obj,proj,projtype)
                             'lat',[lat_mi lat_ma]) ;
             m_proj('get') ;
         end
+    end
+    if insert
+        global MAP_PROJECTION MAP_COORDS MAP_VAR_LIST
+        obj.proj   = MAP_PROJECTION ; 
+        obj.coord  = MAP_COORDS ; 
+        obj.mapvar = MAP_VAR_LIST ; 
     end
 end
