@@ -179,10 +179,10 @@ classdef edgefx
             
             % kjr april 28, 2018-form mesh size grid on-the-fly
             obj.fd       = @dpoly;
-            obj.x0y0     = feat.x0y0+sqrt(eps);
+            obj.x0y0     = feat.x0y0 + sqrt(eps);
             obj.gridspace = obj.h0/111e3;
-            obj.nx       = ceil((abs(feat.x0y0(1)-feat.bbox(1,2)))/obj.gridspace);
-            obj.ny       = ceil((abs(feat.x0y0(2)-feat.bbox(2,2)))/obj.gridspace);
+            obj.nx       = ceil(abs(feat.x0y0(1)-feat.bbox(1,2))/obj.gridspace);
+            obj.ny       = ceil(abs(feat.x0y0(2)-feat.bbox(2,2))/obj.gridspace);
             obj.bbox     = feat.bbox;
             obj.boubox   = feat.boubox;
             
@@ -809,12 +809,16 @@ classdef edgefx
             obj = release_memory(obj) ;
 
             disp('Relaxing the mesh size gradient');
+            if all(abs(obj.bbox(1,:)) == 180) 
+                % for global mesh make it cyclical
+                hh_m = [hh_m(end,:); hh_m; hh_m(1,:)];
+            end
             hfun = reshape(hh_m',[numel(hh_m),1]); 
 
             dx = obj.h0*cosd(min(yg(1,:),85)); % for gradient function
-            dy = obj.h0;               % for gradient function
+            dy = obj.h0;                       % for gradient function
+            
             % make g a function of space
-            [xg,yg] = CreateStructGrid(obj);
             dmy     = xg*0 ;
             for param = obj.g'
                 if numel(param)==1 && param~=0
@@ -831,6 +835,10 @@ classdef edgefx
                     dmy( limidx ) = lim;
                 end
             end
+            if all(abs(obj.bbox(1,:)) == 180) 
+                % for global mesh make it cyclical
+                dmy = [dmy(end,:); dmy; dmy(1,:)];
+            end
             fdfdx = reshape(dmy',[numel(dmy),1]); 
             clearvars dmy; 
             
@@ -843,8 +851,13 @@ classdef edgefx
                     'please check your edge functions']);
             end
             % reshape it back
-            hh_m = reshape(hfun,[obj.ny,obj.nx])';
+            hh_m = reshape(hfun,obj.ny,[])';
             clearvars hfun fdfdx
+            if all(abs(obj.bbox(1,:)) == 180) 
+                % for global mesh make it cyclical
+                hh_m = hh_m(2:end-1,:);
+                hh_m(end,:) = hh_m(1,:);
+            end
             
             % Limit CFL if dt >= 0, dt = 0 finds dt automatically.
             if obj.dt >= 0
@@ -873,7 +886,7 @@ classdef edgefx
             clearvars xg yg
         end
         
-        function [xg,yg]=CreateStructGrid(obj)
+        function [xg,yg] = CreateStructGrid(obj)
             [xg,yg] = ndgrid(obj.x0y0(1) + (0:obj.nx-1)'*obj.gridspace, ...
                 obj.x0y0(2) + (0:obj.ny-1)'*obj.gridspace);
         end

@@ -875,12 +875,12 @@ classdef msh
             elseif any(strcmp(varargin,'aggressive'))
                 disp('Employing aggressive option')
                 opt.db = 0.5; opt.ds = 1; opt.con = 9; opt.djc = 0.25; 
-                opt.sc_maxit = inf; opt.mqa = 0.1;
+                opt.sc_maxit = inf; opt.mqa = 0.5;
                 varargin(strcmp(varargin,'aggressive')) = [];
             else
                 disp('Employing default (medium) option or user-specified opts')
                 opt.db = 0.25; opt.ds = 1; opt.con = 9; opt.djc = 0.1; 
-                opt.sc_maxit = 1; opt.mqa = 0.025;
+                opt.sc_maxit = inf; opt.mqa = 0.25;
                 varargin(strcmp(varargin,'default')) = []; 
                 varargin(strcmp(varargin,'medium')) = []; 
             end

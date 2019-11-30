@@ -699,7 +699,9 @@ classdef meshgen
                     lat(2:2:end)  = p(bars(:,2),2);
                     L = m_lldist(long,lat); L = L(1:2:end)*1e3;            % L = Bar lengths in meters
                 end
-                ideal_bars = (p(bars(:,1),:) + p(bars(:,2),:))/2;          % Used to determine what bars are in bbox
+                ideal_bars = 0.5*(pt(bars(:,1),:) + pt(bars(:,2),:));      % Used to determine what bars are in bbox
+                [ideal_bars(:,1),ideal_bars(:,2)] = ...                    % needs to be in non-projected
+                    m_xy2ll(ideal_bars(:,1),ideal_bars(:,2));              % coordinates
                 hbars = 0*ideal_bars(:,1);
                                 
                 for box_num = 1:length(obj.h0)                             % For each bbox, find the bars that are in and calculate           
@@ -716,11 +718,11 @@ classdef meshgen
                     else
                         inside = true(size(hbars));
                     end
-                    hbars(inside) = feval(fh_l,ideal_bars(inside,:));       % Ideal lengths
+                    hbars(inside) = feval(fh_l,ideal_bars(inside,:));      % Ideal lengths
                 end
                 
-                L0 = hbars*Fscale*median(L)/median(hbars);                  % L0 = Desired lengths using ratio of medians scale factor
-                LN = L./L0;                                                 % LN = Normalized bar lengths
+                L0 = hbars*Fscale*median(L)/median(hbars);                 % L0 = Desired lengths using ratio of medians scale factor
+                LN = L./L0;                                                % LN = Normalized bar lengths
                 
                 % Mesh improvements (deleting and addition)
                 if ~mod(it,imp)
@@ -782,16 +784,17 @@ classdef meshgen
                 
                 %7. Bring outside points back to the boundary
                 d = feval(obj.fd,p,obj,[],1); ix = d > 0;                  % Find points outside (d>0)
-                ix(1:nfix)=0;
-                if sum(ix) > 0
-                    dgradx = (feval(obj.fd,[p(ix,1)+deps,p(ix,2)],obj,[])...%,1)...
+                ix(1:nfix) = 0;
+                if sum(ix) > 0                   
+                    pn = p(ix,:) + deps;
+                    dgradx = (feval(obj.fd,[pn(:,1),p(ix,2)],obj,[])...%,1)...
                               -d(ix))/deps; % Numerical 
-                    dgrady = (feval(obj.fd,[p(ix,1),p(ix,2)+deps],obj,[])...%,1)...
+                    dgrady = (feval(obj.fd,[p(ix,1),pn(:,2)],obj,[])...%,1)...
                               -d(ix))/deps; % gradient
                     dgrad2 = dgradx.^+2 + dgrady.^+2;
-                    p(ix,:) = p(ix,:)-[d(ix).*dgradx./dgrad2,...
-                                       d(ix).*dgrady./dgrad2];
-                end
+                    p(ix,:) = p(ix,:) - [d(ix).*dgradx./dgrad2,...
+                                         d(ix).*dgrady./dgrad2];
+                end  
                 
                 % 8. Termination criterion: Exceed itmax
                 it = it + 1 ;
