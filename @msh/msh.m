@@ -818,6 +818,46 @@ classdef msh
         
         % interp bathy/slope
         function obj = interp(obj,geodata,varargin)
+            % obj = interp(obj,geodata,varargin)
+            % Puts bathy and slopes on the msh obj (a wrapper for GridData). 
+            % 'geodata' input may be a geodata class or a netCDF dem filename char.
+            % 'geodata' may also be a cell array of geodata classes and dems and
+            % interp will loop over all them. 
+            % 
+            % optional varargins are as follows (copied from GridData):
+            %          K - vector of relevant nodes to search. This can
+            %                         significantly speed up the calculation by either 
+            %                         only interpolating part of the mesh or 
+            %                         intepolating whole mesh but in segments. Function
+            %                         automatically removes uncessary portions of DEM
+            %                         Example to call: 
+            %                         K = find( obj.p(:,1) >= lon_min & ...
+            %                                   obj.p(:,2) <= lon_max);
+            %                         obj = interp(obj,dem,'K',K);
+            %
+            %       type - type is either 'depth', 'slope' or 'all'
+            %                         'all' is the default (both slope and depth). 
+            %                         'slope' to gets the gradients of DEM
+            %
+            %     interp - interp is either the normal griddedInterpolant
+            %                         options in MATLAB or is 'CA' (default). Note: 'CA'
+            %                         applies linear griddedInterpolant when the DEM
+            %                         and grid sizes are similar. 
+            %
+            %          N - enlarge cell-averaging stencil by factor N (only 
+            %                         relevant for CA interpolation method). 
+            %                         default value N=1. 
+            %
+            %        nan - 'fill' to fill in any NaNs appearing in bathy
+            %
+            %   mindepth - ensure the minimum depth is bounded in the 
+            %                         interpolated region 
+            %
+            %   maxdepth - ensure the maximum depth is bounded in the 
+            %                         interpolated region 
+            %
+            %   ignoreOL - NaN overland data for more accurate seabed interpolation
+
             % if give cell of geodata or dems then interpolate all
             if iscell(geodata) || isstring(geodata)
                 for i = 1:length(geodata)
