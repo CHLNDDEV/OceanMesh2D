@@ -507,6 +507,7 @@ classdef msh
                             desiredTicks = round(10.^(linspace(min(q),...
                                                  max(q),numticks(1))),-1);
                         end
+                        desiredTicks=unique(desiredTicks); 
                         caxis([log10(min(desiredTicks)) log10(max(desiredTicks))]);
                         cb.Ticks     = log10(desiredTicks);
                         for i = 1 : length(desiredTicks)
