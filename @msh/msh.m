@@ -1621,7 +1621,7 @@ classdef msh
             end
 
             % checking for weirs in obj1 to keep
-            if any(obj1.bd.ibtype == 24)
+            if ~isempty(obj1.bd) && any(obj1.bd.ibtype == 24)
                 disp('Weirs found in obj1, extracting to ensure they are preserved')
                 % get the weir indices
                 weir_nodes = [];
@@ -1774,7 +1774,7 @@ classdef msh
             merge.egfix = [];
            
             % put the weirs back
-            if any(obj1.bd.ibtype == 24)
+            if ~isempty(obj1.bd) && any(obj1.bd.ibtype == 24)
                 disp('Putting the weirs back into merged obj')
                 % edit weir tri for duplicate points and renumbering
                 [~,d] = ourKNNsearch(pw',pw',2);
@@ -1843,7 +1843,7 @@ classdef msh
                 end
             end
             
-            if any(obj1.bd.ibtype == 24)
+            if ~isempty(obj1.bd) && any(obj1.bd.ibtype == 24)
                 disp('Carrying over obj1 weir nodestrings.')
                 idx1 = ourKNNsearch(merge.p',obj1.p',1);  
                 merge.bd = obj1.bd;
