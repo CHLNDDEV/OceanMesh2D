@@ -516,6 +516,7 @@ classdef msh
                     elseif length(numticks) == 3
                         caxis([numticks(2) numticks(3)]);
                     end
+                    set(gca,'FontSize',16)
                     ylabel(cb,'element circumradius [m]','fontsize',15);
                     title('mesh resolution');
                 case('resodx')
@@ -1855,12 +1856,22 @@ classdef msh
                 [nr2,nc2]=size(obj1.bd.nbvv);
                 nbvv_old = merge.bd.nbvv;
                 ibconn_old = merge.bd.ibconn;
+                barinht_old = merge.bd.barinht; 
+                barincfsb_old = merge.bd.barincfsb; 
+                barincfsp_old = merge.bd.barincfsp; 
                 
                 merge.bd.nbvv = zeros(max(nr1,nr2),max(nc1,nc1+nc2));
                 merge.bd.ibconn = zeros(max(nr1,nr2),max(nc1,nc1+nc2));
-                
+                merge.bd.barinht = zeros(max(nr1,nr2),max(nc1,nc1+nc2));
+                merge.bd.barincfsb = zeros(max(nr1,nr2),max(nc1,nc1+nc2));
+                merge.bd.barincfsp = zeros(max(nr1,nr2),max(nc1,nc1+nc2));
+
                 merge.bd.nbvv(1:nr1,1:nc1)=nbvv_old;
                 merge.bd.ibconn(1:nr1,1:nc1)=ibconn_old;
+                merge.bd.barinht(1:nr1,1:nc1)=barinht_old; 
+                merge.bd.barincfsb(1:nr1,1:nc1)=barincfsb_old; 
+                merge.bd.barincfsp(1:nr1,1:nc1)=barincfsp_old;
+                
                 
                 % remap
                 for ii = startBou:merge.bd.nbou
@@ -1868,9 +1879,10 @@ classdef msh
                     idx = ii - (startBou-1) ;
                     nodes =  full(obj1.bd.nbvv(1:obj1.bd.nvell(idx),idx));
                     nodes2 = full(obj1.bd.ibconn(1:obj1.bd.nvell(idx),idx));
-                    
+
                     merge.bd.nbvv(1:merge.bd.nvell(ii),ii)   = idx1(nodes);
                     merge.bd.ibconn(1:merge.bd.nvell(ii),ii) = idx1(nodes2);
+
                 end
             end
             
@@ -1902,12 +1914,21 @@ classdef msh
                 [nr2,nc2]=size(obj2.bd.nbvv);
                 nbvv_old = merge.bd.nbvv;
                 ibconn_old = merge.bd.ibconn;
+                barinht_old = merge.bd.barinht; 
+                barincfsb_old = merge.bd.barincfsb; 
+                barincfsp_old = merge.bd.barincfsp; 
                 
                 merge.bd.nbvv = zeros(max(nr1,nr2),max(nc1,nc1+nc2));
                 merge.bd.ibconn = zeros(max(nr1,nr2),max(nc1,nc1+nc2));
+                merge.bd.barinht = zeros(max(nr1,nr2),max(nc1,nc1+nc2));
+                merge.bd.barincfsb = zeros(max(nr1,nr2),max(nc1,nc1+nc2));
+                merge.bd.barincfsp = zeros(max(nr1,nr2),max(nc1,nc1+nc2));
                 
                 merge.bd.nbvv(1:nr1,1:nc1)=nbvv_old;
                 merge.bd.ibconn(1:nr1,1:nc1)=ibconn_old;
+                merge.bd.barinht(1:nr1,1:nc1)=barinht_old;
+                merge.bd.barincfsb(1:nr1,1:nc1)=barincfsb_old;
+                merge.bd.barincfsp(1:nr1,1:nc1)=barincfsp_old;
                 
                 % remap
                 for ii = startBou:merge.bd.nbou
