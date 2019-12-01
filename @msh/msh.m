@@ -1470,7 +1470,45 @@ classdef msh
             end
         end
         
-
+        
+        function [p1,t1,pw,tw]=extractWeirs(p1,t1,obj)
+            % Return the points and elements associated with the weirs
+            % while removing these elements and nodes from the obj.
+            weir_nodes = [];
+            for ii = 1:obj.bd.nbou
+                if obj.bd.ibtype(ii) ~= 24; continue; end
+                nodes = full(obj.bd.nbvv(1:obj.bd.nvell(ii),ii));
+                nodes2 = full(obj.bd.ibconn(1:obj.bd.nvell(ii),ii));
+                weir_nodes = [weir_nodes; nodes; nodes2];
+            end
+            %  retrieve elements connected to weir nodes
+            vtoe = VertToEle(t1);
+            connec_eles = vtoe(:,weir_nodes);
+            connec_eles(connec_eles == 0) = [];
+            connec_eles = unique(connec_eles)';
+            tw = t1(connec_eles,:);
+            % retrieve all other elements
+            unconnec_eles = setdiff([1:length(t1)]',connec_eles);
+            tn = t1(unconnec_eles,:);
+            p1o = p1;
+            [p1,t1] = fixmesh(p1,tn);
+            % ensure that the new obj1 is traversable
+            objn = msh(); objn.t = t1; objn.p = p1;
+            objn = Make_Mesh_Boundaries_Traversable(objn,0,1);
+            % add the deleted elements into the weir triangulation
+            twadd = setdiff(t1,objn.t,'rows');
+            [~,~,I] = intersect(p1(twadd,:),p1o,'rows','stable');
+            if ~isempty(I)
+                twadd = reshape(I,[length(I)/3 3]);
+            end
+            % finalize the weir mesh and the obj1 mesh
+            [pw,tw] = fixmesh(p1o,[tw; twadd]);
+            p1 = objn.p; t1 = objn.t;
+            % clear unnecessary vars from memory
+            clear vtoe unconnec_eles connec_eles objn p1o
+        end
+        
+        
         function merge = plus(obj1,obj2,tight,cleanargin)
             % merge = plus(obj1,obj2,tight,cleanargin)
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1561,47 +1599,25 @@ classdef msh
                 setProj(obj2,1,projname);
             end
            
-            % project both meshes into the space of the global mesh
-            [p1(:,1),p1(:,2)] = m_ll2xy(p1(:,1),p1(:,2)) ;
-            [p2(:,1),p2(:,2)] = m_ll2xy(p2(:,1),p2(:,2)) ;
-            if nfix > 0
-                [pfixx(:,1),pfixx(:,2)] = m_ll2xy(pfixx(:,1),pfixx(:,2));
+            % Project both meshes into the space of the global mesh
+            if tight > -1
+                [p1(:,1),p1(:,2)] = m_ll2xy(p1(:,1),p1(:,2)) ;
+                [p2(:,1),p2(:,2)] = m_ll2xy(p2(:,1),p2(:,2)) ;
+                if nfix > 0
+                    [pfixx(:,1),pfixx(:,2)] = m_ll2xy(pfixx(:,1),pfixx(:,2));
+                end
             end
 
             % checking for weirs in obj1 to keep
             if ~isempty(obj1.bd) && any(obj1.bd.ibtype == 24)
                 disp('Weirs found in obj1, extracting to ensure they are preserved')
-                % get the weir indices
-                weir_nodes = [];
-                for ii = 1:obj1.bd.nbou
-                    if obj1.bd.ibtype(ii) ~= 24; continue; end 
-                    nodes = full(obj1.bd.nbvv(1:obj1.bd.nvell(ii),ii));
-                    nodes2 = full(obj1.bd.ibconn(1:obj1.bd.nvell(ii),ii));
-                    weir_nodes = [weir_nodes; nodes; nodes2];
-                end
-                % retrieve elements connected to weir nodes
-                vtoe = VertToEle(t1); 
-                connec_eles = vtoe(:,weir_nodes);
-                connec_eles(connec_eles == 0) = [];
-                connec_eles = unique(connec_eles)';
-                tw = t1(connec_eles,:);
-                % retrieve all other elements
-                unconnec_eles = setdiff([1:length(t1)]',connec_eles);
-                tn = t1(unconnec_eles,:);
-                p1o = p1;
-                [p1,t1] = fixmesh(p1,tn);
-                % ensure that the new obj1 is traversable
-                objn = msh(); objn.t = t1; objn.p = p1; 
-                objn = Make_Mesh_Boundaries_Traversable(objn,0,1);
-                % add the deleted elements into the weir triangulation
-                twadd = setdiff(t1,objn.t,'rows');
-                [~,~,I] = intersect(p1(twadd,:),p1o,'rows','stable');
-                twadd = reshape(I,3,3);
-                % finalize the weir mesh and the obj1 mesh
-                [pw,tw] = fixmesh(p1o,[tw; twadd]);
-                p1 = objn.p; t1 = objn.t;
-                % clear unnecessary vars from memory
-                clear vtoe unconnec_eles connec_eles objn p1o
+                [p1,t1,pwin1,twin1]=extractWeirs(p1,t1,obj1);
+            end
+            
+            % checking for weirs in obj2 to keep
+            if ~isempty(obj2.bd) && any(obj2.bd.ibtype == 24)
+                disp('Weirs found in obj2, extracting to ensure they are preserved')
+                [p2,t2,pwin2,twin2]=extractWeirs(p2,t2,obj2);
             end
             
             disp('Forming outer boundary for base...')
@@ -1640,8 +1656,6 @@ classdef msh
                     % We need to delete straggling elements that are
                     %  generated through the above deletion step
                     pruned2 = msh() ; pruned2.p = p2; pruned2.t = t2;
-                    % kjr, the dj_cutoff in the following call was lowered to
-                    % 0.01!
                     pruned2 = Make_Mesh_Boundaries_Traversable(pruned2,0.01,1);
                     t2 = pruned2.t; p2 = pruned2.p;                    
                     % get new poly_vec2
@@ -1706,58 +1720,84 @@ classdef msh
             merge = msh() ; merge.p = pm; merge.t = tm ;
             clear pm tm pmid p1 t1 p2 t2
             
-            % kjr, add fixed points to everything outside of an 
-            % enlarged convex hull of the inset. 
-            k = convhull(bigInset(1:end-1,1),bigInset(1:end-1,2));
-            xout = bigInset(k,1); yout = bigInset(k,2);
-            [xe,ye] = enlargePoly(xout,yout,1.35);
-            in = inpoly(merge.p,[xe,ye]);
-            locked = [merge.p(~in,:); pfixx];
-            cleanargin{end} = locked;
-            % iteration is done in clean if smoothing creates neg quality
-            merge = clean(merge,cleanargin);       
-            
-            merge.pfix  = pfixx ; 
-            % edges don't move but they are no longer valid after merger
-            merge.egfix = [];
-           
-            % put the weirs back
+            % This step does some mesh smoothing around the intersection
+            % of the meshes. 
+            if tight > -1
+                k = convhull(bigInset(1:end-1,1),bigInset(1:end-1,2));
+                xout = bigInset(k,1); yout = bigInset(k,2);
+                [xe,ye] = enlargePoly(xout,yout,1.35);
+                in = inpoly(merge.p,[xe,ye]);
+                locked = [merge.p(~in,:); pfixx];
+                cleanargin{end} = locked;
+                % iteration is done in clean if smoothing creates neg quality
+                merge = clean(merge,cleanargin);
+                merge.pfix  = pfixx ;
+                % edges don't move but they are no longer valid after merger
+                merge.egfix = [];
+            end
+                             
+            % put the weirs from obj1 back into merge
             if ~isempty(obj1.bd) && any(obj1.bd.ibtype == 24)
-                disp('Putting the weirs back into merged obj')
+                disp('Putting the weirs from obj1 back into merged mesh')
                 % edit weir tri for duplicate points and renumbering
-                [~,d] = ourKNNsearch(pw',pw',2);
+                [~,d] = ourKNNsearch(pwin1',pwin1',2);
                 d = d(:,2); mind = min(d);
-                [idx,d] = ourKNNsearch(merge.p',pw',1);
-                tw1 = tw; % to make sure we don't double mix up ourselves
-                for ii = 1:size(pw,1)
+                [idx,d] = ourKNNsearch(merge.p',pwin1',1);
+                tw1 = twin1; % to make sure we don't double mix up ourselves
+                for ii = 1:size(pwin1,1)
                     if d(ii) < mind
                         % really close (closer than distance across weir)
-                        tw(tw1 == ii) = idx(ii);
+                        twin1(tw1 == ii) = idx(ii);
                     else
                         % not close
-                        tw(tw1 == ii) = ii + length(merge.p);
+                        twin1(tw1 == ii) = ii + length(merge.p);
                     end
                 end
-                merge.p = [merge.p; pw];
-                merge.t = [merge.t; tw];
+                merge.p = [merge.p; pwin1];
+                merge.t = [merge.t; twin1];
+                [merge.p, merge.t] = fixmesh(merge.p,merge.t);
+            end
+            
+             % put the weirs from obj2 back into merge
+            if ~isempty(obj2.bd) && any(obj2.bd.ibtype == 24)
+                disp('Putting the weirs from obj2 back into merged mesh')
+                % edit weir tri for duplicate points and renumbering
+                [~,d] = ourKNNsearch(pwin2',pwin2',2);
+                d = d(:,2); mind = min(d);
+                [idx,d] = ourKNNsearch(merge.p',pwin2',1);
+                tw1 = twin2; % to make sure we don't double mix up ourselves
+                for ii = 1:size(pwin2,1)
+                    if d(ii) < mind
+                        % really close (closer than distance across weir)
+                        twin2(tw1 == ii) = idx(ii);
+                    else
+                        % not close
+                        twin2(tw1 == ii) = ii + length(merge.p);
+                    end
+                end
+                merge.p = [merge.p; pwin2];
+                merge.t = [merge.t; twin2];
                 [merge.p, merge.t] = fixmesh(merge.p,merge.t);
             end
                 
-            % convert back to lat-lon wgs84
-            [merge.p(:,1),merge.p(:,2)] = ...
-                m_xy2ll(merge.p(:,1),merge.p(:,2));
-
-            if nfix > 0
-                [merge.pfix(:,1),merge.pfix(:,2)] = ...
-                    m_xy2ll(pfixx(:,1),pfixx(:,2));
+            if tight > -1
+                % convert back to lat-lon wgs84
+                [merge.p(:,1),merge.p(:,2)] = ...
+                    m_xy2ll(merge.p(:,1),merge.p(:,2));
+                
+                if nfix > 0
+                    [merge.pfix(:,1),merge.pfix(:,2)] = ...
+                        m_xy2ll(pfixx(:,1),pfixx(:,2));
+                end
+                
+                
+                merge.proj    = MAP_PROJECTION ;
+                merge.coord   = MAP_COORDS ;
+                merge.mapvar  = MAP_VAR_LIST ;
             end
             
-            merge.proj    = MAP_PROJECTION ;
-            merge.coord   = MAP_COORDS ;
-            merge.mapvar  = MAP_VAR_LIST ;                        
-                                    
             % Check element order
-            merge = CheckElementOrder(merge);             
+            merge = CheckElementOrder(merge);
             
             % Carry over bathy and gradients
             if ~isempty(obj1.b) && ~isempty(obj2.b)
@@ -1767,17 +1807,12 @@ classdef msh
                 [idx2,dst2] = ourKNNsearch(obj2.p',merge.p',1);   
                 merge.b( dst1 <= dst2) = obj1.b( idx1(dst1 <= dst2)); 
                 merge.b( dst2 <  dst1 ) = obj2.b( idx2(dst2 <  dst1) );
-                % ensure depth of the first mesh is preserved as a priority
-                %in1 = inpoly(pm,poly_vec1,edges1);
-                %merge.b( in1 ) = obj1.b( idx1(in1) ); 
                 if ~isempty(obj1.bx) && ~isempty(obj2.bx)
                     merge.bx = 0*merge.b; merge.by = 0*merge.b;
                     merge.bx(dst2 < dst1) = obj2.bx(idx2(dst2 < dst1)); 
                     merge.bx(dst1 <= dst2) = obj1.bx(idx1(dst1 <= dst2)); 
-                    %merge.bx( in1 ) = obj1.bx( idx1(in1) ); 
                     merge.by(dst2 < dst1) = obj2.by(idx2(dst2 < dst1)); 
                     merge.by(dst1 <= dst2) = obj1.by(idx1(dst1 <= dst2)); 
-                    %merge.by( in1 ) = obj1.by( idx1(in1) ); 
                 end
             end
             
@@ -1791,30 +1826,104 @@ classdef msh
                 end
             end
             
-            if ~isempty(obj1.bd) && any(obj1.bd.ibtype == 24)
-                disp('Carrying over obj1 weir nodestrings.')
-                idx1 = ourKNNsearch(merge.p',obj1.p',1);  
-                merge.bd = obj1.bd;
-                nw = merge.bd.ibtype ~= 24;
-                merge.bd.ibtype(nw) = [];
-                merge.bd.nvell(nw) = [];
-                merge.bd.nbvv(:,nw) = [];
-                merge.bd.ibconn(:,nw) = [];
-                merge.bd.barinht(:,nw) = [];
-                merge.bd.barincfsb(:,nw) = [];
-                merge.bd.barincfsp(:,nw) = [];
-                merge.bd.nbou = length(merge.bd.nvell);
+             if ~isempty(obj1.bd) && any(obj1.bd.ibtype == 24)
+                disp('Carrying over weir nodestrings from obj1.')
+                idx1 = ourKNNsearch(merge.p',obj1.p',1);
+                if isempty(merge.bd)
+                    merge.bd.nbou=0;
+                    merge.bd.nvell=[];
+                    merge.bd.nvel=[];
+                    merge.bd.nbvv=[];
+                    merge.bd.ibconn=[];
+                    merge.bd.ibtype=[];
+                    merge.bd.barinht=[];
+                    merge.bd.barincfsb=[];
+                    merge.bd.barincfsp=[];
+                end
+                % number of new boundaries
+                startBou = merge.bd.nbou + 1 ;
+                merge.bd.nbou =  merge.bd.nbou + obj1.bd.nbou ;
+                % types of boundaries
+                merge.bd.ibtype = [merge.bd.ibtype ; obj1.bd.ibtype];
+                % new boundaries come after what's already on
+                merge.bd.nvell = [merge.bd.nvell; obj1.bd.nvell];
+                % nvel is twice the number of nodes on each boundary
                 merge.bd.nvel = 2*sum(merge.bd.nvell);
-                for ii = 1:merge.bd.nbou
-                    nodes = full(merge.bd.nbvv(1:merge.bd.nvell(ii),ii));
-                    nodes2 = full(merge.bd.ibconn(1:merge.bd.nvell(ii),ii));
-                    merge.bd.nbvv(1:merge.bd.nvell(ii),ii) = idx1(nodes);
+                % nbvv is a matrix of boundary nodes
+                [nr1,nc1]=size(merge.bd.nbvv);
+                [nr2,nc2]=size(obj1.bd.nbvv);
+                nbvv_old = merge.bd.nbvv;
+                ibconn_old = merge.bd.ibconn;
+                
+                merge.bd.nbvv = zeros(max(nr1,nr2),max(nc1,nc1+nc2));
+                merge.bd.ibconn = zeros(max(nr1,nr2),max(nc1,nc1+nc2));
+                
+                merge.bd.nbvv(1:nr1,1:nc1)=nbvv_old;
+                merge.bd.ibconn(1:nr1,1:nc1)=ibconn_old;
+                
+                % remap
+                for ii = startBou:merge.bd.nbou
+                    
+                    idx = ii - (startBou-1) ;
+                    nodes =  full(obj1.bd.nbvv(1:obj1.bd.nvell(idx),idx));
+                    nodes2 = full(obj1.bd.ibconn(1:obj1.bd.nvell(idx),idx));
+                    
+                    merge.bd.nbvv(1:merge.bd.nvell(ii),ii)   = idx1(nodes);
                     merge.bd.ibconn(1:merge.bd.nvell(ii),ii) = idx1(nodes2);
                 end
             end
-            disp('NB: f15, obj2 f13 data, non-weir nodestrings etc. are not carried over.')                                  
+            
+            if ~isempty(obj2.bd) && any(obj2.bd.ibtype == 24)
+                disp('Carrying over weir nodestrings from obj2.')
+                idx1 = ourKNNsearch(merge.p',obj2.p',1);
+                if isempty(merge.bd)
+                    merge.bd.nbou=0;
+                    merge.bd.nvell=[];
+                    merge.bd.nvel=[];
+                    merge.bd.nbvv=[];
+                    merge.bd.ibconn=[];
+                    merge.bd.ibtype=[];
+                    merge.bd.barinht=[];
+                    merge.bd.barincfsb=[];
+                    merge.bd.barincfsp=[];
+                end
+                % number of new boundaries
+                startBou = merge.bd.nbou + 1 ;
+                merge.bd.nbou =  merge.bd.nbou + obj2.bd.nbou ;
+                % types of boundaries
+                merge.bd.ibtype = [merge.bd.ibtype ; obj2.bd.ibtype];
+                % new boundaries come after what's already on
+                merge.bd.nvell = [merge.bd.nvell; obj2.bd.nvell];
+                % nvel is twice the number of nodes on each boundary
+                merge.bd.nvel = 2*sum(merge.bd.nvell);
+                % nbvv is a matrix of boundary nodes
+                [nr1,nc1]=size(merge.bd.nbvv);
+                [nr2,nc2]=size(obj2.bd.nbvv);
+                nbvv_old = merge.bd.nbvv;
+                ibconn_old = merge.bd.ibconn;
+                
+                merge.bd.nbvv = zeros(max(nr1,nr2),max(nc1,nc1+nc2));
+                merge.bd.ibconn = zeros(max(nr1,nr2),max(nc1,nc1+nc2));
+                
+                merge.bd.nbvv(1:nr1,1:nc1)=nbvv_old;
+                merge.bd.ibconn(1:nr1,1:nc1)=ibconn_old;
+                
+                % remap
+                for ii = startBou:merge.bd.nbou
+                    
+                    idx = ii - (startBou-1) ;
+                    nodes =  full(obj2.bd.nbvv(1:obj2.bd.nvell(idx),idx));
+                    nodes2 = full(obj2.bd.ibconn(1:obj2.bd.nvell(idx),idx));
+                    
+                    merge.bd.nbvv(1:merge.bd.nvell(ii),ii)   = idx1(nodes);
+                    merge.bd.ibconn(1:merge.bd.nvell(ii),ii) = idx1(nodes2);
+                end
+            end
+            
+            disp('NB: f15, obj2 f13 data, non-weir nodestrings etc. are not carried over.')
+            
         end
-
+     
                   
         function obj = CheckElementOrder(obj,proj)
             if nargin == 1
