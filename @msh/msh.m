@@ -599,6 +599,7 @@ classdef msh
                             m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),alltogether(kept));
                         else
                             trisurf(obj.t,obj.p(:,1),obj.p(:,2),alltogether(kept));
+                            view(2); shading flat
                         end
                         nouq = length(unique(values));
                         colormap(jet(nouq));
