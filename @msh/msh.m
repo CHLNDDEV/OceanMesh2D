@@ -753,58 +753,6 @@ classdef msh
                     end
                     obj.bd.ibconn = ibconn;
                 end
-                
-                if isfield(obj.bd,'barinht')
-                    for ib = 1 : obj.bd.nbou
-                        tempcell{ib} = obj.bd.barinht(1:obj.bd.nvell(ib),ib);
-                    end
-                    temp = cell2mat(tempcell');
-                    ex   = find(temp~=0) ;
-                    temp(ex) = perm_inv(temp(ex))';
-                    temp = mat2cell(temp,cellfun(@length,tempcell));
-                    barinht = zeros(size(obj.bd.nbvv,1),size(obj.bd.nbvv,2));
-                    for ib = 1 : obj.bd.nbou
-                        for iv = 1 : obj.bd.nvell(ib)
-                            barinht(iv,ib) = temp{ib}(iv,:);
-                        end
-                    end
-                    obj.bd.barinht = barinht;
-                end
-                
-                if isfield(obj.bd,'barincfsb')
-                    for ib = 1 : obj.bd.nbou
-                        tempcell{ib} = obj.bd.barincfsb(1:obj.bd.nvell(ib),ib);
-                    end
-                    temp = cell2mat(tempcell');
-                    ex   = find(temp~=0) ;
-                    temp(ex) = perm_inv(temp(ex))';
-                    temp = mat2cell(temp,cellfun(@length,tempcell));
-                    barincfsb = zeros(size(obj.bd.nbvv,1),size(obj.bd.nbvv,2));
-                    for ib = 1 : obj.bd.nbou
-                        for iv = 1 : obj.bd.nvell(ib)
-                            barincfsb(iv,ib) = temp{ib}(iv,:);
-                        end
-                    end
-                    obj.bd.barincfsb = barincfsb;
-                end
-                
-                if isfield(obj.bd,'barincfsp')
-                    for ib = 1 : obj.bd.nbou
-                        tempcell{ib} = obj.bd.barincfsp(1:obj.bd.nvell(ib),ib);
-                    end
-                    temp = cell2mat(tempcell');
-                    ex   = find(temp~=0) ;
-                    temp(ex) = perm_inv(temp(ex))';
-                    temp = mat2cell(temp,cellfun(@length,tempcell));
-                    barincfsp = zeros(size(obj.bd.nbvv,1),size(obj.bd.nbvv,2));
-                    for ib = 1 : obj.bd.nbou
-                        for iv = 1 : obj.bd.nvell(ib)
-                            barincfsp(iv,ib) = temp{ib}(iv,:);
-                        end
-                    end
-                    obj.bd.barincfsb = barincfsp;
-                end
-                
             end
             
             if ~isempty(obj.f13)
