@@ -1775,7 +1775,20 @@ classdef msh
             % put the weirs back
             if any(obj1.bd.ibtype == 24)
                 disp('Putting the weirs back into merged obj')
-                tw = tw + length(merge.p);
+                % edit weir tri for duplicate points and renumbering
+                [~,d] = ourKNNsearch(pw',pw',2);
+                d = d(:,2); mind = min(d);
+                [idx,d] = ourKNNsearch(merge.p',pw',1);
+                tw1 = tw; % to make sure we don't double mix up ourselves
+                for ii = 1:size(pw,1)
+                    if d(ii) < mind
+                        % really close (closer than distance across weir)
+                        tw(tw1 == ii) = idx(ii);
+                    else
+                        % not close
+                        tw(tw1 == ii) = ii + length(merge.p);
+                    end
+                end
                 merge.p = [merge.p; pw];
                 merge.t = [merge.t; tw];
                 [merge.p, merge.t] = fixmesh(merge.p,merge.t);
