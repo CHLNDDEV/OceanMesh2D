@@ -959,6 +959,9 @@ classdef msh
                     disp(['Deleted ' num2str(LT-size(obj.t,1)) ...
                           ' bad boundary elements'])
                 end
+                % kjr, collapse small triangles together 
+                [obj.p,obj.t] = ...
+                    collapse_thin_triangles(obj.p,obj.t,opt.db); 
             end
             
             % Make mesh traversable
