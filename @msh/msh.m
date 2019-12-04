@@ -1710,7 +1710,7 @@ classdef msh
                 merge.p = pm; merge.t = tm ;
             
                 % clean the msh object
-                merge = clean(merge,cleanargin,'proj',0);
+                merge = clean(merge,cleanargin);
 
                 % use local smoother in the overlap region
                 if tight > -1
