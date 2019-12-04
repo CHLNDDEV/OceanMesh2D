@@ -1671,8 +1671,6 @@ classdef msh
             
             %% Pruning
             disp('Pruning...')
-            tq.qm = -1; minq = 1e-3;
-            while min(tq.qm) < minq
             % Prune triangles outside both domains.
             for ii = 1:2 
             % The loop makes sure to remove only small connectivity for the boundaries
@@ -1709,32 +1707,23 @@ classdef msh
                 tm(del,:) = [];
             end
             
-                % add pm and tm to the new merge msh object 
-                merge.p = pm; merge.t = tm ;
-            
-                % clean the msh object
-                merge = clean(merge,cleanargin);
+            % add pm and tm to the new merge msh object 
+            merge.p = pm; merge.t = tm ;
 
-                % use local smoother in the overlap region
-                if tight > -1
-                    [~,dst1] = ourKNNsearch(p1',merge.p',1);
-                    [~,dst2] = ourKNNsearch(p2',merge.p',1);
-                    idx = find(abs(dst1 - dst2) < overlap);
-                    constr = setdiff((1:length(merge.p))',idx);
-                    [pm,tm] = smoothmesh(merge.p,merge.t,constr,50,0.01);
-                end
-                
-                tq = gettrimeshquan(pm,tm);
-                disp(['min element quality is ', num2str(min(tq.qm))])
-                if tight == -1; break; end
-                if min(tq.qm) < minq
-                    DTbase = delaunayTriangulation(pm(:,1),pm(:,2));
-                end
+            % clean the msh object
+            merge = clean(merge,cleanargin);
+
+            % use local smoother in the overlap region
+            if tight > -1
+                [~,dst1] = ourKNNsearch(p1',merge.p',1);
+                [~,dst2] = ourKNNsearch(p2',merge.p',1);
+                idx = find(abs(dst1 - dst2) < overlap);
+                constr = setdiff((1:length(merge.p))',idx);
+                [pm,tm] = smoothmesh(merge.p,merge.t,constr,50,0.01);
+                % add pm and tm to the new merge msh object
+                merge.p = pm; merge.t = tm;
             end
-            
-            % add pm and tm to the new merge msh object
-            merge.p = pm; merge.t = tm;
-            
+
             % convert back to lat-lon wgs84
             [merge.p(:,1),merge.p(:,2)] = ...
                                         m_xy2ll(merge.p(:,1),merge.p(:,2));  
@@ -1755,10 +1744,8 @@ classdef msh
                     obj2.bx(p2del) = []; obj2.by(p2del) = [];
                     merge.bx(dst2 < dst1) = obj2.bx(idx2(dst2 < dst1)); 
                     merge.bx(dst1 <= dst2) = obj1.bx(idx1(dst1 <= dst2)); 
-                    merge.bx( in1 ) = obj1.bx( idx1(in1) ); 
                     merge.by(dst2 < dst1) = obj2.by(idx2(dst2 < dst1)); 
                     merge.by(dst1 <= dst2) = obj1.by(idx1(dst1 <= dst2)); 
-                    merge.by( in1 ) = obj1.by( idx1(in1) ); 
                 end
             end
             disp(['Note that f13, f15 and boundary conditions etc. ' ...
