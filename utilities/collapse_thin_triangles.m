@@ -10,28 +10,37 @@ if nargin < 3
     minqm = 0.10 ; % minimum quality to identify thin triangles
 end
 tq = gettrimeshquan(p,t);
-
+tqm = tq.qm;
 kount=1;
-while any(tq.qm < minqm)
+while any(tqm < minqm)
     
-    id = find(tq.qm < minqm); % queue
+    id = find(tqm < minqm); % queue
 
     tid=id(1);
     tlocal=t(tid,:);
     ee = [tlocal(1,[1,2]); tlocal(1,[1,3]); tlocal(1,[2,3])];
     evec = p(ee(:,1),:)- p(ee(:,2),:);
-    [~,meid]=min(sum(evec.^2,2)); % find shortest edge
+    [~,meid]= min(sum(evec.^2,2)); % find shortest edge
     
     PointIDToRemove=ee(meid,1) ; % remove this id for ReplaceID 
     PointIDToReplace=ee(meid,2); % replace remove ID with this id 
- 
+    
     % Delete triangle that has the thin edge for deletion
+    to = t;
     t(tid,:)=[]; 
-    % Replace all other instances of PointIDToRemove with PointIDToReplace 
-    t(t==PointIDToRemove)=PointIDToReplace;  
-
+    % Replace all other instances of PointIDToRemove with PointIDToReplace
+    t(t==PointIDToRemove) = PointIDToReplace;  
+    I = t(:,1) - t(:,3) == 0 | t(:,2) - t(:,3) == 0 | t(:,1) - t(:,2) == 0; 
+    if sum(I) > 0
+        % cannot delete this element, make the quality good.
+        t = to; tqm(tid) = 1;
+        continue;
+    end
      % recompute qualities. 
-    tq = gettrimeshquan(p,t);
+    tqm(tid) = [];
+    I = t(:,1) == PointIDToReplace | t(:,2) == PointIDToReplace | t(:,3) == PointIDToReplace;
+    tq = gettrimeshquan(p,t(I,:));
+    tqm(I) = tq.qm;
     kount=kount+1; 
 end
 [pc,tc]=fixmesh(p,t); % remove hanging points 

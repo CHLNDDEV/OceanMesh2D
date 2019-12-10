@@ -62,8 +62,7 @@ badndn = jj; % This is the bad node number
 extndn = nei(jj,1:9); % These are the neighbor nodes of badndn listed in a ccw manner
 
 % Find all the elements connected to badndn
-[nbrelems,J] = find(enodes == badndn);
-clear J
+[nbrelems,~] = find(enodes == badndn);
 %ortriqul = triqual(fem_struct);
 %ortriqulmin = min(ortriqul(nbrelems))
 
@@ -126,7 +125,7 @@ imax = 20;
 stoptol = 10e-7;
 i = 1;
 tol = stoptol+10;
-while i <= imax & tol > stoptol
+while i <= imax && tol > stoptol
     Mx = [sum(y([extndn(vod(spb:spn)),badndn,newndn])),...
             sum(y([extndn(vod(spn:spn+3)),badndn,newndn])),...
             sum(y([extndn(vod(spn+3:spn+6)),badndn,newndn]))];
@@ -241,24 +240,22 @@ if ~isempty(poor)
          
          
          %Spring the new mesh after the line swap.
-         it = 1;
-         while it < 3
-         temp = find(fem1.nei(newndn(1),:) ~= 0);
-         tempnei = fem1.nei(newndn(1),temp);
-         fem1.x(newndn(1)) = mean(fem1.x(tempnei));
-         fem1.y(newndn(1)) = mean(fem1.y(tempnei));
-         fem1.z(newndn(1)) = mean(fem1.z(tempnei));
-         temp = find(fem1.nei(newndn(2),:) ~= 0);
-         tempnei = fem1.nei(newndn(2),temp);
-         fem1.x(newndn(2)) = mean(fem1.x(tempnei));
-         fem1.y(newndn(2)) = mean(fem1.y(tempnei));
-         fem1.z(newndn(2)) = mean(fem1.z(tempnei));
-         temp = find(fem1.nei(badndn,:) ~= 0);
-         tempnei = fem1.nei(badndn,temp);
-         fem1.x(badndn) = mean(fem1.x(tempnei));
-         fem1.y(badndn) = mean(fem1.y(tempnei));
-         fem1.z(badndn) = mean(fem1.z(tempnei));
-         it = it + 1;
+         for itt = 1:2
+             temp = find(fem1.nei(newndn(1),:) ~= 0);
+             tempnei = fem1.nei(newndn(1),temp);
+             fem1.x(newndn(1)) = mean(fem1.x(tempnei));
+             fem1.y(newndn(1)) = mean(fem1.y(tempnei));
+             fem1.z(newndn(1)) = mean(fem1.z(tempnei));
+             temp = find(fem1.nei(newndn(2),:) ~= 0);
+             tempnei = fem1.nei(newndn(2),temp);
+             fem1.x(newndn(2)) = mean(fem1.x(tempnei));
+             fem1.y(newndn(2)) = mean(fem1.y(tempnei));
+             fem1.z(newndn(2)) = mean(fem1.z(tempnei));
+             temp = find(fem1.nei(badndn,:) ~= 0);
+             tempnei = fem1.nei(badndn,temp);
+             fem1.x(badndn) = mean(fem1.x(tempnei));
+             fem1.y(badndn) = mean(fem1.y(tempnei));
+             fem1.z(badndn) = mean(fem1.z(tempnei));
          end
 
          %Use triqual to determine if the new mesh is better quality.

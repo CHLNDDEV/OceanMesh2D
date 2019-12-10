@@ -60,8 +60,7 @@ neweln = nelems+[1,2]; %These are the new element numbers being added
 badndn = jj; % This is the bad node number
 extndn = nei(jj,1:8); % These are the neighbor nodes of badndn listed in a ccw manner
 
-[nbrelems,J] = find(enodes == badndn); %These are the elements connected to the bad node
-clear J
+[nbrelems,~] = find(enodes == badndn); %These are the elements connected to the bad node
 
 % Finds which set of nodes would be best to add more connectors to.
 for i = 1:8
@@ -92,15 +91,14 @@ y([badndn,newndn]) = ybar;
 z([badndn,newndn]) = zbar;
 
 % Update the effected Elements that need to be updated
-[updelem,J] = find(enodes(nbrelems,:) == extndn(vod(spb+5)) | enodes(nbrelems,:) == extndn(vod(spb+7)));
-clear J
-[updelem2,J] = find(enodes(nbrelems(updelem),:) == badndn);
+[updelem,~] = find(enodes(nbrelems,:) == extndn(vod(spb+5)) | enodes(nbrelems,:) == extndn(vod(spb+7)));
+[updelem2,~] = find(enodes(nbrelems(updelem),:) == badndn);
 k = find(enodes(nbrelems(updelem),:) == badndn);
 temp = enodes(nbrelems(updelem),:);
 temp(k) = newndn;
 enodes(nbrelems(updelem),:) = temp;
 
-clear temp J k
+clear temp k
 
 % Adds the Two New Elements
 enodes(neweln(1),:) = [badndn,newndn,extndn(spb)];
@@ -111,7 +109,7 @@ imax = 20;
 stoptol = 10e-7;
 i = 1;
 tol = stoptol+10;
-while i <= imax & tol > stoptol
+while i <= imax && tol > stoptol
     Mx = [sum(y([extndn(vod(spb:spn)),newndn])),sum(y([extndn(vod(spn:spn+4)),badndn]))];
     My = [sum(x([extndn(vod(spb:spn)),newndn])),sum(x([extndn(vod(spn:spn+4)),badndn]))];
     Mz = [sum(z([extndn(vod(spb:spn)),newndn])),sum(z([extndn(vod(spn:spn+4)),badndn]))];
