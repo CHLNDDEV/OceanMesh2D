@@ -1725,9 +1725,9 @@ classdef msh
                     in3 = inpoly(p2(t2(:,3),:),poly_vec3,edges3);
                     t2(in1 & in2 & in3,:) = [];
                     % We need to delete straggling elements that are
-                    %  generated through the above deletion step
+                    % generated through the above deletion step
                     pruned2 = msh() ; pruned2.p = p2; pruned2.t = t2;
-                    pruned2 = Make_Mesh_Boundaries_Traversable(pruned2,0,1);
+                    pruned2 = Make_Mesh_Boundaries_Traversable(pruned2,0.01,1);
                     t2 = pruned2.t; p2 = pruned2.p;                    
                     % get new poly_vec2
                     if strcmp(type,'arb')
