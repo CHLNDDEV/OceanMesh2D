@@ -987,11 +987,11 @@ classdef msh
             obj = renum(obj);
             % May not always work without error
             if opt.con > 6
-                %try
+                try
                    obj = bound_con_int(obj,opt.con);
-                %catch
-                %   warning('Could not reduce connectivity mesh');
-                %end
+                catch
+                   warning('Could not reduce connectivity mesh');
+                end
             end
            
             % Now do the smoothing if required
