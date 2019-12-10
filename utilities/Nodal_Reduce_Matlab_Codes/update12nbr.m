@@ -62,9 +62,8 @@ newnode = nnodes + [1:6];
 newelem = nelems + [1:12];
 badnode = jj;
 nbrnode = nei(jj,1:12);
-[nbrelem,J] = find(enodes == badnode);
+[nbrelem,~] = find(enodes == badnode);
 inrad = max(sqrt((x(nbrnode)-x(badnode)).^2 + (y(nbrnode)-y(badnode)).^2));
-clear J;
 
 %First guess of the new coordinates and bathymetry.
 Bx = sum(x([(nbrnode([1:3])),badnode]))/4;
@@ -122,15 +121,15 @@ z(newnode(6)) = Gz;
 %Updates the affected elements. J variables are used to represent which
 %elements are connected each node.
 i = 1;
-while i <= 10;
-j1 = ismember((enodes((nbrelem),:)),(nbrnode(vod(i))));
-j2 = ismember((enodes((nbrelem),:)),(nbrnode(vod(i+1))));
-spb = [1,1,2,2,3,3,4,4,5,5];
-j = sum([j1,j2],2);
-temp = nbrelem(find (j == 2));
-enodes(temp,:) = ([nbrnode(vod(i)),nbrnode(vod(i+1)),newnode(spb(i))]);
-i = i + 1;
-clear j j1 j2 temp;
+while i <= 10
+    j1 = ismember((enodes((nbrelem),:)),(nbrnode(vod(i))));
+    j2 = ismember((enodes((nbrelem),:)),(nbrnode(vod(i+1))));
+    spb = [1,1,2,2,3,3,4,4,5,5];
+    j = sum([j1,j2],2);
+    temp = nbrelem(find (j == 2));
+    enodes(temp,:) = ([nbrnode(vod(i)),nbrnode(vod(i+1)),newnode(spb(i))]);
+    i = i + 1;
+    clear j j1 j2 temp;
 end
 
 %Addes the 12 new elements.
@@ -160,7 +159,7 @@ stoptol = 10e-8 * inrad;
 tol = stoptol + 10;
 i = 1;
 imax = 20;
-while i <= imax & tol > stoptol
+while i <= imax && tol > stoptol
     M2(2,1) = sum([(x([(nbrnode([1:3]))]))',M(1,1),M(3,1),M(7,1)]);
     M2(2,2) = sum([(y([(nbrnode([1:3]))]))',M(1,2),M(3,2),M(7,2)]);
     M2(2,3) = sum([(z([(nbrnode([1:3]))]))',M(1,3),M(3,3),M(7,3)]);
@@ -192,7 +191,7 @@ while i <= imax & tol > stoptol
     
     tol = max(sqrt((M2(:,1)-M(:,1)).^2 + (M2(:,2)-M(:,2)).^2));
     
-    M = M2;;
+    M = M2;
     x([badnode,([newnode(1:6)])]) = ([M(:,1)]);
     y([badnode,([newnode(1:6)])]) = ([M(:,2)]);
     z([badnode,([newnode(1:6)])]) = ([M(:,3)]);
@@ -223,9 +222,9 @@ for i = 1:6
     addconn = ([badnode,newnode([1:5]),badnode]);
     tmp = nei(nbrnode((2*i)-1),:);
 	ij = find(tmp == badnode);
-    ik = min((find(tmp == 0)) + 1);
+    ik = find(tmp == 0, 1 ) + 1;
     if isempty(ik)  % TCM 08/13/2007 -- Added this check in case ik was empty.
-      ik= size(nei,2)+1;
+      ik = size(nei,2)+1;
     end
     fem.nei(nbrnode((2*i)-1),1:ik) = ([tmp(1:(ij-1)),addconn(i+1),addconn(i),tmp((ij+1):(ik-1))]);
 end
@@ -234,7 +233,11 @@ end
 for i = 1:5
     tmp = nei(nbrnode(2*i),:);
     ij = find(tmp == badnode);
-    fem.nei(nbrnode(2*i),1:end) = ([tmp(1:(ij-1)),newnode(i),tmp((ij+1):end)]);
+    ik = find(tmp == 0, 1 );
+    if isempty(ik)  % WJP -- Added this check in case ik was empty.
+      ik = size(nei,2);
+    end
+    fem.nei(nbrnode(2*i),1:ik) = ([tmp(1:(ij-1)),newnode(i),tmp((ij+1):ik)]);
 end    
    
 %Determine the triqual for the final form to see if has very low quality
@@ -289,8 +292,7 @@ if ~isempty(poor)
          end
 
          %Spring the new mesh after the line swap.
-         it = 1;
-         while it < 3
+         for itt = 1:2
              temp = fem1.nei(newnode(1),:) ~= 0;
              tempnei = fem1.nei(newnode(1),temp);
              fem1.x(newnode(1)) = mean(fem1.x(tempnei));
@@ -326,7 +328,6 @@ if ~isempty(poor)
              fem1.x(badnode) = mean(fem1.x(tempnei));
              fem1.y(badnode) = mean(fem1.y(tempnei));
              fem1.z(badnode) = mean(fem1.z(tempnei));
-             it = it + 1;
          end
 
          %Use triqual to determine if the new mesh is better quality.

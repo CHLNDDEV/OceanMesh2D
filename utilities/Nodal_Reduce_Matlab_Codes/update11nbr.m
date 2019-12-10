@@ -64,8 +64,7 @@ newnode = nnodes + [1:4];
 newelem = nelems + [1:8];
 badnode = jj;
 nbrnode = nei(jj,1:11);
-[nbrelem,J] = find(enodes == badnode);
-clear J;
+[nbrelem,~] = find(enodes == badnode);
 inrad = max(sqrt((x(nbrnode)-x(badnode)).^2 + (y(nbrnode)-y(badnode)).^2));
 
 %First guess of the new coordinates and bathymetry.
@@ -108,15 +107,17 @@ z(newnode(4)) = Ez;
 %Updates the effected elements. J variables are used to represent which
 %elements are connected each node.
 i = 1;
-while i <= 9;
-j1 = ismember((enodes((nbrelem),:)),(nbrnode(vod(i))));
-j2 = ismember((enodes((nbrelem),:)),(nbrnode(vod(i+1))));
-spb = [1,1,2,2,2,3,4,4,4];
-j = sum([j1,j2],2);
-temp = nbrelem(find (j == 2));
-enodes(temp,:) = ([nbrnode(vod(i)),nbrnode(vod(i+1)),newnode(spb(i))]);
-i = i + 1;
-clear j j1 j2 temp;
+while i <= 9
+    j1 = ismember((enodes((nbrelem),:)),(nbrnode(vod(i))));
+    j2 = ismember((enodes((nbrelem),:)),(nbrnode(vod(i+1))));
+    spb = [1,1,2,2,2,3,4,4,4];
+    j = sum([j1,j2],2);
+    temp = nbrelem(find (j == 2));
+    if ~isempty(temp)
+        enodes(temp,:) = ([nbrnode(vod(i)),nbrnode(vod(i+1)),newnode(spb(i))]);
+    end
+    i = i + 1;
+    clear j j1 j2 temp;
 end
 
 %Addes the 8 new elements.
@@ -140,7 +141,7 @@ i = 1;
 imax = 20;
 stoptol = 10e-8 * inrad;
 tol = stoptol + 10;
-while i <= imax & tol > stoptol
+while i <= imax && tol > stoptol
     M2(2,1) = sum([(x([(nbrnode([1:3])),badnode]))',M(3,1),M(4,1)]);
     M2(2,2) = sum([(y([(nbrnode([1:3])),badnode]))',M(3,2),M(4,2)]);
     M2(2,3) = sum([(z([(nbrnode([1:3])),badnode]))',M(3,3),M(4,3)]);
@@ -196,7 +197,7 @@ for i = 1:5
 	ij = find(tmp == badnode);
     ik = min((find(tmp == 0)) + 1);
     if isempty(ik)  % TCM 08/13/2007 -- Added this check in case ik was empty.
-       ik= size(nei,2)+1;
+       ik = size(nei,2)+1;
     end
     fem.nei(nbrnode(spb(i)),1:ik) = ([tmp(1:(ij-1)),addconn(i+1),addconn(i),tmp((ij+1):(ik-1))]);
 end
@@ -261,34 +262,32 @@ if ~isempty(poor)
          end
          
          %Spring the new mesh after the line swap.
-         it = 1;
-         while it < 3
-         temp = find(fem1.nei(newnode(1),:) ~= 0);
-         tempnei = fem1.nei(newnode(1),temp);
-         fem1.x(newnode(1)) = mean(fem1.x(tempnei));
-         fem1.y(newnode(1)) = mean(fem1.y(tempnei));
-         fem1.z(newnode(1)) = mean(fem1.z(tempnei));
-         temp = find(fem1.nei(newnode(2),:) ~= 0);
-         tempnei = fem1.nei(newnode(2),temp);
-         fem1.x(newnode(2)) = mean(fem1.x(tempnei));
-         fem1.y(newnode(2)) = mean(fem1.y(tempnei));
-         fem1.z(newnode(2)) = mean(fem1.z(tempnei));
-         temp = find(fem1.nei(newnode(3),:) ~= 0);
-         tempnei = fem1.nei(newnode(3),temp);
-         fem1.x(newnode(3)) = mean(fem1.x(tempnei));
-         fem1.y(newnode(3)) = mean(fem1.y(tempnei));
-         fem1.z(newnode(3)) = mean(fem1.z(tempnei));
-         temp = find(fem1.nei(newnode(4),:) ~= 0);
-         tempnei = fem1.nei(newnode(4),temp);
-         fem1.x(newnode(4)) = mean(fem1.x(tempnei));
-         fem1.y(newnode(4)) = mean(fem1.y(tempnei));
-         fem1.z(newnode(4)) = mean(fem1.z(tempnei));
-         temp = find(fem1.nei(badnode,:) ~= 0);
-         tempnei = fem1.nei(badnode,temp);
-         fem1.x(badnode) = mean(fem1.x(tempnei));
-         fem1.y(badnode) = mean(fem1.y(tempnei));
-         fem1.z(badnode) = mean(fem1.z(tempnei));
-         it = it + 1;
+         for itt = 1:2
+             temp = find(fem1.nei(newnode(1),:) ~= 0);
+             tempnei = fem1.nei(newnode(1),temp);
+             fem1.x(newnode(1)) = mean(fem1.x(tempnei));
+             fem1.y(newnode(1)) = mean(fem1.y(tempnei));
+             fem1.z(newnode(1)) = mean(fem1.z(tempnei));
+             temp = find(fem1.nei(newnode(2),:) ~= 0);
+             tempnei = fem1.nei(newnode(2),temp);
+             fem1.x(newnode(2)) = mean(fem1.x(tempnei));
+             fem1.y(newnode(2)) = mean(fem1.y(tempnei));
+             fem1.z(newnode(2)) = mean(fem1.z(tempnei));
+             temp = find(fem1.nei(newnode(3),:) ~= 0);
+             tempnei = fem1.nei(newnode(3),temp);
+             fem1.x(newnode(3)) = mean(fem1.x(tempnei));
+             fem1.y(newnode(3)) = mean(fem1.y(tempnei));
+             fem1.z(newnode(3)) = mean(fem1.z(tempnei));
+             temp = find(fem1.nei(newnode(4),:) ~= 0);
+             tempnei = fem1.nei(newnode(4),temp);
+             fem1.x(newnode(4)) = mean(fem1.x(tempnei));
+             fem1.y(newnode(4)) = mean(fem1.y(tempnei));
+             fem1.z(newnode(4)) = mean(fem1.z(tempnei));
+             temp = find(fem1.nei(badnode,:) ~= 0);
+             tempnei = fem1.nei(badnode,temp);
+             fem1.x(badnode) = mean(fem1.x(tempnei));
+             fem1.y(badnode) = mean(fem1.y(tempnei));
+             fem1.z(badnode) = mean(fem1.z(tempnei));
          end
          
          %Use triqual to determine if the new mesh is better quality.

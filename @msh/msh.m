@@ -199,6 +199,8 @@ classdef msh
             %    f) 'slp'  - plots the bathymetric gradients
             %    g) 'itfric' - plots the internal_tide_friction values
             %    h) 'cfvals' - plots the quadratic bottom friction values
+            %    i) 'xx' -     plots an arbitrary f13 attribute 'xx' by
+            %                  contains search 
             %    additional --> 
             %    i)  add 'log' inside type to plot caxis in log space
             %    ii) add 'mesh' inside type to plot trimesh instead of trisurf
@@ -541,8 +543,7 @@ classdef msh
                     caxis([0 0.25]);
                     cb = colorbar;
                     title('Relaxation rate of topology');
-                    ylabel(cb,'decimal percent');
-                    
+                    ylabel(cb,'decimal percent');                  
                 case('tau0')
                     if ~isempty(obj.f13)
                         ii = find(contains({obj.f13.defval.Atr(:).AttrName},'primitive'));
@@ -620,7 +621,6 @@ classdef msh
                     hold on
                     fastscatter(obj.p(userval(1,:),1),obj.p(userval(1,:),2),values');
                     colormap(cmocean('deep'));
-                    %                     caxis([0 5e-5])
                     colorbar;
                 case('transect')
                     if proj
@@ -654,7 +654,32 @@ classdef msh
                     ylabel('m below geoid');
                     xlabel('Points along transect')
                 otherwise
-                    error('Specified type is incorrect');
+                    disp(['Trying to plot arbitrary f13 attribute: ' type])
+                    if ~isempty(obj.f13)
+                        ii = find(contains({obj.f13.defval.Atr(:).AttrName},type));
+                        if isempty(ii)
+                            error(['no f13 attribute of ' type ' found']);
+                        elseif length(ii) > 1
+                            disp({obj.f13.defval.Atr(ii).AttrName})
+                            error(['more than one f13 attribute matched ' type]);
+                        end
+                        defval  = obj.f13.defval.Atr(ii).Val;
+                        userval = obj.f13.userval.Atr(ii).Val;
+                        values = obj.p(:,1)*0 + defval;
+                        values(userval(1,:),:) = userval(2:end,:)';
+                        % just take the inf norm
+                        values = max(values,[],2);
+                        figure;
+                        fastscatter(obj.p(:,1),obj.p(:,2),values);
+                        nouq = length(unique(values));
+                        colormap(lansey(nouq));
+                        colorbar;
+                        ax = gca;
+                        ax.Title.String = obj.f13.defval.Atr(ii).AttrName;
+                        ax.Title.Interpreter = 'none';
+                    else
+                        error('f13 structure is empty!');
+                    end
             end
             if proj == 1
                 % now add the box
@@ -871,7 +896,7 @@ classdef msh
             else
                 disp('Employing default (medium) option or user-specified opts')
                 opt.db = 0.25; opt.ds = 1; opt.con = 9; opt.djc = 0.1; 
-                opt.sc_maxit = inf; opt.mqa = 0.25;
+                opt.sc_maxit = 1; opt.mqa = 0.25;
                 varargin(strcmp(varargin,'default')) = []; 
                 varargin(strcmp(varargin,'medium')) = []; 
             end
@@ -962,11 +987,11 @@ classdef msh
             obj = renum(obj);
             % May not always work without error
             if opt.con > 6
-                try
+                %try
                    obj = bound_con_int(obj,opt.con);
-                catch
-                   warning('Could not reduce connectivity mesh');
-                end
+                %catch
+                %   warning('Could not reduce connectivity mesh');
+                %end
             end
            
             % Now do the smoothing if required
@@ -1511,8 +1536,8 @@ classdef msh
         end
         
         
-        function merge = plus(obj1,obj2,tight,cleanargin)
-            % merge = plus(obj1,obj2,tight,cleanargin)
+        function merge = plus(obj1,obj2,type,cleanargin)
+            % merge = plus(obj1,obj2,type,cleanargin)
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % Merge together two meshes contained in the msh objects obj1
             % and obj2. It uses MATLAB's implementation of the Boywer-Watson
@@ -1528,19 +1553,20 @@ classdef msh
             % INPUTS:
             % obj1: msh() class of inset mesh (INSET MUST BE FIRST).
             % obj2: msh() class of base mesh.
-            % tight: = 1 (default) updates boundary of obj2 (for removal of 
+            % type: = 'arb' (default), best for merging arbitrary non-matching  
+            %          overlapping meshes that have similar resolutions.
+            %          Updates boundary of obj2 (for removal of 
             %          triangles) after removing intersection(obj1,obj2) 
-            %          from obj2 (best for merging overlapping meshes that 
-            %          have similar resolution/mesh size functions)
-            %        = 0 does not update boundary of obj2 (for removal of 
-            %          triangles) after removing insersection(obj1,obj2) 
-            %          from obj2 (good for avoiding holes when merging 
-            %          meshes with disparate resolution/mesh size functions)
-            %        = -1 does not remove intersection(obj1,obj2) from obj2
-            %          (assumes there is no overlap, best for merging
-            %          [almost] non-overlapping meshes - ought to have 
-            %          matching or close to matching vertices but this is 
-            %          NOT a requirement)
+            %          from obj2.
+            %       = 'arb+', good for avoiding holes when merging 
+            %          arbitrary  non-matching overlapping meshes with
+            %          disparate resolution/mesh size functions.
+            %          Does not update boundary of obj2 (for removal of 
+            %          triangles) after removing intersection(obj1,obj2) 
+            %          from obj2
+            %       = 'match', assumes there there are matching vertices
+            %          where the inset can fit perfectly inside the base, or 
+            %          simply appended to the base.
             % cleanargin: = a cell-array of arguments for the clean 
             %          operator. Default is {'passive'}.
             %
@@ -1558,7 +1584,13 @@ classdef msh
             %                     now collapses thin triangles incrementally 
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%
             if nargin < 3
-                tight = 1;
+                type = 'arb';
+            end
+            options = {'arb','arb+','match'};
+            if sum(strcmp(options,type)) == 0
+                error('type does not match any of arb, arb+, match')
+            else
+                disp(['Implementing merge type = ',type])
             end
             if nargin < 4
                 cleanargin = {'djc',0,'sc_maxit',0,'proj',0,'pfix',[]};
@@ -1601,50 +1633,63 @@ classdef msh
                 setProj(obj2,1,projname);
             end
            
-            % Project both meshes into the space of the global mesh
-            if tight > -1
+            switch(type)
+            case('match')
+                %% Matching meshes - may be overlapping but there are 
+                %% vertices that uniquely match so that the overlapping 
+                %% can be extracted and then obj1,obj2 concentated together
+                % extract the inner region of obj1 (inset) from obj2 (base)
+                % assuming that the inset fits perfectly in the base
+                K = boundary(obj1.p(:,1),obj1.p(:,2));
+                bou = obj1.p(K,:);
+                obj2o = obj2;
+                obj2 = ExtractSubDomain(obj2,bou,1);
+                % concatenate
+                merge = cat(obj1,obj2);
+                merge.bd = []; merge.op = []; 
+            otherwise
+                %% Abitrary non-matching overlapping meshes
+                % Project both meshes into the space of the global mesh
                 [p1(:,1),p1(:,2)] = m_ll2xy(p1(:,1),p1(:,2)) ;
                 [p2(:,1),p2(:,2)] = m_ll2xy(p2(:,1),p2(:,2)) ;
                 if nfix > 0
                     [pfixx(:,1),pfixx(:,2)] = m_ll2xy(pfixx(:,1),pfixx(:,2));
                 end
-            end
+            
+                % checking for weirs in obj1 to keep
+                if ~isempty(obj1.bd) && any(obj1.bd.ibtype == 24)
+                    disp('Weirs found in obj1, extracting to ensure they are preserved')
+                    [p1,t1,pwin1,twin1] = extractWeirs(p1,t1,obj1);
+                end
 
-            % checking for weirs in obj1 to keep
-            if ~isempty(obj1.bd) && any(obj1.bd.ibtype == 24)
-                disp('Weirs found in obj1, extracting to ensure they are preserved')
-                [p1,t1,pwin1,twin1]=extractWeirs(p1,t1,obj1);
-            end
-            
-            % checking for weirs in obj2 to keep
-            if ~isempty(obj2.bd) && any(obj2.bd.ibtype == 24)
-                disp('Weirs found in obj2, extracting to ensure they are preserved')
-                [p2,t2,pwin2,twin2]=extractWeirs(p2,t2,obj2);
-            end
-            
-            disp('Forming outer boundary for base...')
-            try
-                cell2 = extdom_polygon(extdom_edges2(t2,p2),p2,-1,0);
-                poly_vec2 = cell2mat(cell2'); 
-                [edges2] = Get_poly_edges(poly_vec2);
-            catch
-                error('Mesh 2 is invalid. Please execute msh.clean on object');
-            end
-            
-            
-            disp('Forming outer boundary for inset...')
-            try
-                [cell1,~,max_index] = extdom_polygon(extdom_edges2(t1,p1),p1,-1,0);
-                bigInset=cell1{max_index};
-                poly_vec1 = cell2mat(cell1');
-                [edges1] = Get_poly_edges(poly_vec1);
-            catch
-                error('Mesh 1 is invalid. Please execute msh.clean on object');
-            end
-            
-            % Delete the region in the global mesh that is in the
-            % intersection with inset.
-            if tight > -1
+                % checking for weirs in obj2 to keep
+                if ~isempty(obj2.bd) && any(obj2.bd.ibtype == 24)
+                    disp('Weirs found in obj2, extracting to ensure they are preserved')
+                    [p2,t2,pwin2,twin2] = extractWeirs(p2,t2,obj2);
+                end
+
+                disp('Forming outer boundary for base...')
+                try
+                    cell2 = extdom_polygon(extdom_edges2(t2,p2),p2,-1,0);
+                    poly_vec2 = cell2mat(cell2'); 
+                    [edges2] = Get_poly_edges(poly_vec2);
+                catch
+                    error('Mesh 2 is invalid. Please execute msh.clean on object');
+                end
+
+
+                disp('Forming outer boundary for inset...')
+                try
+                    [cell1,~,max_index] = extdom_polygon(extdom_edges2(t1,p1),p1,-1,0);
+                    bigInset=cell1{max_index};
+                    poly_vec1 = cell2mat(cell1');
+                    [edges1] = Get_poly_edges(poly_vec1);
+                catch
+                    error('Mesh 1 is invalid. Please execute msh.clean on object');
+                end
+
+                % Delete the region in the global mesh that is in the
+                % intersection with inset.
                 disp('Calculating intersection...');
                 [x3,y3] = polybool('intersection',...
                     poly_vec1(:,1),poly_vec1(:,2),poly_vec2(:,1),poly_vec2(:,2));
@@ -1661,70 +1706,65 @@ classdef msh
                     pruned2 = Make_Mesh_Boundaries_Traversable(pruned2,0.01,1);
                     t2 = pruned2.t; p2 = pruned2.p;                    
                     % get new poly_vec2
-                    if tight
+                    if strcmp(type,'arb')
                         cell2 = extdom_polygon(extdom_edges2(t2,p2),p2,-1,0);
                         poly_vec2 = cell2mat(cell2');
                         [edges2] = Get_poly_edges(poly_vec2);
                     end
                 end
-            end
-            
-            disp('Merging...')
-            DTbase = delaunayTriangulation(p1);
-            if ~isempty(obj1.egfix)
-                DTbase.Constraints = obj1.egfix;
-            end
-            DTbase.Points(end+(1:length(p2)),:) = p2;
-            if nfix > 0
-                bdx = ourKNNsearch(DTbase.Points',pfixx',1);
-            else
-                bdx = [];
-            end
-            
-            % Prune triangles outside both domains.
-            disp('Pruning...')
 
-            for ii = 1:2
-                % The loop makes sure to remove only small connectivity for the boundaries
-                if ii == 2
-                    % To remove small connectivity or bad elements
-                    [~, enum] = VertToEle(tm);
-                    bdbars = extdom_edges2(tm,pm);
-                    bdnodes = unique(bdbars(:));
-                    I = find(enum <= 4);
-                    nn = setdiff(I',[bdx; bdnodes]); 
-                    DTbase.Points(unique(nn),:) = [];
-                end
-
-                pm = DTbase.Points; tm = DTbase.ConnectivityList;
-
-                pmid = (pm(tm(:,1),:)+pm(tm(:,2),:)+pm(tm(:,3),:))/3;
-
-                %in1 is inside the inset boundary polygon
-                in1 = inpoly(pmid,poly_vec1,edges1);
-
-                %in2 is inside the global boundary polygon
-                in2 = inpoly(pmid,poly_vec2,edges2);
-
-                %in3 is inside the intersection
-                if exist('poly_vec3','var') && tight == 1
-                    in3 = inpoly(pmid,poly_vec3,edges3);
+                disp('Merging...')
+                DTbase = delaunayTriangulation(p1);
+                DTbase.Points(end+(1:length(p2)),:) = p2;
+                if nfix > 0
+                    bdx = ourKNNsearch(DTbase.Points',pfixx',1);
                 else
-                    in3 = false(size(in1)); 
+                    bdx = [];
                 end
 
-                % remove triangles that aren't in the global mesh or 
-                % aren't in the inset mesh
-                del = (~in1 & ~in2) | (~in1 & in3);
-                tm(del,:) = [];
-            end
+                % Prune triangles outside both domains.
+                disp('Pruning...')
 
-            merge = msh() ; merge.p = pm; merge.t = tm ;
-            clear pm tm pmid p1 t1 p2 t2
-            
-            % This step does some mesh smoothing around the intersection
-            % of the meshes. 
-            if tight > -1
+                for ii = 1:2
+                    % The loop makes sure to remove only small connectivity for the boundaries
+                    if ii == 2
+                        % To remove small connectivity or bad elements
+                        [~, enum] = VertToEle(tm);
+                        bdbars = extdom_edges2(tm,pm);
+                        bdnodes = unique(bdbars(:));
+                        I = find(enum <= 4);
+                        nn = setdiff(I',[bdx; bdnodes]); 
+                        DTbase.Points(unique(nn),:) = [];
+                    end
+
+                    pm = DTbase.Points; tm = DTbase.ConnectivityList;
+
+                    pmid = (pm(tm(:,1),:)+pm(tm(:,2),:)+pm(tm(:,3),:))/3;
+
+                    %in1 is inside the inset boundary polygon
+                    in1 = inpoly(pmid,poly_vec1,edges1);
+
+                    %in2 is inside the global boundary polygon
+                    in2 = inpoly(pmid,poly_vec2,edges2);
+
+                    %in3 is inside the intersection
+                    if strcmp(type,'arb') && exist('poly_vec3','var')
+                        in3 = inpoly(pmid,poly_vec3,edges3);
+                    else
+                        in3 = false(size(in1)); 
+                    end
+
+                    % remove triangles that aren't in the global mesh or 
+                    % aren't in the inset mesh
+                    del = (~in1 & ~in2) | (~in1 & in3);
+                    tm(del,:) = [];
+                end
+
+                merge = msh() ; merge.p = pm; merge.t = tm ;
+                clear pm tm pmid p1 t1 p2 t2
+
+                % This step does some mesh smoothing around the intersection
+                % of the meshes. 
                 k = convhull(bigInset(1:end-1,1),bigInset(1:end-1,2));
                 xout = bigInset(k,1); yout = bigInset(k,2);
                 [xe,ye] = enlargePoly(xout,yout,1.35);
@@ -1736,53 +1776,21 @@ classdef msh
                 merge.pfix  = pfixx ;
                 % edges don't move but they are no longer valid after merger
                 merge.egfix = [];
-            end
-                             
-            % put the weirs from obj1 back into merge
-            if ~isempty(obj1.bd) && any(obj1.bd.ibtype == 24)
-                disp('Putting the weirs from obj1 back into merged mesh')
-                % edit weir tri for duplicate points and renumbering
-                [~,d] = ourKNNsearch(pwin1',pwin1',2);
-                d = d(:,2); mind = min(d);
-                [idx,d] = ourKNNsearch(merge.p',pwin1',1);
-                tw1 = twin1; % to make sure we don't double mix up ourselves
-                for ii = 1:size(pwin1,1)
-                    if d(ii) < mind
-                        % really close (closer than distance across weir)
-                        twin1(tw1 == ii) = idx(ii);
-                    else
-                        % not close
-                        twin1(tw1 == ii) = ii + length(merge.p);
-                    end
+
+                % put the weirs from obj1 back into merge
+                if ~isempty(obj1.bd) && any(obj1.bd.ibtype == 24)
+                    disp('Putting the weirs from obj1 back into merged mesh')
+                    wm = msh(); wm.p = pwin1; wm.t = twin1;
+                    merge = cat(merge,wm);               
                 end
-                merge.p = [merge.p; pwin1];
-                merge.t = [merge.t; twin1];
-                [merge.p, merge.t] = fixmesh(merge.p,merge.t);
-            end
-            
-             % put the weirs from obj2 back into merge
-            if ~isempty(obj2.bd) && any(obj2.bd.ibtype == 24)
-                disp('Putting the weirs from obj2 back into merged mesh')
-                % edit weir tri for duplicate points and renumbering
-                [~,d] = ourKNNsearch(pwin2',pwin2',2);
-                d = d(:,2); mind = min(d);
-                [idx,d] = ourKNNsearch(merge.p',pwin2',1);
-                tw1 = twin2; % to make sure we don't double mix up ourselves
-                for ii = 1:size(pwin2,1)
-                    if d(ii) < mind
-                        % really close (closer than distance across weir)
-                        twin2(tw1 == ii) = idx(ii);
-                    else
-                        % not close
-                        twin2(tw1 == ii) = ii + length(merge.p);
-                    end
+
+                 % put the weirs from obj2 back into merge
+                if ~isempty(obj2.bd) && any(obj2.bd.ibtype == 24)
+                    disp('Putting the weirs from obj2 back into merged mesh')
+                    wm = msh(); wm.p = pwin2; wm.t = twin2;
+                    merge = cat(merge,wm); 
                 end
-                merge.p = [merge.p; pwin2];
-                merge.t = [merge.t; twin2];
-                [merge.p, merge.t] = fixmesh(merge.p,merge.t);
-            end
                 
-            if tight > -1
                 % convert back to lat-lon wgs84
                 [merge.p(:,1),merge.p(:,2)] = ...
                     m_xy2ll(merge.p(:,1),merge.p(:,2));
@@ -1791,12 +1799,11 @@ classdef msh
                     [merge.pfix(:,1),merge.pfix(:,2)] = ...
                         m_xy2ll(pfixx(:,1),pfixx(:,2));
                 end
-                
-                
-                merge.proj    = MAP_PROJECTION ;
-                merge.coord   = MAP_COORDS ;
-                merge.mapvar  = MAP_VAR_LIST ;
             end
+            
+            merge.proj    = MAP_PROJECTION ;
+            merge.coord   = MAP_COORDS ;
+            merge.mapvar  = MAP_VAR_LIST ;
             
             % Check element order
             merge = CheckElementOrder(merge);
@@ -1821,132 +1828,47 @@ classdef msh
             if ~isempty(obj1.f13)
                 disp('Carrying over obj1 f13 data.')
                 merge.f13 = obj1.f13;
-                for ii = 1:length(merge.f13.nAttr)
+                merge.f13.NumOfNodes = size(merge.p,1);
+                for ii = 1:merge.f13.nAttr
                     idx = merge.f13.userval.Atr(ii).Val(1,:)';
                     idx1 = ourKNNsearch(merge.p',obj1.p(idx,:)',1);
+                    [idx1,I] = sort(idx1,'ascend');
                     merge.f13.userval.Atr(ii).Val(1,:) = idx1';
+                    merge.f13.userval.Atr(ii).Val(2:end,:) = ...
+                        merge.f13.userval.Atr(ii).Val(2:end,I);
                 end
             end
             
-             if ~isempty(obj1.bd) && any(obj1.bd.ibtype == 24)
+            if ~isempty(obj1.bd) && any(obj1.bd.ibtype == 24)
                 disp('Carrying over weir nodestrings from obj1.')
-                idx1 = ourKNNsearch(merge.p',obj1.p',1);
-                if isempty(merge.bd)
-                    merge.bd.nbou=0;
-                    merge.bd.nvell=[];
-                    merge.bd.nvel=[];
-                    merge.bd.nbvv=[];
-                    merge.bd.ibconn=[];
-                    merge.bd.ibtype=[];
-                    merge.bd.barinht=[];
-                    merge.bd.barincfsb=[];
-                    merge.bd.barincfsp=[];
-                end
-                % number of new boundaries
-                startBou = merge.bd.nbou + 1 ;
-                merge.bd.nbou =  merge.bd.nbou + obj1.bd.nbou ;
-                % types of boundaries
-                merge.bd.ibtype = [merge.bd.ibtype ; obj1.bd.ibtype];
-                % new boundaries come after what's already on
-                merge.bd.nvell = [merge.bd.nvell; obj1.bd.nvell];
-                % nvel is twice the number of nodes on each boundary
-                merge.bd.nvel = 2*sum(merge.bd.nvell);
-                % nbvv is a matrix of boundary nodes
-                [nr1,nc1]=size(merge.bd.nbvv);
-                [nr2,nc2]=size(obj1.bd.nbvv);
-                nbvv_old = merge.bd.nbvv;
-                ibconn_old = merge.bd.ibconn;
-                barinht_old = merge.bd.barinht; 
-                barincfsb_old = merge.bd.barincfsb; 
-                barincfsp_old = merge.bd.barincfsp; 
-                
-                merge.bd.nbvv = zeros(max(nr1,nr2),max(nc1,nc1+nc2));
-                merge.bd.ibconn = zeros(max(nr1,nr2),max(nc1,nc1+nc2));
-                merge.bd.barinht = zeros(max(nr1,nr2),max(nc1,nc1+nc2));
-                merge.bd.barincfsb = zeros(max(nr1,nr2),max(nc1,nc1+nc2));
-                merge.bd.barincfsp = zeros(max(nr1,nr2),max(nc1,nc1+nc2));
-
-                merge.bd.nbvv(1:nr1,1:nc1)=nbvv_old;
-                merge.bd.ibconn(1:nr1,1:nc1)=ibconn_old;
-                merge.bd.barinht(1:nr1,1:nc1)=barinht_old; 
-                merge.bd.barincfsb(1:nr1,1:nc1)=barincfsb_old; 
-                merge.bd.barincfsp(1:nr1,1:nc1)=barincfsp_old;
-                
-                
-                % remap
-                for ii = startBou:merge.bd.nbou
-                    
-                    idx = ii - (startBou-1) ;
-                    nodes =  full(obj1.bd.nbvv(1:obj1.bd.nvell(idx),idx));
-                    nodes2 = full(obj1.bd.ibconn(1:obj1.bd.nvell(idx),idx));
-
-                    merge.bd.nbvv(1:merge.bd.nvell(ii),ii)   = idx1(nodes);
-                    merge.bd.ibconn(1:merge.bd.nvell(ii),ii) = idx1(nodes2);
-
-                end
+                merge = carryoverweirs(merge,obj1);
             end
             
             if ~isempty(obj2.bd) && any(obj2.bd.ibtype == 24)
                 disp('Carrying over weir nodestrings from obj2.')
-                idx1 = ourKNNsearch(merge.p',obj2.p',1);
-                if isempty(merge.bd)
-                    merge.bd.nbou=0;
-                    merge.bd.nvell=[];
-                    merge.bd.nvel=[];
-                    merge.bd.nbvv=[];
-                    merge.bd.ibconn=[];
-                    merge.bd.ibtype=[];
-                    merge.bd.barinht=[];
-                    merge.bd.barincfsb=[];
-                    merge.bd.barincfsp=[];
-                end
-                % number of new boundaries
-                startBou = merge.bd.nbou + 1 ;
-                merge.bd.nbou =  merge.bd.nbou + obj2.bd.nbou ;
-                % types of boundaries
-                merge.bd.ibtype = [merge.bd.ibtype ; obj2.bd.ibtype];
-                % new boundaries come after what's already on
-                merge.bd.nvell = [merge.bd.nvell; obj2.bd.nvell];
-                % nvel is twice the number of nodes on each boundary
-                merge.bd.nvel = 2*sum(merge.bd.nvell);
-                % nbvv is a matrix of boundary nodes
-                [nr1,nc1]=size(merge.bd.nbvv);
-                [nr2,nc2]=size(obj2.bd.nbvv);
-                nbvv_old = merge.bd.nbvv;
-                ibconn_old = merge.bd.ibconn;
-                barinht_old = merge.bd.barinht; 
-                barincfsb_old = merge.bd.barincfsb; 
-                barincfsp_old = merge.bd.barincfsp; 
-                
-                merge.bd.nbvv = zeros(max(nr1,nr2),max(nc1,nc1+nc2));
-                merge.bd.ibconn = zeros(max(nr1,nr2),max(nc1,nc1+nc2));
-                merge.bd.barinht = zeros(max(nr1,nr2),max(nc1,nc1+nc2));
-                merge.bd.barincfsb = zeros(max(nr1,nr2),max(nc1,nc1+nc2));
-                merge.bd.barincfsp = zeros(max(nr1,nr2),max(nc1,nc1+nc2));
-                
-                merge.bd.nbvv(1:nr1,1:nc1)=nbvv_old;
-                merge.bd.ibconn(1:nr1,1:nc1)=ibconn_old;
-                merge.bd.barinht(1:nr1,1:nc1)=barinht_old;
-                merge.bd.barincfsb(1:nr1,1:nc1)=barincfsb_old;
-                merge.bd.barincfsp(1:nr1,1:nc1)=barincfsp_old;
-                
-                % remap
-                for ii = startBou:merge.bd.nbou
-                    
-                    idx = ii - (startBou-1) ;
-                    nodes =  full(obj2.bd.nbvv(1:obj2.bd.nvell(idx),idx));
-                    nodes2 = full(obj2.bd.ibconn(1:obj2.bd.nvell(idx),idx));
-                    
-                    merge.bd.nbvv(1:merge.bd.nvell(ii),ii)   = idx1(nodes);
-                    merge.bd.ibconn(1:merge.bd.nvell(ii),ii) = idx1(nodes2);
-                end
+                if exist('obj2o','var'); obj2 = obj2o; end
+                merge = carryoverweirs(merge,obj2);
             end
             
             disp('NB: f15, obj2 f13 data, non-weir nodestrings etc. are not carried over.')
             
         end
      
-                  
+        function obj = cat(obj,obj1)
+            % cat two non-overlapping meshes
+            pin = obj1.p; tin = obj1.t;
+            [~,d] = ourKNNsearch(pin',pin',2);
+            d = d(:,2); mind = min(d);
+            [idx,d] = ourKNNsearch(obj.p',pin',1);
+            ind = 1:size(pin,1);
+            LIA = ismember(tin(:),ind(d < mind));
+            tin(LIA) = idx(tin(LIA));
+            tin(~LIA) = tin(~LIA) + length(obj.p);
+            obj.p = [obj.p; pin];
+            obj.t = [obj.t; tin];
+            [obj.p, obj.t] = fixmesh(obj.p,obj.t);
+        end
+        
         function obj = CheckElementOrder(obj,proj)
             if nargin == 1
                proj = 0; 
@@ -1988,6 +1910,65 @@ classdef msh
             end
         end
             
+        function obj = carryoverweirs(obj,obj1)
+            idx1 = ourKNNsearch(obj.p',obj1.p',1);
+            if isempty(obj.bd)
+                obj.bd.nbou=0;
+                obj.bd.nvell=[];
+                obj.bd.nvel=[];
+                obj.bd.nbvv=[];
+                obj.bd.ibconn=[];
+                obj.bd.ibtype=[];
+                obj.bd.barinht=[];
+                obj.bd.barincfsb=[];
+                obj.bd.barincfsp=[];
+            end
+            % starting boundary number
+            startBou = obj.bd.nbou + 1 ;
+            % number of new weir boundaries
+            jj = obj1.bd.ibtype == 24;
+            obj.bd.nbou =  obj.bd.nbou + sum(jj);
+            % types of boundaries
+            obj.bd.ibtype = [obj.bd.ibtype ; obj1.bd.ibtype(jj)];
+            % new boundaries come after what's already on
+            obj.bd.nvell = [obj.bd.nvell; obj1.bd.nvell(jj)];
+            % nvel is twice the number of nodes on each boundary
+            obj.bd.nvel = 2*sum(obj.bd.nvell);
+            % nbvv is a matrix of boundary nodes
+            [nr1,nc1]=size(obj.bd.nbvv);
+            [nr2,nc2]=size(obj1.bd.nbvv);
+            nbvv_old = obj.bd.nbvv;
+            ibconn_old = obj.bd.ibconn;
+            barinht_old = obj.bd.barinht; 
+            barincfsb_old = obj.bd.barincfsb; 
+            barincfsp_old = obj.bd.barincfsp; 
+
+            obj.bd.nbvv = zeros(max(nr1,nr2),max(nc1,nc1+nc2));
+            obj.bd.ibconn = zeros(max(nr1,nr2),max(nc1,nc1+nc2));
+            obj.bd.barinht = zeros(max(nr1,nr2),max(nc1,nc1+nc2));
+            obj.bd.barincfsb = zeros(max(nr1,nr2),max(nc1,nc1+nc2));
+            obj.bd.barincfsp = zeros(max(nr1,nr2),max(nc1,nc1+nc2));
+
+            obj.bd.nbvv(1:nr1,1:nc1)=nbvv_old;
+            obj.bd.ibconn(1:nr1,1:nc1)=ibconn_old;
+            obj.bd.barinht(1:nr1,1:nc1)=barinht_old; 
+            obj.bd.barincfsb(1:nr1,1:nc1)=barincfsb_old; 
+            obj.bd.barincfsp(1:nr1,1:nc1)=barincfsp_old;
+
+            % remap
+            jj = find(jj);
+            for ii = startBou:obj.bd.nbou
+                idx = ii - (startBou-1) ;
+                idx = jj(idx);
+                nodes =  full(obj1.bd.nbvv(1:obj1.bd.nvell(idx),idx));
+                nodes2 = full(obj1.bd.ibconn(1:obj1.bd.nvell(idx),idx));
+
+                obj.bd.nbvv(1:obj.bd.nvell(ii),ii)   = idx1(nodes);
+                obj.bd.ibconn(1:obj.bd.nvell(ii),ii) = idx1(nodes2);
+
+            end
+        end
+        
         function [out1,barlen,bars] = CalcCFL(obj,dt,type)
             if nargin < 3
                 % use spherical haversine distances
