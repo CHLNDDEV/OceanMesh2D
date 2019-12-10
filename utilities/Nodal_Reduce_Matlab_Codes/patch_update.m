@@ -70,9 +70,14 @@ zt1 = [z0;zin(:)];
 [in,on] = inpolygon(xt1,yt1,xex,yex);
 I = find(in == 0 | on == 1);
 while ~isempty(I)
-    xt1(I) = (xt1(I) + oldfem.x(jj))./2;
-    yt1(I) = (yt1(I) + oldfem.y(jj))./2;
-    zt1(I) = (zt1(I) + oldfem.z(jj))./2;
+    nd = (yt1(I) - oldfem.y(jj)) + (xt1(I) -  oldfem.x(jj));
+    if nd == 0
+        % can't do anything
+        fem = newfem; return;
+    end
+    xt1(I) = (xt1(I) + oldfem.x(jj))/2;
+    yt1(I) = (yt1(I) + oldfem.y(jj))/2;
+    zt1(I) = (zt1(I) + oldfem.z(jj))/2;
     [in,on] = inpolygon(xt1,yt1,xex,yex);
     I = find(in == 0 | on == 1);
 end
