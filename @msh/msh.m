@@ -1629,7 +1629,11 @@ classdef msh
                     MAP_COORDS     = obj2.coord ;
                 end
             else
-                projname = 'stereo';
+                if max(abs(obj2.p(:,2)) > 85)
+                    projname = 'stereo';
+                else
+                    projname = 'equi';
+                end
                 setProj(obj2,1,projname);
             end
            
