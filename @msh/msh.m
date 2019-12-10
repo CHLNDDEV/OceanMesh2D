@@ -1637,6 +1637,24 @@ classdef msh
                 setProj(obj2,1,projname);
             end
            
+            % check to see if we can do the trivial merge
+            extract = 1;
+            if ~strcmp(type,'match')
+                try
+                    cell2 = extdom_polygon(extdom_edges2(t2,p2),p2,-1,0);
+                    poly_vec2 = cell2mat(cell2'); 
+                    [edges2] = Get_poly_edges(poly_vec2);
+                catch
+                    error('Mesh 2 is invalid. Please execute msh.clean on object');
+                end
+                in = inpoly(obj1.p,poly_vec2,edges2);
+                if sum(in) == 0
+                   disp('switch to the match case') 
+                   type = 'match';
+                   extract = 0;
+                end
+            end
+            
             switch(type)
             case('match')
                 %% Matching meshes - may be overlapping but there are 
@@ -1644,10 +1662,12 @@ classdef msh
                 %% can be extracted and then obj1,obj2 concentated together
                 % extract the inner region of obj1 (inset) from obj2 (base)
                 % assuming that the inset fits perfectly in the base
-                K = boundary(obj1.p(:,1),obj1.p(:,2));
-                bou = obj1.p(K,:);
-                obj2o = obj2;
-                obj2 = ExtractSubDomain(obj2,bou,1);
+                if extract 
+                    K = boundary(obj1.p(:,1),obj1.p(:,2));
+                    bou = obj1.p(K,:);
+                    obj2o = obj2;
+                    obj2 = ExtractSubDomain(obj2,bou,1);
+                end
                 % concatenate
                 merge = cat(obj1,obj2);
                 merge.bd = []; merge.op = []; 
@@ -1707,7 +1727,7 @@ classdef msh
                     % We need to delete straggling elements that are
                     %  generated through the above deletion step
                     pruned2 = msh() ; pruned2.p = p2; pruned2.t = t2;
-                    pruned2 = Make_Mesh_Boundaries_Traversable(pruned2,0.01,1);
+                    pruned2 = Make_Mesh_Boundaries_Traversable(pruned2,0,1);
                     t2 = pruned2.t; p2 = pruned2.p;                    
                     % get new poly_vec2
                     if strcmp(type,'arb')
@@ -1769,10 +1789,17 @@ classdef msh
 
                 % This step does some mesh smoothing around the intersection
                 % of the meshes. 
-                k = convhull(bigInset(1:end-1,1),bigInset(1:end-1,2));
-                xout = bigInset(k,1); yout = bigInset(k,2);
-                [xe,ye] = enlargePoly(xout,yout,1.35);
-                in = inpoly(merge.p,[xe,ye]);
+                l = cellfun(@length,cell1); 
+                [~,s] = sort(l,'descend'); cell1 = cell1(s);
+                % just do for largest 10 polygons
+                in = false(size(merge.p,1),1);
+                for ii = 1:min(length(cell1),10)
+                    k = boundary(cell1{ii}(1:end-1,1),cell1{ii}(1:end-1,2));
+                    xout = cell1{ii}(k,1); yout = cell1{ii}(k,2);
+                    [xe,ye] = enlargePoly(xout,yout,1.35);
+                    int = inpoly(merge.p,[xe,ye]);
+                    in(int) = true;
+                end
                 locked = [merge.p(~in,:); pfixx];
                 cleanargin{end} = locked;
                 % iteration is done in clean if smoothing creates neg quality
