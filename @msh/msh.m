@@ -1704,8 +1704,7 @@ classdef msh
 
                 disp('Forming outer boundary for inset...')
                 try
-                    [cell1,~,max_index] = extdom_polygon(extdom_edges2(t1,p1),p1,-1,0);
-                    bigInset=cell1{max_index};
+                    [cell1] = extdom_polygon(extdom_edges2(t1,p1),p1,-1,0);
                     poly_vec1 = cell2mat(cell1');
                     [edges1] = Get_poly_edges(poly_vec1);
                 catch
@@ -1714,27 +1713,21 @@ classdef msh
 
                 % Delete the region in the global mesh that is in the
                 % intersection with inset.
-                disp('Calculating intersection...');
-                [x3,y3] = polybool('intersection',...
-                    poly_vec1(:,1),poly_vec1(:,2),poly_vec2(:,1),poly_vec2(:,2));
-                if ~isempty(x3)
-                    poly_vec3 = [x3,y3]; poly_vec3(end+1,:) = NaN;
-                    [edges3]  = Get_poly_edges(poly_vec3);
-                    in1 = inpoly(p2(t2(:,1),:),poly_vec3,edges3);
-                    in2 = inpoly(p2(t2(:,2),:),poly_vec3,edges3);
-                    in3 = inpoly(p2(t2(:,3),:),poly_vec3,edges3);
-                    t2(in1 & in2 & in3,:) = [];
-                    % We need to delete straggling elements that are
-                    % generated through the above deletion step
-                    pruned2 = msh() ; pruned2.p = p2; pruned2.t = t2;
-                    pruned2 = Make_Mesh_Boundaries_Traversable(pruned2,0.01,1);
-                    t2 = pruned2.t; p2 = pruned2.p;                    
-                    % get new poly_vec2
-                    if strcmp(type,'arb')
-                        cell2 = extdom_polygon(extdom_edges2(t2,p2),p2,-1,0);
-                        poly_vec2 = cell2mat(cell2');
-                        [edges2] = Get_poly_edges(poly_vec2);
-                    end
+                disp('Deleting intersection...');
+                in1 = inpoly(p2(t2(:,1),:),poly_vec1,edges1);
+                in2 = inpoly(p2(t2(:,2),:),poly_vec1,edges1);
+                in3 = inpoly(p2(t2(:,3),:),poly_vec1,edges1);
+                t2(in1 & in2 & in3,:) = [];
+                % We need to delete straggling elements that are
+                % generated through the above deletion step
+                pruned2 = msh() ; pruned2.p = p2; pruned2.t = t2;
+                pruned2 = Make_Mesh_Boundaries_Traversable(pruned2,0.01,1);
+                t2 = pruned2.t; p2 = pruned2.p;
+                % get new poly_vec2
+                if strcmp(type,'arb')
+                    cell2 = extdom_polygon(extdom_edges2(t2,p2),p2,-1,0);
+                    poly_vec2 = cell2mat(cell2');
+                    [edges2] = Get_poly_edges(poly_vec2);
                 end
 
                 disp('Merging...')
@@ -1748,7 +1741,6 @@ classdef msh
 
                 % Prune triangles outside both domains.
                 disp('Pruning...')
-
                 for ii = 1:2
                     % The loop makes sure to remove only small connectivity for the boundaries
                     if ii == 2
@@ -1772,8 +1764,8 @@ classdef msh
                     in2 = inpoly(pmid,poly_vec2,edges2);
 
                     %in3 is inside the intersection
-                    if strcmp(type,'arb') && exist('poly_vec3','var')
-                        in3 = inpoly(pmid,poly_vec3,edges3);
+                    if strcmp(type,'arb')
+                        in3 = inpoly(pmid,poly_vec1,edges1);
                     else
                         in3 = false(size(in1)); 
                     end
