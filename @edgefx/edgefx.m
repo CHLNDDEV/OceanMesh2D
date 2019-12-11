@@ -423,6 +423,13 @@ classdef edgefx
             if obj.fl(1) < 0 && obj.fl(1) ~= -999
                 disp('INFO: Rossby radius of deformation filter on.') ;
                 rbfilt = abs(obj.fl(1));
+                barot  = 1;
+                if length(obj.fl) > 1 && obj.fl(2) < 0
+                    disp('INFO: Using 1st-mode baroclinic Rossby radius.');
+                    barot = 0;
+                else
+                    disp('INFO: Using barotropic Rossby radius.') ;
+                end
                 obj.fl = [];
                 filtit = 1;
             elseif obj.fl(1) == 0
@@ -455,7 +462,7 @@ classdef edgefx
             end
             
             % Rossby radius of deformation filter
-            if filtit==1
+            if filtit == 1
                 tic
                 bs = NaN([obj.nx,obj.ny]);
                 div = 1e4; grav = 9.807;
@@ -465,11 +472,26 @@ classdef edgefx
                     for jj = 1:nb(2)
                         n2e = min(obj.ny,n2s + div - 1);
                         % Rossby radius of deformation filter
-                        f = 2*7.29e-5*abs(sind(yg(n1s:n1e,n2s:n2e)));
-                        % limit to 10,000 km
-                        rosb = min(1e7,...
-                            sqrt(grav*abs(tmpz(n1s:n1e,n2s:n2e)))./f);
+                        % See Shelton, D. B., et al. (1998): Geographical variability of the first-baroclinic Rossby radius of deformation. J. Phys. Oceanogr., 28, 433-460.
+                        ygg = yg(n1s:n1e,n2s:n2e);
+                        f = 2*7.29e-5*abs(sind(ygg));
+                        if barot
+                            % barotropic case
+                            c = sqrt(grav*abs(tmpz(n1s:n1e,n2s:n2e)));
+                        else
+                            % baroclinic case (estimate Nm to be 2.5e-3)
+                            Nm = 2.5e-3;
+                            c = Nm*abs(tmpz(n1s:n1e,n2s:n2e))/pi;
+                        end
+                        rosb = c./f;
                         clear f;
+                        % update for equatorial regions
+                        I = abs(ygg) < 5; Re = 6371e3;
+                        twobeta = 4*7.29e-5*cosd(ygg(I))/Re;
+                        rosb(I) = sqrt(c(I)./twobeta);
+                        clear twobeta
+                        % limit rossby radius to 10,000 km for practical purposes
+                        rosb(rosb > 1e7) = 1e7;
                         % Keep lengthscales rbfilt * barotropic
                         % radius of deformation
                         rosb = min(10,max(0,floor(log2(rosb/dy/rbfilt))));
@@ -616,41 +638,32 @@ classdef edgefx
             pts(isin==0) = []; radii(isin==0)= [];
             
             %figure; plot(xg,yg,'k.');
-            
+            tic
+            tidx = [];
             for jj =1:length(pts)                                           % For each channel jj
                 sel = pts{jj};
                 in  = inpoly(sel,feat.boubox(1:end-1,:));
                 sel(~in,:) = [];
                 for jjj = 1 : size(sel,1)                                   % For each channel point jjj on channel jj.
-                    tidx=[];
                     % will the stencil be too large (nidx^2)?
-                    nidx=ceil(radii{jj}(jjj)/obj.h0);                       % stencil of points around channel point.
-                    %circle(sel(jjj,1),sel(jjj,2),(nidx+1)*obj.h0);
-                    %if nidx > 100, disp('alert'), continue, end;
+                    nidx = ceil(radii{jj}(jjj)/obj.h0);                       % stencil of points around channel point.
                     % find linear index of channel point in 2-d matrix.
                     [lidx] = FindLinearIdx(sel(jjj,1),sel(jjj,2),xg,yg);
                     % convert to r,c or grid indices.
-                    [r,c]  = ind2sub(size(xg),lidx);
-                    [cid,rid]=ndgrid((c-nidx:c+nidx)',(r-nidx:r+nidx)');    % grid of nearby points
-                    rid = [rid(:);r]; cid=[cid(:);c];                       % append on index of channel point jj
+                    [r,c]     = ind2sub(size(xg),lidx);
+                    [cid,rid] = ndgrid(c-nidx:c+nidx,r-nidx:r+nidx);    % grid of nearby points
                     % ensure that all these points are within the domain.
-                    rid = max([rid,ones(numel(rid),1)],[],2);
-                    rid = min([rid,size(xg,1)*ones(numel(rid),1)],[],2);
-                    cid = max([cid,ones(numel(rid),1)],[],2);
-                    cid = min([cid,size(xg,2)*ones(numel(rid),1)],[],2);
+                    rid = min(max(rid(:),1),size(xg,1));
+                    cid = min(max(cid(:),1),size(xg,2));
                     % convert back to linear indices.
-                    temp=sub2ind(size(xg),rid,cid);
-                    tidx=[tidx;temp];
-                    %hold on; plot(xg(tidx),yg(tidx),'r.','MarkerSize',5);
-                    % assign resolution around channel point, |h|/ch
-                    dp=abs(feat.Fb(xg(tidx),yg(tidx)));
-                    obj.chd(tidx) = dp/obj.ch;
+                    temp = sub2ind(size(xg),rid,cid);
+                    tidx = [tidx; temp];
                 end
             end
-            
+            toc 
+            dp = abs(feat.Fb(xg(tidx),yg(tidx)));
+            obj.chd(tidx) = dp/obj.ch;
             obj.chd(obj.chd < obj.min_el_ch) = obj.min_el_ch;
-            %             centroid     = mean(feat.bbox(2,:));
-            %             obj.chd = obj.chd/(cosd(centroid)*111e3);
             clearvars Fb pts dp radii tempbb xg yg
         end
         
@@ -770,15 +783,15 @@ classdef edgefx
             
             
             % enforce all mesh resolution bounds,grade and enforce the CFL in planar metres
-            if(~isinf(obj.max_el_ns))
-                nearshore = abs(obj.boudist) < 100;
+            if ~isinf(obj.max_el_ns) && ~isempty(obj.boudist)
+                nearshore = abs(obj.boudist) < 2/3*obj.h0; 
                 hh_m(nearshore & hh_m > obj.max_el_ns) = obj.max_el_ns;
             end
-            hh_m(hh_m < obj.h0 )    = obj.h0;
+            hh_m(hh_m < obj.h0 ) = obj.h0;
             for param = obj.max_el'
                 if numel(param)==1 && param~=0
                     mx   = obj.max_el(1);
-                    limidx = hh_m > mx ;
+                    limidx = hh_m > mx | isnan(hh_m);
                     
                     hh_m( limidx ) = mx;
                 else
@@ -787,7 +800,7 @@ classdef edgefx
                     dp2 = param(3);
                     
                     limidx = (feat.Fb(xg,yg) < dp1 & ...
-                        feat.Fb(xg,yg) > dp2)  & hh_m > mx;
+                        feat.Fb(xg,yg) > dp2) & (hh_m > mx | isnan(hh_m));
                     
                     hh_m( limidx ) = mx;
                 end
@@ -872,13 +885,17 @@ classdef edgefx
                 if obj.dt == 0
                     hh_d(hh_d < obj.h0) = obj.h0;
                     obj.dt = min(min(descfl*hh_d./u));
-                    clear hh_d
                 end
-                disp(['Enforcing timestep of ',num2str(obj.dt),' seconds.']);
-                cfl = (obj.dt*u)./hh_m; % this is your cfl
-                dxn = u*obj.dt/descfl;      % assume simulation time step of dt sec and cfl of dcfl;
-                hh_m( cfl > descfl) = dxn( cfl > descfl);   %--in planar metres
-                clear cfl dxn u hh_d;
+                if isnan(obj.dt)
+                    disp('No timestep enforcement due to no distance function') 
+                else
+                    disp(['Enforcing timestep of ',num2str(obj.dt),' seconds.']);
+                    cfl = (obj.dt*u)./hh_m; % this is your cfl
+                    dxn = u*obj.dt/descfl;      % assume simulation time step of dt sec and cfl of dcfl;
+                    hh_m( cfl > descfl) = dxn( cfl > descfl);   %--in planar metres
+                    clear cfl dxn
+                end
+                clear u hh_d
             end
             
             obj.F = griddedInterpolant(xg,yg,hh_m,'linear','nearest');
