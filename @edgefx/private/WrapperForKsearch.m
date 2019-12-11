@@ -17,12 +17,7 @@ dataset(isnan(dataset(:,1)),:) = [];
 anno = ann(dataset'); 
 idx = ksearch(anno, testset',k,0); 
 idx = idx'; 
-%datax = dataset(1,:)';
-%datay = dataset(2,:)';
-%testx = repmat(testset(1,:)',1,k);
-%testy = repmat(testset(2,:)',1,k);
-%dst = sqrt((testx-datax(idx)).^2 + (testy-datay(idx)).^2);
-anno = close(anno); 
+close(anno); 
 
 % The vector of long lat pairs
 dst = zeros(length(testset),k);
