@@ -179,6 +179,17 @@ if isempty(obj.f15)
     f15dat.extraline(9).msg = 'name@instit.edu';
     f15dat.extraline(10).msg = '';
     
+    % control lists
+    f15dat.controllist(1).type = 'met';
+    f15dat.controllist(1).var(1).name = 'WindDragLimit';
+    f15dat.controllist(1).var(1).val = 0.0025;
+    f15dat.controllist(1).var(2).name = 'DragLawString';
+    f15dat.controllist(1).var(2).val = 'default'; 
+    f15dat.controllist(1).var(3).name = 'outputWindDrag';
+    f15dat.controllist(1).var(3).val = 'F'; 
+    f15dat.controllist(1).var(4).name = 'invertedBarometerOnElevationBoundary';
+    f15dat.controllist(1).var(4).val = 'F'; 
+    
     % Put into the msh class
     obj.f15 = f15dat;
 end
@@ -262,6 +273,9 @@ end
 % Tidal potential and harmonic analysis stuff
 if ~isempty(const)
     % Get the tidal factors etc based on ts and te 
+    if ischar(const)
+        const = {const};
+    end
     obj = tide_fac(obj,ts,te,const);
     
     % Harmonic analysis stuff (copy in tidal potential)

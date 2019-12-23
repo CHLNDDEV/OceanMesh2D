@@ -146,7 +146,7 @@ end
 
 % ESLM, ESLC
 f15dat.elsm = [] ;
-if ( f15dat.im <= 2 || f15dat.im == 10 || f15dat.im >= 111111 )
+if ( f15dat.im <= 2 | f15dat.im == 10 | f15dat.im >= 111111 )
     f15dat.elsm = readlinevec( fid ) ; 
 end
 
@@ -158,25 +158,31 @@ f15dat.ntif = readlinescalar( fid ) ;
 
 % Tidal potential
 for k = 1: f15dat.ntif
-    f15dat.tipotag(k).name = fgetl( fid ) ;
+    ll = fgetl(fid);
+    ll(strfind(ll,'!'):end) = [];
+    f15dat.tipotag(k).name = strtrim(ll);
     f15dat.tipotag(k).val =  readlinevec( fid ) ; 
 end
  
 % NBFR
 f15dat.nbfr = readlinescalar( fid ) ; 
 for k = 1: f15dat.nbfr
-    f15dat.bountag(k).name = fgetl( fid ) ; 
+    ll = fgetl(fid);
+    ll(strfind(ll,'!'):end) = [];
+    f15dat.bountag(k).name = strtrim(ll);
     f15dat.bountag(k).val = readlinevec( fid ) ; 
 end
 
-% Open boudnary harmonic forcing  
+% Open boundary harmonic forcing  
 for k = 1: f15dat.nbfr
-    f15dat.opealpha(k).name = fgetl( fid ) ; 
+    ll = fgetl(fid);
+    ll(strfind(ll,'!'):end) = [];
+    f15dat.opealpha(k).name = strtrim(ll); 
     
     nvd = opedat.neta ; 
     
     val = fscanf(fid, '%f %f \n', [2 nvd] ) ; 
-     
+    
     f15dat.opeemoefa(k).val = val' ; 
 end
 
