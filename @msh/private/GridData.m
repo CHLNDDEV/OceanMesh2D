@@ -346,13 +346,15 @@ if strcmp(interp,'CA')
         end
     end
         
-    % Average for the slopes
+    % RMS for the slopes
     if strcmp(type,'slope') || strcmp(type,'all')
         for ii = 1:length(K)
-            bx(ii) = mean(reshape(DEM_ZX(IDXL(ii):IDXR(ii),...
-                                         IDXB(ii):IDXT(ii)),[],1),'omitnan');
-            by(ii) = mean(reshape(DEM_ZY(IDXL(ii):IDXR(ii),...
-                                         IDXB(ii):IDXT(ii)),[],1),'omitnan');
+            pts = reshape(DEM_ZX(IDXL(ii):IDXR(ii),...
+                                 IDXB(ii):IDXT(ii)),[],1);
+            bx(ii) = sqrt(mean(pts.^2,'omitnan'));
+            pts = reshape(DEM_ZY(IDXL(ii):IDXR(ii),...
+                                 IDXB(ii):IDXT(ii)),[],1);
+            by(ii) = sqrt(mean(pts.^2,'omitnan'));
         end
         if strcmp(NaNs,'fill')
             % Try and fill in the NaNs

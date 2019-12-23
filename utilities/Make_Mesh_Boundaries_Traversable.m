@@ -65,7 +65,7 @@ p = obj.p; t = obj.t;
 
 % WJP sometimes we may wanna delete some exterior portions even with a valid
 % mesh so allow entry even in this case.
-if numel(etbv) == numel(vxe)
+if dj_cutoff > 0 && numel(etbv) == numel(vxe)
     etbv(end+1,:) = 1; 
 end
 % Loop until all the nodes only have two boundary edges
@@ -94,7 +94,7 @@ while numel(etbv) > numel(vxe)
     %end
 end
 % Finished cleaning
-disp('ALERT: finished cleaning up mesh..'); 
+disp('ALERT: finished making mesh boundaries traversable..'); 
 % Turn warnings back on
 warning('on','all')
 % Put back into the msh object
