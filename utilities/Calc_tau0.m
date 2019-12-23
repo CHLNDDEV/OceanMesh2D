@@ -29,7 +29,7 @@ mm  = 2/3; % consistent mass matrix
 kappa = 0.4; % GWCE weight
 sf = 0.6; % suggested safety factor
 if ~isempty(varargin)
-    names = {'depth','distance','opt'};
+    names = {'depth','distance','opt','kappa','sf'};
     for ii = 1:length(names)
         ind = find(~cellfun(@isempty,strfind(varargin(1:2:end),names{ii})));
         if ~isempty(ind)
@@ -39,6 +39,10 @@ if ~isempty(varargin)
                 Distance = varargin{ind*2};
             elseif ii == 3
                 opt = varargin{ind*2};
+            elseif ii == 4
+                kappa = varargin{ind*2};
+            elseif ii == 5
+                sf = varargin{ind*2};
             end
         end    
     end
@@ -48,7 +52,7 @@ if opt > 0
    dt = opt;
    obj.f15.tau0 = sf*4*(2-mm)*(3*kappa-1)/dt;
    obj.f15.a00b00c00 = [kappa kappa 1-2*kappa];
-   obj.f15.IM = 511111;
+   obj.f15.im = 511111;
    disp(['Computed constant value of tau0 = ' num2str(obj.f15.tau0) ' based on...'])
    disp(['mm = ' num2str(mm)])
    disp(['kappa = ' num2str(kappa)])
