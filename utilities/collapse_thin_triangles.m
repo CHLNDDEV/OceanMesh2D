@@ -11,7 +11,7 @@ if nargin < 3
 end
 tq = gettrimeshquan(p,t);
 tqm = tq.qm;
-kount=1;
+kount = 0;
 while any(tqm < minqm)
     
     id = find(tqm < minqm); % queue
