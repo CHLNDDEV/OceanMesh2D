@@ -158,20 +158,26 @@ f15dat.ntif = readlinescalar( fid ) ;
 
 % Tidal potential
 for k = 1: f15dat.ntif
-    f15dat.tipotag(k).name = fgetl( fid ) ;
+    ll = fgetl(fid);
+    ll(strfind(ll,'!'):end) = [];
+    f15dat.tipotag(k).name = strtrim(ll);
     f15dat.tipotag(k).val =  readlinevec( fid ) ; 
 end
  
 % NBFR
 f15dat.nbfr = readlinescalar( fid ) ; 
 for k = 1: f15dat.nbfr
-    f15dat.bountag(k).name = fgetl( fid ) ; 
+    ll = fgetl(fid);
+    ll(strfind(ll,'!'):end) = [];
+    f15dat.bountag(k).name = strtrim(ll);
     f15dat.bountag(k).val = readlinevec( fid ) ; 
 end
 
-% Open boudnary harmonic forcing  
+% Open boundary harmonic forcing  
 for k = 1: f15dat.nbfr
-    f15dat.opealpha(k).name = fgetl( fid ) ; 
+    ll = fgetl(fid);
+    ll(strfind(ll,'!'):end) = [];
+    f15dat.opealpha(k).name = strtrim(ll); 
     
     nvd = opedat.neta ; 
     
