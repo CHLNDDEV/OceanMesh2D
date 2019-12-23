@@ -119,7 +119,7 @@ token = readlinetoken( fid ) ;
 f15dat.reftim = str2num( token ) ; 
 
 % WTIMINC
-if f15dat.nws > 0
+if f15dat.nws ~= 0
    f15dat.wtimnc = readlinevec( fid ) ;
 end
   
@@ -146,7 +146,7 @@ end
 
 % ESLM, ESLC
 f15dat.elsm = [] ;
-if ( f15dat.im <= 2 | f15dat.im == 10 | f15dat.im >= 111111 )
+if ( f15dat.im <= 2 || f15dat.im == 10 || f15dat.im >= 111111 )
     f15dat.elsm = readlinevec( fid ) ; 
 end
 
@@ -159,14 +159,14 @@ f15dat.ntif = readlinescalar( fid ) ;
 % Tidal potential
 for k = 1: f15dat.ntif
     f15dat.tipotag(k).name = fgetl( fid ) ;
-    f15dat.tipspec(k).val =  readlinevec( fid ) ; 
+    f15dat.tipotag(k).val =  readlinevec( fid ) ; 
 end
  
 % NBFR
 f15dat.nbfr = readlinescalar( fid ) ; 
 for k = 1: f15dat.nbfr
     f15dat.bountag(k).name = fgetl( fid ) ; 
-    f15dat.bounspec(k).val = readlinevec( fid ) ; 
+    f15dat.bountag(k).val = readlinevec( fid ) ; 
 end
 
 % Open boudnary harmonic forcing  
@@ -176,9 +176,7 @@ for k = 1: f15dat.nbfr
     nvd = opedat.neta ; 
     
     val = fscanf(fid, '%f %f \n', [2 nvd] ) ; 
-    
-    %len = size(val) 
-    % val = reshape( val, 2, len/2 ) ; 
+     
     f15dat.opeemoefa(k).val = val' ; 
 end
 
