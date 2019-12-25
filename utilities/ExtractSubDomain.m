@@ -1,4 +1,5 @@
 function [obj,ind] = ExtractSubDomain(obj,bou,keep_inverse)
+% [obj,ind] = ExtractSubDomain(obj,bou,keep_inverse)
 p = obj.p; t = obj.t; 
 if nargin == 1 || (nargin == 3 && isempty(bou))
     plot(p(:,1),p(:,2),'k.');

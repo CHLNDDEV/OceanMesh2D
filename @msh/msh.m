@@ -736,7 +736,7 @@ classdef msh
             disp(['Renumbered bandwidth is ',num2str(bw)]);
             
             % renum the nodestrings
-            if ~isempty(obj.op)
+            if ~isempty(obj.op) && obj.op.nope > 0
                 disp('Renumbering the elevation specified boundary nodestrings...');
                 for ib = 1 : obj.op.nope
                     %for iv = 1 : obj.op.nvdll(ib)
@@ -746,7 +746,7 @@ classdef msh
                 end
             end
             
-            if ~isempty(obj.bd)
+            if ~isempty(obj.bd) && obj.bd.nbou > 0
                 disp('Renumbering the flux boundary nodestrings...');
                 for ib = 1 : obj.bd.nbou
                     tempcell{ib} = obj.bd.nbvv(1:obj.bd.nvell(ib),ib);
@@ -952,8 +952,9 @@ classdef msh
             % "fix" mesh
             [obj.p,obj.t] = fixmesh(obj.p,obj.t);
             
+            LT = size(obj.t,1);
+            
             if opt.db
-                LT = size(obj.t,1);
                 while 1
                     % Begin by just deleting poor mesh boundary elements
                     tq = gettrimeshquan(obj.p,obj.t);
@@ -1008,8 +1009,9 @@ classdef msh
             mq_s = std(tq.qm);
             mq_l3sig = mq_m - 3*mq_s;
             qual = [mq_m,mq_l3sig,mq_l];
+            LTn = size(obj.t,1);
             
-            if mq_l < opt.mqa
+            if mq_l < opt.mqa && (opt.ds || LT ~= LTn)
                 % Need to clean it again
                 disp('Poor or overlapping elements, cleaning again')
                 % repeat without projecting (already projected)
@@ -1564,9 +1566,11 @@ classdef msh
             %          Does not update boundary of obj2 (for removal of 
             %          triangles) after removing intersection(obj1,obj2) 
             %          from obj2
-            %       = 'match', assumes there there are matching vertices
-            %          where the inset can fit perfectly inside the base, or 
-            %          simply appended to the base.
+            %       = 'match', assumes a perfect match and that obj1 can be 
+            %          simply appended to obj2.
+            %       = 'matche', will attempt to extract a portion from obj2
+            %          that is inside obj1 before matching these together 
+            %          i.e., that obj1 and obj2 having matching vertices. 
             % cleanargin: = a cell-array of arguments for the clean 
             %          operator. Default is {'passive'}.
             %
@@ -1586,9 +1590,9 @@ classdef msh
             if nargin < 3
                 type = 'arb';
             end
-            options = {'arb','arb+','match'};
+            options = {'arb','arb+','match','matche'};
             if sum(strcmp(options,type)) == 0
-                error('type does not match any of arb, arb+, match')
+                error('type does not match any of arb, arb+, match, matche')
             else
                 disp(['Implementing merge type = ',type])
             end
@@ -1637,9 +1641,11 @@ classdef msh
                 setProj(obj2,1,projname);
             end
            
-            % check to see if we can do the trivial merge
-            extract = 1;
-            if ~strcmp(type,'match')
+            % check to see if we can do the trivial merge  
+            extract = 0;
+            if strcmp(type,'matche')
+                extract = 1;
+            elseif ~strcmp(type,'match')
                 try
                     cell2 = extdom_polygon(extdom_edges2(t2,p2),p2,-1,0);
                     poly_vec2 = cell2mat(cell2'); 
@@ -1651,12 +1657,11 @@ classdef msh
                 if sum(in) == 0
                    disp('switch to the match case') 
                    type = 'match';
-                   extract = 0;
                 end
             end
             
             switch(type)
-            case('match')
+            case {'match','matche'}
                 %% Matching meshes - may be overlapping but there are 
                 %% vertices that uniquely match so that the overlapping 
                 %% can be extracted and then obj1,obj2 concentated together
@@ -1763,16 +1768,9 @@ classdef msh
                     %in2 is inside the global boundary polygon
                     in2 = inpoly(pmid,poly_vec2,edges2);
 
-                    %in3 is inside the intersection
-                    if strcmp(type,'arb')
-                        in3 = inpoly(pmid,poly_vec1,edges1);
-                    else
-                        in3 = false(size(in1)); 
-                    end
-
                     % remove triangles that aren't in the global mesh or 
                     % aren't in the inset mesh
-                    del = (~in1 & ~in2) | (~in1 & in3);
+                    del = (~in1 & ~in2);
                     tm(del,:) = [];
                 end
 
@@ -2454,8 +2452,11 @@ classdef msh
             ef(~in) = NaN;
         end
         
-        function [centroids]=baryc(obj)
+        function [centroids,bc] = baryc(obj)
             centroids = (obj.p(obj.t(:,1),:)+obj.p(obj.t(:,2),:)+obj.p(obj.t(:,3),:))/3;
+            if nargout > 1 && ~isempty(obj.b)
+                bc = (obj.b(obj.t(:,1))+obj.b(obj.t(:,2))+obj.b(obj.t(:,3)))/3;
+            end
         end
         
         function [obj3] = minus(obj1,obj2)
