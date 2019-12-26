@@ -6,6 +6,8 @@ addpath(genpath('m_map/'))
 MIN_RESO_TOL = 100 ;
 
 
+cd ..
+
 bbox = [166 176;		% lon_min lon_max
     -48 -40]; 		% lat_min lat_max
 min_el    = 1e3;  		% minimum resolution in meters.
