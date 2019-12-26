@@ -761,12 +761,19 @@ classdef edgefx
                 %Ftmp = griddedInterpolant(xg,yg,hh_m,'linear','nearest');
 
                 for i =1:length(feat.weirs)
-                    % get spacing in meters along the face of the weir
-                    weir_spacing = feat.weirs{i}(1,4);
-                    % get crestline points in wgs84
-                    txy = feat.weirs{i}(:,1:2) ;
-                    xy=[];
-                    [xy(:,2),xy(:,1)]=my_interpm(txy(:,2),txy(:,1),...
+                    if iscell(feat.weirs)
+                        % get spacing in meters along the face of the weir
+                        weir_spacing = feat.weirs{i}(1,4);
+                        % get crestline points in wgs84
+                        txy = feat.weirs{i}(:,1:2) ;
+                    else
+                        % get spacing in meters along the face of the weir
+                        weir_spacing = feat.weirs(i).min_ele;
+                        % get crestline points in wgs84
+                        txy = [feat.weirs(i).X feat.weirs(i).Y];
+                    end
+                    xy = [];
+                    [xy(:,2),xy(:,1)] = my_interpm(txy(:,2),txy(:,1),...
                         (obj.h0/2)/111e3);
                     % edit the mesh size function in proximity to the weir
                     for j = 1 : length(xy)
