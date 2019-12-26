@@ -1,12 +1,11 @@
 % Test size bounds with varying mesh gradation rates.
+cd ..
+
 addpath(genpath('utilities/'))
 addpath(genpath('datasets/'))
 addpath(genpath('m_map/'))
 
 MIN_RESO_TOL = 100 ;
-
-
-cd ..
 
 bbox = [166 176;		% lon_min lon_max
     -48 -40]; 		% lat_min lat_max
@@ -44,3 +43,5 @@ for i = 1 : 3 % for each grade
     end
     disp(['Passed for ',num2str(grade(i)),'. Min. element size is ',num2str(prctile(reso,5))]); 
 end
+
+cd Tests/
