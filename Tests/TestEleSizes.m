@@ -42,5 +42,5 @@ for i = 1 : 3 % for each grade
             num2str(prctile(reso,5)),' expecting 1e3 +- 100 m']);
         exit(1)
     end
-    disp(['Passed for ',num2str(grade(i)),'. Min. element size is ',num2str(prctcile(reso,5))]); 
+    disp(['Passed for ',num2str(grade(i)),'. Min. element size is ',num2str(prctile(reso,5))]); 
 end
