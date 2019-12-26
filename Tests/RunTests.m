@@ -4,4 +4,6 @@ TestSanity
 
 TestEleSizes
 
+TestJBAY
+
 exit

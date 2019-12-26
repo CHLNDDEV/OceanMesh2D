@@ -178,6 +178,7 @@ classdef geodata
                             obj.window = 5;
                         end
                     case('weirs')
+                        if ~iscell(inp.(fields{i})) && ~isstruct(inp.(fields{i})) && inp.(fields{i})==0, continue; end
                         if ~iscell(inp.(fields{i})) && ~isstruct(inp.(fields{i}))
                             error('Data for weirs must be in a cell-array or struct. Please see the user guide.'); 
                         end
