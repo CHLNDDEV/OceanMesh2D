@@ -1,7 +1,5 @@
-clearvars; close all; clc;
-
-addpath(genpath('Tests'));
-
+% Run example 1 to build a mesh around NZ testing various basic functionality 
+% is working!
 run('../Example_1_NZ.m')
 
 NP_TOL = 500;
@@ -29,4 +27,3 @@ if abs(mshopts.qual(end,3) - 0.3548) > QUAL_TOL
 end
 disp('Passed: Example1_NZ.m');
 
-exit
