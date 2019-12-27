@@ -26,7 +26,7 @@ if abs(Area - 211.19)/211.19 > ERR2_TOL
         num2str(Area),' km^2 expecting 211.19 km^2 +- 1%']);
     exit(1)
 end
-[~,bc] = baryc(m);
+bc = (m.b(m.t(:,1))+m.b(m.t(:,2))+m.b(m.t(:,3)))/3;
 bc = bc/1e3; % convert to km
 Volume = sum(polyarea(X(m.t)',Y(m.t)').*cosd(mean(Y(m.t)')).*bc')*Re2;
 if abs(Volume - 2.0782)/2.0782 > ERR2_TOL
