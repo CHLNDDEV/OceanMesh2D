@@ -45,6 +45,10 @@ Development paper[1]└── Example_6_GBAY.m %<- An example of the polyline/th
 
 ```
 
+## `Testing` 
+
+All pull requests are tested with Jenkins on a local host. However, to ensure the software is fully functional on your system it's encouraged to run the tests in Tests/ yourself. 
+
 ## `References!`
 
 If you make use of `OceanMesh2D` please include a reference to the following:
