@@ -34,7 +34,7 @@ fh = edgefx('geodata',gdat,...
             'g',grade);
 %% STEP 4: Pass your edgefx class object along with some meshing options and
 % build the mesh...
-mshopts = meshgen('ef',fh,'bou',gdat,'plot_on',1,'proj','utm');
+mshopts = meshgen('ef',fh,'bou',gdat,'plot_on',1,'proj','trans');
 % now build the mesh with your options and the edge function.
 mshopts = mshopts.build; 
 
