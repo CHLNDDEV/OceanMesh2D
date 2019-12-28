@@ -1655,7 +1655,9 @@ classdef msh
             %          that is inside obj1 before matching these together 
             %          i.e., that obj1 and obj2 having matching vertices. 
             % cleanargin: = a cell-array of arguments for the clean 
-            %          operator. Default is {'passive'}.
+            %          operator. Default is {'passive'} for 'match(e)' type
+            %          and {'djc',0,'sc_maxit',0} for 'arb(+)' type. 
+            %          Specify an empty [] cleanargin to avoid cleaning. 
             %
             % OUPUTS:
             % merge: a msh object in which the msh obj1's connectivity and 
@@ -1680,15 +1682,25 @@ classdef msh
                 disp(['Implementing merge type = ',type])
             end
             if nargin < 4
-                cleanargin = {'djc',0,'sc_maxit',0,'proj',0,'pfix',[]};
-            else
-                if ~iscell(cleanargin)
-                   error('cleanargin must be a cell') 
+                if strcmp(type(1:5),'match')
+                    cleanargin = {'passive'};
+                else
+                    cleanargin = {'djc',0,'sc_maxit',0,'proj',0,'pfix',[]};
                 end
-                cleanargin{end+1} = 'proj';
-                cleanargin{end+1} = 0;
-                cleanargin{end+1} = 'pfix';
-                cleanargin{end+1} = [];
+            else
+                if isempty(cleanargin)
+                    disp('No cleaning of mesh will occur');
+                else
+                    if ~iscell(cleanargin)
+                       error('cleanargin must be a cell') 
+                    end
+                    if strcmp(type(1:3),'arb')
+                        cleanargin{end+1} = 'proj';
+                        cleanargin{end+1} = 0;
+                        cleanargin{end+1} = 'pfix';
+                        cleanargin{end+1} = [];
+                    end
+                end
             end
             
             p1 = obj1.p; t1 = obj1.t;
@@ -1719,7 +1731,7 @@ classdef msh
                 if max(abs(obj2.p(:,2)) > 85)
                     projname = 'stereo';
                 else
-                    projname = 'equi';
+                    projname = 'trans';
                 end
                 setProj(obj2,1,projname);
             end
@@ -1757,8 +1769,9 @@ classdef msh
                     obj2 = ExtractSubDomain(obj2,bou,1);
                 end
                 % concatenate
-                merge = cat(obj1,obj2);
-                merge.bd = []; merge.op = []; 
+                m1 = cat(obj1,obj2);
+                merge = msh(); merge.p = m1.p; merge.t = m1.t; clear m1
+                
             otherwise
                 %% Abitrary non-matching overlapping meshes
                 % Project both meshes into the space of the global mesh
@@ -1873,10 +1886,14 @@ classdef msh
                     int = inpoly(merge.p,[xe,ye]);
                     in(int) = true;
                 end
-                locked = [merge.p(~in,:); pfixx];
-                cleanargin{end} = locked;
-                % iteration is done in clean if smoothing creates neg quality
-                merge = clean(merge,cleanargin);
+                
+                if ~isempty(cleanargin)
+                    locked = [merge.p(~in,:); pfixx];
+                    cleanargin{end} = locked;
+                    % iteration is done in clean if smoothing creates neg quality
+                    merge = clean(merge,cleanargin);
+                end
+                
                 merge.pfix  = pfixx ;
                 % edges don't move but they are no longer valid after merger
                 merge.egfix = [];
@@ -1911,6 +1928,11 @@ classdef msh
             
             % Check element order
             merge = CheckElementOrder(merge);
+            
+            if ~isempty(cleanargin) && strcmp(type(1:5),'match')
+                % let's clean if match type
+                merge = clean(merge,cleanargin);
+            end
             
             % Carry over bathy and gradients
             if ~isempty(obj1.b) && ~isempty(obj2.b)
