@@ -2,6 +2,8 @@ m_map/
 datasets/
 fort.*
 /*.mat
+!weirs_cell.mat
+!weirs_struct.mat
 *.15
 *.14
 *.13

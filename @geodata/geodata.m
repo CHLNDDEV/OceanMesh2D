@@ -178,25 +178,37 @@ classdef geodata
                             obj.window = 5;
                         end
                     case('weirs')
-                        if ~iscell(inp.(fields{i}))  && inp.(fields{i})==0, continue; end
-                        if ~iscell(inp.(fields{i})), 
-                          error('Data for weirs must be in a cell-array. Please see the user guide.'); 
+                        if ~iscell(inp.(fields{i})) && ~isstruct(inp.(fields{i})) && inp.(fields{i})==0, continue; end
+                        if ~iscell(inp.(fields{i})) && ~isstruct(inp.(fields{i}))
+                            error('Data for weirs must be in a cell-array or struct. Please see the user guide.'); 
                         end
                         obj.weirs = inp.(fields{i}) ;
                         noWeirs   = length(obj.weirs) ;
                         disp(['INFO: User has passed ',num2str(noWeirs),' weir crestlines.']) ;
                         obj.weirPfix = [] ; obj.weirEgfix = [] ;
-                        if obj.weirs{1}(1) ~= 0
+                        if iscell(obj.weirs)
+                            ss = obj.weirs{1}(1);
+                        else
+                            ss = obj.weirs(1).X(1);
+                        end
+                        if ss ~= 0
                             for ii = 1 : noWeirs
-                                crestlines = obj.weirs{ii}(:,1:2) ;
-                                width      = obj.weirs{ii}(1,3) ;
-                                if width==0 
-                                  error('Please specify non-zero width of weir!');
+                                if iscell(obj.weirs)
+                                    crestlines = obj.weirs{ii}(:,1:2) ;
+                                    width      = obj.weirs{ii}(1,3)/111e3 ;
+                                    weir_min_ele = obj.weirs{ii}(1,4)/111e3;
+                                else
+                                    crestlines = [obj.weirs(ii).X obj.weirs(ii).Y];
+                                    width      = obj.weirs(ii).width/111e3 ;
+                                    weir_min_ele = obj.weirs(ii).min_ele/111e3;
+                                end
+                                if width == 0 
+                                  error('Please specify non-zero width of weir in meters!');
                                 end
                                 % user-defined spacing along face of weir
-                                if obj.weirs{ii}(1,4)~=0
+                                if weir_min_ele ~= 0
                                     [tempPfix,tmpEgfix,obj.ibconn_pts{ii}] = GenerateWeirGeometry(crestlines,width,...
-                                          obj.weirs{ii}(1,4)/111e3,0) ;
+                                          weir_min_ele,0) ;
                                 else
                                 % by default spacing along face of weir is
                                 % MIN_EL
