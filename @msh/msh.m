@@ -261,11 +261,11 @@ classdef msh
                     end
                 case('bd')
                     figure; hold on;
-                    if proj
-                        m_triplot(obj.p(:,1),obj.p(:,2),obj.t);
-                    else
-                        simpplot(obj.p,obj.t);
-                    end
+                    %if proj
+                    %    m_triplot(obj.p(:,1),obj.p(:,2),obj.t);
+                    %else
+                    %    simpplot(obj.p,obj.t);
+                    %end
                     if ~isempty(obj.bd)
                         for nb = 1 : obj.bd.nbou
                             if obj.bd.ibtype(nb) == 94
@@ -1115,7 +1115,8 @@ classdef msh
                     
                     % Get geodata outer and mainland polygons
                     nope = 0; neta = 0; nbou  = 0; nvel  = 0;
-        
+                    island_check = true; mainland_been = false;      
+ 
                     % loop through all the polygons
                     for poly_count = 1 : length(poly_idx)
                         idv = poly_idx{poly_count};
@@ -1126,22 +1127,26 @@ classdef msh
                         else
                             mdst = 1e4;
                         end                        
-                        
                         if ~isempty(gdat.inner)
-                            [~,idst] = ourKNNsearch(inner',obj.p(idv,:)',1);
-                            if mean(idst) < mean(odst) && ...
-                               mean(idst) < mean(mdst)
-                                % must be an island
-                                nbou = nbou + 1;
-                                nvell(nbou) = length(idv);
-                                nvel = nvel + nvell(nbou);
-                                nbvv(1:nvell(nbou),nbou) = idv';
-                                ibtype(nbou) = 21;
-                                continue;
-                            end
+                           if island_check
+                               [~,idst] = ourKNNsearch(inner',obj.p(idv,:)',1);
+                               if min(odst) < min(idst) || ...
+                                  min(mdst) < min(idst)
+                                  island_check = false 
+                               end
+                           end
+                           if island_check || mainland_been  
+                              % must be an island
+                              nbou = nbou + 1;
+                              nvell(nbou) = length(idv);
+                              nvel = nvel + nvell(nbou);
+                              nbvv(1:nvell(nbou),nbou) = idv';
+                              ibtype(nbou) = 21;
+                              continue
+                           end
                         end 
+                        mainland_been = true
                         if ~isempty(gdat.mainland)
-                            
                             % set the bathy values
                             if ~isempty(gdat.Fb)
                                 zvalue = gdat.Fb(obj.p(idv,:));
