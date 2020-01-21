@@ -286,6 +286,41 @@ classdef msh
             
             switch type
                 % parse aux options first
+                case('qual')
+                    q = gettrimeshquan(obj.p, obj.t);
+                    nq = zeros(length(obj.p),1) + 1.0 ; 
+                    for i = 1 : length(obj.t)
+                        for j = 1 : 3
+                            nm = obj.t(i,j);
+                            nq(nm) = min(nq(nm),q.qm(i)); 
+                        end
+                    end
+                    if proj
+                        if mesh
+                            m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),nq);
+                        else
+                            m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),nq); hold on;
+                            m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),nq*0);
+                            shading flat
+                        end
+                    else
+                        if mesh
+                            trimesh(obj.t,obj.p(:,1),obj.p(:,2),nq);
+                        else
+                            trisurf(obj.t,obj.p(:,1),obj.p(:,2),nq)
+                            hold on; 
+                            
+                            shading flat;
+                        end
+                        view(2);
+                    end
+                    caxis([0.0 1.0])
+                    cb = colorbar;
+                    title('Mesh quality (area-length ratio)');
+                    colormap(cmocean('matter',10));
+                    set(cb,'FontSize',12);
+                    ylabel(cb,'area-length ratio');
+        
                 case('tri')
                     figure;
                     if proj
