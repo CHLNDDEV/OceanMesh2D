@@ -40,6 +40,9 @@ elseif strcmpi(attribute,'surface_submergence_state')
 elseif strcmpi(attribute,'Adv')
     attrname = 'advection_state';
     default_val = -1e4;
+elseif strcmpi(attribute,'river')
+    attrname = 'initial_river_elevation';
+    default_val = 0;
 else
     error(['Attribute ' attribute ' not currently supported'])
 end
