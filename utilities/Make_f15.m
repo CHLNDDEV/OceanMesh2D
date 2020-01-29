@@ -113,8 +113,8 @@ if isempty(obj.f15)
     f15dat.slam = mean(obj.p) ; 
     % CF
     f15dat.taucf = 0.0025 ;
-    % ESLM (smag 0.05 coefficient)
-    f15dat.elsm = -0.05;
+    % ESLM (smag 0.20 coefficient)
+    f15dat.elsm = -0.20;
     % CORI
     f15dat.cori = 0; 
     % NTIF

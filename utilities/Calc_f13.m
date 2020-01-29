@@ -43,6 +43,9 @@ elseif strcmpi(attribute,'Mn')
 elseif strcmpi(attribute,'Ss')
     attrname = 'surface_submergence_state';
     default_val = 0;
+elseif strcmpi(attribute,'Re')
+    attrname = 'initial_river_elevation'
+    default_val = 0;
 else
     error(['Attribute ' attribute ' not currently supported'])
 end
@@ -112,8 +115,13 @@ obj.f13.userval.Atr(NA).usernumnodes = numnodes ;
 % Print out list of nodes for each
 K = find(cf ~= default_val);
 obj.f13.userval.Atr(NA).Val = [K cf(K)]';
-%EOF
+
+if ~isempty(obj.f15)
+    % Change attribute in obj.f15
+    disp(['Adding on ' attrname ' into fort.15 struct'])
+    obj.f15.nwp = obj.f15.nwp + 1;
+    obj.f15.AttrName(obj.f15.nwp).name = attrname;
 end
 
-
-
+%EOF
+end

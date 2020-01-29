@@ -249,6 +249,11 @@ classdef msh
             if strcmp(type,'resoearth')
                 type = 'reso'; earthres = 1;
             end
+            tri = 0;
+            idxl = strfind(type,'tribd');
+            if ~isempty(idxl)
+                tri = 1; type(idxl:idxl+2) = [];
+            end  
             
             switch type
                 % parse aux options first
@@ -261,11 +266,13 @@ classdef msh
                     end
                 case('bd')
                     figure; hold on;
-                    %if proj
-                    %    m_triplot(obj.p(:,1),obj.p(:,2),obj.t);
-                    %else
-                    %    simpplot(obj.p,obj.t);
-                    %end
+                    if tri
+                        if proj
+                           m_triplot(obj.p(:,1),obj.p(:,2),obj.t);
+                        else
+                           simpplot(obj.p,obj.t);
+                        end
+                    end
                     if ~isempty(obj.bd)
                         for nb = 1 : obj.bd.nbou
                             if obj.bd.ibtype(nb) == 94
@@ -791,6 +798,7 @@ classdef msh
             % if give cell of geodata or dems then interpolate all
             if iscell(geodata) || isstring(geodata)
                 for i = 1:length(geodata)
+                    disp(['Interpolating DEM #' num2str(i)])
                     if isempty(varargin)
                         obj = GridData(geodata{i},obj);
                     else
@@ -1064,6 +1072,7 @@ classdef msh
             % obj: msh class obj
             % type: 'auto','islands','periodic','weirs', or 'outer'
             % dir (semi-optional): 0, 1 or a gdat class for auto type
+            %                      counter-clockwise = 0, clockwise = 1.
             % cutlim (optional): lower limit of ocean boundary length in vertices
             % depthlim (optiona): lower limit of seabed depth that ocean boundary
             %           can exist at

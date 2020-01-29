@@ -115,10 +115,10 @@ for icon = 1: ntip
     phs(phs < 0) = phs(phs < 0) + 360;
     
     % Plot interpolated results
-    figure(1); fastscatter(VX(:,1),VX(:,2),amp); 
-    title(obj.f24.tiponame{icon})
-    colorbar;
-    pause(2)
+    %figure(1); fastscatter(VX(:,1),VX(:,2),amp); 
+    %title(obj.f24.tiponame{icon})
+    %colorbar;
+    %pause(2)
     
     % Put into the struct
     obj.f24.Val(icon,:,:) = [kvec'; amp'; phs']; 
