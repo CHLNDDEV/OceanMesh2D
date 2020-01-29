@@ -1682,7 +1682,7 @@ classdef msh
                 disp(['Implementing merge type = ',type])
             end
             if nargin < 4
-                if strcmp(type(1:5),'match')
+                if strcmp(type,'match') || strcmp(type,'matche')
                     cleanargin = {'passive'};
                 else
                     cleanargin = {'djc',0,'sc_maxit',0,'proj',0,'pfix',[]};
@@ -1750,7 +1750,7 @@ classdef msh
                 end
                 in = inpoly(obj1.p,poly_vec2,edges2);
                 if sum(in) == 0
-                   disp('switch to the match case') 
+                   disp('no points in obj1 found in obj2, switch to "match" case') 
                    type = 'match';
                 end
             end
@@ -1929,7 +1929,8 @@ classdef msh
             % Check element order
             merge = CheckElementOrder(merge);
             
-            if ~isempty(cleanargin) && strcmp(type(1:5),'match')
+            if ~isempty(cleanargin) && ...
+                (strcmp(type,'match') || strcmp(type,'matche'))
                 % let's clean if match type
                 merge = clean(merge,cleanargin);
             end
