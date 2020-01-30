@@ -203,7 +203,7 @@ obj.f15.dtdp = dt ;
 % Runday
 obj.f15.rndy = datenum(te)-datenum(ts);
 
-obj.f15.extraline(10).msg = ts;
+obj.f15.extraline(10).msg = datestr(ts, 'yyyy-mm-dd HH:MM:SS UTC');
 
 % Checking f11
 if ~isempty(obj.f11)

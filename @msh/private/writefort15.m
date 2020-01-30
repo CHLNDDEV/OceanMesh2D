@@ -148,7 +148,7 @@ end
 % Open boundary harmonic forcing  
 for k = 1: f15dat.nbfr
     fprintf(fid, '%s \n', f15dat.opealpha(k).name  ) ; 
-    fprintf(fid, '%16.9e %16.9e \n', f15dat.opealpha(k).val' ) ; 
+    fprintf(fid, '%16.9e %16.10g \n', f15dat.opealpha(k).val' ) ; 
 end
 
 %  ANGINN

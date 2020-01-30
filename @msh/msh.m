@@ -1172,33 +1172,40 @@ classdef msh
                     
                     % Get geodata outer and mainland polygons
                     nope = 0; neta = 0; nbou  = 0; nvel  = 0;
-        
+                    island_check = true; mainland_been = false;      
+ 
                     % loop through all the polygons
                     for poly_count = 1 : length(poly_idx)
                         idv = poly_idx{poly_count};
                         % 
-                        [~,odst] = ourKNNsearch(outerbox(1:end-1,:)',obj.p(idv,:)',1);         
-                        if ~isempty(gdat.mainland)
-                            [~,mdst] = ourKNNsearch(mainland',obj.p(idv,:)',1);
-                        else
-                            mdst = 1e4;
-                        end                        
-                        
+                        if ~mainland_been
+                            [~,odst] = ourKNNsearch(outerbox(1:end-1,:)',obj.p(idv,:)',1);         
+                            if ~isempty(gdat.mainland)
+                                [~,mdst] = ourKNNsearch(mainland',obj.p(idv,:)',1);
+                            else
+                                mdst = 1e4;
+                            end       
+                        end
                         if ~isempty(gdat.inner)
-                            [~,idst] = ourKNNsearch(inner',obj.p(idv,:)',1);
-                            if mean(idst) < mean(odst) && ...
-                               mean(idst) < mean(mdst)
-                                % must be an island
-                                nbou = nbou + 1;
-                                nvell(nbou) = length(idv);
-                                nvel = nvel + nvell(nbou);
-                                nbvv(1:nvell(nbou),nbou) = idv';
-                                ibtype(nbou) = 21;
-                                continue;
-                            end
+                           if island_check
+                               [~,idst] = ourKNNsearch(inner',obj.p(idv,:)',1);
+                               if min(odst) < min(idst) || ...
+                                  min(mdst) < min(idst)
+                                  island_check = false;
+                               end
+                           end
+                           if island_check || mainland_been  
+                              % must be an island
+                              nbou = nbou + 1;
+                              nvell(nbou) = length(idv);
+                              nvel = nvel + nvell(nbou);
+                              nbvv(1:nvell(nbou),nbou) = idv';
+                              ibtype(nbou) = 21;
+                              continue
+                           end
                         end 
+                        mainland_been = true;
                         if ~isempty(gdat.mainland)
-                            
                             % set the bathy values
                             if ~isempty(gdat.Fb)
                                 zvalue = gdat.Fb(obj.p(idv,:));
@@ -1717,7 +1724,7 @@ classdef msh
                 disp(['Implementing merge type = ',type])
             end
             if nargin < 4
-                if strcmp(type(1:5),'match')
+                if strcmp(type,'match') || strcmp(type,'matche')
                     cleanargin = {'passive'};
                 else
                     cleanargin = {'djc',0,'sc_maxit',0,'proj',0,'pfix',[]};
@@ -1785,7 +1792,7 @@ classdef msh
                 end
                 in = inpoly(obj1.p,poly_vec2,edges2);
                 if sum(in) == 0
-                   disp('switch to the match case') 
+                   disp('no points in obj1 found in obj2, switch to "match" case') 
                    type = 'match';
                 end
             end
@@ -1964,7 +1971,8 @@ classdef msh
             % Check element order
             merge = CheckElementOrder(merge);
             
-            if ~isempty(cleanargin) && strcmp(type(1:5),'match')
+            if ~isempty(cleanargin) && ...
+                (strcmp(type,'match') || strcmp(type,'matche'))
                 % let's clean if match type
                 merge = clean(merge,cleanargin);
             end

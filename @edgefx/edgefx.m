@@ -1,3 +1,4 @@
+
 classdef edgefx
     %   EDGEFX: Edgefunction class
     %   Constructs edgefunctions that are based on numerous geomteric and
@@ -477,11 +478,11 @@ classdef edgefx
                         f = 2*7.29e-5*abs(sind(ygg));
                         if barot
                             % barotropic case
-                            c = sqrt(grav*abs(tmpz(n1s:n1e,n2s:n2e)));
+                            c = sqrt(grav*max(1,-tmpz(n1s:n1e,n2s:n2e)));
                         else
                             % baroclinic case (estimate Nm to be 2.5e-3)
                             Nm = 2.5e-3;
-                            c = Nm*abs(tmpz(n1s:n1e,n2s:n2e))/pi;
+                            c = Nm*max(1,-tmpz(n1s:n1e,n2s:n2e))/pi;
                         end
                         rosb = c./f;
                         clear f;
@@ -604,7 +605,8 @@ classdef edgefx
                     dp2 = param(3);
                 end
                 % Calculating the slope function
-                tslpd = (2*pi/slpp)*max(1,abs(tmpz))./(bs+eps);
+                dp = max(1,-tmpz);
+                tslpd = (2*pi/slpp)*dp./(bs+eps);
                 obj.slpd(tmpz < dp1 & tmpz > dp2 ) = ...
                     tslpd(tmpz < dp1 & tmpz > dp2);
                 clearvars tslpd
@@ -622,8 +624,8 @@ classdef edgefx
             for jj = 1:length(obj.Channels)
                 if (isempty(obj.Channels{jj})); continue ;end
                 pts{jj} = obj.Channels{jj};
-                dp{jj} = feat.Fb(pts{jj});                                   % depth at x,y channel locations
-                radii{jj}=(tand(ang_of_reslope)*abs(dp{jj}));         % estimate of channel's width in degrees at x,y locations ASSUMING angle of reslope
+                dp{jj} = feat.Fb(pts{jj});                               % depth at x,y channel locations
+                radii{jj}=(tand(ang_of_reslope)*max(1,-dp{jj}));         % estimate of channel's width in degrees at x,y locations ASSUMING angle of reslope
                 tempbb{jj} = feat.boubox;
             end
             
@@ -661,7 +663,7 @@ classdef edgefx
                 end
             end
             toc 
-            dp = abs(feat.Fb(xg(tidx),yg(tidx)));
+            dp = max(1,-feat.Fb(xg(tidx),yg(tidx)));
             obj.chd(tidx) = dp/obj.ch;
             obj.chd(obj.chd < obj.min_el_ch) = obj.min_el_ch;
             clearvars Fb pts dp radii tempbb xg yg
