@@ -2066,7 +2066,9 @@ classdef msh
             % "fixes" mesh and carries b, bx, by, f13 dat over
             [obj.p,obj.t,pix] = fixmesh(obj.p,obj.t); 
             % move over b, slp, f13
-            obj.b = obj.b(pix); 
+            if ~isempty(obj.b)
+                obj.b = obj.b(pix); 
+            end
             if ~isempty(obj.bx)
                 obj.bx = obj.bx(pix); obj.by = obj.by(pix); 
             end
