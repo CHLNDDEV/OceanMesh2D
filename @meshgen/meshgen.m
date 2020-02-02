@@ -822,6 +822,10 @@ classdef meshgen
                 [obj.grd,qout] = clean(obj.grd,obj.cleanup,...
                                        'nscreen',obj.nscreen,'djc',obj.dj_cutoff,...
 									    'pfix',obj.pfix);
+		[pp,tt]=fixmesh(obj.grd.p,obj.grd.t); 
+		obj.grd.p=[]; obj.grd.p=pp; 
+		obj.grd.t=[]; obj.grd.t=tt; 
+		
                 obj.grd.pfix = obj.pfix ;
 				obj.grd.egfix= obj.egfix ;
                 obj.qual(end+1,:) = qout;
