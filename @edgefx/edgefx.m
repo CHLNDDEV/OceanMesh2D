@@ -905,7 +905,26 @@ classdef edgefx
                     clear cfl dxn
                 end
                 clear u hh_d
+            % Limit CFL if dt < 0, this ensures cfl is sufficiently large for ALE type schemes 
+            else
+                if isempty(feat.Fb); error('No DEM supplied Can''t CFL limit.'); end
+                tmpz    = feat.Fb(xg,yg);
+                grav = 9.807; descfl = 0.50;
+                % limit the minimum depth to 1 m
+                tmpz(tmpz > - 1) = -1;
+                % wavespeed in ocean (second term represents orbital
+                % velocity at 0 degree phase for 1-m amp. wave).
+                u = sqrt(grav*abs(tmpz)) + sqrt(grav./abs(tmpz));
+                disp(['Enforcing timestep of ',num2str(obj.dt),' seconds.']);
+                cr = (abs(obj.dt)*u)./hh_m; % this is your cr
+                dxn = u*abs(obj.dt)/descfl; % assume simulation time step of dt sec and cfl of dcfl;
+                hh_m( cr <= descfl) = dxn( cr <= descfl);   %--in planar metres
+                clear cfl dxn
+                
+                clear u hh_d
+
             end
+
             
             obj.F = griddedInterpolant(xg,yg,hh_m,'linear','nearest');
             
