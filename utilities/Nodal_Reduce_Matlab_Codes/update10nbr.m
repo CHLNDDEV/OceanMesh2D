@@ -313,10 +313,9 @@ if sum(nflag) == 0
 end
 
 % Correct output if invalid elements were created.
-bad = find(fem.ar < 0);
-if ~isempty(bad)
-    fem = patch_update(fem_struct,fem1,jj);
-    good = 6;
+if sum(fem.ar < 0) > 0
+   fem = patch_update(fem_struct,fem1,jj);
+   good = 6;
 end
 
 %Display message if invalid elements where created.
@@ -324,6 +323,8 @@ if good == 6
    disp('The nodally updated mesh contained invalid or badly conditioned');
    disp('elements, therefore the patch was retriangulated which should');
    disp('reduce the connecitivity but is not guaranteed to do so.');
+end
+if sum(fem.ar < 0) > 0
    disp(' ');
    disp('returning original mesh');
    fem = fem_struct;

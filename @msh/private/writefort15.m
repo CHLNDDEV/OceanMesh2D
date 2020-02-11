@@ -303,6 +303,8 @@ for k = 1: f15dat.nextraline
     fprintf( fid, '%s\n', f15dat.extraline(k).msg ) ;
 end
 
+% If 
+if find(strcmp(fieldnames(f15dat),'controllist'),1)
 for k = 1: length(f15dat.controllist)
     fprintf( fid, '! -- Begin %s Control Namelist -- \n', f15dat.controllist(k).type ) ;
     fprintf( fid, '&%sControl\n', f15dat.controllist(k).type ) ;
@@ -312,6 +314,7 @@ for k = 1: length(f15dat.controllist)
     end
     fprintf( fid, '/\n') ;
     fprintf( fid, '! -- End %s Control Namelist -- \n', f15dat.controllist(k).type ) ;
+end
 end
 
 fclose(fid) ;

@@ -1,5 +1,5 @@
 function obj = GridData(geodata,obj,varargin)
-% obj = GridData(geodata,obj,varagin);
+% obj = GridData(geodata,obj,varargin);
 % GridData: Uses the cell-averaged approach to interpolate the nodes
 %           on the unstructured grid to the DEM.          
 %       Input : geodata - either a geodata class or a filename of the netcdf DEM
@@ -65,7 +65,7 @@ nn = length(obj.p);
 K  = (1:nn)';        % K is all of the grid
 type = 'all';
 interp = 'CA';
-NaNs = 'ignore';
+NaNs = 'ignore'; nanfill = false;
 ignoreOL = 0 ;
 N    = 1 ; 
 mindepth = -inf ; 
@@ -116,10 +116,14 @@ if strcmp(type,'slope')
             'calculating the slopes'])
 end
 
-if strcmp(NaNs,'fill')
+if strcmp(NaNs,'fill') || strcmp(NaNs,'fillinside')
     disp('Fill in NaNs using nearest neighbour interpolation.')
-    warning(['Note that will try and put bathy everywhere on mesh even ' ...
-             'outside of gdat/dem extents unless K logical is set.'])
+    nanfill = true;
+end
+if strcmp(NaNs,'fill')
+   warning(['Note that will try and put bathy everywhere on mesh even ' ...
+            'outside of gdat/dem extents unless K logical is set. ' ...
+            'Set to nan to "fillinside" to avoid this.'])
 end
 
 %% Let's read the LON LAT of DEM if not already geodata
@@ -132,8 +136,7 @@ if ~isa(geodata,'geodata')
     DELTA_Y = mean(diff(DEM_YA));
     if DELTA_Y < 0
        flipUD = 1;
-       DEM_YA = flipud(DEM_YA);
-       DELTA_Y = mean(diff(DEM_YA));
+       DELTA_Y = -DELTA_Y;
     end
 else
     DEM_XA = geodata.Fb.GridVectors{1};
@@ -170,7 +173,7 @@ if length(K) == length(obj.p)
                   obj.p(:,2) > max(DEM_YA)+DELTA_Y;
         K(outside) = [];
         if isempty(K)
-            error('no mesh vertices contained within DEM bounds')
+            warning('no mesh vertices contained within DEM bounds'); return;
         end
     end
 end
@@ -255,6 +258,9 @@ if ~isa(geodata,'geodata')
     DEM_Z = single(ncread(geodata,zvn,...
                    [I(1) J(1)],[length(I) length(J)]));
     if flipUD
+       % handle DEMS from packed starting from the bottom left
+       DEM_YA = flipud(DEM_YA) ;
+       DEM_Y = fliplr(DEM_Y);
        DEM_Z = fliplr(DEM_Z);
     end
                
@@ -333,9 +339,13 @@ if strcmp(interp,'CA')
                                 IDXB(ii):IDXT(ii)),[],1);
             b(ii) = mean(pts,'omitnan');            
         end
+        if sum(~isnan(b)) == 0
+            warning('All depths were NaNs. Doing nothing and returning'); 
+            return
+        end
         % Try and fill in the NaNs
-        if strcmp(NaNs,'fill')
-            if ~isempty(find(isnan(b),1))
+        if nanfill
+            if sum(isnan(b)) > 0
                 localcoord = obj.p(K,:);
                 KI = knnsearch(localcoord(~isnan(b),:),localcoord(isnan(b),:));
                 bb = b(~isnan(b),:);
@@ -344,15 +354,17 @@ if strcmp(interp,'CA')
         end
     end
         
-    % Average for the slopes
+    % RMS for the slopes
     if strcmp(type,'slope') || strcmp(type,'all')
         for ii = 1:length(K)
-            bx(ii) = mean(reshape(DEM_ZX(IDXL(ii):IDXR(ii),...
-                                         IDXB(ii):IDXT(ii)),[],1),'omitnan');
-            by(ii) = mean(reshape(DEM_ZY(IDXL(ii):IDXR(ii),...
-                                         IDXB(ii):IDXT(ii)),[],1),'omitnan');
+            pts = reshape(DEM_ZX(IDXL(ii):IDXR(ii),...
+                                 IDXB(ii):IDXT(ii)),[],1);
+            bx(ii) = sqrt(mean(pts.^2,'omitnan'));
+            pts = reshape(DEM_ZY(IDXL(ii):IDXR(ii),...
+                                 IDXB(ii):IDXT(ii)),[],1);
+            by(ii) = sqrt(mean(pts.^2,'omitnan'));
         end
-        if strcmp(NaNs,'fill')
+        if nanfill
             % Try and fill in the NaNs
             if ~isempty(find(isnan(bx),1))
                 localcoord = obj.p(K,:);
