@@ -652,9 +652,15 @@ classdef msh
                     userval = obj.f13.userval.Atr(ii).Val;
                     values = userval(2,:);
                     figure;
-                    fastscatter(obj.p(:,1),obj.p(:,2),defval(1)*ones(length(obj.p),1));
-                    hold on
-                    fastscatter(obj.p(userval(1,:),1),obj.p(userval(1,:),2),values');
+                    if proj
+                        m_fastscatter(obj.p(:,1),obj.p(:,2),defval(1)*ones(length(obj.p),1));
+                        hold on
+                        m_fastscatter(obj.p(userval(1,:),1),obj.p(userval(1,:),2),values');
+                    else
+                        fastscatter(obj.p(:,1),obj.p(:,2),defval(1)*ones(length(obj.p),1));
+                        hold on
+                        fastscatter(obj.p(userval(1,:),1),obj.p(userval(1,:),2),values');
+                    end
                     colormap(cmocean('deep'));
                     colorbar;
                 case('transect')
@@ -705,7 +711,11 @@ classdef msh
                         % just take the inf norm
                         values = max(values,[],2);
                         figure;
-                        fastscatter(obj.p(:,1),obj.p(:,2),values);
+                        if proj
+                            m_fastscatter(obj.p(:,1),obj.p(:,2),values);
+                        else
+                            fastscatter(obj.p(:,1),obj.p(:,2),values);
+                        end
                         nouq = length(unique(values));
                         colormap(lansey(nouq));
                         colorbar;
@@ -984,8 +994,8 @@ classdef msh
                 end
             end
             
-            % "fix" mesh
-            [obj.p,obj.t] = fixmesh(obj.p,obj.t);
+            % "fix" mesh and carry
+            obj = fixmeshandcarry(obj);
             
             LT = size(obj.t,1);
             
@@ -1002,7 +1012,7 @@ classdef msh
                     % Delete those boundary elements with quality < opt.db
                     if min(tqbou) >= opt.db; break; end
                     obj.t(bele(tqbou < opt.db),:) = [];
-                    [obj.p,obj.t] = fixmesh(obj.p,obj.t);
+                    obj = fixmeshandcarry(obj);
                 end
                 if opt.nscreen
                     disp(['Deleted ' num2str(LT-size(obj.t,1)) ...
@@ -2024,6 +2034,7 @@ classdef msh
         end
      
         function obj = cat(obj,obj1)
+            % obj = cat(obj,obj1)
             % cat two non-overlapping meshes
             pin = obj1.p; tin = obj1.t;
             [~,d] = ourKNNsearch(pin',pin',2);
@@ -2037,6 +2048,42 @@ classdef msh
             obj.t = [obj.t; tin];
             [obj.p, obj.t] = fixmesh(obj.p,obj.t);
         end
+     
+        function obj = trim(obj,threshold)
+            % obj = trim(obj,threshold)
+            % trim a mesh excluding elevations above the threshold
+            % (given threshold should be positive for overland)
+            if isempty(obj.b) || all(obj.b == 0)
+                error('need bathy on mesh')
+            end
+            bem = max(obj.b(obj.t),[],2);   % only trim when all vertices
+            obj.t(bem < -threshold,:) = []; % of element are above the threshold. 
+            obj = fixmeshandcarry(obj);
+        end
+        
+        function obj = fixmeshandcarry(obj)
+            % obj = fixmeshandcarry(obj);
+            % "fixes" mesh and carries b, bx, by, f13 dat over
+            [obj.p,obj.t,pix] = fixmesh(obj.p,obj.t); 
+            % move over b, slp, f13
+            if ~isempty(obj.b)
+                obj.b = obj.b(pix); 
+            end
+            if ~isempty(obj.bx)
+                obj.bx = obj.bx(pix); obj.by = obj.by(pix); 
+            end
+            if ~isempty(obj.f13)
+                for ii = 1:obj.f13.nAttr
+                    ind = obj.f13.userval.Atr(ii).Val(1,:);  
+                    val = obj.f13.userval.Atr(ii).Val(2:end,:);
+                    [~,ia,ib] = intersect(pix,ind);
+                    va = val(:,ib);
+                    obj.f13.userval.Atr(ii).Val = [ia'; va];
+                    obj.f13.userval.Atr(ii).usernumnodes = length(ia);
+                end
+            end
+        end
+            
         
         function obj = CheckElementOrder(obj,proj)
             if nargin == 1
