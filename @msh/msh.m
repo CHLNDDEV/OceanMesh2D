@@ -2491,10 +2491,16 @@ classdef msh
                 % Courant bound
                 ptemp = obj.p; ttemp = obj.t;
                 [vtoe,nne]=VertToEle(ttemp);
-                badTrias = vtoe(bad,nne);
+                badTrias = vtoe(:,bad);
+                badTrias(badTrias==0)=[]; 
+                badTrias=unique(badTrias);
                 edges = [ttemp(:,[1,2]); ttemp(:,[1,3]); ttemp(:,[2,3])];
                 edges = unique(sort(edges,2),'rows');
-                [pnew,~,tnew] = tridiv2(ptemp,edges,ttemp,badTrias);
+                yesrefine = false(length(ttemp),1);
+                yesrefine(badTrias,:)=true;
+                tnum=ones(length(ttemp),1);
+                [pnew,~,tnew] = tridiv2(ptemp,edges,ttemp,tnum,yesrefine);
+                obj.p = pnew; obj.t = tnew;
             end
             
             
