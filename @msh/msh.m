@@ -471,7 +471,7 @@ classdef msh
                         end
                         view(2);
                     end
-                    cmocean('thermal',numticks(1)); cb = colorbar;
+                    cmocean('thermal',numticks(1)-1); cb = colorbar;
                     if logaxis
                         if length(numticks) == 3
                             desiredTicks = round(10.^(linspace(...
@@ -490,7 +490,7 @@ classdef msh
                     elseif length(numticks) == 3
                         caxis([numticks(2) numticks(3)]);
                     end
-                    ylabel(cb,'element circumradius [m]','fontsize',15);
+                    ylabel(cb,'element circumradius [m]','fontsize',12);
                     title('mesh resolution');
                 case('resodx')
                     TR = triangulation(obj.t,obj.p(:,1),obj.p(:,2));
@@ -632,7 +632,7 @@ classdef msh
             end
             if proj == 1
                 % now add the box
-                m_grid('FontSize',16); %'box','none') %,'FontSize',12);
+                m_grid('FontSize',12); %'box','none') %,'FontSize',12);
             end
         end
         

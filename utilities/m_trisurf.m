@@ -11,6 +11,11 @@ if isempty(MAP_PROJECTION)
     return;
 end
 
+[Xp,Yp] = m_ll2xy(long,lat,'clip','patch'); 
 [X,Y] = m_ll2xy(long,lat,'clip','point');
-hold on; h = trisurf(tri,X,Y,z,'facecolor', 'interp', 'edgecolor', 'none');
+tx = X(tri); ty = Y(tri);
+I = (isnan(tx(:,1)) | isnan(ty(:,1))) & ...
+    (isnan(tx(:,2)) | isnan(ty(:,2))) & ...
+    (isnan(tx(:,3)) | isnan(ty(:,3)));
+hold on; h = trisurf(tri(~I,:),Xp,Yp,z,'facecolor', 'interp', 'edgecolor', 'none');
 end
