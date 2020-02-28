@@ -2269,7 +2269,7 @@ classdef msh
         end
         
         function obj = BoundCr(obj,dt,cr_max,cr_min,varargin)
-            % obj = BoundCourant(obj,dt,cr_min_cr_max,vargin)
+            % obj = BoundCr(obj,dt,cr_max,cr_min,varargin)
             % Decimate/refine a mesh to achieve Cr max/min bounds for
             % optimal numerical performance.
             %
@@ -2279,8 +2279,10 @@ classdef msh
             %
             %                       INPUTS
             % dt is the desired timestep to run the simulation (in seconds)
-            % cr_min is the desired minimum Courant number
-            % cr_max is the desired maximum Courant number
+            % cr_max is the desired maximum Courant number (optional,
+            % default is 0.5). Set to zero to skip.
+            % cr_min is the desired minimum Courant number (optional,
+            % default is 0). Set to zero to skip.
             % varargin(1) is maximum number of iterations (maxIT) to attempt bound.
             % by default this is 10.
             %
@@ -2303,7 +2305,12 @@ classdef msh
                 error('Please supply correct input args...See help printout above');
             end
             
-            % cr_max has been supplied
+            % no cr_max, use default
+            if nargin < 3
+               cr_max = 0.5;
+            end
+            
+            % no cr_min supplied
             if nargin < 4
                 cr_min = 0;
             end
@@ -2314,6 +2321,8 @@ classdef msh
             else
                 maxIT = 10;
             end
+            
+            disp(['Desired time step is ' num2str(dt) ' s'])
             
             %% Deal with any projection information for accurate bar
             % length calculations.
@@ -2347,9 +2356,9 @@ classdef msh
             obj.bx = []; obj.by = []; obj.f13 = [];
             obj.bd = []; obj.op = [];
             
-            %% Delete maximum Cr violations
-            if cr_max ~= 0 % if cr_max is set to 0 this is skipped
-                disp('Editing the mesh to bound max. Courant number...')
+            % OPTIONALLY BOUND THE MAXIMUM COURANT NUMBER BY DELETING
+            if cr_max > eps % if cr_max is set to 0 this is skipped
+                disp(['Editing the mesh to bound max. Courant number to ' num2str(cr_max)])
                 it  = 0; % iteration counter
                 
                 if ~isempty(obj.pfix)
@@ -2366,7 +2375,7 @@ classdef msh
                     [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2));
                     bad = real(Cr) > cr_max;
                     
-                    display(['Number of maximum Cr bound  violations ',num2str(sum(bad))]);
+                    display(['Number of maximum Cr bound violations ',num2str(sum(bad))]);
                     disp(['Max Cr is : ',num2str(max(real(Cr)))]);
                     if it == maxIT,   break; end
                     badnum = sum(bad);
@@ -2379,43 +2388,44 @@ classdef msh
                     obj.b = []; % (the bathy will cause error in renum)
                     obj = clean(obj,'passive','proj',0,'pfix',pf,'con',con);
                     obj.b = F(obj.p(:,1),obj.p(:,2));
+                    badnump = badnum;
                 end
                 toc
                 disp(['Achieved max Cr of ',num2str(max(real(Cr))),...
                     ' after ',num2str(it),' iterations.']);
-                
-                % OPTINALLY BOUND THE MINIMUM COURANT NUMBER BY REFINING
-                if cr_min > eps
-                    disp('Bounding the mesh to support the min. Courant number...');
-                    it  = 0; % iteration counter
-                    
-                    if ~isempty(obj.pfix)
-                        [pf(:,1),pf(:,2)] = m_ll2xy(obj.pfix(:,1),obj.pfix(:,2));
-                    else
-                        pf = [];
-                    end
-                    
-                    tic
-                    while 1
-                        [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
-                        Cr = CalcCFL(obj,dt,type);
-                        [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2));
-                        bad = real(Cr) < cr_min;
-                        
-                        display(['Number of minimum Cr bound  violations ',num2str(sum(bad))]);
-                        disp(['Min. Cr is : ',num2str(min(real(Cr)))]);
-                        if it == maxIT,   break; end
-                        badnum = sum(bad);
-                        if badnum == 0; break; end
-                        it = it + 1;
-                        
-                        % refine select elements using an octree approach
-                        obj = RefineTrias(obj,bad);
-                        
-                        % put bathy back on
-                        obj.b = F(obj.p(:,1),obj.p(:,2));
-                        
-                    end
+            end
+            
+            % OPTIONALLY BOUND THE MINIMUM COURANT NUMBER BY REFINING
+            if cr_min > eps %if cr_min is set to 0 this is skipped
+                disp(['Editing the mesh to bound min. Courant number to ' num2str(cr_min)])
+                it  = 0; % iteration counter
+
+                if ~isempty(obj.pfix)
+                    [pf(:,1),pf(:,2)] = m_ll2xy(obj.pfix(:,1),obj.pfix(:,2));
+                else
+                    pf = [];
+                end
+
+                tic
+                while 1
+                    [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
+                    Cr = CalcCFL(obj,dt,type);
+                    [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2));
+                    bad = real(Cr) < cr_min;
+
+                    display(['Number of minimum Cr bound violations ',num2str(sum(bad))]);
+                    disp(['Min. Cr is : ',num2str(min(real(Cr)))]);
+                    if it == maxIT,   break; end
+                    badnum = sum(bad);
+                    if badnum == 0; break; end
+                    it = it + 1;
+
+                    % refine select elements using an octree approach
+                    obj = RefineTrias(obj,bad);
+
+                    % put bathy back on
+                    obj.b = F(obj.p(:,1),obj.p(:,2));
+
                 end
             end
             
@@ -2511,7 +2521,9 @@ classdef msh
             % obj = CheckTimestep(obj,dt,varargin)
             % varargin(1) is desired CFL (< 1) or maximum iterations (> 1)
             % varargin(2) is desired dj_cutoff
-            %% Decimate mesh to achieve CFL condition for stability.
+            % 
+            % Decimate mesh to achieve CFL condition for stability.
+            % 
             % Takes a mesh and removes triangles and nodes to produce a mesh
             % that satisfies the given timestep requirements of the user by
             % incrementally modifying the triangulation nearby each edge
@@ -2520,6 +2532,8 @@ classdef msh
             % kjr, chl, und, 2018 <--updated for projected spaces
             % wjp, chl, und, 2019 <--updates to carry over slopes and
             % using the msh clean, and CFL calc type option
+            
+            warning('This function is not recommended. Use "BoundCr" instead')
             
             type       = 0;       %<-- 0 == Haversine, 1 == CPP with correction factor
             desCFL     = 0.50;    %<-- set desired cfl (generally less than 0.80 for stable).
