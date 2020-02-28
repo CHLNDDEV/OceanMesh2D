@@ -152,7 +152,7 @@ attrname = 'internal_tide_friction';
 % Default Values
 obj.f13.defval.Atr(NA).AttrName = attrname;  
 % We can just put in the options here
-obj.f13.defval.Atr(NA).Unit = strcat(type,', C_it = ',num2str(C_it),...
+obj.f13.defval.Atr(NA).Unit = strcat(type,', C_it = ',num2str(C_it*4*pi),...
                                ', ',num2str(crit),', D',num2str(MinDepth)); 
 if isempty(N_filename)
     % We want to just give it the gradients of bathy (and J for the tensor)
