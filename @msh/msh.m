@@ -1923,28 +1923,20 @@ classdef msh
                 end
 
                 merge = msh() ; merge.p = pm; merge.t = tm ;
-                clear pm tm pmid p1 t1 p2 t2
 
-                % This step does some mesh smoothing around the intersection
-                % of the meshes. 
-                l = cellfun(@length,cell1); 
-                [~,s] = sort(l,'descend'); cell1 = cell1(s);
-                % just do for largest 10 polygons
-                in = false(size(merge.p,1),1);
-                for ii = 1:min(length(cell1),10)
-                    k = boundary(cell1{ii}(1:end-1,1),cell1{ii}(1:end-1,2));
-                    xout = cell1{ii}(k,1); yout = cell1{ii}(k,2);
-                    [xe,ye] = enlargePoly(xout,yout,1.35);
-                    int = inpoly(merge.p,[xe,ye]);
-                    in(int) = true;
-                end
-                
                 if ~isempty(cleanargin)
-                    locked = [merge.p(~in,:); pfixx];
+                    % lock anything vertices more than 2*dmax away 
+                    % from intersection 
+                    [~,dst] = ourKNNsearch(p1',p1',2); 
+                    dmax = max(dst(:,2));
+                    [~,dst1] = ourKNNsearch(p1',merge.p',1);   
+                    [~,dst2] = ourKNNsearch(p2',merge.p',1);
+                    locked = [merge.p(dst1 > 2*dmax | dst2 > 2*dmax,:); pfixx];
                     cleanargin{end} = locked;
                     % iteration is done in clean if smoothing creates neg quality
                     merge = clean(merge,cleanargin);
                 end
+                clear pm tm pmid p1 t1 p2 t2
                 
                 merge.pfix  = pfixx ;
                 % edges don't move but they are no longer valid after merger
@@ -2227,6 +2219,7 @@ classdef msh
             end
             bars = [obj.t(:,[1,2]); obj.t(:,[1,3]); obj.t(:,[2,3])]; % Interior bars duplicated
             bars = unique(sort(bars,2),'rows');                      % Bars as node pairs
+            if nargout == 1; return; end
             if type == 0
                 % Compute based on Haversine spherical earth distances
                 long   = zeros(length(bars)*2,1);

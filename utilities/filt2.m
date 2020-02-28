@@ -82,9 +82,9 @@ function Zf = filt2(Z,res,lambda,filtertype)
 narginchk(4,4) 
 % assert(license('test','image_toolbox')==1,'Error: I''m sorry, the filt2 function requires the Image Processing Toolbox.') 
 assert(ismatrix(Z)==1,'Input error: Z must be a 2d matrix.')
-assert(isscalar(res)==1,'Input error: res must be a scalar value.') 
+%assert(isscalar(res)==1,'Input error: res must be a scalar value.') 
 assert(ismember(lower(filtertype),{'lp','hp','bp','bs'}),'Input error: filtertype must be ''hp'', ''lp'', ''bp'', or ''bs''.') 
-if lambda<=(2*res) 
+if lambda<=(2*max(res)) 
    warning('Nyquist says the wavelength should exceed two times the resolution of the dataset, which is an unmet condition based on these inputs. I''ll give you some numbers, but I would''t trust ''em if I were you.') 
 end
 
@@ -97,11 +97,11 @@ end
 %% Design filter: 
 
 % 2*pi*sigma is the wavelength at which the amplitude is multiplied by a factor of about 0.6 (more exactly, exp(-0.5))
-sigma = (lambda(1)/res) /(2*pi); 
+sigma = (lambda(1)./res) /(2*pi); 
 %f = fspecial('gaussian',2*ceil(2.6*sigma)+1,sigma);
 % WJP implementation without image processing toolbox, subfunc at bottom of
 % this function
-f = gaussian2D([2*ceil(2.6*sigma)+1 2*ceil(2.6*sigma)+1], sigma);
+f = gaussian2D([2*ceil(2.6*sigma(1))+1 2*ceil(2.6*sigma(end))+1], sigma);
 
 %% Now filter the data
 
@@ -619,8 +619,17 @@ function h = gaussian2D(siz, std)
     siz = (siz-1)./2;
     [x,y] = meshgrid(-siz(2):siz(2),-siz(1):siz(1));
 
+    
+    std = max(std);
+    sr = siz(2)/siz(1);
+    if sr > 1
+        sy = sr^2; sx = 1;
+    else
+        sx = sr^2; sy = 1;
+    end
+    
     % analytic function
-    h = exp(-(x.*x + y.*y)/(2*std*std));
+    h = exp(-(sx*x.*x + sy*y.*y)/(2*std*std));
 
     % truncate very small values to zero
     h(h<eps*max(h(:))) = 0;
