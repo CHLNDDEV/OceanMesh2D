@@ -1059,6 +1059,7 @@ classdef msh
             if mq_l < opt.mqa && (opt.ds || LT ~= LTn)
                 % Need to clean it again
                 disp('Poor or overlapping elements, cleaning again')
+                disp(['(Min Qual = ' num2str(mq_l) ')'])
                 % repeat without projecting (already projected)
                 ii = find(strcmp(varargino,'proj'));
                 if ~isempty(ii)
