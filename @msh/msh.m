@@ -1856,7 +1856,6 @@ classdef msh
                         error('Mesh 2 is invalid. Please execute msh.clean on object');
                     end
                     
-                    
                     disp('Forming outer boundary for inset...')
                     try
                         [cell1] = extdom_polygon(extdom_edges2(t1,p1),p1,-1,0);
@@ -1907,31 +1906,31 @@ classdef msh
                             nn = setdiff(I',[bdx; bdnodes]);
                             DTbase.Points(unique(nn),:) = [];
                         end
-
+                        
                         pm = DTbase.Points; tm = DTbase.ConnectivityList;
-
+                        
                         pmid = (pm(tm(:,1),:)+pm(tm(:,2),:)+pm(tm(:,3),:))/3;
-
+                        
                         %in1 is inside the inset boundary polygon
                         in1 = inpoly(pmid,poly_vec1,edges1);
-
+                        
                         %in2 is inside the global boundary polygon
-                      in2 = inpoly(pmid,poly_vec2,edges2);
-
-                       % remove triangles that aren't in the global mesh or 
-                       % aren't in the inset mesh
-                       del = (~in1 & ~in2);
-                       tm(del,:) = [];
+                        in2 = inpoly(pmid,poly_vec2,edges2);
+                        
+                        % remove triangles that aren't in the global mesh or
+                        % aren't in the inset mesh
+                        del = (~in1 & ~in2);
+                        tm(del,:) = [];
                     end
-
+                    
                     merge = msh() ; merge.p = pm; merge.t = tm ;
-
+                    
                     if ~isempty(cleanargin)
-                        % lock anything vertices more than 2*dmax away 
-                        % from intersection 
-                        [~,dst] = ourKNNsearch(p1',p1',2); 
+                        % lock anything vertices more than 2*dmax away
+                        % from intersection
+                        [~,dst] = ourKNNsearch(p1',p1',2);
                         dmax = max(dst(:,2));
-                        [~,dst1] = ourKNNsearch(p1',merge.p',1);   
+                        [~,dst1] = ourKNNsearch(p1',merge.p',1);
                         [~,dst2] = ourKNNsearch(p2',merge.p',1);
                         locked = [merge.p(dst1 > 2*dmax | dst2 > 2*dmax,:); pfixx];
                         cleanargin{end} = locked;
@@ -1939,29 +1938,29 @@ classdef msh
                         merge = clean(merge,cleanargin);
                     end
                     clear pm tm pmid p1 t1 p2 t2
-
+                    
                     merge.pfix  = pfixx ;
                     % edges don't move but they are no longer valid after merger
                     merge.egfix = [];
-
+                    
                     % put the weirs from obj1 back into merge
                     if ~isempty(obj1.bd) && any(obj1.bd.ibtype == 24)
                         disp('Putting the weirs from obj1 back into merged mesh')
                         wm = msh(); wm.p = pwin1; wm.t = twin1;
-                        merge = cat(merge,wm);               
+                        merge = cat(merge,wm);
                     end
-
-                     % put the weirs from obj2 back into merge
+                    
+                    % put the weirs from obj2 back into merge
                     if ~isempty(obj2.bd) && any(obj2.bd.ibtype == 24)
                         disp('Putting the weirs from obj2 back into merged mesh')
                         wm = msh(); wm.p = pwin2; wm.t = twin2;
-                        merge = cat(merge,wm); 
+                        merge = cat(merge,wm);
                     end
-
+                    
                     % convert back to lat-lon wgs84
                     [merge.p(:,1),merge.p(:,2)] = ...
                         m_xy2ll(merge.p(:,1),merge.p(:,2));
-
+                    
                     if nfix > 0
                         [merge.pfix(:,1),merge.pfix(:,2)] = ...
                             m_xy2ll(pfixx(:,1),pfixx(:,2));
