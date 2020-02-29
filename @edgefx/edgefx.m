@@ -804,7 +804,7 @@ classdef edgefx
             end
             
             % Make sure this is called before releasing memory...
-            if obj.dt == 0
+            if obj.dt(1) == 0
                 % Find min allowable dt based on dis or fs function
                 if any(~cellfun('isempty',strfind(obj.used,'dis')))
                     hh_d = obj.hhd;
@@ -870,30 +870,77 @@ classdef edgefx
             end
             
             % Limit CFL if dt >= 0, dt = 0 finds dt automatically.
-            if obj.dt >= 0
-                if isempty(feat.Fb); error('No DEM supplied Can''t CFL limit.'); end
-                tmpz    = feat.Fb(xg,yg);
-                grav = 9.807; descfl = 0.50;
-                % limit the minimum depth to 1 m
-                tmpz(tmpz > - 1) = -1;
-                % wavespeed in ocean (second term represents orbital
+            if obj.dt(1) >= 0
+                if isempty(feat.Fb)
+                    error('No DEM supplied Can''t CFL limit.')
+                end
+                % Estimate wavespeed in ocean (second term represents orbital
                 % velocity at 0 degree phase for 1-m amp. wave).
+                tmpz    = feat.Fb(xg,yg);
+                grav = 9.807;
+                % Limit the minimum depth to 1 m (ignore overland)
+                tmpz(tmpz > - 1) = -1;
                 u = sqrt(grav*abs(tmpz)) + sqrt(grav./abs(tmpz));
-                if obj.dt == 0
-                    hh_d(hh_d < obj.h0) = obj.h0;
-                    obj.dt = min(min(descfl*hh_d./u));
+                
+                % Desired timestep to bound edgefx
+                desDt = obj.dt(1);
+                if isnan(desDt)
+                    disp('No timestep enforcement due to no distance function')
                 end
-                if isnan(obj.dt)
-                    disp('No timestep enforcement due to no distance function') 
+                
+                % Determine Courant min. and max. bounds  
+                if length(obj.dt) < 2
+                    % default behavior if no bounds are passed
+                    % for explicit type schemes we ensure the maxCr is
+                    % bounded
+                    minCr = eps; % Cannot be zero!!!
+                    maxCr = 0.5;
+                elseif length(obj.dt) == 2
+                    % minimum Courant number bound 
+                    minCr = obj.dt(2); 
+                    maxCr = inf; 
+                elseif length(obj.dt) == 3 
+                    % minimum and maximum Courant bound
+                    minCr = obj.dt(2);
+                    maxCr = obj.dt(3);
                 else
-                    disp(['Enforcing timestep of ',num2str(obj.dt),' seconds.']);
-                    cfl = (obj.dt*u)./hh_m; % this is your cfl
-                    dxn = u*obj.dt/descfl;      % assume simulation time step of dt sec and cfl of dcfl;
-                    hh_m( cfl > descfl) = dxn( cfl > descfl);   %--in planar metres
-                    clear cfl dxn
+                    error('Length of dt name-value pair should be <=3')
                 end
-                clear u hh_d
+                
+                if minCr > maxCr
+                    error('MinCr is > MaxCr, please switch order in dt name value call')
+                end
+                
+                % Enforcement of Courant bounds in mesh size function
+                fprintf(1, [ ...
+                    'Enforcing timestep of ',num2str(desDt),' seconds ', ...
+                    'with Courant number bounds of ',num2str(minCr),' to ',num2str(maxCr),'\n', ...
+                    ] ) ;
+                
+                % Automatic timestep selection option (for ADCIRC models)
+                if desDt == 0
+                    hh_d(hh_d < obj.h0) = obj.h0;
+                    obj.dt = min(min(minCr*hh_d./u));
+                    desDt  = obj.dt;
+                end
+                
+                Cr = (desDt*u)./hh_m; % Courant number for given desDt for mesh size variations
+                
+                % resolution that meets max. Cr. criteria for desDt
+                dxn_min = u*desDt/maxCr;
+                % resolution that meets min. Cr. criteria for desDt
+                dxn_max = u*desDt/minCr;
+                
+                % resolve min. Cr violations
+                hh_m( Cr <= minCr) = dxn_max( Cr <= minCr); %--in planar metres
+                
+                % resolve max. Cr violations
+                hh_m( Cr > maxCr) = dxn_min( Cr > maxCr);   %--in planar metres
+                
+                clear dxn_min dxn_max Cr
+                clear u hh_d tmpz
             end
+
             
             obj.F = griddedInterpolant(xg,yg,hh_m,'linear','nearest');
             
