@@ -51,7 +51,18 @@ classdef geodata
             % Class constructor to parse NetCDF DEM data, NaN-delimited vector,
             % or shapefile that defines polygonal boundary of meshing
             % domain.
-
+            % options
+            %addOptional(p,'bbox',defval);
+            %addOptional(p,'shp',defval);
+            %addOptional(p,'h0',defval);
+            %addOptional(p,'dem',defval);
+            %addOptional(p,'backupdem',defval);
+            %addOptional(p,'fp',defval);
+            %addOptional(p,'weirs',defval);
+            %addOptional(p,'pslg',defval);
+            %addOptional(p,'boubox',defval);
+            %addOptional(p,'window',defval);
+            
             % Check for m_map dir
             M_MAP_EXISTS=0 ;
             if exist('m_proj','file')==2

@@ -25,8 +25,7 @@ if keep_inverse == 0
 else
     t(in,:) = [];
 end
-[p1,t] = fixmesh(p,t);
-[~,~,ind] =  intersect(p1,p,'rows','stable');
+[p1,t,ind] = fixmesh(p,t);
 obj.p = p1; obj.t = t;  
 if ~isempty(obj.b)
     obj.b = obj.b(ind); 

@@ -466,92 +466,80 @@ classdef edgefx
             if filtit == 1
                 tic
                 bs = NaN([obj.nx,obj.ny]);
-                div = 1e4; grav = 9.807;
-                nb = ceil([obj.nx,obj.ny]/div); n1s = 1;
-                for ii = 1:nb(1)
-                    n1e = min(obj.nx,n1s + div - 1); n2s = 1;
-                    for jj = 1:nb(2)
-                        n2e = min(obj.ny,n2s + div - 1);
-                        % Rossby radius of deformation filter
-                        % See Shelton, D. B., et al. (1998): Geographical variability of the first-baroclinic Rossby radius of deformation. J. Phys. Oceanogr., 28, 433-460.
-                        ygg = yg(n1s:n1e,n2s:n2e);
-                        f = 2*7.29e-5*abs(sind(ygg));
-                        if barot
-                            % barotropic case
-                            c = sqrt(grav*max(1,-tmpz(n1s:n1e,n2s:n2e)));
-                        else
-                            % baroclinic case (estimate Nm to be 2.5e-3)
-                            Nm = 2.5e-3;
-                            c = Nm*max(1,-tmpz(n1s:n1e,n2s:n2e))/pi;
-                        end
-                        rosb = c./f;
-                        clear f;
-                        % update for equatorial regions
-                        I = abs(ygg) < 5; Re = 6371e3;
-                        twobeta = 4*7.29e-5*cosd(ygg(I))/Re;
-                        rosb(I) = sqrt(c(I)./twobeta);
-                        clear twobeta
-                        % limit rossby radius to 10,000 km for practical purposes
-                        rosb(rosb > 1e7) = 1e7;
-                        % Keep lengthscales rbfilt * barotropic
-                        % radius of deformation
-                        rosb = min(10,max(0,floor(log2(rosb/dy/rbfilt))));
-                        edges = double(unique(rosb(:)));
-                        bst = rosb*0;
-                        for i = 1:length(edges)
-                            if edges(i) > 0
-                                mult = 2^edges(i);
-                                xl = max(1,n1s-mult/2);
-                                xu = min(obj.nx,n1e+mult/2);
-                                if (max(xg(:)) > 179 && min(xg(:)) < -179) || ...
-                                        (max(xg(:)) > 359 && min(xg(:)) < 1)
-                                    % wraps around
-                                    if xu == obj.nx && xl == 1
-                                        xr = [obj.nx-mult/2+1:1:obj.nx xl:xu ...
-                                            1:mult/2+n1e-obj.nx];
-                                    elseif xl == 1
-                                        % go to otherside
-                                        xr = [obj.nx-mult/2+1:1:obj.nx xl:xu];
-                                    elseif xu == obj.nx
-                                        % go to otherside
-                                        xr = [xl:xu 1:mult/2+n1e-obj.nx];
-                                    else
-                                        xr = xl:xu;
-                                    end
-                                else
-                                    xr = xl:xu;
-                                end
-                                yl = max(1,n2s-mult/2);
-                                yu = min(obj.ny,n2e+mult/2);
-                                if max(yg(:)) > 89 && yu == obj.ny
-                                    % create mirror around pole
-                                    yr = [yl:yu yu-1:-1:2*obj.ny-n2e-mult/2];
-                                else
-                                    yr = yl:yu;
-                                end
-                                if mult == 2
-                                    tmpz_ft = filt2(tmpz(xr,yr),dy,...
-                                        dy*2.01,'lp');
-                                else
-                                    tmpz_ft = filt2(tmpz(xr,yr),...
-                                        dy,dy*mult,'lp');
-                                end
-                                % delete the padded region
-                                tmpz_ft(1:find(xr == n1s)-1,:) = [];
-                                tmpz_ft(n1e-n1s+2:end,:) = [];
-                                tmpz_ft(:,1:find(yr == n2s)-1) = [];
-                                tmpz_ft(:,n2e-n2s+2:end) = [];
-                            else
-                                tmpz_ft = tmpz(n1s:n1e,n2s:n2e);
-                            end
-                            [by,bx] = EarthGradient(tmpz_ft,dy,dx(n2s:n2e)); % get slope in x and y directions
-                            tempbs  = sqrt(bx.^2 + by.^2);          % get overall slope
-                            bst(rosb == edges(i)) = tempbs(rosb == edges(i));
-                        end
-                        bs(n1s:n1e,n2s:n2e) = bst;
-                        n2s = n2e + 1;
+                % break into 10 deg latitude chunks, or less if higher res
+                div = ceil(min(1e7/obj.nx,10*obj.ny/(max(yg(:))-min(yg(:))))); 
+                grav = 9.807;
+                nb = ceil(obj.ny/div);
+                n2s = 1;
+                for jj = 1:nb
+                    n2e = min(obj.ny,n2s + div - 1);
+                    % Rossby radius of deformation filter
+                    % See Shelton, D. B., et al. (1998): Geographical variability of the first-baroclinic Rossby radius of deformation. J. Phys. Oceanogr., 28, 433-460.
+                    ygg = yg(:,n2s:n2e);
+                    dxx = mean(dx(n2s:n2e));
+                    f = 2*7.29e-5*abs(sind(ygg));
+                    if barot
+                        % barotropic case
+                        c = sqrt(grav*max(1,-tmpz(:,n2s:n2e)));
+                    else
+                        % baroclinic case (estimate Nm to be 2.5e-3)
+                        Nm = 2.5e-3;
+                        c = Nm*max(1,-tmpz(:,n2s:n2e))/pi;
                     end
-                    n1s = n1e + 1;
+                    rosb = c./f;
+                    clear f;
+                    % update for equatorial regions
+                    I = abs(ygg) < 5; Re = 6371e3;
+                    twobeta = 4*7.29e-5*cosd(ygg(I))/Re;
+                    rosb(I) = sqrt(c(I)./twobeta);
+                    clear twobeta
+                    % limit rossby radius to 10,000 km for practical purposes
+                    rosb(rosb > 1e7) = 1e7;
+                    % Keep lengthscales rbfilt * barotropic
+                    % radius of deformation
+                    rosb = min(10,max(0,floor(log2(rosb/dy/rbfilt))));
+                    edges = double(unique(rosb(:)));
+                    bst = rosb*0;
+                    for i = 1:length(edges)
+                        if edges(i) > 0
+                            mult = 2^edges(i);
+                            xl = 1; xu = obj.nx;
+                            if (max(xg(:)) > 179 && min(xg(:)) < -179) || ...
+                                    (max(xg(:)) > 359 && min(xg(:)) < 1)
+                                % wraps around
+                                xr = [obj.nx-mult/2+1:1:obj.nx xl:xu 1:mult/2];
+                            else
+                                xr = xl:xu;
+                            end
+                            yl = max(1,n2s-mult/2);
+                            yu = min(obj.ny,n2e+mult/2);
+                            if max(yg(:)) > 89 && yu == obj.ny
+                                % create mirror around pole
+                                yr = [yl:yu yu-1:-1:2*obj.ny-n2e-mult/2];
+                            else
+                                yr = yl:yu;
+                            end
+                            if mult == 2
+                                tmpz_ft = filt2(tmpz(xr,yr),...
+                                           [dxx dy],dy*2.01,'lp');
+                            else
+                                tmpz_ft = filt2(tmpz(xr,yr),...
+                                           [dxx dy],dy*mult,'lp');
+                            end
+                            % delete the padded region
+                            tmpz_ft(1:find(xr == 1,1,'first')-1,:) = [];
+                            tmpz_ft(obj.nx+1:end,:) = [];
+                            tmpz_ft(:,1:find(yr == n2s,1,'first')-1) = [];
+                            tmpz_ft(:,n2e-n2s+2:end) = [];
+                        else
+                            tmpz_ft = tmpz(:,n2s:n2e);
+                        end
+                        [by,bx] = EarthGradient(tmpz_ft,dy,dx(n2s:n2e)); % get slope in x and y directions
+                        tempbs  = sqrt(bx.^2 + by.^2);          % get overall slope
+                        bst(rosb == edges(i)) = tempbs(rosb == edges(i));
+                    end
+                    bs(:,n2s:n2e) = bst;
+                    n2s = n2e + 1;
                 end
                 toc
                 % legacy filter
