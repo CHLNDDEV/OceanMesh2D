@@ -43,7 +43,7 @@ Crnew = CalcCFL(m,50);
 if(sum(Crnew < 6) < 50)
     error(['Unable to bound maximum Courant number. Got ',...
         num2str(max(Crnew)),' expecting < 6.0']);
-    %exit(1)
+    exit(1)
 else
     disp(['Unable to bound maximum Courant number. Got ',...
         num2str(max(Crnew)),' expecting < 6.0']);
@@ -51,7 +51,7 @@ end
 if(sum(Crnew > 0.5) < 50)
     error(['Bounded minimum Courant number. Got ',...
         num2str(min(Crnew))]);
-    %exit(1)
+    exit(1)
 else
     disp(['Bounded maximum Courant number. Got ',...
         num2str(max(Crnew))]);
