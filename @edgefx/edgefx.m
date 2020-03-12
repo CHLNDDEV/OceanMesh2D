@@ -1,10 +1,29 @@
-
 classdef edgefx
     %   EDGEFX: Edgefunction class
     %   Constructs edgefunctions that are based on numerous geomteric and
     %   topographic criteria that guide the spatially variability of elemental
     %   resolution when building a mesh.
     %   Copyright (C) 2018  Keith Roberts & William Pringle
+    %
+    %   The following properties (with default values) are available for input
+    %   to the edgefx method: 
+    %      defval = 0; % placeholder value if arg is not passed.
+    %      addOptional(p,'dis',defval);
+    %      addOptional(p,'fs',defval);
+    %      addOptional(p,'wl',defval);
+    %      addOptional(p,'slp',defval);
+    %      addOptional(p,'ch',defval);
+    %      addOptional(p,'min_el_ch',100);
+    %      addOptional(p,'AngOfRe',60);
+    %      addOptional(p,'max_el',inf);
+    %      addOptional(p,'max_el_ns',inf);
+    %      addOptional(p,'g',0.20);
+    %      addOptional(p,'geodata',defval)
+    %      addOptional(p,'lmsl',defval)
+    %      addOptional(p,'dt',-1);
+    %      addOptional(p,'fl',defval);
+    %      addOptional(p,'Channels',defval);
+    %      addOptional(p,'h0',defval);
     %
     %   This program is free software: you can redistribute it and/or modify
     %   it under the terms of the GNU General Public License as published by

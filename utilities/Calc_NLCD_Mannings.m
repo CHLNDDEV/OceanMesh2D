@@ -47,7 +47,7 @@ default_val = 0.02;
 dmy = msh();  dmy.p = obj.p; dmy.t = obj.t; 
 % Get NCLD values on dummy msh object using nearest neighbour
 obj1 = interp(dmy,NLCD,'interp','nearest','type','depth');
-obj1.b(isnan(obj1.b),:)=11; % <--default value to NaN 
+obj1.b(isnan(obj1.b) | obj1.b == 0,:)=11; % <--default value to NaN 
 % Convert to Mannings
 Man = nlcd_class(abs(obj1.b));
 

@@ -4,6 +4,20 @@ classdef geodata
     %   the form of a shapefile and topobathy in the form of a DEM
     %   Copyright (C) 2018  Keith Roberts & William Pringle
     %
+    %   The following inputs (with default values) are available for the
+    %   geodata method:
+    %     defval = 0; % placeholder value if arg is not passed.
+    %     addOptional(p,'bbox',defval);
+    %     addOptional(p,'shp',defval);
+    %     addOptional(p,'h0',defval);
+    %     addOptional(p,'dem',defval);
+    %     addOptional(p,'backupdem',defval);
+    %     addOptional(p,'fp',defval);
+    %     addOptional(p,'weirs',defval);
+    %     addOptional(p,'pslg',defval);
+    %     addOptional(p,'boubox',defval);
+    %     addOptional(p,'window',defval);
+    %
     %   This program is free software: you can redistribute it and/or modify
     %   it under the terms of the GNU General Public License as published by
     %   the Free Software Foundation, either version 3 of the License, or
