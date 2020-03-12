@@ -200,7 +200,8 @@ classdef msh
             %    f) 'slp'  - plots the bathymetric gradients
             %    g) 'itfric' - plots the internal_tide_friction values
             %    h) 'cfvals' - plots the quadratic bottom friction values
-            %    i) 'xx' -     plots an arbitrary f13 attribute 'xx' by
+            %    i) 'mann'   - plots the manning's n values
+            %    j) 'xx' -     plots an arbitrary f13 attribute 'xx' by
             %                  contains search
             %    additional -->
             %    i)  add 'log' inside type to plot caxis in log space
