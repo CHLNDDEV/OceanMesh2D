@@ -399,6 +399,11 @@ classdef edgefx
             % interpolate DEM's bathy linearly onto our edgefunction grid.
             [xg,yg] = CreateStructGrid(obj);
             tmpz    = feat.Fb(xg,yg);
+            if ~isempty(feat.Fb2)
+               tmpz2 = feat.Fb2(xg,yg); 
+               tmpz(isnan(tmpz)) = tmpz2(isnan(tmpz));
+               clear tmpz2
+            end
             % Initialise wld
             obj.wld = NaN([obj.nx,obj.ny]);
             grav    = 9.807;
@@ -433,6 +438,11 @@ classdef edgefx
             [xg,yg] = CreateStructGrid(obj);
             
             tmpz    = feat.Fb(xg,yg);
+            if ~isempty(feat.Fb2)
+               tmpz2 = feat.Fb2(xg,yg); 
+               tmpz(isnan(tmpz)) = tmpz2(isnan(tmpz));
+               clear tmpz2
+            end
             tmpz(tmpz > 50) = 50; % ensure no larger than 50 m above land
             % use a harvestine assumption
             dx = obj.h0*cosd(min(yg(1,:),85)); % for gradient function
@@ -465,12 +475,12 @@ classdef edgefx
             else
                 filtit = 0;
                 for lambda = obj.fl'
-                    if all(lambda ~= 0)
-                        % do a bandpass filter
-                        tmpz_ft  = filt2(tmpz,dy,lambda,'bp') ;
-                    elseif lambda(2) == 0
+                    if length(lambda) == 1 || lambda(2) == 0
                         % do a low pass filter
                         tmpz_ft  = filt2(tmpz,dy,lambda(1),'lp') ;
+                    elseif all(lambda ~= 0)
+                        % do a bandpass filter
+                        tmpz_ft  = filt2(tmpz,dy,lambda,'bp') ;
                     else
                         % highpass filter not recommended
                         warning(['Highpass filter on bathymetry in slope' ...
@@ -636,7 +646,7 @@ classdef edgefx
                 tempbb{jj} = feat.boubox;
             end
             
-            [xg,yg]=CreateStructGrid(obj);
+            [xg,yg] = CreateStructGrid(obj);
             
             % STEP 2: For each channel point, set the resolution around a
             % neighborhood of points as |h|/ch where ch is non-dim # between 0.5-1.5
@@ -670,7 +680,13 @@ classdef edgefx
                 end
             end
             toc 
-            dp = max(1,-feat.Fb(xg(tidx),yg(tidx)));
+            tmpz = feat.Fb(xg(tidx),yg(tidx));
+            if ~isempty(feat.Fb2)
+               tmpz2 = feat.Fb2(xg(tidx),yg(tidx)); 
+               tmpz(isnan(tmpz)) = tmpz2(isnan(tmpz));
+               clear tmpz2
+            end
+            dp = max(1,-tmpz);
             obj.chd(tidx) = dp/obj.ch;
             obj.chd(obj.chd < obj.min_el_ch) = obj.min_el_ch;
             clearvars Fb pts dp radii tempbb xg yg
@@ -804,6 +820,17 @@ classdef edgefx
                 hh_m(nearshore & hh_m > obj.max_el_ns) = obj.max_el_ns;
             end
             hh_m(hh_m < obj.h0 ) = obj.h0;
+            
+            % Compute tmpz if necessary
+            if length(obj.max_el) > 1 || length(obj.g) > 1 || obj.dt(1) >= 0
+                tmpz    = feat.Fb(xg,yg);
+                if ~isempty(feat.Fb2)
+                   tmpz2 = feat.Fb2(xg,yg); 
+                   tmpz(isnan(tmpz)) = tmpz2(isnan(tmpz));
+                   clear tmpz2
+                end
+            end
+            
             for param = obj.max_el'
                 if numel(param)==1 && param~=0
                     mx   = obj.max_el(1);
@@ -815,8 +842,8 @@ classdef edgefx
                     dp1 = param(2);
                     dp2 = param(3);
                     
-                    limidx = (feat.Fb(xg,yg) < dp1 & ...
-                        feat.Fb(xg,yg) > dp2) & (hh_m > mx | isnan(hh_m));
+                    limidx = (tmpz < dp1 & tmpz > dp2) & ...
+                             (hh_m > mx | isnan(hh_m));
                     
                     hh_m( limidx ) = mx;
                 end
@@ -858,8 +885,7 @@ classdef edgefx
                     dp1  = param(2);
                     dp2  = param(3);
                     
-                    limidx = (feat.Fb(xg,yg) < dp1 & ...
-                        feat.Fb(xg,yg) > dp2) ;
+                    limidx = (tmpz < dp1 & tmpz > dp2) ;
                     
                     dmy( limidx ) = lim;
                 end
@@ -895,7 +921,6 @@ classdef edgefx
                 end
                 % Estimate wavespeed in ocean (second term represents orbital
                 % velocity at 0 degree phase for 1-m amp. wave).
-                tmpz    = feat.Fb(xg,yg);
                 grav = 9.807;
                 % Limit the minimum depth to 1 m (ignore overland)
                 tmpz(tmpz > - 1) = -1;
