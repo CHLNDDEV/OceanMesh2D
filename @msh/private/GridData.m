@@ -30,7 +30,8 @@ function obj = GridData(geodata,obj,varargin)
 %                         relevant for CA interpolation method). 
 %                         default value N=1. 
 %
-%        nan (optional) - 'fill' to fill in any NaNs appearing in bathy
+%        nan (optional) - 'fill' to fill in any NaNs everywhere
+%                        -'fillinside' to fill NaNs only in DEM extents
 %
 %   mindepth (optional) - ensure the minimum depth is bounded in the 
 %                         interpolated region 
