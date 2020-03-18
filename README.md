@@ -41,7 +41,7 @@ All pull requests are tested with Jenkins on a local host. However, to ensure th
 
 ## `References!`
 
-If you make use of `OceanMesh2D` please include a reference to one of the following articles:
+If you make use of `OceanMesh2D` please include a reference to [1], and to any of [2]-[4] if pertinent:
 ```
 
 [1] - Roberts, K. J., Pringle, W. J., and Westerink, J. J., 2019. 
