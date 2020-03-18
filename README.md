@@ -61,6 +61,7 @@ If you make use of `OceanMesh2D` please include a reference to one of the follow
 ## `DISCLAIMER: `
 The boundary of the meshing domain must be a polygon (first point equals the last and non-self intersecting) but it does not need to be simplified. Read the user guide for more information about the inputs.
 
+## `GALLERY: `
 <p align="center">
   <img src = "imgs/VizGilgo.png"> &nbsp &nbsp &nbsp &nbsp
   <img src = "imgs/Example1.png"> &nbsp &nbsp &nbsp &nbsp
