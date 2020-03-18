@@ -4,9 +4,6 @@
 ## IMPORTANT NOTE:
 This is the default and recommended `PROJECTION` branch. Please use it unless you otherwise require legacy (`MASTER` branch) or the absolute newest features (`DEV` branch). 
 
-## `DISCLAIMER: `
-The boundary of the meshing domain must be a polygon (first point equals the last and non-self intersecting) but it does not need to be simplified. Read the user guide for more information about the inputs.
-
 OceanMesh2D is a set of user-friendly MATLAB functions to generate two-dimensional (2D) unstructured meshes for coastal ocean circulation problems. These meshes are based on a variety of feature driven geometric and bathymetric mesh size functions, which are generated according to user-defined parameters. Mesh generation is achieved through a force-balance algorithm combined with a number of topological improvement strategies aimed at improving the worst case triangle quality. The software embeds the mesh generation process into an object-orientated framework that contains pre- and post-processing workflows, which makes mesh generation flexible, reproducible, and script-able. 
 
 ## `Code framework` 
@@ -60,6 +57,9 @@ If you make use of `OceanMesh2D` please include a reference to one of the follow
       Ocean Modelling, 144, 101509. https://doi.org/10.1016/j.ocemod.2019.101509
       
 ```
+
+## `DISCLAIMER: `
+The boundary of the meshing domain must be a polygon (first point equals the last and non-self intersecting) but it does not need to be simplified. Read the user guide for more information about the inputs.
 
 <p align="center">
   <img src = "imgs/VizGilgo.png"> &nbsp &nbsp &nbsp &nbsp
