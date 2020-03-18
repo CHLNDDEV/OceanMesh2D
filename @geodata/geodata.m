@@ -306,6 +306,8 @@ classdef geodata
             
             obj = ParseDEM(obj) ;
             
+            
+            
         end
         
         function obj = ParseShoreline(obj)
@@ -556,9 +558,14 @@ classdef geodata
                     clear x y demz
                 else
                     % main interpolant
-                    obj.Fb   = griddedInterpolant({x,y},demz,...
-                        'linear','nearest');
-                    obj.x0y0 = [x(1),y(1)];
+                    if obj.BACKUPdemfile~=0
+                        obj.Fb   = griddedInterpolant({x,y},demz,...
+                            'linear','none'); % no extrapolation (so use Fb2)
+                    else
+                        obj.Fb   = griddedInterpolant({x,y},demz,...
+                            'linear','nearest');
+                        obj.x0y0 = [x(1),y(1)];
+                    end
                     % clear data from memory
                     clear x y demz
                 end
