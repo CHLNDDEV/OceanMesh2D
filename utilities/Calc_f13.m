@@ -100,7 +100,8 @@ obj.f13.userval.Atr(NA).AttrName = attrname ;
 cf = obj.p(:,1)*0 + default_val;
 if strcmpi(varargin{1},'inpoly')
     for i = 1 : length(polys)
-        in = inpoly([obj.p(:,1),obj.p(:,2)],polys{i});
+        polyn = polys{i}(~isnan(polys{i}(:,1)),:);
+        in = inpoly([obj.p(:,1),obj.p(:,2)],polyn);
         if inverse(i)
             cf(~in) = cfvals(i);
         else
