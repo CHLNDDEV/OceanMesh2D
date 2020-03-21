@@ -1,10 +1,22 @@
 function Error = Calc_TideGaugeErrors(fort53,stadat,varargin)
-% Calculates the complex root mean square error of the major 8
-% constitutents given a station database and writes a text file called
-% Harm.txt. This file is then used with HarmonicsCompare to validate the
-% tides by producing scatter plots and xml files for displaying on a web
-% server with google maps. 
-
+% Error = Calc_TideGaugeErrors(fort53,stadat,varargin)
+% Calculates the root mean square error and other statistics from fort53 
+% at stations based on the stadat input 
+% 
+% Inputs: fort53 - fort.53.nc file
+%         stadat - a csv containing info formatted as follows:
+%                  Name, Lon, Lat, Source, M2_amp, M2_phs, S2_amp, S2_phs,....
+%    varargin options:
+%                1) constituent list from {'M2','S2','N2','K2','K1','O1','P1','Q1','all'}
+%                2) type list from {'Pelagic','Shelf','coast'}
+%                3) to write out the harm.txt or not (true or false)
+%                   The harm.txt is used with HarmonicsCompare to validate the
+%                   tides by producing scatter plots and xml files for 
+%                   displaying on a web server with google maps. 
+%
+% Output: Error  - a structure array of error stastistics for each
+%                  constituent and type specified in the input lists.
+%
 % authors: william pringle and keith roberts. 
 % CHL, UND, March 2018.
 
