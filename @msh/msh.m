@@ -123,7 +123,7 @@ classdef msh
                 end
                 
                 % renumber it use RCM by default
-                obj = renum(obj) ;
+                %obj = renum(obj) ;
                 
                 if isempty(obj.b)
                     b_t = 0*obj.p(:,1);
@@ -331,7 +331,7 @@ classdef msh
                     end
                 case('bd')
                     figure; hold on;
-                    if proj
+                    if proj && proj ~= -1
                         m_triplot(obj.p(:,1),obj.p(:,2),obj.t);
                     else
                         simpplot(obj.p,obj.t);
@@ -374,7 +374,7 @@ classdef msh
                                         obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'r-','linewi',1.2);
                                 end
                             else
-                                if proj
+                                if proj && proj ~= -1
                                     m_plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
                                         obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'g-','linewi',1.2);
                                 else
@@ -386,7 +386,7 @@ classdef msh
                     end
                     if ~isempty(obj.op)
                         for nb = 1 : obj.op.nope
-                            if proj
+                            if proj && proj ~= -1
                                 m_plot(obj.p(obj.op.nbdv(1:obj.op.nvdll(nb),nb),1),...
                                     obj.p(obj.op.nbdv(1:obj.op.nvdll(nb),nb),2),'b-','linewi',3.2);
                             else
@@ -1146,6 +1146,118 @@ classdef msh
             %                 type = type(1:end-4); trim = 1;
             %             end
             switch type
+                case('auto2') 
+                    
+                    
+                    % a rewrite of auto but hopefully cleaner 
+                    if isempty(varargin)
+                        error('third input must be a geodata class for auto makens')
+                    end
+                    gdat = varargin{1};
+                    if ~isa(gdat,'geodata')
+                        error('third input must be a geodata class for auto makens')
+                    end
+                    depth_lim = 10;
+                    if length(varargin) > 1 && ~isempty(varargin{2})
+                        depth_lim = varargin{2};
+                    end
+                    % Check for global mesh
+                    Le = find(obj.p(:,1) < -179, 1);
+                    Ri = find(obj.p(:,1) > 179, 1);
+                    if ~isempty(Le) && ~isempty(Ri)
+                        error('Detected global mesh, cannot apply makens')
+                    end
+
+                    
+                     % Get the boundaries
+                    [etbv,~]  = extdom_edges2(obj.t,obj.p);
+                    [polys,poly_idxs] = extdom_polygon(etbv,obj.p,1);
+                    
+                    npolys = length(polys); 
+                    % loop over all polygons
+                    nope = 0; neta = 0; nbou  = 0; nvel  = 0;
+                    % 2. Classify each boundary segment. 
+                    for i = 1 : npolys
+                        
+                        poly = polys{i};
+                        poly_idx = poly_idxs{i}; 
+                        poly_len = length(poly);
+                                                
+                        % classify each point of segment based on depth. 
+                        classifier = zeros(poly_len,1); 
+                        for j = 1 : poly_len
+                            
+                           e1 = poly(j,:); 
+                           
+                           % query bathymetry at points
+                           if ~isempty(gdat.Fb)
+                               z1 = gdat.Fb(e1);
+                           end
+                           
+                           % if sufficiently deep, it's an ocean boundary
+                           if z1 < depth_lim 
+                               classifier(j) = 1; % for mainland 
+                           else
+                               classifier(j) = 0; % for ocean
+                           end
+                        end
+                        
+                        % 3. Save it it either as mainland or ocean
+                        tmp_bou = []; 
+                        kount = 0;
+                        for ii = 1 : poly_len-1
+                            type1 = classifier(ii);
+                            type2 = classifier(ii+1);
+                            kount = kount + 1; 
+                            tmp_bou(kount) = poly_idx(ii); 
+                             % save, boundary classification switched at
+                             % next point.
+                             if type2 ~= type1
+                                 if type1 == 0 % then ocean
+                                     disp('in here'); 
+                                     nope = nope + 1;
+                                     nvdll(nope) = length(tmp_bou);
+                                     neta = neta + nvdll(nope);
+                                     ibtypee(nope) = 0;
+                                     nbdv(1:nvdll(nope),nope) = tmp_bou';
+                                 elseif type1 == 1 % then mainland
+                                     nbou = nbou + 1;
+                                     nvell(nbou) = length(tmp_bou);
+                                     nvel = nvel + nvell(nbou);
+                                     ibtype(nbou) = 20;
+                                     nbvv(1:nvell(nbou),nbou) = tmp_bou';
+                                 end
+                                 % reset temporary storage.
+                                 tmp_bou = [];
+                                 kount = 0;
+                             end
+                        end
+                        
+                    end
+                    
+                    % TODO for mainland segments that are closed turn them into
+                    % islands. 
+                    
+                    
+                     if nope > 0
+                        % ocean boundary
+                        obj.op.nope = nope ;
+                        obj.op.neta = neta ;
+                        obj.op.nvdll = nvdll ;
+                        obj.op.ibtype = ibtypee ;
+                        obj.op.nbdv = nbdv;
+                    end
+                    
+                    if nbou > 0
+                        % land boundary
+                        obj.bd.nbou = nbou ;
+                        obj.bd.nvel = nvel ;
+                        obj.bd.nvell = nvell ;
+                        obj.bd.ibtype = ibtype ;
+                        obj.bd.nbvv = nbvv ;
+                    end
+                    
+                    
                 case('auto')
                     if isempty(varargin)
                         error('third input must be a geodata class for auto makens')
@@ -1170,7 +1282,7 @@ classdef msh
                     
                     % Get the boundaries
                     [etbv,~]  = extdom_edges2(obj.t,obj.p);
-                    [~,poly_idx] = extdom_polygon(etbv,obj.p,1);
+                    [poly,poly_idx] = extdom_polygon(etbv,obj.p,1);
                     
                     outerbox = gdat.outer(1:find(isnan(gdat.outer(:,1)),1,'first'),:);
                     if ~isempty(gdat.mainland)
@@ -1189,17 +1301,22 @@ classdef msh
                     % loop through all the polygons
                     for poly_count = 1 : length(poly_idx)
                         idv = poly_idx{poly_count};
-                        %
+                        % If we've checked for mainland boundaries
                         if ~mainland_been
+                            % shortest distance to outer boundary 
                             [~,odst] = ourKNNsearch(outerbox(1:end-1,:)',obj.p(idv,:)',1);
                             if ~isempty(gdat.mainland)
+                                % shortest distance to mainland boundary 
                                 [~,mdst] = ourKNNsearch(mainland',obj.p(idv,:)',1);
                             else
-                                mdst = 1e4;
+                                % default shortest distance 
+                                mdst = 10e4;
                             end
                         end
                         if ~isempty(gdat.inner)
                             if island_check
+                                % if the min. distance to the outer
+                                % boundary is less than the minimum 
                                 [~,idst] = ourKNNsearch(inner',obj.p(idv,:)',1);
                                 if min(odst) < min(idst) || ...
                                         min(mdst) < min(idst)
