@@ -230,15 +230,18 @@ classdef msh
             end
             
             % kjr default behavior, just use what's in the .mat file
-            if proj && isempty(projtype)
-                global MAP_PROJECTION MAP_VAR_LIST MAP_COORDS
+            if proj && isempty(projtype)      
                 if ~isempty(obj.coord)
+                    global MAP_PROJECTION MAP_VAR_LIST MAP_COORDS
                     % kjr 2018,10,17; Set up projected space imported from msh class
                     MAP_PROJECTION = obj.proj ;
                     MAP_VAR_LIST   = obj.mapvar ;
                     MAP_COORDS     = obj.coord ;
                     del = 0;
                     projtype = MAP_PROJECTION.name;
+                else
+                    % change proj to 0 since we have no proj info
+                    proj = 0; 
                 end
             end
             
@@ -1112,43 +1115,246 @@ classdef msh
             end
         end
         
-        % make nodestrings
+        % re-direct makens to make_bc
         function obj = makens(obj,type,varargin)
-            % obj = makens(obj,type,varargin)
+            % 'makens' is deprecated. Please use 'make_bc'
+            obj = make_bc(obj,type,varargin{1});
+        end
+        
+        % make_bc: make boundary conditions
+        function obj = make_bc(obj,type,varargin)
+            % obj = make_bc(obj,type,varargin)
             %
-            % Puts on nodestring boundaries required for ADCIRC
-            % simulations
+            % Applies boundary conditions to the mesh.
+            % Uses the ADCIRC formatting and 'ibtype' integers 
+            % that refer to the boundary condition type.
             %
             % obj: msh class obj
-            % type: 'auto','islands','periodic','weirs', or 'outer'
+            % type: 'auto', 'outer', 'inner', 'delete', or 'weirs'
             %
-            % 'auto' varargins:
-            % varargin{1}: gdat class
-            % varargin{2} (optional): lower limit of ocean boundary length
-            % in vertices (default = 10)
-            % varargin{3} (optional): lower limit of seabed depth that ocean boundary
-            %           can exist at (default = 10 m)
+            % ---------
+            % 'auto' - automatically applies elevation and no-flux bcs to mesh based on geodata class 
+            % varargins:
+            % varargin{1}: geodata class
+            % varargin{2} (optional): method of classification:  
+            %    - 'distance': classifies as ocean based on distance to shoreline
+            %    - 'depth': classifies as ocean based on depth
+            %    - 'both' [default]: must satisfy both depth and distance criteria
+            % varargin{3} (optional): 
+            %    - if varargin{2} is 'distance' or 'both': the distance in geographic degrees
+            %      from shoreline beyond which edge is classifed as ocean (default is 10*gdat.gridspace)
+            %    - if varargin{2} is 'depth': the depth below which a boundary is
+            %      classifed as ocean (default is 10 m)
+            % varargin{4} (optional): 
+            %    - if varargin{2} is 'both': the depth below which a boundary is
+            %      classifed as ocean (default is 10 m)
             %
-            % 'inner' varargins:
-            % varargin{1} (optional): ibtype to set (default = 21)
-            %
-            % 'outer' varargins:
+            % ---------
+            % 'outer' - applies user-defined bc to a segment of the outer mesh polygon
+            % varargins: 
             % varargin{1}: direction (0 = anti-clockwise, 1 = clockwise)
             % varargin{2} (optional): vertex # to start at
             % varargin{3} (optional): vertex # to end at
             % varargin{4} (optional): flux (1) or elevation (2) nodestring
-            % varargin{5} (optional): if flux, no-flux (20) or river (2) flux nodestring
+            % varargin{5} (optional): if flux, no-flux (20) or river (22) flux nodestring
             %
+            % ---------
+            % 'inner' - applies no-flux bcs to all inner mesh polygons (i.e., islands)
+            % varargins: 
+            % varargin{1} (optional): ibtype to set (default = 21)
+            %
+            % ---------
+            % Please insert 'delete', and 'weirs' help info
+            % 
             if nargin < 2
-                error('Needs type: one of auto, islands, periodic, weir or outer')
+                error("Needs type: one of 'auto', 'outer', 'inner', 'delete', or 'weirs'")
             end
             L = 1e3;
-            %             trim = 0; periodic = 0;
-            %             if strcmp(type(max(1,end-3):end),'trim')
-            %                 type = type(1:end-4); trim = 1;
-            %             end
             switch type
                 case('auto')
+                    % automatically applies elevation and no-flux bcs to mesh based on geodata class 
+                    if isempty(varargin)
+                        error("must supply a geodata class for 'auto' as third input")
+                    end
+                    gdat = varargin{1};
+                    if ~isa(gdat,'geodata')
+                        error("third input must be a geodata class for 'auto'")
+                    end
+                    depth_lim = -10;
+                    dist_lim = 10*gdat.gridspace;
+                    classifier = 'both';
+                    if length(varargin) > 1 && ~isempty(varargin{2})
+                        classifier = varargin{2};
+                    end
+                    switch classifier
+                        case{'distance'}
+                            if length(varargin) > 2 && ~isempty(varargin{3})
+                                dist_lim = varargin{3};
+                            end
+                        case('depth')
+                            if isempty(gdat.Fb)
+                                error("No DEM info to use 'depth' classification criteria")
+                            end
+                            if length(varargin) > 2 && ~isempty(varargin{3})
+                                depth_lim = varargin{3};
+                            end
+                        case('both')
+                            if isempty(gdat.Fb)
+                                error("No DEM info to use 'both' classification criteria")
+                            end
+                            if length(varargin) > 2 && ~isempty(varargin{3})
+                                dist_lim = varargin{3};
+                            end
+                            if length(varargin) > 3 && ~isempty(varargin{4})
+                                depth_lim = varargin{4};
+                            end
+                    end
+                    cut_lim = 10;
+
+                    % Check for global mesh
+                    Le = find(obj.p(:,1) < -179, 1);
+                    Ri = find(obj.p(:,1) > 179, 1);
+                    if ~isempty(Le) && ~isempty(Ri)
+                        error("Detected global mesh, cannot apply 'auto' makens. Try 'inner' option")
+                    end
+                    
+                    % Get the boundary edges and mid-points
+                    etbv  = extdom_edges2(obj.t,obj.p);
+                    x = obj.p(:,1); y = obj.p(:,2);
+                    x_mid = mean(x(etbv),2);
+                    y_mid = mean(y(etbv),2); 
+                    eb_mid = [x_mid, y_mid];
+                    clear x y x_mid y_mid
+                    
+                    % classify each boundary edge
+                    % eb_class is 1 if it is classed as ocean
+                    switch classifier
+                        case{'both','distance'}
+                            % process gdat info
+                            if ~isempty(gdat.mainland)
+                                land = gdat.mainland;
+                                land(isnan(land(:,1)),:) = [];
+                            end
+                            if ~isempty(gdat.inner)
+                                inner = gdat.inner;
+                                inner(isnan(inner(:,1)),:) = [];
+                                land = [land; inner];
+                            end
+                            [~,ldst] = ourKNNsearch(land',eb_mid',1);
+                            eb_class = ldst > dist_lim;
+                            if strcmp(classifier,'both')
+                                % ii) based on depth 
+                                eb_depth = gdat.Fb(eb_mid);
+                                eb_class = eb_class & eb_depth < depth_lim;
+                            end
+                        case('depth')
+                            % ii) based on depth 
+                            eb_depth = gdat.Fb(eb_mid);
+                            eb_class = eb_depth < depth_lim;
+                    end
+
+                    [polys,poly_idxs] = extdom_polygon(etbv,obj.p,1);
+
+                    % classify each boundary polygon.
+                    nope = 0; neta = 0; nbou  = 0; nvel  = 0;
+                    npolys = length(polys);
+                   
+                    for i = 1:npolys
+                        % Get the edge numbers for this polygon
+                        idv = poly_idxs{i};
+                        poly_ed = [idv(1:end-1) idv(2:end)];
+                        eb_class_t = 0*poly_ed(:,1);
+                        % make sure that the order of polygon and
+                        % the order of the edges in etbv are the same
+                        [~,ed_id1,poly_id1] = intersect(etbv,poly_ed,'rows','stable'); 
+                        eb_class_t1 = eb_class(ed_id1);
+                        eb_class_t(poly_id1) = eb_class_t1; 
+                        [~,ed_id2,poly_id2] = intersect(fliplr(etbv),poly_ed,'rows','stable'); 
+                        eb_class_t2 = eb_class(ed_id2);
+                        eb_class_t(poly_id2) = eb_class_t2; 
+
+                        % check if part of polygon is an ocean
+                        eb_sum = sum(eb_class_t);
+                        if eb_sum > 0
+                            % % Consists of both ocean and mainland
+                            
+                            % indices of switch between ocean and mainland
+                            Cuts  = find(diff(eb_class_t) ~= 0);
+                            
+                            % Do not include open boundary that is
+                            % smaller than cutlim vertices across
+                            rm = false(length(Cuts),1);
+                            if eb_class_t(1); st = 2; else; st = 1; end
+                            for ii = st:2:length(Cuts)
+                                if ii == length(Cuts)
+                                    if length(idv) - Cuts(ii) + ...
+                                            Cuts(1) - 1  < cut_lim
+                                        rm([1 end]) = 1;
+                                    end
+                                else
+                                    if Cuts(ii+1) - Cuts(ii) < cut_lim
+                                        rm(ii:ii+1) = 1;
+                                    end
+                                end
+                            end
+                            Cuts(rm) = [];   
+                            
+                            ns = 1;
+                            for ii = 1:length(Cuts)+1
+                                if ii > length(Cuts)
+                                    idv_t = [idv(ns:end); idv(1)];
+                                else
+                                    ne = Cuts(ii);
+                                    idv_t = idv(ns:ne);
+                                    ns = ne;
+                                end
+                                if mod(ii,2) == eb_class_t(1)
+                                    % make this segment mainland
+                                    nope = nope + 1;
+                                    nvdll(nope) = length(idv_t);
+                                    neta = neta + nvdll(nope);
+                                    ibtypee(nope) = 0;
+                                    nbdv(1:nvdll(nope),nope) = idv_t';
+                                else
+                                    % make this segment ocean
+                                    nbou = nbou + 1;
+                                    nvell(nbou) = length(idv_t);
+                                    nvel = nvel + nvell(nbou);
+                                    ibtype(nbou) = 20;
+                                    nbvv(1:nvell(nbou),nbou) = idv_t';
+                                end
+                            end
+                        else
+                            % % polygon is an island
+                            nbou = nbou + 1;
+                            nvell(nbou) = length(idv);
+                            nvel = nvel + nvell(nbou);
+                            nbvv(1:nvell(nbou),nbou) = idv';
+                            ibtype(nbou) = 21;
+                        end
+                    end
+                    
+                    % enter our results in the msh op and bd fields
+                    if nope > 0
+                        % ocean boundary
+                        obj.op.nope = nope ;
+                        obj.op.neta = neta ;
+                        obj.op.nvdll = nvdll ;
+                        obj.op.ibtype = ibtypee ;
+                        obj.op.nbdv = nbdv;
+                    end
+
+                    if nbou > 0
+                        % land boundary
+                        obj.bd.nbou = nbou ;
+                        obj.bd.nvel = nvel ;
+                        obj.bd.nvell = nvell ;
+                        obj.bd.ibtype = ibtype ;
+                        obj.bd.nbvv = nbvv ;
+                    end
+                    
+                case('auto_old')
+                    % % keeping the old auto for regression 
                     if isempty(varargin)
                         error('third input must be a geodata class for auto makens')
                     end
@@ -1167,7 +1373,7 @@ classdef msh
                     Le = find(obj.p(:,1) < -179, 1);
                     Ri = find(obj.p(:,1) > 179, 1);
                     if ~isempty(Le) && ~isempty(Ri)
-                        error('Detected global mesh, cannot apply makens')
+                        error("Detected global mesh, cannot apply 'auto' makens. Try 'inner' option")
                     end
                     
                     % Get the boundaries
@@ -1331,7 +1537,7 @@ classdef msh
                         obj.bd.nbvv = nbvv ;
                     end
                     
-                case('islands')
+                case{'inner','islands'}
                     
                     nbou = 0;
                     nvel = 0;
@@ -1466,23 +1672,6 @@ classdef msh
                     obj.bd.nvell(del)=[] ;
                     obj.bd.ibtype(del)=[] ;
                     obj.bd.nvel = obj.bd.nvel - num_delnodes ;
-                    
-                case('periodic')
-                    % get elements that straddle the -180/180 boundary
-                    bars = [obj.t(:,[1,2]); obj.t(:,[1,3]); obj.t(:,[2,3])]; % Interior bars duplicated
-                    bars = unique(sort(bars,2),'rows');                  % Bars as node pairs
-                    dlon = obj.p(bars(:,1),1)- obj.p(bars(:,2),1);     % List of bar vectors
-                    % Only add the periodic point list
-                    %[I,d] = ourKNNsearch(obj.p',obj.p'+[360;0],1);
-                    %J = find(d < 1e-5);
-                    % list of points that straddle the -180/180 boundary
-                    periodic_bc_list = bars(abs(dlon) > 180,:);
-                    obj.bd.nbou = 1 ;
-                    obj.bd.nvel = length(periodic_bc_list) ;
-                    obj.bd.nvell = obj.bd.nvel ;
-                    obj.bd.ibtype = 94 ;
-                    obj.bd.nbvv = periodic_bc_list ;
-                    return;
                     
                 case('weirs')
                     if isempty(varargin)
