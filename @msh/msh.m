@@ -1196,7 +1196,7 @@ classdef msh
                                 error("No DEM info to use 'depth' classification criteria")
                             end
                             if length(varargin) > 2 && ~isempty(varargin{3})
-                                depth_lim = varargin{3};
+                                depth_lim = -varargin{3};
                             end
                         case('both')
                             if isempty(gdat.Fb)
@@ -1206,7 +1206,7 @@ classdef msh
                                 dist_lim = varargin{3};
                             end
                             if length(varargin) > 3 && ~isempty(varargin{4})
-                                depth_lim = varargin{4};
+                                depth_lim = -varargin{4};
                             end
                     end
                     cut_lim = 10;
