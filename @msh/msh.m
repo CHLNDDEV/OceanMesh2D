@@ -1118,7 +1118,7 @@ classdef msh
         % re-direct makens to make_bc
         function obj = makens(obj,type,varargin)
             % 'makens' is deprecated. Please use 'make_bc'
-            obj = make_bc(obj,type,varargin{1});
+            obj = make_bc(obj,type,varargin);
         end
         
         % make_bc: make boundary conditions
@@ -1168,6 +1168,9 @@ classdef msh
             % 
             if nargin < 2
                 error("Needs type: one of 'auto', 'outer', 'inner', 'delete', or 'weirs'")
+            end
+            if iscell(varargin{1})
+                varargin = varargin{1};
             end
             L = 1e3;
             switch type

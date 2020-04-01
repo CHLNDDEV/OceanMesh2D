@@ -27,6 +27,7 @@ mshopts = mshopts.build;
 %% STEP 5: Plot it and write a triangulation fort.14 compliant file to disk.
 % Get out the msh class and put on nodestrings
 m = mshopts.grd;
-m = makens(m,'auto',gdat); % make the nodestring boundary conditions
+m = make_bc(m,'auto',gdat,'distance'); % make the boundary conditions
 plot(m,'bd');
-write(m,'South_Island_NZ');
+% if you want to write into fort.14...
+% write(m,'South_Island_NZ');

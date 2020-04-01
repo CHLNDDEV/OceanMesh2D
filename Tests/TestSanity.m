@@ -1,6 +1,6 @@
 % Run example 1 to build a mesh around NZ testing various basic functionality 
 % is working!
-run('../Example_1_NZ.m')
+run('../Examples/Example_1_NZ.m')
 
 NP_TOL = 500;
 NT_TOL = 1500;
