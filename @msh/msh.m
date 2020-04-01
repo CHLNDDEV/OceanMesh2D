@@ -1146,10 +1146,10 @@ classdef msh
             %                 type = type(1:end-4); trim = 1;
             %             end
             switch type
-                case('auto2') 
+                case('auto2')
                     
                     
-                    % a rewrite of auto but hopefully cleaner 
+                    % a rewrite of auto but hopefully cleaner
                     if isempty(varargin)
                         error('third input must be a geodata class for auto makens')
                     end
@@ -1157,89 +1157,142 @@ classdef msh
                     if ~isa(gdat,'geodata')
                         error('third input must be a geodata class for auto makens')
                     end
-                    depth_lim = 10;
+                    depth_lim = -10;
                     if length(varargin) > 1 && ~isempty(varargin{2})
                         depth_lim = varargin{2};
                     end
+                    
+                    cut_lim = 20;
+                    
                     % Check for global mesh
                     Le = find(obj.p(:,1) < -179, 1);
                     Ri = find(obj.p(:,1) > 179, 1);
                     if ~isempty(Le) && ~isempty(Ri)
                         error('Detected global mesh, cannot apply makens')
                     end
-
                     
-                     % Get the boundaries
+                    % Get the boundaries
                     [etbv,~]  = extdom_edges2(obj.t,obj.p);
                     [polys,poly_idxs] = extdom_polygon(etbv,obj.p,1);
                     
-                    npolys = length(polys); 
-                    % loop over all polygons
+                    % classify each boundary polygon.
                     nope = 0; neta = 0; nbou  = 0; nvel  = 0;
-                    % 2. Classify each boundary segment. 
+                    npolys = length(polys);
                     for i = 1 : npolys
                         
                         poly = polys{i};
-                        poly_idx = poly_idxs{i}; 
+                        
+                        % classify each point based on depth.
+                        class = gdat.Fb(poly) <= depth_lim;
                         poly_len = length(poly);
-                                                
-                        % classify each point of segment based on depth. 
-                        classifier = zeros(poly_len,1); 
-                        for j = 1 : poly_len
+                        
+                        len=0;
+                        start_segment = 1;
+                        for j = 1 : poly_len - 1
                             
-                           e1 = poly(j,:); 
-                           
-                           % query bathymetry at points
-                           if ~isempty(gdat.Fb)
-                               z1 = gdat.Fb(e1);
-                           end
-                           
-                           % if sufficiently deep, it's an ocean boundary
-                           if z1 < depth_lim 
-                               classifier(j) = 1; % for mainland 
-                           else
-                               classifier(j) = 0; % for ocean
-                           end
+                            classified = 0 ;
+                            
+                            len= len+1; % length of segment
+                            
+                            tmp_bou(len,:) = poly(j,:); % store segments
+                            tmp_idv(len,:) = poly_idxs{i}(j); % store indices
+                            
+                            c1 = class(j); % class at node 1
+                            c2 = class(j+1); % class at node 2
+                            
+                            changed = c1 ~= c2; % did class change?
+                            isLong = len >= cut_lim; % is it long enough?
+                            
+                            if changed && isLong % changed class and long enough
+                                classified = true;
+                                % classify segment as either ocean or mainland
+                                percent_ocean = ...
+                                    sum(class(start_segment:j))/(j-start_segment);
+                                
+                                if percent_ocean >= 0.50 % majority is deep
+                                    % classified ocean
+                                    disp('classified ocean');
+                                    nope = nope + 1;
+                                    nvdll(nope) = length(tmp_idv);
+                                    neta = neta + nvdll(nope);
+                                    ibtypee(nope) = 0;
+                                    nbdv(1:nvdll(nope),nope) = tmp_idv';
+                                    
+                                    classified = 1;
+                                    tmp_bou = [];
+                                    tmp_idx = [];
+                                    len = 0 ;
+                                else % majority is shallow
+                                    % classified mainland
+                                    disp('classified mainland');
+                                    nbou = nbou + 1;
+                                    nvell(nbou) = length(tmp_idv);
+                                    nvel = nvel + nvell(nbou);
+                                    ibtype(nbou) = 20;
+                                    nbvv(1:nvell(nbou),nbou) = tmp_idv';
+                                    
+                                    classified = 1;
+                                    tmp_bou = [];
+                                    tmp_idx = [];
+                                    len = 0 ; 
+                                end
+                                
+                                start_segment = j+1;
+                            end
+                            
+                            if ~changed && isLong && (j == poly_len -1)
+                                % didn't change class but is long!
+                                % at the end of the segment.
+                                % must be bigger island
+                                nbou = nbou + 1;
+                                nvell(nbou) = length(tmp_idv);
+                                nvel = nvel + nvell(nbou);
+                                nbvv(1:nvell(nbou),nbou) = tmp_idv';
+                                ibtype(nbou) = 21;
+                                
+                                classified = 1;
+                                tmp_bou = [];
+                                tmp_idx = [];
+                                len = 0 ;
+                                start_segment = 1 ; 
+                            end
+                            
+                            
+                            if changed && ~isLong && j == poly_len -1
+                                % changed but isn't long enough!
+                                % at the end of the segment
+                                
+                                % unknown, but make it
+                                % an island type boundary
+                                nbou = nbou + 1;
+                                nvell(nbou) = length(tmp_idv);
+                                nvel = nvel + nvell(nbou);
+                                nbvv(1:nvell(nbou),nbou) = tmp_idv';
+                                ibtype(nbou) = 21;
+                                
+                                classified = 1 ;
+                                tmp_bou = [];
+                                tmp_idx = [];
+                                len = 0 ;
+                                start_segment = 1 ; 
+                            end
+                            
                         end
                         
-                        % 3. Save it it either as mainland or ocean
-                        tmp_bou = []; 
-                        kount = 0;
-                        for ii = 1 : poly_len-1
-                            type1 = classifier(ii);
-                            type2 = classifier(ii+1);
-                            kount = kount + 1; 
-                            tmp_bou(kount) = poly_idx(ii); 
-                             % save, boundary classification switched at
-                             % next point.
-                             if type2 ~= type1
-                                 if type1 == 0 % then ocean
-                                     disp('in here'); 
-                                     nope = nope + 1;
-                                     nvdll(nope) = length(tmp_bou);
-                                     neta = neta + nvdll(nope);
-                                     ibtypee(nope) = 0;
-                                     nbdv(1:nvdll(nope),nope) = tmp_bou';
-                                 elseif type1 == 1 % then mainland
-                                     nbou = nbou + 1;
-                                     nvell(nbou) = length(tmp_bou);
-                                     nvel = nvel + nvell(nbou);
-                                     ibtype(nbou) = 20;
-                                     nbvv(1:nvell(nbou),nbou) = tmp_bou';
-                                 end
-                                 % reset temporary storage.
-                                 tmp_bou = [];
-                                 kount = 0;
-                             end
+                        % clear tmp variables 
+                        tmp_bou = [];
+                        tmp_idx = [];
+                        len = 0 ;
+                        start_segment = 1 ;
+                        
+                        if classified == 0
+                            disp('missed it');
                         end
                         
                     end
                     
-                    % TODO for mainland segments that are closed turn them into
-                    % islands. 
                     
-                    
-                     if nope > 0
+                    if nope > 0
                         % ocean boundary
                         obj.op.nope = nope ;
                         obj.op.neta = neta ;
@@ -1303,20 +1356,20 @@ classdef msh
                         idv = poly_idx{poly_count};
                         % If we've checked for mainland boundaries
                         if ~mainland_been
-                            % shortest distance to outer boundary 
+                            % shortest distance to outer boundary
                             [~,odst] = ourKNNsearch(outerbox(1:end-1,:)',obj.p(idv,:)',1);
                             if ~isempty(gdat.mainland)
-                                % shortest distance to mainland boundary 
+                                % shortest distance to mainland boundary
                                 [~,mdst] = ourKNNsearch(mainland',obj.p(idv,:)',1);
                             else
-                                % default shortest distance 
+                                % default shortest distance
                                 mdst = 10e4;
                             end
                         end
                         if ~isempty(gdat.inner)
                             if island_check
                                 % if the min. distance to the outer
-                                % boundary is less than the minimum 
+                                % boundary is less than the minimum
                                 [~,idst] = ourKNNsearch(inner',obj.p(idv,:)',1);
                                 if min(odst) < min(idst) || ...
                                         min(mdst) < min(idst)
@@ -2417,7 +2470,7 @@ classdef msh
             
             % no cr_max, use default
             if nargin < 3
-               cr_max = 0.5;
+                cr_max = 0.5;
             end
             
             % no cr_min supplied
@@ -2509,33 +2562,33 @@ classdef msh
             if cr_min > eps %if cr_min is set to 0 this is skipped
                 disp(['Editing the mesh to bound min. Courant number to ' num2str(cr_min)])
                 it  = 0; % iteration counter
-
+                
                 if ~isempty(obj.pfix)
                     [pf(:,1),pf(:,2)] = m_ll2xy(obj.pfix(:,1),obj.pfix(:,2));
                 else
                     pf = [];
                 end
-
+                
                 tic
                 while 1
                     [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
                     Cr = CalcCFL(obj,dt,type);
                     [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2));
                     bad = real(Cr) < cr_min;
-
+                    
                     display(['Number of minimum Cr bound violations ',num2str(sum(bad))]);
                     disp(['Min. Cr is : ',num2str(min(real(Cr)))]);
                     if it == maxIT,   break; end
                     badnum = sum(bad);
                     if badnum == 0; break; end
                     it = it + 1;
-
+                    
                     % refine select elements using an octree approach
                     obj = RefineTrias(obj,bad);
-
+                    
                     % put bathy back on
                     obj.b = F(obj.p(:,1),obj.p(:,2));
-
+                    
                 end
             end
             
@@ -2612,7 +2665,7 @@ classdef msh
                 ptemp = obj.p; ttemp = obj.t;
                 [vtoe,nne]=VertToEle(ttemp);
                 badTrias = vtoe(:,bad);
-                badTrias(badTrias==0)=[]; 
+                badTrias(badTrias==0)=[];
                 badTrias=unique(badTrias);
                 edges = [ttemp(:,[1,2]); ttemp(:,[1,3]); ttemp(:,[2,3])];
                 edges = unique(sort(edges,2),'rows');
@@ -2631,9 +2684,9 @@ classdef msh
             % obj = CheckTimestep(obj,dt,varargin)
             % varargin(1) is desired CFL (< 1) or maximum iterations (> 1)
             % varargin(2) is desired dj_cutoff
-            % 
+            %
             % Decimate mesh to achieve CFL condition for stability.
-            % 
+            %
             % Takes a mesh and removes triangles and nodes to produce a mesh
             % that satisfies the given timestep requirements of the user by
             % incrementally modifying the triangulation nearby each edge
