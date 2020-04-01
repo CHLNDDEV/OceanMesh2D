@@ -41,9 +41,9 @@ mshopts = mshopts.build;
 m = mshopts.grd;
 
 %% STEP 5: Manually specify open boundaries and weir crest heights
-m = make_bc(m,'auto',gdat,'depth',5); % auto makens
-m.bd = [];                            % reset land boundaries
-m = make_bc(m,'weirs',gdat,1,[weirs.crestheight]);  % add nodestrings for the weirs
+m = make_bc(m,'auto',gdat,'both',[],5); % auto make_bc with depth_lim = 5
+m.bd = [];                              % delete land bcs and replace with weirs below
+m = make_bc(m,'weirs',gdat,1,[weirs.crestheight]);  % add bcs for the weirs
 
 %% STEP 6: interpolate bathy and plot and save the mesh
 m = interp(m,gdat,'nan','fill','mindepth',1); % interpolate bathy to the 
