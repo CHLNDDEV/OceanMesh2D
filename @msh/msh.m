@@ -1164,8 +1164,14 @@ classdef msh
             % varargin{1} (optional): ibtype to set (default = 21)
             %
             % ---------
-            % Please insert 'delete', and 'weirs' help info
+            % 'weirs' - applies weir bcs to all weirs passed in your gdat. 
+            % varargins: 
+            % varargin{1}: geodata class that had crestlines passed. 
             % 
+            % ---------
+            % 'delete' - deletes a user-clicked boundary condition from msh. 
+            % varargins: 
+            % none
             if nargin < 2
                 error("Needs type: one of 'auto', 'outer', 'inner', 'delete', or 'weirs'")
             end
@@ -1281,13 +1287,22 @@ classdef msh
                         if eb_sum > 0
                             % % Consists of both ocean and mainland
                             
-                            % indices of switch between ocean and mainland
+                            % If a boundary segment is composed of both 
+                            % ocean and mainland, then the whole segment is 
+                            % 'cut up' into segments. Special care is 
+                            % taken to ensure the ocean 
+                            % type boundary starts following then by mainland
+                            % etc.
                             Cuts  = find(diff(eb_class_t) ~= 0);
                             
                             % Do not include open boundary that is
                             % smaller than cutlim vertices across
                             rm = false(length(Cuts),1);
-                            if eb_class_t(1); st = 2; else; st = 1; end
+                            if eb_class_t(1)
+                                st = 2; 
+                            else
+                                st = 1;
+                            end
                             for ii = st:2:length(Cuts)
                                 if ii == length(Cuts)
                                     if length(idv) - Cuts(ii) + ...

@@ -35,6 +35,6 @@ mshopts = mshopts.build;
 %% STEP 5: Plot it and write a triangulation fort.14 compliant file to disk.
 m = mshopts.grd;
 m = interp(m,gdat,'mindepth',1,'nan','fill'); % interpolate bathy to the mesh
-m = makens(m,'auto',gdat); % make the nodestring boundary conditions
+m = make_bc(m,'auto',gdat); % make the nodestring boundary conditions
 plot(m,'bd'); plot(m,'blog'); % plot triangulation and bathy
 write(m,'HoustonShipChannel');
