@@ -38,7 +38,7 @@ mshopts = mshopts.build;
 m = mshopts.grd;
 m = interp(m,gdat,'nan','fill','mindepth',1); % interpolate bathy to the 
                 % mesh with fill nan option to make sure corners get values
-m = makens(m,'auto',gdat,[],5); % make the nodestring boundary conditions
+m = make_bc(m,'auto',gdat,'depth',5); % make the nodestring boundary conditions
                            % with depth cutoff for open boundary set to 5 m
 plot(m,'bd'); plot(m,'blog'); % plot triangulation and bathy
 save('JBAY_HR.mat','m')

@@ -29,7 +29,7 @@ mshopts = mshopts.build;
 % Get out the msh class and put on bathy and nodestrings
 m = mshopts.grd;
 m = interp(m,gdat,'mindepth',1); % interpolate bathy to the mesh with minimum depth of 1 m
-m = makens(m,'auto',gdat,[],5);  % make the nodestring boundary conditions 
+m = make_bc(m,'auto',gdat,'depth',5);  % make the nodestring boundary conditions 
                                  % with min depth of 5 m on open boundary
 plot(m,'bd'); plot(m,'blog');    % plot triangulation, and bathy on log scale
 write(m,'NY_HR');                % write to ADCIRC compliant ascii file

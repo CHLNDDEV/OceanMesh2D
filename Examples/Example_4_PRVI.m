@@ -78,7 +78,7 @@ m = mshopts.grd;
 m = interp(m,gdat,'mindepth',1); % interpolate bathy to the mesh with minimum depth of 1 m
 
 %% Make the nodestrings
-m = makens(m,'auto',gdat{1}); % make the nodestring boundary conditions
+m = make_bc(m,'auto',gdat{1}); % make the nodestring boundary conditions
 
 %% Plot and save the msh class object/write to fort.14
 plot(m,'bd'); % plot triangulation with nodestrings

@@ -1,6 +1,7 @@
 m_map/
 datasets/
 fort.*
+Examples/*.mat
 /*.mat
 !weirs_cell.mat
 !weirs_struct.mat
