@@ -268,7 +268,7 @@ classdef msh
                     obj.p(obj.t(:,3),1) obj.p(obj.t(:,1),1)];
                 dxt = diff(xt,[],2);
                 obj.t(abs(dxt(:,1)) > 180 | abs(dxt(:,2)) > 180 | ...
-                    abs(dxt(:,3)) > 180,:) = [];
+                      abs(dxt(:,3)) > 180,:) = [];
             end
             
             logaxis = 0;
@@ -280,6 +280,11 @@ classdef msh
             idxl = strfind(type,'mesh');
             if ~isempty(idxl)
                 mesh = 1; type(idxl:idxl+3) = [];
+            end
+            fast = 0;
+            idxl = strfind(type,'fast');
+            if ~isempty(idxl)
+                fast = 1; type(idxl:idxl+3) = [];
             end
             earthres = 0;
             if strcmp(type,'resoearth')
@@ -712,15 +717,18 @@ classdef msh
                         values(userval(1,:),:) = userval(2:end,:)';
                         % just take the inf norm
                         values = max(values,[],2);
-                        figure;
-                        if proj
-                            m_fastscatter(obj.p(:,1),obj.p(:,2),values);
-                        else
-                            fastscatter(obj.p(:,1),obj.p(:,2),values);
-                        end
-                        nouq = length(unique(values));
-                        colormap(lansey(nouq));
-                        colorbar;
+                        
+                        plotfig(values,'lansey');
+                        
+                        %figure;
+                        %if proj
+                        %    m_fastscatter(obj.p(:,1),obj.p(:,2),values);
+                        %else
+                        %    fastscatter(obj.p(:,1),obj.p(:,2),values);
+                        %end
+                        %nouq = length(unique(values));
+                        %colormap(lansey(nouq));
+                        %colorbar;
                         ax = gca;
                         ax.Title.String = obj.f13.defval.Atr(ii).AttrName;
                         ax.Title.Interpreter = 'none';
@@ -730,7 +738,63 @@ classdef msh
             end
             if proj == 1
                 % now add the box
-                m_grid('FontSize',16); %'box','none') %,'FontSize',12);
+                m_grid('FontSize',12);
+            end
+            
+            function plotfig(value,cmap)
+                figure;
+                if logaxis
+                    value(value == 0) = eps;
+                    q = log10(abs(value)); % plot on log scale
+                else
+                    q = value;
+                end
+                if proj
+                    if mesh
+                        m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
+                    elseif fast
+                        m_fastscatter(obj.p(:,1),obj.p(:,2),q);
+                    else
+                        m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
+                    end
+                else
+                    if mesh
+                        trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
+                    elseif fast
+                        fastscatter(obj.p(:,1),obj.p(:,2),values);
+                    else
+                        trisurf(obj.t,obj.p(:,1),obj.p(:,2),q)
+                        shading interp;
+                    end
+                    view(2);
+                end
+                if ~logaxis 
+                   numticks = 101; 
+                end
+                if strcmp(cmap,'lansey')
+                    colormap(lansey(numticks(1)-1))
+                elseif strcmp(cmap,'demcmap')
+                    demcmap(q);
+                else
+                    cmocean(cmap,numticks(1)-1);
+                end
+                cb = colorbar;
+                if logaxis
+                    if length(numticks) == 3
+                        desiredTicks = round(10.^(linspace(...
+                            log10(numticks(2)),...
+                            log10(numticks(3)),...
+                            numticks(1))),1,'significant');
+                    else
+                        desiredTicks = round(10.^(linspace(min(q),...
+                            max(q),numticks(1))),1);
+                    end
+                    caxis([log10(min(desiredTicks)) log10(max(desiredTicks))]);
+                    cb.Ticks     = log10(desiredTicks);
+                    for i = 1 : length(desiredTicks)
+                        cb.TickLabels{i} = num2str(desiredTicks(i));
+                    end
+                end
             end
         end
         
