@@ -91,6 +91,11 @@ function [ffun,flag] = limgrad(edge,elen,ffun,dfdx,imax)
     
     %------------------------- find "active" nodes this pass
         aidx = find(aset == iter - 1) ;
+
+        if iter == 2
+           disp(['There were ' num2str(length(aidx)) ...
+                 ' violations on entry to limgrad out of ' num2str(length(aset))]) 
+        end
         
         if (isempty(aidx)), break; end
       

@@ -1038,6 +1038,13 @@ classdef msh
             if nargin < 3
                 overland  = 0;
             end
+            if overland == 0
+               % Call bathy then topo
+               obj = lim_bathy_slope(obj,dfdx,-1); 
+               obj = lim_bathy_slope(obj,dfdx,+1);
+               return 
+            end
+         
             % Limit to topo or bathymetric slope to dfdx on the edges
             imax = 100;
             [edge,elen] = GetBarLengths(obj,0);  
@@ -1048,12 +1055,9 @@ classdef msh
             elseif overland == 1
                 I = bt > 0;
                 word = 'topographic';
-            else
-                I = false(size(bt));
-                word = 'topobathy';
-                overland = -1;
             end
-            bt(I) = 0; bt(~I) = -overland*bt(~I);
+            bt(I) = 0; 
+            bt(~I) = -overland*bt(~I);
             [bnew,flag] = limgrad(edge,elen,bt,dfdx,imax);
             if flag
                obj.b(~I) = -overland*bnew(~I);
