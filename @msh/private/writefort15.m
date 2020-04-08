@@ -90,7 +90,10 @@ if f15dat.nws == 8 || f15dat.nws >= 19
   fprintf( fid, '%d %d %d %d %d %g ', f15dat.wtimnc ) ;
   fprintf( fid, '    \t \t ! YYYY MM DD HH24 StormNumber BLAdj \n' ) ;  
 elseif f15dat.nws > 0
-  fprintf( fid, '%d  ', f15dat.wtimnc ) ;
+  fprintf( fid, '%d ', f15dat.wtimnc ) ;
+  fprintf( fid, '    \t \t ! WTMINC \n' ) ;       
+elseif f15dat.nws == -14
+  fprintf( fid, '%d %d ', f15dat.wtimnc ) ;
   fprintf( fid, '    \t \t ! WTMINC \n' ) ;       
 end
   

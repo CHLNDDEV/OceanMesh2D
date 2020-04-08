@@ -257,7 +257,7 @@ end
 
 %% Changing following parameters based on optional argument inputs
 % WTIMINC
-if obj.f15.nws > 0 %~mod(obj.f15.nws - 1,10) ||  ~mod(obj.f15.nws - 11,10) || obj.f15.nws == 8 
+if obj.f15.nws ~= 0  
     if obj.f15.wtimnc == 0
         error(['Must specify WTIMNC option with NWS = ' num2str(obj.f15.nws)])
     end

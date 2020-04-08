@@ -433,6 +433,7 @@ classdef msh
                         d1 = NaN*obj.p(:,1); d2 = NaN*obj.p(:,1);
                         d1(B1) = barlen(IB); d2(B2) = barlen(IC);  
                         z = min(d1,d2);
+                        yylabel = 'minimum connected bar length [m]';
                     else
                         % get the points on the current projection
                         [X,Y]= m_ll2xy(obj.p(:,1),obj.p(:,2));
@@ -449,6 +450,7 @@ classdef msh
                         z = sum(cr(vtoe))./nne;
                         % scale by earth radius
                         Re = 6378.137e3; z = Re*z;
+                        yylabel = 'element circumradius [m]';
                     end
                     if logaxis
                         q = log10(z); % plot on log scale with base
@@ -490,7 +492,7 @@ classdef msh
                     elseif length(numticks) == 3
                         caxis([numticks(2) numticks(3)]);
                     end
-                    ylabel(cb,'element circumradius [m]','fontsize',12);
+                    ylabel(cb,yylabel,'fontsize',12);
                     title('mesh resolution');
                 case('resodx')
                     TR = triangulation(obj.t,obj.p(:,1),obj.p(:,2));
