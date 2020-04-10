@@ -189,9 +189,16 @@ classdef msh
                 projtype = [] ;
             end
             np_g = length(obj.p) ;
+            % Font size
+            fsz = 12;
             if nargin < 6
                 numticks = 10;
+            else
+                if length(numticks) == 4
+                    fsz = numticks(4);
+                end
             end
+            
             
             % kjr default behavior, just use what's in the .mat file
             if proj && isempty(projtype)
@@ -372,7 +379,7 @@ classdef msh
                     end
                     cb = colorbar;
                     if logaxis
-                        if length(numticks) == 3
+                        if length(numticks) >= 3
                             desiredTicks = round(10.^(linspace(...
                                            log10(numticks(2)),...
                                            log10(numticks(3)),...
@@ -489,10 +496,10 @@ classdef msh
                         for i = 1 : length(desiredTicks)
                             cb.TickLabels{i} = num2str(desiredTicks(i));
                         end
-                    elseif length(numticks) == 3
+                    elseif length(numticks) >= 3
                         caxis([numticks(2) numticks(3)]);
                     end
-                    ylabel(cb,yylabel,'fontsize',12);
+                    ylabel(cb,yylabel,'fontsize',fsz);
                     title('mesh resolution');
                 case('resodx')
                     TR = triangulation(obj.t,obj.p(:,1),obj.p(:,2));
@@ -596,7 +603,6 @@ classdef msh
                     hold on
                     fastscatter(obj.p(userval(1,:),1),obj.p(userval(1,:),2),values');
                     colormap(cmocean('deep'));
-                    %                     caxis([0 5e-5])
                     colorbar;
                 case('transect')
                     if proj
@@ -634,7 +640,7 @@ classdef msh
             end
             if proj == 1
                 % now add the box
-                m_grid('FontSize',12); %'box','none') %,'FontSize',12);
+                m_grid('FontSize',fsz);
             end
         end
         
@@ -1058,7 +1064,7 @@ classdef msh
             end
             bt(I) = 0; 
             bt(~I) = -overland*bt(~I);
-            [bnew,flag] = limgrad(edge,elen,bt,dfdx,imax);
+            [bnew,flag] = limgrad_om(edge,elen,bt,dfdx,imax);
             if flag
                obj.b(~I) = -overland*bnew(~I);
                disp(['Successfully limited ' word ' slope to ' ...
