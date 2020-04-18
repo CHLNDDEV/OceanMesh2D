@@ -783,9 +783,16 @@ classdef geodata
                     'g-','linewi',1); hold on;
             end
             if ~isempty(obj.weirs)
-                for ii =1 : length(obj.weirs)
-                    h3 = m_plot(obj.weirs{ii}(:,1),obj.weirs{ii}(:,2),...
-                        'm-','linewi',1); hold on;
+                if isstruct(obj.weirs) ~= 0
+                    for ii =1 : length(obj.weirs)
+                        h3 = m_plot(obj.weirs.X,obj.weirs.Y,...
+                            'm-','linewi',1); hold on;
+                    end
+                else
+                    for ii =1 : length(obj.weirs)
+                        h3 = m_plot(obj.weirs{ii}(:,1),obj.weirs{ii}(:,2),...
+                            'm-','linewi',1); hold on;
+                    end
                 end
             end
             [la,lo] = my_interpm(obj.boubox(:,2),obj.boubox(:,1),...
