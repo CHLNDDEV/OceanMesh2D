@@ -164,11 +164,11 @@ classdef meshgen
                         else
                             obj.pfix = [];
                         end
-%                         for j = 1 : length(obj.bou)
-%                             if  ~isempty(obj.bou{j}.weirPfix)
-%                                 obj.pfix = [obj.pfix ; obj.bou{j}.weirPfix];
-%                             end
-%                         end
+                         for j = 1 : length(obj.bou)
+                             if  ~isempty(obj.bou{j}.weirPfix)
+                                 obj.pfix = [obj.pfix ; obj.bou{j}.weirPfix];
+                             end
+                         end
                     case('egfix')
                         obj.egfix= inp.(fields{i});
                         if ~isempty(obj.egfix) && obj.egfix(1)~=0
@@ -176,11 +176,11 @@ classdef meshgen
                         else
                             obj.egfix = [];
                         end
-%                         for j = 1 : length(obj.bou)
-%                             if ~isempty(obj.bou{j}.weirEgfix)
-%                                 obj.egfix = [obj.egfix ; obj.bou{j}.weirEgfix+length(obj.egfix)];
-%                             end
-%                         end
+                         for j = 1 : length(obj.bou)
+                             if ~isempty(obj.bou{j}.weirEgfix)
+                                 obj.egfix = [obj.egfix ; obj.bou{j}.weirEgfix+length(obj.egfix)];
+                             end
+                         end
                         obj.egfix = renumberEdges(obj.egfix);
                     case('fixboxes')
                         obj.fixboxes= inp.(fields{i});
