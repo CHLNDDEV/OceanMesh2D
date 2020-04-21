@@ -23,9 +23,9 @@ function polygon_struct = Read_shapefile( finputname, polygon, bbox, ...
 %% Loop over all the filenames and get the shapefile within bbox
 SG = [];
 if bbox(1,2) > 180 && bbox(1,1) < 180
-    % bbox straddles 180/-180 line
+    % bbox straddles 180/-180 meridian
     loop = 2; minus = 0;
-elseif bbox(1,1) > 180 && bbox(1,1) > 180
+elseif all(bbox(1,:) > 180)
     % beyond 180 in 0 to 360 format
     loop = 1; minus = 1;
 else

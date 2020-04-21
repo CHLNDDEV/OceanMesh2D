@@ -723,10 +723,9 @@ classdef geodata
         
         function plot(obj,type,projection)
             % Plot mesh boundary
-            if nargin == 1
+            if nargin == 1 || isempty(type)
                 type = 'shp';
             end
-            
             if nargin < 3
                 projection = 'Mercator';
             end
@@ -737,8 +736,10 @@ classdef geodata
                     'long',mean(obj.bbox(1,:)),'radius',...
                     min(179.9,1.20*max(diff(obj.bbox(2,:)))));
             else
-                lon1 = max(-180,obj.bbox(1,1) - bufx);
-                lon2 = min(+180,obj.bbox(1,2) + bufx);
+                lmin = -180; lmax = +180;
+                if obj.bbox(1,2) > 180; lmax = 360; lmin = 0; end 
+                lon1 = max(lmin,obj.bbox(1,1) - bufx);
+                lon2 = min(lmax,obj.bbox(1,2) + bufx);
                 lat1 = max(- 90,obj.bbox(2,1) - bufy);
                 lat2 = min(+ 90,obj.bbox(2,2) + bufy);
                 m_proj(projection,...
