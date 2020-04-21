@@ -1922,6 +1922,14 @@ classdef msh
             %          and {'djc',0,'sc_maxit',0} for 'arb(+)' type.
             %          Specify an empty [] cleanargin to avoid cleaning.
             %
+            % Note special cleanargin options:
+            %        1) 'prune_djc' - specify the djc for the pruned obj2
+            %           (obj2 minus intersection with obj1) - 0.01 by default
+            %        2) 'lock_dis' - specify the distance in degrees from 
+            %           the intersection at which to lock points. Note that
+            %           the user can also specify fixed points in the
+            %           individual msh obj "pfix" field to lock specific points.
+            %
             % OUPUTS:
             % merge: a msh object in which the msh obj1's connectivity and
             % bathymetry is carried over (along with fixed points
@@ -1935,9 +1943,13 @@ classdef msh
             % kjr, usp. nov 2019. Better merging wrt to fixed constraints.
             %                     now collapses thin triangles incrementally
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            
+            %%%%%%%%%%% Parsing inputs %%%%%%%%%%%%%%%%%%%%%%%%%%%%
             if nargin < 3
                 type = 'arb';
             end
+            prune_djc = 0.01;
+            lock_dis = 0;
             options = {'arb','arb+','match','matche'};
             if sum(strcmp(options,type)) == 0
                 error('type does not match any of arb, arb+, match, matche')
@@ -1946,7 +1958,7 @@ classdef msh
             end
             if nargin < 4
                 if strcmp(type,'match') || strcmp(type,'matche')
-                    cleanargin = {'passive'};
+                    cleanargin = {'passive','pfix',[]};
                 else
                     cleanargin = {'djc',0,'sc_maxit',0,'proj',0,'pfix',[]};
                 end
@@ -1958,13 +1970,50 @@ classdef msh
                         error('cleanargin must be a cell')
                     end
                     if strcmp(type(1:3),'arb')
-                        cleanargin{end+1} = 'proj';
-                        cleanargin{end+1} = 0;
+                        if sum(strcmp(cleanargin,'proj')) == 0
+                            cleanargin{end+1} = 'proj';
+                            cleanargin{end+1} = 0;
+                        end
+                        if sum(strcmp(cleanargin,'djc')) == 0
+                            cleanargin{end+1} = 'djc';
+                            cleanargin{end+1} = 0;
+                        end
+                        if sum(strcmp(cleanargin,'sc_maxit')) == 0
+                            cleanargin{end+1} = 'sc_maxit';
+                            cleanargin{end+1} = 0;
+                        end
+                    end
+                    if sum(strcmp(cleanargin,'pfix')) == 0
                         cleanargin{end+1} = 'pfix';
                         cleanargin{end+1} = [];
                     end
+                    pI = find(strcmp(cleanargin,'prune_djc'));
+                    if ~isempty(pI)
+                        prune_djc = cleanargin{pI+1}; 
+                        cleanargin(pI:pI+1) = [];
+                    end
+                    pI = find(strcmp(cleanargin,'lock_dis'));
+                    if ~isempty(pI)
+                        lock_dis = cleanargin{pI+1}; 
+                        cleanargin(pI:pI+1) = [];
+                    end
                 end
             end
+            % Get location of pfix in the cleanargin
+            pfix_loc = find(strcmp(cleanargin,'pfix'))+1;
+            % Displaying to screen
+            disp(['cleaning options: ' cleanargin])
+            if strcmp(type(1:3),'arb')
+                disp(['The djc for the pruned obj2 is: ' num2str(prune_djc)])
+                if lock_dis > 0
+                    disp(['Locking points a distance of ' ...
+                          num2str(lock_dis) ' deg away from intersection'])
+                else
+                    disp(['Locking points more than 2*maximum edge ' ...
+                          'length in obj1 away from intersection'])
+                end
+            end
+            %%%%%%%%%%%%%%% end of parsing inpiuts %%%%%%%%%%
             
             p1 = obj1.p; t1 = obj1.t;
             p2 = obj2.p; t2 = obj2.t;
@@ -2084,7 +2133,8 @@ classdef msh
                     % We need to delete straggling elements that are
                     % generated through the above deletion step
                     pruned2 = msh() ; pruned2.p = p2; pruned2.t = t2;
-                    pruned2 = Make_Mesh_Boundaries_Traversable(pruned2,0.01,1);
+                    pruned2 = Make_Mesh_Boundaries_Traversable(...
+                                                     pruned2,prune_djc,1);
                     t2 = pruned2.t; p2 = pruned2.p;
                     % get new poly_vec2
                     if strcmp(type,'arb')
@@ -2135,14 +2185,17 @@ classdef msh
                     merge = msh() ; merge.p = pm; merge.t = tm ;
                     
                     if ~isempty(cleanargin)
-                        % lock anything vertices more than 2*dmax away
-                        % from intersection
-                        [~,dst] = ourKNNsearch(p1',p1',2);
-                        dmax = max(dst(:,2));
+                        if lock_dis == 0
+                            % lock anything vertices more than 2*dmax away
+                            % from intersection
+                            [~,dst] = ourKNNsearch(p1',p1',2);
+                            dmax = max(dst(:,2));
+                            lock_dis = 2*dmax;
+                        end
                         [~,dst1] = ourKNNsearch(p1',merge.p',1);
                         [~,dst2] = ourKNNsearch(p2',merge.p',1);
-                        locked = [merge.p(dst1 > 2*dmax | dst2 > 2*dmax,:); pfixx];
-                        cleanargin{end} = locked;
+                        locked = [merge.p(dst1 > lock_dis | dst2 > lock_dis,:); pfixx];
+                        cleanargin{pfix_loc} = locked;
                         % iteration is done in clean if smoothing creates neg quality
                         merge = clean(merge,cleanargin);
                     end
