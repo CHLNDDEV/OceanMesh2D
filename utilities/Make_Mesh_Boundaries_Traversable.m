@@ -49,7 +49,7 @@ function obj = Make_Mesh_Boundaries_Traversable( obj, dj_cutoff, nscreen, proj )
 %  along with this program.  If not, see <http://www.gnu.org/licenses/>.  
 
 % Entering the code
-disp('Making mesh boundaries traversable...');  
+disp('Entry: Making mesh boundaries traversable...');  
 % This is to avoid heaps of warnings in the triangulation call which are
 % unneccesary
 warning('off','all')
@@ -107,7 +107,7 @@ while numel(etbv) > numel(vxe)
     %end
 end
 % Finished cleaning
-disp('ALERT: finished cleaning up mesh..'); 
+disp('Exit: finished making mesh boundaries traversable..'); 
 % Turn warnings back on
 warning('on','all')
 end
