@@ -2192,8 +2192,13 @@ classdef msh
                             dmax = max(dst(:,2));
                             lock_dis = 2*dmax;
                         end
-                        [~,dst1] = ourKNNsearch(p1',merge.p',1);
-                        [~,dst2] = ourKNNsearch(p2',merge.p',1);
+                        % convert to degrees to calculate distance
+                        [t_p1(:,1),t_p1(:,2)] = m_xy2ll(p1(:,1),p1(:,2));
+                        [t_mrg(:,1),t_mrg(:,2)] = m_xy2ll(merge.p(:,1),merge.p(:,2));
+                        [t_p2(:,1),t_p2(:,2)] = m_xy2ll(p2(:,1),p2(:,2));
+                        
+                        [~,dst1] = ourKNNsearch(t_p1',t_mrg',1);
+                        [~,dst2] = ourKNNsearch(t_p2',t_mrg',1);
                         locked = [merge.p(dst1 > lock_dis | dst2 > lock_dis,:); pfixx];
                         cleanargin{pfix_loc} = locked;
                         % iteration is done in clean if smoothing creates neg quality
@@ -3732,11 +3737,27 @@ classdef msh
                 ocean = unique(obj.op.nbdv(:));
                 [~,IA] = intersect(egfix(:,1),ocean);
                 [~,IB] = intersect(egfix(:,2),ocean);
-                IC = unique([IA;IB]);
-                egfix(IC,:) = [];
+                DEL1 = unique([IA;IB]);
+                egfix(DEL1,:) = [];
                 pfix = obj.p(unique(egfix(:)),:);
             end
-            egfix = renumberEdges(egfix) ;
+           egfix = renumberEdges(egfix) ;
+
+%             if ~isempty(obj.pfix) && ~isempty(obj.egfix) 
+%                 disp('detected fixed points and edges in mesh, removing'); 
+%                 % these points will be picked up in meshgen
+%                 % if the user wants them to be merged in
+%                 weir = unique(obj.egfix(:));
+%                 % map weir nodes to global mesh nodes 
+%                 [map,~] = ourKNNsearch(pfix',obj.pfix',1);
+%                 weir = map(weir); 
+%                 [~,IA] = intersect(egfix(:,1),weir);
+%                 [~,IB] = intersect(egfix(:,2),weir);
+%                 DEL2 = unique([IA;IB]);
+%                 egfix(DEL2,:) = [];
+%                 pfix = pfix(unique(egfix),:); 
+%                 egfix = renumberEdges(egfix) ;
+%             end
         end
         
         function boundary = getBoundaryOfMesh(obj)
