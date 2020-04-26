@@ -3742,22 +3742,6 @@ classdef msh
                 pfix = obj.p(unique(egfix(:)),:);
             end
            egfix = renumberEdges(egfix) ;
-
-%             if ~isempty(obj.pfix) && ~isempty(obj.egfix) 
-%                 disp('detected fixed points and edges in mesh, removing'); 
-%                 % these points will be picked up in meshgen
-%                 % if the user wants them to be merged in
-%                 weir = unique(obj.egfix(:));
-%                 % map weir nodes to global mesh nodes 
-%                 [map,~] = ourKNNsearch(pfix',obj.pfix',1);
-%                 weir = map(weir); 
-%                 [~,IA] = intersect(egfix(:,1),weir);
-%                 [~,IB] = intersect(egfix(:,2),weir);
-%                 DEL2 = unique([IA;IB]);
-%                 egfix(DEL2,:) = [];
-%                 pfix = pfix(unique(egfix),:); 
-%                 egfix = renumberEdges(egfix) ;
-%             end
         end
         
         function boundary = getBoundaryOfMesh(obj)
