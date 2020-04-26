@@ -2185,18 +2185,18 @@ classdef msh
                     merge = msh() ; merge.p = pm; merge.t = tm ;
                     
                     if ~isempty(cleanargin)
-                        if lock_dis == 0
-                            % lock anything vertices more than 2*dmax away
-                            % from intersection
-                            [~,dst] = ourKNNsearch(p1',p1',2);
-                            dmax = max(dst(:,2));
-                            lock_dis = 2*dmax;
-                        end
                         % convert to degrees to calculate distance
                         [t_p1(:,1),t_p1(:,2)] = m_xy2ll(p1(:,1),p1(:,2));
                         [t_mrg(:,1),t_mrg(:,2)] = m_xy2ll(merge.p(:,1),merge.p(:,2));
                         [t_p2(:,1),t_p2(:,2)] = m_xy2ll(p2(:,1),p2(:,2));
-                        
+                        if lock_dis == 0
+                            % lock anything vertices more than 2*dmax away
+                            % from intersection
+                            [~,dst] = ourKNNsearch(t_p1',t_p1',2);
+                            dmax = max(dst(:,2));
+                            lock_dis = 2*dmax;
+                        end
+                        % determining the locked vertices
                         [~,dst1] = ourKNNsearch(t_p1',t_mrg',1);
                         [~,dst2] = ourKNNsearch(t_p2',t_mrg',1);
                         locked = [merge.p(dst1 > lock_dis | dst2 > lock_dis,:); pfixx];
