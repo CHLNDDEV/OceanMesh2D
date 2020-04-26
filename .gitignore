@@ -3,8 +3,6 @@ datasets/
 fort.*
 Examples/*.mat
 /*.mat
-!weirs_cell.mat
-!weirs_struct.mat
 *.15
 *.14
 *.13

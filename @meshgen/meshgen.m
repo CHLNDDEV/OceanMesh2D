@@ -48,6 +48,7 @@ classdef meshgen
         anno          % Approx. Nearest Neighbor search object. 
         annData       % datat contained with KD-tree in anno
         Fb            % bathymetry data interpolant 
+        enforceWeirs  % whether or not to enforce weirs in meshgen 
     end
     
     
@@ -100,6 +101,8 @@ classdef meshgen
             addOptional(p,'ns_fix',defval);
             addOptional(p,'proj',defval);
             addOptional(p,'qual_tol',defval);
+            addOptional(p,'enforceWeirs',1);
+
             
             % parse the inputs
             parse(p,varargin{:});
@@ -111,7 +114,7 @@ classdef meshgen
             % kjr...order these argument so they are processed in a predictable
             % manner. Process the general opts first, then the OceanMesh
             % classes...then basic non-critical options. 
-            inp = orderfields(inp,{'h0','bbox','fh','inner','outer','mainland',...
+            inp = orderfields(inp,{'h0','bbox','enforceWeirs','fh','inner','outer','mainland',...
                                    'bou','ef',... %<--OceanMesh classes come after
                                    'egfix','pfix','fixboxes',...
                                    'plot_on','nscreen','itmax',...
@@ -164,9 +167,11 @@ classdef meshgen
                         else
                             obj.pfix = [];
                         end
-                        for j = 1 : length(obj.bou)
-                            if  ~isempty(obj.bou{j}.weirPfix)
-                                obj.pfix = [obj.pfix ; obj.bou{j}.weirPfix];
+                        if obj.enforceWeirs
+                            for j = 1 : length(obj.bou)
+                                if  ~isempty(obj.bou{j}.weirPfix)
+                                    obj.pfix = [obj.pfix ; obj.bou{j}.weirPfix];
+                                end
                             end
                         end
                     case('egfix')
@@ -176,9 +181,11 @@ classdef meshgen
                         else
                             obj.egfix = [];
                         end
-                        for j = 1 : length(obj.bou)
-                            if ~isempty(obj.bou{j}.weirEgfix)
-                                obj.egfix = [obj.egfix ; obj.bou{j}.weirEgfix+length(obj.egfix)];
+                        if obj.enforceWeirs
+                            for j = 1 : length(obj.bou)
+                                if ~isempty(obj.bou{j}.weirEgfix)
+                                    obj.egfix = [obj.egfix ; obj.bou{j}.weirEgfix+length(obj.egfix)];
+                                end
                             end
                         end
                         obj.egfix = renumberEdges(obj.egfix);
@@ -370,6 +377,8 @@ classdef meshgen
                         dmy.p(:,1) = [lon_mi; lon_ma];
                         dmy.p(:,2) = [lat_mi; lat_ma];
                         del = setProj(dmy,1,obj.proj) ;
+                    case('enforceWeirs')
+                        obj.enforceWeirs = inp.(fields{i}); 
                 end
             end
             
