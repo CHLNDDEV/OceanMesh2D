@@ -721,14 +721,32 @@ classdef geodata
             
         end
         
-        function plot(obj,type,projection)
-            % Plot mesh boundary
+        function plot(obj,type,projection,holdon)
+            % plot(obj,type,projection,holdon)
+            % Plot geodata class info
+            % 
+            % Inputs:
+            % obj  : geodata class object [required input]
+            %
+            % optional inputs =>....
+            % type : i) 'shp' [default] - plots the shapelines (shoreline) only
+            %       ii) 'dem' - plots the dem bathy in addition to shapelines
+            %      iii) 'omega' - hatches the meshing domain in addition to plotting shapelines
+            % projection : choose the projection type from m_map options
+            %              (default is Mercator)
+            % holdon : plot on a new (= 0 [default]) or existing (= 1) figure?
+            
             if nargin == 1 || isempty(type)
                 type = 'shp';
             end
             if nargin < 3
                 projection = 'Mercator';
             end
+            if nargin < 4
+                holdon = 0;
+            end
+            
+            % setup the projection
             bufx = 0.2*(obj.bbox(1,2) - obj.bbox(1,1));
             bufy = 0.2*(obj.bbox(2,2) - obj.bbox(2,1));
             if ~isempty(regexp(projection,'ste'))
@@ -743,9 +761,15 @@ classdef geodata
                 lat1 = max(- 90,obj.bbox(2,1) - bufy);
                 lat2 = min(+ 90,obj.bbox(2,2) + bufy);
                 m_proj(projection,...
-                    'long',[lon1, lon2],'lat',[lat1, lat2]);
+                       'long',[lon1, lon2],'lat',[lat1, lat2]);
             end
             
+            % plot on new or existing figure
+            if ~holdon
+                figure;
+            end
+            hold on
+            % select optional types
             switch type
                 case('dem')
                     % interpolate DEM's bathy linearly onto our edgefunction grid.
@@ -762,7 +786,7 @@ classdef geodata
                     if obj.inpoly_flip
                         in = ~in;
                     end
-                    hold on; m_fastscatter(demx(in),demy(in),demz(in));
+                    m_fastscatter(demx(in),demy(in),demz(in));
                     cb = colorbar; ylabel(cb,'topo-bathy depth [m]')
                 case('omega')
                     % hatch the meshing domain, Omega
@@ -771,7 +795,7 @@ classdef geodata
                     edges = Get_poly_edges( [obj.outer; obj.inner] );
                     in = inpoly([demx(:),demy(:)],[obj.outer; obj.inner], edges);
                     long = demx(~in); lati = demy(~in);
-                    hold on; m_hatch(obj.boubox(1:end-1,1),...
+                    m_hatch(obj.boubox(1:end-1,1),...
                         obj.boubox(1:end-1,2),'cross',45,0.05);
                     m_plot(long,lati,'.','Color','white')
             end
