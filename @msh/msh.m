@@ -634,9 +634,15 @@ classdef msh
                     defval  = obj.f13.defval.Atr(ii).Val;
                     userval = obj.f13.userval.Atr(ii).Val;
                     values = userval(2,:);
-                    fastscatter(obj.p(:,1),obj.p(:,2),defval(1)*ones(length(obj.p),1));
-                    hold on
-                    fastscatter(obj.p(userval(1,:),1),obj.p(userval(1,:),2),values');
+                    if proj
+                        m_fastscatter(obj.p(:,1),obj.p(:,2),defval(1)*ones(length(obj.p),1));
+                        hold on
+                        m_fastscatter(obj.p(userval(1,:),1),obj.p(userval(1,:),2),values');
+                    else
+                        fastscatter(obj.p(:,1),obj.p(:,2),defval(1)*ones(length(obj.p),1));
+                        hold on
+                        fastscatter(obj.p(userval(1,:),1),obj.p(userval(1,:),2),values');
+                    end
                     colormap(cmocean('deep'));
                     colorbar;
                 case('transect')
