@@ -461,6 +461,7 @@ classdef meshgen
                     disp(['    for box #' num2str(box_num)]);
                     % checking if cell or not and applying local values
                     h0_l = obj.h0(box_num);
+                    max_r0 = 1/h0_l^2;   
                     if ~iscell(obj.bbox)
                         bbox_l = obj.bbox'; % <--we must tranpose this!
                     else
@@ -520,15 +521,19 @@ classdef meshgen
                         %% 2. Remove points outside the region, apply the rejection method
                         p1 = p1(feval(obj.fd,p1,obj,box_num) < geps,:);     % Keep only d<0 points
                         r0 = 1./feval(fh_l,p1).^2;                          % Probability to keep point
-                        max_r0 = 1/h0_l^2;     
                         p1 = p1(rand(size(p1,1),1) < r0/max_r0,:);          % Rejection method
                         p  = [p; p1];                                       % Adding p1 to p
-                        % kjr make sure the corners of the box are added to
-                        % make the tile corner's fill the extent more
-                        % quickly. 
-                        plt = cell2mat(obj.boubox');
-                        plt(isnan(plt(:,1)),:)=[] ; 
-                        p = [p ; plt(1:end-1,:) ] ; 
+                    end
+                    if box_num == 1
+                        % add points along the outermost polygon to fill
+                        % outer extent more quickly. 
+                        outer_temp = obj.outer{1};
+                        Inan = find(isnan(outer_temp(:,1)),1,'first');
+                        p1 = outer_temp(1:Inan-1,:);
+                        p1 = p1(feval(obj.fd,p1,obj,box_num) < geps,:);     % Keep only d<0 points
+                        r0 = 1./feval(fh_l, p1).^2;                         % Probability to keep point
+                        p1 = p1(rand(size(p1,1),1) < r0/max_r0,:);          % Rejection method
+                        p = [p; p1];                                        % Adding p1 to p
                     end
                 end
             else

@@ -1,4 +1,3 @@
-
 classdef msh
     %   MSH: Mesh class
     %   Contains, handles, and builds properties of a mesh such as vertices,
@@ -188,8 +187,8 @@ classdef msh
         end
 
         % general plot function
-        function h = plot(obj,type,proj,projtype,bou,numticks)
-            % h = plot(obj,type,proj,projtype,bou,numticks)
+        function h = plot(obj,type,proj,projtype,bou,varargin)
+            % h = plot(obj,type,proj,projtype,bou,varargin)
             % 1) obj: msh object
             % 2) type: plot type, choose from:
             %    a) 'tri'  - (default) plots the triangulation
@@ -201,20 +200,24 @@ classdef msh
             %    g) 'itfric' - plots the internal_tide_friction values
             %    h) 'cfvals' - plots the quadratic bottom friction values
             %    i) 'mann'   - plots the manning's n values
-            %    j) 'xx' -     plots an arbitrary f13 attribute 'xx' by
+            %    j) 'qual'   - plots the element quality
+            %    k) 'xx' -     plots an arbitrary f13 attribute 'xx' by
             %                  contains search
-            %    additional -->
+            %    additional --> 
             %    i)  add 'log' inside type to plot caxis in log space
             %    ii) add 'mesh' inside type to plot trimesh instead of trisurf
             % 3) proj: whether to plot in projected space or unprojected space
             %    a) 0       - plot in unprojected space
             %    b) 1       - plot in projected space (default)
-            % 4) projtype: what projection to plot in if proj = 1.
+            % 4) projtype: what projection to plot in if proj = 1. 
             %    default is the projection of the msh object
             % 5) bou: a local bounding box or polygon region to plot within
-            % 6) numticks: number of tickmarks, if you plot in the 'log'
-            %    space you can specify numticks = [numticks caxis_lower ...
-            %                                      caxis_upper]
+            % 6) varargin options: 
+            %    i) 'numticks': number of colorbar tickmarks and (optional) range:
+            %           [numticks] or [numticks caxis_lower caxis_upper]
+            %    ii) 'fontsize': figure fontsize
+            %   iii) 'holdon'  : =1 to plot on existing figure (otherwise
+            %                    will use new figure)
             if nargin < 2
                 type = 'tri';
             end
@@ -225,26 +228,32 @@ classdef msh
                 projtype = [] ;
             end
             np_g = length(obj.p) ;
-            if nargin < 6
-                numticks = 10;
+            fsz = 12; % default font size
+            numticks = 10; % default num of ticks
+            holdon = 0;
+            for kk = 1:2:length(varargin)
+                if strcmp(varargin{kk},'fontsize')
+                    fsz = varargin{kk+1};
+                elseif strcmp(varargin{kk},'numticks')
+                    numticks = varargin{kk+1};
+                elseif strcmp(varargin{kk},'holdon')
+                    holdon = varargin{kk+1};   
+                end        
             end
-
+                
             % kjr default behavior, just use what's in the .mat file
             if proj && isempty(projtype)
+                global MAP_PROJECTION MAP_VAR_LIST MAP_COORDS
                 if ~isempty(obj.coord)
-                    global MAP_PROJECTION MAP_VAR_LIST MAP_COORDS
                     % kjr 2018,10,17; Set up projected space imported from msh class
                     MAP_PROJECTION = obj.proj ;
                     MAP_VAR_LIST   = obj.mapvar ;
                     MAP_COORDS     = obj.coord ;
                     del = 0;
                     projtype = MAP_PROJECTION.name;
-                else
-                    % change proj to 0 since we have no proj info
-                    proj = 0;
                 end
             end
-
+            
             % Handle user specified subdomain
             if nargin < 5 || isempty(bou)
                 kept = (1:length(obj.p))';
@@ -260,20 +269,20 @@ classdef msh
                 % Get a subset given by bou
                 [obj,kept] = ExtractSubDomain(obj,bou);
             end
-
+            
             % Set up projected space
             del = setProj(obj,proj,projtype) ;
-
+            
             if del
                 % This deletes any elements straddling the -180/180
                 % boundary for plotting purposes
                 xt = [obj.p(obj.t(:,1),1) obj.p(obj.t(:,2),1) ...
-                    obj.p(obj.t(:,3),1) obj.p(obj.t(:,1),1)];
+                     obj.p(obj.t(:,3),1) obj.p(obj.t(:,1),1)];
                 dxt = diff(xt,[],2);
                 obj.t(abs(dxt(:,1)) > 180 | abs(dxt(:,2)) > 180 | ...
-                    abs(dxt(:,3)) > 180,:) = [];
+                      abs(dxt(:,3)) > 180,:) = [];
             end
-
+            
             logaxis = 0;
             idxl = strfind(type,'log');
             if ~isempty(idxl)
@@ -283,62 +292,38 @@ classdef msh
             idxl = strfind(type,'mesh');
             if ~isempty(idxl)
                 mesh = 1; type(idxl:idxl+3) = [];
-            end
+            end    
             earthres = 0;
             if strcmp(type,'resoearth')
                 type = 'reso'; earthres = 1;
             end
-
+            tri = 1;
+            idxl = strfind(type,'notri');
+            if ~isempty(idxl)
+                tri = 0; type(idxl:idxl+4) = [];
+            end  
+            
+            % Make new figure if not holdon
+            if ~holdon
+                figure;
+            end
+            hold on
+            
             switch type
                 % parse aux options first
-                case('qual')
-                    q = gettrimeshquan(obj.p, obj.t);
-                    nq = zeros(length(obj.p),1) + 1.0 ;
-                    for i = 1 : length(obj.t)
-                        for j = 1 : 3
-                            nm = obj.t(i,j);
-                            nq(nm) = min(nq(nm),q.qm(i));
-                        end
-                    end
-                    if proj
-                        if mesh
-                            m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),nq);
-                        else
-                            m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),nq); hold on;
-                            m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),nq*0);
-                            shading flat
-                        end
-                    else
-                        if mesh
-                            trimesh(obj.t,obj.p(:,1),obj.p(:,2),nq);
-                        else
-                            trisurf(obj.t,obj.p(:,1),obj.p(:,2),nq)
-                            hold on;
-
-                            shading flat;
-                        end
-                        view(2);
-                    end
-                    caxis([0.0 1.0])
-                    cb = colorbar;
-                    title('Mesh quality (area-length ratio)');
-                    colormap(cmocean('matter',10));
-                    set(cb,'FontSize',12);
-                    ylabel(cb,'area-length ratio');
-
                 case('tri')
-                    figure;
                     if proj
                         m_triplot(obj.p(:,1),obj.p(:,2),obj.t);
                     else
                         simpplot(obj.p,obj.t);
                     end
                 case('bd')
-                    figure; hold on;
-                    if proj
-                        m_triplot(obj.p(:,1),obj.p(:,2),obj.t);
-                    else
-                        simpplot(obj.p,obj.t);
+                    if tri
+                        if proj
+                           m_triplot(obj.p(:,1),obj.p(:,2),obj.t);
+                        else
+                           simpplot(obj.p,obj.t);
+                        end
                     end
                     if ~isempty(obj.bd)
                         for nb = 1 : obj.bd.nbou
@@ -377,7 +362,7 @@ classdef msh
                                     plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
                                         obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'r-','linewi',1.2);
                                 end
-                            else
+                            else              
                                 if proj
                                     m_plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
                                         obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'g-','linewi',1.2);
@@ -400,10 +385,9 @@ classdef msh
                         end
                     end
                     if isempty(obj.bd) && isempty(obj.op)
-                        disp('bounbaries are empty!');
+                        disp('boundaries are empty!');
                     end
                 case('b')
-                    figure;
                     if logaxis
                         q = log10(max(1,abs(obj.b))); % plot on log scale
                     else
@@ -426,27 +410,27 @@ classdef msh
                             trisurf(obj.t,obj.p(:,1),obj.p(:,2),q)
                             shading interp;
                         end
-                        view(2);
+                        view(2); 
                     end
                     if logaxis
-                        cmocean('deep',numticks(1)-1);
+                        cmocean('deep',numticks(1)-1); 
                     else
                         if exist('demcmap','file')
                             demcmap(q);
-                        else
-                            cmocean('topo','pivot',min(max(q),0));
+                        else   
+                            cmocean('topo','pivot',min(max(q),0)); 
                         end
                     end
                     cb = colorbar;
                     if logaxis
-                        if length(numticks) == 3
+                        if length(numticks) >= 3
                             desiredTicks = round(10.^(linspace(...
-                                log10(numticks(2)),...
-                                log10(numticks(3)),...
-                                numticks(1))),1);
+                                           log10(numticks(2)),...
+                                           log10(numticks(3)),...
+                                           numticks(1))),1);
                         else
                             desiredTicks = round(10.^(linspace(min(q),...
-                                max(q),numticks(1))),1);
+                                                   max(q),numticks(1))),1);
                         end
                         caxis([log10(min(desiredTicks)) log10(max(desiredTicks))]);
                         cb.Ticks     = log10(desiredTicks);
@@ -457,23 +441,22 @@ classdef msh
                     ylabel(cb,'m below geoid');
                     title('mesh topo-bathy');
                 case('slp')
-                    figure;
                     if proj
                         if mesh
                             m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),...
-                                hypot(obj.bx,obj.by));
+                                      hypot(obj.bx,obj.by));  
                         else
                             m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),...
-                                hypot(obj.bx,obj.by));
+                                      hypot(obj.bx,obj.by));
                         end
                     else
-                        if mesh
+                        if mesh 
                             trimesh(obj.t,obj.p(:,1),obj.p(:,2),...
-                                hypot(obj.bx,obj.by));
+                                    hypot(obj.bx,obj.by));
                         else
                             trisurf(obj.t,obj.p(:,1),obj.p(:,2),...
-                                hypot(obj.bx,obj.by));
-                            shading flat
+                                    hypot(obj.bx,obj.by));
+                            shading flat   
                         end
                         view(2);
                     end
@@ -483,9 +466,9 @@ classdef msh
                 case('ob') % outer boundary of mesh
                     [~,bpt] = extdom_edges2(obj.t,obj.p);
                     if proj
-                        figure, m_plot(bpt(:,1),bpt(:,2),'r.');
+                        m_plot(bpt(:,1),bpt(:,2),'r.');
                     else
-                        figure, plot(bpt(:,1),bpt(:,2),'r.');
+                        plot(bpt(:,1),bpt(:,2),'r.');
                     end
                 case('reso')
                     % Get bar lengths
@@ -498,8 +481,9 @@ classdef msh
                         [B1,IB] = unique(bars(:,1),'last');
                         [B2,IC] = unique(bars(:,2),'last');
                         d1 = NaN*obj.p(:,1); d2 = NaN*obj.p(:,1);
-                        d1(B1) = barlen(IB); d2(B2) = barlen(IC);
+                        d1(B1) = barlen(IB); d2(B2) = barlen(IC);  
                         z = min(d1,d2);
+                        yylabel = 'minimum connected bar length [m]';
                     else
                         % get the points on the current projection
                         [X,Y]= m_ll2xy(obj.p(:,1),obj.p(:,2));
@@ -516,13 +500,13 @@ classdef msh
                         z = sum(cr(vtoe))./nne;
                         % scale by earth radius
                         Re = 6378.137e3; z = Re*z;
+                        yylabel = 'element circumradius [m]';
                     end
                     if logaxis
                         q = log10(z); % plot on log scale with base
                     else
                         q = z;
                     end
-                    figure;
                     if proj
                         if mesh
                             m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
@@ -538,33 +522,30 @@ classdef msh
                         end
                         view(2);
                     end
-                    cmocean('thermal',numticks(1)); cb = colorbar;
+                    cmocean('thermal',numticks(1)-1); cb = colorbar;
                     if logaxis
-                        if length(numticks) == 3
+                        if length(numticks) >= 3
                             desiredTicks = round(10.^(linspace(...
-                                log10(numticks(2)),...
-                                log10(numticks(3)),...
-                                numticks(1))),-1);
+                                           log10(numticks(2)),...
+                                           log10(numticks(3)),...
+                                           numticks(1))),-1);
                         else
                             desiredTicks = round(10.^(linspace(min(q),...
-                                max(q),numticks(1))),-1);
+                                                 max(q),numticks(1))),-1);
                         end
-                        desiredTicks=unique(desiredTicks);
                         caxis([log10(min(desiredTicks)) log10(max(desiredTicks))]);
                         cb.Ticks     = log10(desiredTicks);
                         for i = 1 : length(desiredTicks)
                             cb.TickLabels{i} = num2str(desiredTicks(i));
                         end
-                    elseif length(numticks) == 3
+                    elseif length(numticks) >= 3
                         caxis([numticks(2) numticks(3)]);
                     end
-                    set(gca,'FontSize',16)
-                    ylabel(cb,'element circumradius [m]','fontsize',15);
+                    ylabel(cb,yylabel,'fontsize',fsz);
                     title('mesh resolution');
                 case('resodx')
                     TR = triangulation(obj.t,obj.p(:,1),obj.p(:,2));
                     [cc,cr] = circumcenter(TR);
-
                     for i = 1  : length(obj.t)
                         cl = cr(i) ;
                         for j = 1 :  3
@@ -574,27 +555,28 @@ classdef msh
                     [Hx,Hy] = Unstruc_Bath_Slope( obj.t,obj.p(:,1),obj.p(:,2),z);
                     HH = sqrt(Hx.^2 + Hy.^2);
                     if proj
-                        figure; m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),HH);
+                        m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),HH);
                     else
-                        figure; trimesh(obj.t,obj.p(:,1),obj.p(:,2),HH,...
+                        trimesh(obj.t,obj.p(:,1),obj.p(:,2),HH,...
                             'facecolor', 'flat', 'edgecolor', 'none');
                     end
                     cmocean('balance',5);
                     caxis([0 0.25]);
                     cb = colorbar;
                     title('Relaxation rate of topology');
-                    ylabel(cb,'decimal percent');
+                    ylabel(cb,'decimal percent');            
                 case('tau0')
                     if ~isempty(obj.f13)
                         ii = find(contains({obj.f13.defval.Atr(:).AttrName},'primitive'));
                         defval  = obj.f13.defval.Atr(ii).Val;
                         userval = obj.f13.userval.Atr(ii).Val;
-                        figure;
-                        fastscatter(obj.p(userval(1,:),1),obj.p(userval(1,:),2),userval(2,:)');
+                        tau0 = 0*obj.p(:,1) + defval;
+                        tau0(userval(1,:)) = userval(2,:)'; 
+                        fastscatter(obj.p(:,1),obj.p(:,2),tau0);
                         colormap([1 0 0; 0 1 0; 0 0 1]);
                         colorbar;
                     else
-                        display('Fort13 structure is empty!');
+                        disp('Fort13 structure is empty!');
                     end
                 case('itfric')
                     if ~isempty(obj.f13)
@@ -602,13 +584,12 @@ classdef msh
                         userval = obj.f13.userval.Atr(ii).Val;
                         values = max(userval(2:end,:)',[],2);
                         [~,bpt] = extdom_edges2(obj.t,obj.p);
-                        figure;
                         if proj
                             m_fastscatter(obj.p(userval(1,:),1),obj.p(userval(1,:),2),values);
-                            hold on, m_plot(bpt(:,1),bpt(:,2),'r.');
+                            m_plot(bpt(:,1),bpt(:,2),'r.');
                         else
                             fastscatter(obj.p(userval(1,:),1),obj.p(userval(1,:),2),values);
-                            hold on, plot(bpt(:,1),bpt(:,2),'r.');
+                            plot(bpt(:,1),bpt(:,2),'r.');
                         end
                         colormap(cmocean('deep',10));
                         caxis([0 5e-5])
@@ -621,13 +602,12 @@ classdef msh
                         userval = obj.f13.userval.Atr(ii).Val;
                         values = obj.p(:,1)*0 + defval;
                         values(userval(1,:)) = userval(2,:);
-                        figure;
                         fastscatter(obj.p(:,1),obj.p(:,2),values);
                         nouq = length(unique(values));
                         colormap(jet(nouq));
                         colorbar;
                     else
-                        display('Fort13 structure is empty!');
+                        disp('Fort13 structure is empty!');
                     end
                 case('mann')
                     if ~isempty(obj.f13)
@@ -638,32 +618,27 @@ classdef msh
                         alltogether = zeros(np_g,1)+defval ;
                         alltogether(userval(1,:)',1) = values;
                         if proj
-                            figure;
                             m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),alltogether(kept));
                         else
                             trisurf(obj.t,obj.p(:,1),obj.p(:,2),alltogether(kept));
-                            view(2); shading flat
                         end
                         nouq = length(unique(values));
                         colormap(jet(nouq));
                         colorbar;
                         title('Manning n')
                     else
-                        display('Fort13 structure is empty!');
+                        disp('Fort13 structure is empty!');
                     end
                 case('sponge')
                     ii = find(contains({obj.f13.defval.Atr(:).AttrName},'sponge'));
                     defval  = obj.f13.defval.Atr(ii).Val;
                     userval = obj.f13.userval.Atr(ii).Val;
                     values = userval(2,:);
-                    figure;
                     if proj
                         m_fastscatter(obj.p(:,1),obj.p(:,2),defval(1)*ones(length(obj.p),1));
-                        hold on
                         m_fastscatter(obj.p(userval(1,:),1),obj.p(userval(1,:),2),values');
                     else
                         fastscatter(obj.p(:,1),obj.p(:,2),defval(1)*ones(length(obj.p),1));
-                        hold on
                         fastscatter(obj.p(userval(1,:),1),obj.p(userval(1,:),2),values');
                     end
                     colormap(cmocean('deep'));
@@ -673,7 +648,6 @@ classdef msh
                         error('To plot transects, you must plot with proj=0!');
                     end
                     cmap = cmocean('ice',256);
-                    figure;
                     subplot(2,1,1)
                     trisurf(obj.t,obj.p(:,1),obj.p(:,2),obj.b); view(2);
                     alpha 0.75
@@ -682,10 +656,10 @@ classdef msh
                     axis equal
                     h = imline;
                     pos = h.getPosition;
-                    hold on; text(pos(1,1),pos(1,2),'Start','color','r');
-                    hold on; text(pos(2,1),pos(2,2),'End','color','r');
+                    text(pos(1,1),pos(1,2),'Start','color','r');
+                    text(pos(2,1),pos(2,2),'End','color','r');
                     [la,lo]=interpm(pos(:,2),pos(:,1),5/111e3);
-                    hold on; plot(lo,la,'r.')
+                    plot(lo,la,'r.')
                     transect = [lo,la]; clearvars lo la
                     if ~isempty(obj.b)
                         F = scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.b);
@@ -699,6 +673,38 @@ classdef msh
                     title('Bathymetry along transect');
                     ylabel('m below geoid');
                     xlabel('Points along transect')
+                case('qual')
+                    q = gettrimeshquan(obj.p, obj.t);
+                    nq = zeros(length(obj.p),1) + 1.0 ;
+                    for i = 1 : length(obj.t)
+                        for j = 1 : 3
+                            nm = obj.t(i,j);
+                            nq(nm) = min(nq(nm),q.qm(i));
+                        end
+                    end
+                    if proj
+                        if mesh
+                            m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),nq);
+                        else
+                            m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),nq); 
+                            m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),nq*0);
+                            shading flat
+                        end
+                    else
+                        if mesh
+                            trimesh(obj.t,obj.p(:,1),obj.p(:,2),nq);
+                        else
+                            trisurf(obj.t,obj.p(:,1),obj.p(:,2),nq)
+                            shading flat;
+                        end
+                        view(2);
+                    end
+                    caxis([0.0 1.0])
+                    cb = colorbar;
+                    title('Mesh quality (area-length ratio)');
+                    colormap(cmocean('matter',10));
+                    set(cb,'FontSize',fsz);
+                    ylabel(cb,'area-length ratio');
                 otherwise
                     disp(['Trying to plot arbitrary f13 attribute: ' type])
                     if ~isempty(obj.f13)
@@ -715,7 +721,6 @@ classdef msh
                         values(userval(1,:),:) = userval(2:end,:)';
                         % just take the inf norm
                         values = max(values,[],2);
-                        figure;
                         if proj
                             m_fastscatter(obj.p(:,1),obj.p(:,2),values);
                         else
@@ -731,9 +736,11 @@ classdef msh
                         error('f13 structure is empty!');
                     end
             end
+            ax = gca;
+            ax.FontSize = fsz;
             if proj == 1
                 % now add the box
-                m_grid('FontSize',16); %'box','none') %,'FontSize',12);
+                m_grid('FontSize',fsz);
             end
         end
 

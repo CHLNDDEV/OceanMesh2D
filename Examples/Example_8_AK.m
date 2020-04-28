@@ -17,7 +17,7 @@ addpath(genpath('m_map/'))
 % in 0-360 deg format
 load('ak_outerpoly.mat');
 
-min_el    = 1e3;  		% minimum resolution in meters.
+min_el    = 5e3;  		% minimum resolution in meters.
 max_el    = 50e3; 		% maximum resolution in meters. 
 grade     = 0.25; 		% mesh grade in decimal percent.
 
@@ -27,7 +27,6 @@ coastline = 'GSHHS_f_L1';
 gdat = geodata('shp',coastline,'bbox',bbox,'h0',min_el);
 % plotting the gdat to show it crosses the 180/-180 and 
 % is in 0-360 format meridian. 
-figure(1);
 plot(gdat,[],'lam')
 
 %% STEP 3: create an edge function class
