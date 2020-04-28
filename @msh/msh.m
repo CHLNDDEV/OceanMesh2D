@@ -636,11 +636,9 @@ classdef msh
                     values = userval(2,:);
                     if proj
                         m_fastscatter(obj.p(:,1),obj.p(:,2),defval(1)*ones(length(obj.p),1));
-                        hold on
                         m_fastscatter(obj.p(userval(1,:),1),obj.p(userval(1,:),2),values');
                     else
                         fastscatter(obj.p(:,1),obj.p(:,2),defval(1)*ones(length(obj.p),1));
-                        hold on
                         fastscatter(obj.p(userval(1,:),1),obj.p(userval(1,:),2),values');
                     end
                     colormap(cmocean('deep'));
@@ -688,7 +686,7 @@ classdef msh
                         if mesh
                             m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),nq);
                         else
-                            m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),nq); hold on;
+                            m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),nq); 
                             m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),nq*0);
                             shading flat
                         end
@@ -697,7 +695,6 @@ classdef msh
                             trimesh(obj.t,obj.p(:,1),obj.p(:,2),nq);
                         else
                             trisurf(obj.t,obj.p(:,1),obj.p(:,2),nq)
-                            hold on;
                             shading flat;
                         end
                         view(2);
