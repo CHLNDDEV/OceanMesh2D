@@ -468,6 +468,8 @@ classdef geodata
                 fname = obj.BACKUPdemfile ;
             end
             
+            AVAILABLE_MEMORY = 4; % ASSUME USER HAS 4 GB TO SPARE
+                        
             % Process the DEM for the meshing region.
             if ~isempty(fname)
                 
@@ -478,10 +480,45 @@ classdef geodata
                 % Read x and y
                 x = double(ncread(fname,xvn));
                 y = double(ncread(fname,yvn));
+                                
+                % Determine bottom left corner of DEM 
+                obj.x0y0 = [x(1),y(1)];
                 
                 if any(strcmp(varargin,'bbox'))
                     obj.bbox = [min(x) max(x); min(y) max(y)];
                     return;
+                end
+                
+                % At this point, detect the memory footprint of the full
+                % DEM and stop if we know there will be problems. 
+                EXCESSIVE_MEMORY_ALLOCATED = 0; 
+                peak_mem = ((length(x)*length(y))*8)/1e9 ; % in GB
+                mem_ratio = peak_mem/AVAILABLE_MEMORY; 
+                if peak_mem > AVAILABLE_MEMORY 
+                    warning(['DEM would occupy ',num2str(peak_mem),' gb of RAM.'...
+                        ' DEM will be downsampled to match mesh size '...
+                        ' function gridspacing to fit in RAM.'...
+                        ' Hit any key to proceed.']);
+                    pause; %
+                    
+                    DEM_GRIDSPACE = (x(2)-x(1))*111e3; % in meters
+                    STRIDE = floor(obj.h0/DEM_GRIDSPACE); % skip # of DEM entires
+                    
+                    % make sure coordinate vectors are strided. 
+                    x =  x(1:STRIDE:end); 
+                    y =  y(1:STRIDE:end); 
+                    
+                    MEM_FOOTPRINT = (8*length(x(1:STRIDE:end))*length(y(1:STRIDE:end)))/1e9;
+                    
+                    if MEM_FOOTPRINT > AVAILABLE_MEMORY 
+                        error(['Combination of bbox with h0 requests too much RAM. '...
+                        ' Consider several smaller bboxes and/or reducing their h0']); 
+                    end
+                    
+                    % Todo: REDUCE STRIDE DEPENDING ON SIZE OF MEMORY
+                    % FOOTPRINT ?
+                    
+                    EXCESSIVE_MEMORY_ALLOCATED = 1; 
                 end
                 
                 modbox = [0 0];
@@ -513,11 +550,19 @@ classdef geodata
                     end
                     It = find(x >= bboxt(1,1) & x <= bboxt(1,2));
                     I = [I; It];
-                    demzt = single(ncread(fname,zvn,...
-                        [It(1) J(1)],[length(It) length(J)]));
+                    if EXCESSIVE_MEMORY_ALLOCATED
+                        % read the full thing a stride 
+                        demzt = single(ncread(fname,zvn,...
+                            [1 1],[inf, inf],[STRIDE,STRIDE]));
+                        % grab only the portion that was requested. 
+                        
+                    else
+                        demzt = single(ncread(fname,zvn,...
+                            [It(1) J(1)],[length(It) length(J)]));
+                    end
                     if isempty(demz)
                         demz = demzt;
-                    else
+                     else
                         demz = cat(1,demz,demzt);
                     end
                 end
@@ -536,7 +581,6 @@ classdef geodata
                 end
                 
                 % check for any invalid values
-                %bad = abs(demz) > 15e3 ;
                 bad = isnan(demz); 
                 if sum(bad(:)) > 0 && ~backup
                     warning('ALERT: Invalid and/or missing DEM values detected..check DEM');
@@ -564,7 +608,6 @@ classdef geodata
                     else
                         obj.Fb   = griddedInterpolant({x,y},demz,...
                             'linear','nearest');
-                        obj.x0y0 = [x(1),y(1)];
                     end
                     % clear data from memory
                     clear x y demz
