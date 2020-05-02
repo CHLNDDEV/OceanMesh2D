@@ -520,12 +520,11 @@ classdef geodata
                     I = [I; It];
                     
                     % At this point, detect the memory footprint of the 
-                    % DEM subset and stop if we know there will be problems. 
+                    % DEM subset and compute the required stride necessary
+                    % to satisfy the memory requirements
                     if nn == 1
-                        mult = 1;
-                        % if loop is 2 assume that we read in twice the 
-                        % size of the first loop
-                        if loop == 2; mult = 2; end
+                        mult = (obj.bbox(1,2) - obj.bbox(1,1))/...
+                                   (bboxt(1,2) - bboxt(1,1)); 
                         peak_mem = mult*length(I)*length(J)*4/1e9; % in GB assuming single
                         STRIDE = ceil(sqrt(peak_mem/AVAILABLE_MEMORY));
                         %DEM_GRIDSPACE = (x(2)-x(1))*111e3; % in meters
@@ -555,8 +554,10 @@ classdef geodata
                     end
                     % grab only the portion that was requested with a
                     % stride
+                    LX = length(It(1:STRIDE:end));
+                    LY = length(J(1:STRIDE:end));
                     demzt = single(ncread(fname,zvn,[It(1) J(1)],...
-                                 [length(It) length(J)],[STRIDE,STRIDE]));
+                                   [LX LY],[STRIDE,STRIDE]));
                     if isempty(demz)
                         demz = demzt;
                     else
