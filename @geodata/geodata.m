@@ -489,38 +489,6 @@ classdef geodata
                     return;
                 end
                 
-                % At this point, detect the memory footprint of the full
-                % DEM and stop if we know there will be problems. 
-                EXCESSIVE_MEMORY_ALLOCATED = 0; 
-                peak_mem = ((length(x)*length(y))*8)/1e9 ; % in GB
-                mem_ratio = peak_mem/AVAILABLE_MEMORY; 
-                if peak_mem > AVAILABLE_MEMORY 
-                    warning(['DEM would occupy ',num2str(peak_mem),' gb of RAM.'...
-                        ' DEM will be downsampled to match mesh size '...
-                        ' function gridspacing to fit in RAM.'...
-                        ' Hit any key to proceed.']);
-                    pause; %
-                    
-                    DEM_GRIDSPACE = (x(2)-x(1))*111e3; % in meters
-                    STRIDE = floor(obj.h0/DEM_GRIDSPACE); % skip # of DEM entires
-                    
-                    % make sure coordinate vectors are strided. 
-                    x =  x(1:STRIDE:end); 
-                    y =  y(1:STRIDE:end); 
-                    
-                    MEM_FOOTPRINT = (8*length(x(1:STRIDE:end))*length(y(1:STRIDE:end)))/1e9;
-                    
-                    if MEM_FOOTPRINT > AVAILABLE_MEMORY 
-                        error(['Combination of bbox with h0 requests too much RAM. '...
-                        ' Consider several smaller bboxes and/or reducing their h0']); 
-                    end
-                    
-                    % Todo: REDUCE STRIDE DEPENDING ON SIZE OF MEMORY
-                    % FOOTPRINT ?
-                    
-                    EXCESSIVE_MEMORY_ALLOCATED = 1; 
-                end
-                
                 modbox = [0 0];
                 if obj.bbox(1,2) > 180 && obj.bbox(1,1) < 180 && min(x) < 0
                     % bbox straddles 180/-180 line
@@ -550,23 +518,52 @@ classdef geodata
                     end
                     It = find(x >= bboxt(1,1) & x <= bboxt(1,2));
                     I = [I; It];
-                    if EXCESSIVE_MEMORY_ALLOCATED
-                        % read the full thing a stride
-                        demzt = single(ncread(fname,zvn,...
-                            [It(1) J(1)],[length(It) length(J)],[STRIDE,STRIDE]));
-                        % grab only the portion that was requested.
-                        
-                    else
-                        demzt = single(ncread(fname,zvn,...
-                            [It(1) J(1)],[length(It) length(J)]));
+                    
+                    % At this point, detect the memory footprint of the 
+                    % DEM subset and stop if we know there will be problems. 
+                    if nn == 1
+                        mult = 1;
+                        % if loop is 2 assume that we read in twice the 
+                        % size of the first loop
+                        if loop == 2; mult = 2; end
+                        peak_mem = mult*length(I)*length(J)*4/1e9; % in GB assuming single
+                        STRIDE = ceil(sqrt(peak_mem/AVAILABLE_MEMORY));
+                        %DEM_GRIDSPACE = (x(2)-x(1))*111e3; % in meters
+                        %STRIDE = ceil(obj.h0/DEM_GRIDSPACE); % skip # of DEM entires
+                        if STRIDE > 1
+                            warning([' DEM would occupy ',num2str(peak_mem),'GB of RAM.'...
+                                     ' DEM will be downsampled to fit in the 4GB RAM ' ...
+                                     ' limit using a stride of ' num2str(STRIDE)])
+                            %       ' DEM will be downsampled to match mesh size '...
+                         %       ' function gridspacing to fit in RAM.']);
+                        end
+                        % make sure coordinate vectors are strided. 
+                        %x =  x(1:STRIDE:end); 
+                        %y =  y(1:STRIDE:end); 
+
+                        %MEM_FOOTPRINT = (8*length(x(1:STRIDE:end))*length(y(1:STRIDE:end)))/1e9;
+
+                        %if MEM_FOOTPRINT > AVAILABLE_MEMORY 
+                        %    error(['Combination of bbox with h0 requests too much RAM. '...
+                        %   ' Consider several smaller bboxes and/or reducing their h0']); 
+                        %end
+
+                        % Todo: REDUCE STRIDE DEPENDING ON SIZE OF MEMORY
+                        % FOOTPRINT ?
+
+                        %EXCESSIVE_MEMORY_ALLOCATED = 1; 
                     end
+                    % grab only the portion that was requested with a
+                    % stride
+                    demzt = single(ncread(fname,zvn,[It(1) J(1)],...
+                                 [length(It) length(J)],[STRIDE,STRIDE]));
                     if isempty(demz)
                         demz = demzt;
-                     else
+                    else
                         demz = cat(1,demz,demzt);
                     end
                 end
-                x = x(I); y = y(J);
+                x = x(I(1:STRIDE:end)); y = y(J(1:STRIDE:end));
                 if obj.bbox(1,2) > 180
                     x(x < 0) = x(x < 0) + 360;
                     [x1,IA] = unique(x);
