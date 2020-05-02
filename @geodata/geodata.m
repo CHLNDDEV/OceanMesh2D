@@ -526,9 +526,9 @@ classdef geodata
                         mult = (obj.bbox(1,2) - obj.bbox(1,1))/...
                                    (bboxt(1,2) - bboxt(1,1)); 
                         peak_mem = mult*length(I)*length(J)*4/1e9; % in GB assuming single
-                        STRIDE = ceil(sqrt(peak_mem/AVAILABLE_MEMORY));
-                        %DEM_GRIDSPACE = (x(2)-x(1))*111e3; % in meters
-                        %STRIDE = ceil(obj.h0/DEM_GRIDSPACE); % skip # of DEM entires
+                        %STRIDE = ceil(sqrt(peak_mem/AVAILABLE_MEMORY));
+                        DEM_GRIDSPACE = (x(2)-x(1))*111e3; % in meters
+                        STRIDE = ceil(obj.h0/DEM_GRIDSPACE); % skip # of DEM entires
                         if STRIDE > 1
                             warning([' DEM would occupy ',num2str(peak_mem),'GB of RAM.'...
                                      ' DEM will be downsampled to fit in the 4GB RAM ' ...
