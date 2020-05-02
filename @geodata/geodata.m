@@ -551,10 +551,10 @@ classdef geodata
                     It = find(x >= bboxt(1,1) & x <= bboxt(1,2));
                     I = [I; It];
                     if EXCESSIVE_MEMORY_ALLOCATED
-                        % read the full thing a stride 
+                        % read the full thing a stride
                         demzt = single(ncread(fname,zvn,...
-                            [1 1],[inf, inf],[STRIDE,STRIDE]));
-                        % grab only the portion that was requested. 
+                            [It(1) J(1)],[length(It) length(J)],[STRIDE,STRIDE]));
+                        % grab only the portion that was requested.
                         
                     else
                         demzt = single(ncread(fname,zvn,...
