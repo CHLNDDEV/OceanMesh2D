@@ -423,24 +423,6 @@ classdef geodata
             % to mainland
             if ~isempty(obj.inner)
                 obj.inner = coarsen_polygon(obj.inner,iboubox);
-%                 id_del = ismembertol(obj.inner,outerbox,1e-4,'ByRows',true);
-%                 if sum(id_del) > 0
-%                     % need to change parts of inner to mainland...
-%                     isnan1 = find(isnan(obj.inner(:,1))); ns = 1;
-%                     innerdel = []; mnadd = [];
-%                     for ii = 1:length(isnan1)
-%                         ne = isnan1(ii);
-%                         sumdel = sum(id_del(ns:ne));
-%                         if sumdel > 0
-%                             mnadd = [mnadd; obj.inner(ns:ne,:)];
-%                             innerdel = [innerdel ns:ne];
-%                         end
-%                         ns = ne + 1;
-%                     end
-%                     obj.inner(innerdel,:) = [];
-%                     obj.outer = [obj.outer; mnadd];
-%                     obj.mainland = [obj.mainland; mnadd];
-%                 end
             end
             
             % Coarsen mainland and remove parts that overlap with bounding
@@ -448,11 +430,6 @@ classdef geodata
             % only changes the distance function used for edgefx)
             if ~isempty(obj.mainland)
                 obj.mainland = coarsen_polygon(obj.mainland,iboubox);
-%                 id_del = ismembertol(obj.mainland,outerbox,1e-4,'ByRows',true);
-%                 obj.mainland(id_del,:) = [];
-%                 while ~isempty(obj.mainland) && isnan(obj.mainland(1))
-%                     obj.mainland(1,:) = [];
-%                 end
             end
             
             
@@ -467,9 +444,7 @@ classdef geodata
                 backup = 1;
                 fname = obj.BACKUPdemfile ;
             end
-            
-            AVAILABLE_MEMORY = 4; % ASSUME USER HAS 4 GB TO SPARE
-                        
+                                    
             % Process the DEM for the meshing region.
             if ~isempty(fname)
                 
@@ -523,34 +498,19 @@ classdef geodata
                     % DEM subset and compute the required stride necessary
                     % to satisfy the memory requirements
                     if nn == 1
+                        AVAILABLE_MEMORY=4; % 4 gb;
                         mult = (obj.bbox(1,2) - obj.bbox(1,1))/...
                                    (bboxt(1,2) - bboxt(1,1)); 
                         peak_mem = mult*length(I)*length(J)*4/1e9; % in GB assuming single
-                        %STRIDE = ceil(sqrt(peak_mem/AVAILABLE_MEMORY));
+                        STRIDE_MEM = ceil(sqrt(peak_mem/AVAILABLE_MEMORY));
                         DEM_GRIDSPACE = (x(2)-x(1))*111e3; % in meters
-                        STRIDE = ceil(obj.h0/DEM_GRIDSPACE); % skip # of DEM entires
+                        STRIDE_H0 = ceil(obj.h0/DEM_GRIDSPACE); % skip # of DEM entires
+                        STRIDE = max(STRIDE_H0, STRIDE_MEM); 
                         if STRIDE > 1
                             warning([' DEM would occupy ',num2str(peak_mem),'GB of RAM.'...
-                                     ' DEM will be downsampled to fit in the 4GB RAM ' ...
-                                     ' limit using a stride of ' num2str(STRIDE)])
-                            %       ' DEM will be downsampled to match mesh size '...
-                         %       ' function gridspacing to fit in RAM.']);
+                                     ' DEM will be downsampled by a stride of' num2str(STRIDE)])
                         end
-                        % make sure coordinate vectors are strided. 
-                        %x =  x(1:STRIDE:end); 
-                        %y =  y(1:STRIDE:end); 
-
-                        %MEM_FOOTPRINT = (8*length(x(1:STRIDE:end))*length(y(1:STRIDE:end)))/1e9;
-
-                        %if MEM_FOOTPRINT > AVAILABLE_MEMORY 
-                        %    error(['Combination of bbox with h0 requests too much RAM. '...
-                        %   ' Consider several smaller bboxes and/or reducing their h0']); 
-                        %end
-
-                        % Todo: REDUCE STRIDE DEPENDING ON SIZE OF MEMORY
-                        % FOOTPRINT ?
-
-                        %EXCESSIVE_MEMORY_ALLOCATED = 1; 
+                    
                     end
                     % grab only the portion that was requested with a
                     % stride
