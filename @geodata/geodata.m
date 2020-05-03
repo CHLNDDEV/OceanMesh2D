@@ -423,24 +423,6 @@ classdef geodata
             % to mainland
             if ~isempty(obj.inner)
                 obj.inner = coarsen_polygon(obj.inner,iboubox);
-%                 id_del = ismembertol(obj.inner,outerbox,1e-4,'ByRows',true);
-%                 if sum(id_del) > 0
-%                     % need to change parts of inner to mainland...
-%                     isnan1 = find(isnan(obj.inner(:,1))); ns = 1;
-%                     innerdel = []; mnadd = [];
-%                     for ii = 1:length(isnan1)
-%                         ne = isnan1(ii);
-%                         sumdel = sum(id_del(ns:ne));
-%                         if sumdel > 0
-%                             mnadd = [mnadd; obj.inner(ns:ne,:)];
-%                             innerdel = [innerdel ns:ne];
-%                         end
-%                         ns = ne + 1;
-%                     end
-%                     obj.inner(innerdel,:) = [];
-%                     obj.outer = [obj.outer; mnadd];
-%                     obj.mainland = [obj.mainland; mnadd];
-%                 end
             end
             
             % Coarsen mainland and remove parts that overlap with bounding
@@ -448,11 +430,6 @@ classdef geodata
             % only changes the distance function used for edgefx)
             if ~isempty(obj.mainland)
                 obj.mainland = coarsen_polygon(obj.mainland,iboubox);
-%                 id_del = ismembertol(obj.mainland,outerbox,1e-4,'ByRows',true);
-%                 obj.mainland(id_del,:) = [];
-%                 while ~isempty(obj.mainland) && isnan(obj.mainland(1))
-%                     obj.mainland(1,:) = [];
-%                 end
             end
             
             
@@ -467,7 +444,7 @@ classdef geodata
                 backup = 1;
                 fname = obj.BACKUPdemfile ;
             end
-            
+                                    
             % Process the DEM for the meshing region.
             if ~isempty(fname)
                 
@@ -478,6 +455,9 @@ classdef geodata
                 % Read x and y
                 x = double(ncread(fname,xvn));
                 y = double(ncread(fname,yvn));
+                                
+                % Determine bottom left corner of DEM 
+                obj.x0y0 = [x(1),y(1)];
                 
                 if any(strcmp(varargin,'bbox'))
                     obj.bbox = [min(x) max(x); min(y) max(y)];
@@ -513,15 +493,38 @@ classdef geodata
                     end
                     It = find(x >= bboxt(1,1) & x <= bboxt(1,2));
                     I = [I; It];
-                    demzt = single(ncread(fname,zvn,...
-                        [It(1) J(1)],[length(It) length(J)]));
+                    
+                    % At this point, detect the memory footprint of the 
+                    % DEM subset and compute the required stride necessary
+                    % to satisfy the memory requirements
+                    if nn == 1
+                        AVAILABLE_MEMORY=4; % 4 gb;
+                        mult = (obj.bbox(1,2) - obj.bbox(1,1))/...
+                                   (bboxt(1,2) - bboxt(1,1)); 
+                        peak_mem = mult*length(I)*length(J)*4/1e9; % in GB assuming single
+                        STRIDE_MEM = ceil(sqrt(peak_mem/AVAILABLE_MEMORY));
+                        DEM_GRIDSPACE = (x(2)-x(1))*111e3; % in meters
+                        STRIDE_H0 = ceil(obj.h0/DEM_GRIDSPACE); % skip # of DEM entires
+                        STRIDE = max(STRIDE_H0, STRIDE_MEM); 
+                        if STRIDE > 1
+                            warning([' DEM would occupy ',num2str(peak_mem),'GB of RAM.'...
+                                     ' DEM will be downsampled by a stride of' num2str(STRIDE)])
+                        end
+                    
+                    end
+                    % grab only the portion that was requested with a
+                    % stride
+                    LX = length(It(1:STRIDE:end));
+                    LY = length(J(1:STRIDE:end));
+                    demzt = single(ncread(fname,zvn,[It(1) J(1)],...
+                                   [LX LY],[STRIDE,STRIDE]));
                     if isempty(demz)
                         demz = demzt;
                     else
                         demz = cat(1,demz,demzt);
                     end
                 end
-                x = x(I); y = y(J);
+                x = x(I(1:STRIDE:end)); y = y(J(1:STRIDE:end));
                 if obj.bbox(1,2) > 180
                     x(x < 0) = x(x < 0) + 360;
                     [x1,IA] = unique(x);
@@ -536,7 +539,6 @@ classdef geodata
                 end
                 
                 % check for any invalid values
-                %bad = abs(demz) > 15e3 ;
                 bad = isnan(demz); 
                 if sum(bad(:)) > 0 && ~backup
                     warning('ALERT: Invalid and/or missing DEM values detected..check DEM');
@@ -564,7 +566,6 @@ classdef geodata
                     else
                         obj.Fb   = griddedInterpolant({x,y},demz,...
                             'linear','nearest');
-                        obj.x0y0 = [x(1),y(1)];
                     end
                     % clear data from memory
                     clear x y demz
