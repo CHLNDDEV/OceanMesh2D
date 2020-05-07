@@ -456,9 +456,6 @@ classdef geodata
                 x = double(ncread(fname,xvn));
                 y = double(ncread(fname,yvn));
                                 
-                % Determine bottom left corner of DEM 
-                obj.x0y0 = [x(1),y(1)];
-                
                 if any(strcmp(varargin,'bbox'))
                     obj.bbox = [min(x) max(x); min(y) max(y)];
                     return;
@@ -507,8 +504,14 @@ classdef geodata
                         STRIDE_H0 = ceil(obj.h0/DEM_GRIDSPACE); % skip # of DEM entires
                         STRIDE = max(STRIDE_H0, STRIDE_MEM); 
                         if STRIDE > 1
-                            warning([' DEM would occupy ',num2str(peak_mem),'GB of RAM.'...
-                                     ' DEM will be downsampled by a stride of' num2str(STRIDE)])
+                            if STRIDE_MEM > STRIDE_H0
+                                warning(['DEM would occupy ',num2str(peak_mem),...
+                                         'GB of RAM. DEM will be downsampled ' ...
+                                         'by a stride of ' num2str(STRIDE)])
+                            else
+                                warning(['DEM will be downsampled by a stride ' ...
+                                         'of ' num2str(STRIDE) ' to match h0'])
+                            end
                         end
                     
                     end
@@ -537,6 +540,9 @@ classdef geodata
                     y = flipud(y) ;
                     demz = fliplr(demz) ;
                 end
+                % Determine bottom left corner of DEM 
+                % (after possible flipping of DEM packing)
+                obj.x0y0 = [x(1),y(1)];
                 
                 % check for any invalid values
                 bad = isnan(demz); 
