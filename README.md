@@ -39,6 +39,10 @@ Development paper[1]└── Examples/Example_6_GBAY.m %<- An example of the po
 
 All pull requests are tested with Jenkins on a local host. However, to ensure the software is fully functional on your system it's encouraged to run the tests in Tests/ yourself. 
 
+## `Questions?`
+
+Please reach out to either Dr. William Pringle (wpringle@nd.edu) or Dr. Keith Roberts (krober@usp.br) with questions or concerns or feel free to start an Issue in the issues tab above. 
+
 ## `References!`
 
 If you make use of `OceanMesh2D` please include a reference to [1], and to any of [2]-[4] if pertinent:
