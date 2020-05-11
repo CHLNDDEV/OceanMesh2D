@@ -41,7 +41,7 @@ All pull requests are tested with Jenkins on a local host. However, to ensure th
 
 ## `Questions?`
 
-Please reach out to either Dr. William Pringle (wpringle@nd.edu or Dr. Keith Roberts (krober@usp.br) with questions or concerns or feel free to start an Issue in the issues tab above. 
+Please reach out to either Dr. William Pringle (wpringle@nd.edu) or Dr. Keith Roberts (krober@usp.br) with questions or concerns or feel free to start an Issue in the issues tab above. 
 
 ## `References!`
 
