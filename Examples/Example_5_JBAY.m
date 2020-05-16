@@ -1,10 +1,11 @@
 % Example_5_JBAY: Mesh the New York Jamaica bay (JBAY) region in 
 % high resolution.
+
 clc; clearvars
 
-addpath(genpath('utilities/'));
-addpath(genpath('datasets/'));
-addpath(genpath('m_map/')); 
+addpath(genpath('../utilities/'));
+addpath(genpath('../datasets/'));
+addpath(genpath('../m_map/')); 
 
 %% STEP 1: set mesh extents and set parameters for mesh.
 bbox      = [-73.97 -73.75 	% lon_min lon_max

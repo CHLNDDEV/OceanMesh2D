@@ -1,9 +1,11 @@
 % Example_3_ECGC: Mesh the greater US East Coast and Gulf of Mexico region
 % with a high resolution inset around New York
+
 clearvars; clc;
-addpath(genpath('utilities/'));
-addpath(genpath('datasets/'));
-addpath(genpath('m_map/'));
+
+addpath(genpath('../utilities/'));
+addpath(genpath('../datasets/'));
+addpath(genpath('../m_map/'));
 
 % WJP: 08/02/2019: Updated to demonstrate using non-box 
 % (arbitrary polygon's) bbox's in both outer and inner meshes

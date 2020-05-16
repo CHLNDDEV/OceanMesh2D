@@ -1,8 +1,10 @@
 % Example_2_NY: Mesh the New York region in high resolution
 clearvars; clc;
-addpath(genpath('utilities/'))
-addpath(genpath('datasets/'))
-addpath(genpath('m_map/'))
+
+addpath(genpath('../utilities/'))
+addpath(genpath('../datasets/'))
+addpath(genpath('../m_map/'))
+
 %% STEP 1: Set mesh extents and set parameters for mesh.
 min_el    = 30;  	% Minimum resolution in meters.
 max_el    = 1e3; 	% Maximum resolution in meters. 

@@ -1,10 +1,11 @@
 % Example_6_GBAY: Mesh the Galveston bay (GBAY) region in
 % high resolution.
+
 clearvars; clc;
 
-addpath(genpath('utilities/'))
-addpath(genpath('datasets/'))
-addpath(genpath('m_map/'))
+addpath(genpath('../utilities/'))
+addpath(genpath('../datasets/'))
+addpath(genpath('../m_map/'))
 
 %% STEP 1: set mesh extents and set parameters for mesh.
 bbox = [-95.40 -94.4;

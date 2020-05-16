@@ -3,9 +3,9 @@
 % high resolution with two 15-30 m wide weirs at the mouth of the estuary.
 clc; clearvars
 
-addpath(genpath('utilities/'));
-addpath(genpath('datasets/'));
-addpath(genpath('m_map/'));
+addpath(genpath('../utilities/'));
+addpath(genpath('../datasets/'));
+addpath(genpath('../m_map/'));
 
 %% STEP 1: set mesh extents and set parameters for mesh.
 bbox      = [-73.97 -73.75 	% lon_min lon_max

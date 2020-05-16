@@ -4,9 +4,9 @@
 % around 1 hr. 
 clc; clearvars
 
-addpath(genpath('utilities/'))
-addpath(genpath('datasets/'))
-addpath(genpath('m_map/'))
+addpath(genpath('../utilities/'))
+addpath(genpath('../datasets/'))
+addpath(genpath('../m_map/'))
 
 %% The constant parameters for all domains
 wl        = 30;         % elements to resolve M2 wavelength
