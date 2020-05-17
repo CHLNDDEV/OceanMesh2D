@@ -1,8 +1,10 @@
 % Example_1_NZ: Mesh the South Island of New Zealand
 clearvars; clc;
-addpath(genpath('utilities/'))
-addpath(genpath('datasets/'))
-addpath(genpath('m_map/'))
+
+addpath(genpath('../utilities/'))
+addpath(genpath('../datasets/'))
+addpath(genpath('../m_map/'))
+
 %% STEP 1: set mesh extents and set parameters for mesh.
 bbox = [166 176;		% lon_min lon_max
         -48 -40]; 		% lat_min lat_max

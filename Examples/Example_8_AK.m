@@ -8,9 +8,10 @@
 % -180 to 180 deg format. 
 
 clearvars; clc;
-addpath(genpath('utilities/'))
-addpath(genpath('datasets/'))
-addpath(genpath('m_map/'))
+
+addpath(genpath('../utilities/'))
+addpath(genpath('../datasets/'))
+addpath(genpath('../m_map/'))
 
 %% STEP 1: set mesh extents and set parameters for mesh.
 % This is a polygonal shape for west Alaska/Bering Shelf 
