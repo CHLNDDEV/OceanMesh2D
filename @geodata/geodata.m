@@ -262,7 +262,9 @@ classdef geodata
                 obj = ParseDEM(obj,'bbox');
             end
             
-            if size(obj.bbox,1) == 2
+            if obj.bbox == 0
+                error('No bbox supplied. If you are using the pslg option then you need to supply a bbox.') 
+            elseif size(obj.bbox,1) == 2
                 % Typical square bbox type
                 % Make the bounding box 5 x 2 matrix in clockwise order
                 obj.boubox = [obj.bbox(1,1) obj.bbox(2,1);
@@ -515,12 +517,22 @@ classdef geodata
                         end
                     
                     end
-                    % grab only the portion that was requested with a
-                    % stride
-                    LX = length(It(1:STRIDE:end));
-                    LY = length(J(1:STRIDE:end));
-                    demzt = single(ncread(fname,zvn,[It(1) J(1)],...
-                                   [LX LY],[STRIDE,STRIDE]));
+                    % grab only the portion that was requested 
+                    if STRIDE > 1 && STRIDE_MEM > STRIDE_H0
+                        % with a stride to save memory 
+                        LX = length(It(1:STRIDE:end));
+                        LY = length(J(1:STRIDE:end));
+                        demzt = single(ncread(fname,zvn,[It(1) J(1)],...
+                                       [LX LY],[STRIDE,STRIDE]));
+                    else
+                        % faster to read in with no stride if not memory
+                        % bound
+                        demzt = single(ncread(fname,zvn,[It(1) J(1)],...
+                                       [length(It) length(J)]));
+                        if STRIDE > 1
+                            demzt = demzt(1:STRIDE:end,1:STRIDE:end);
+                        end
+                    end
                     if isempty(demz)
                         demz = demzt;
                     else
@@ -746,34 +758,39 @@ classdef geodata
             if nargin == 1 || isempty(type)
                 type = 'shp';
             end
-            if nargin < 3
+            if nargin < 3 || isempty(projection)
                 projection = 'Mercator';
             end
-            if nargin < 4
+            if nargin < 4 || isempty(holdon)
                 holdon = 0;
             end
             
-            % setup the projection
-            bufx = 0.2*(obj.bbox(1,2) - obj.bbox(1,1));
-            bufy = 0.2*(obj.bbox(2,2) - obj.bbox(2,1));
-            if ~isempty(regexp(projection,'ste'))
-                m_proj(projection,'lat',min(obj.bbox(2,:)),...
-                    'long',mean(obj.bbox(1,:)),'radius',...
-                    min(179.9,1.20*max(diff(obj.bbox(2,:)))));
-            else
-                lmin = -180; lmax = +180;
-                if obj.bbox(1,2) > 180; lmax = 360; lmin = 0; end 
-                lon1 = max(lmin,obj.bbox(1,1) - bufx);
-                lon2 = min(lmax,obj.bbox(1,2) + bufx);
-                lat1 = max(- 90,obj.bbox(2,1) - bufy);
-                lat2 = min(+ 90,obj.bbox(2,2) + bufy);
-                m_proj(projection,...
-                       'long',[lon1, lon2],'lat',[lat1, lat2]);
-            end
-            
-            % plot on new or existing figure
+            % plotting on new or existing figure?
             if ~holdon
+                % setup the projection
+                bufx = 0.2*(obj.bbox(1,2) - obj.bbox(1,1));
+                bufy = 0.2*(obj.bbox(2,2) - obj.bbox(2,1));
+                if ~isempty(regexp(projection,'ste'))
+                    m_proj(projection,'lat',min(obj.bbox(2,:)),...
+                        'long',mean(obj.bbox(1,:)),'radius',...
+                        min(179.9,1.20*max(diff(obj.bbox(2,:)))));
+                else
+                    lmin = -180; lmax = +180;
+                    if obj.bbox(1,2) > 180; lmax = 360; lmin = 0; end 
+                    lon1 = max(lmin,obj.bbox(1,1) - bufx);
+                    lon2 = min(lmax,obj.bbox(1,2) + bufx);
+                    lat1 = max(- 90,obj.bbox(2,1) - bufy);
+                    lat2 = min(+ 90,obj.bbox(2,2) + bufy);
+                    m_proj(projection,...
+                           'long',[lon1, lon2],'lat',[lat1, lat2]);
+                end
+                % plot on new figure
                 figure;
+                colori = 'g-'; % set island color
+                colorm = 'r-'; % set mainland color
+            else
+                colori = 'b-'; % set island color
+                colorm = 'm-'; % set mainland color
             end
             hold on
             % select optional types
@@ -808,11 +825,11 @@ classdef geodata
             end
             if ~isempty(obj.mainland) && obj.mainland(1) ~= 0
                 h1 = m_plot(obj.mainland(:,1),obj.mainland(:,2),...
-                    'r-','linewi',1); hold on;
+                    colorm,'linewi',1); hold on;
             end
             if ~isempty(obj.inner) && obj.inner(1) ~= 0
                 h2 = m_plot(obj.inner(:,1),obj.inner(:,2),...
-                    'g-','linewi',1); hold on;
+                    colori,'linewi',1); hold on;
             end
             if ~isempty(obj.weirs)
                 if isstruct(obj.weirs) ~= 0
@@ -830,7 +847,9 @@ classdef geodata
             [la,lo] = my_interpm(obj.boubox(:,2),obj.boubox(:,1),...
                 0.5*obj.h0/111e3);
             m_plot(lo,la,'k--','linewi',2);
-            m_grid('xtick',10,'tickdir','out','yaxislocation','left','fontsize',10);
+            if ~holdon
+                m_grid('xtick',10,'tickdir','out','yaxislocation','left','fontsize',10);
+            end
             if exist('h1','var') && exist('h2','var') && exist('h3','var')
                 legend([h1 h2,h3],{'mainland' 'inner' 'weirs'},'Location','NorthWest')
             elseif exist('h1','var') && exist('h2','var')
