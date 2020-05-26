@@ -1654,8 +1654,13 @@ classdef msh
                         vend   = bndidx(vend);
                     else
                         vstart = varargin{2}; vend = varargin{3};
-                        if length(varargin) >= 5
-                            type = varargin{4}; type2 = varargin{5};
+                        if length(varargin) >= 4
+                            type = varargin{4}; 
+                            if length(varargin) >= 5
+                                type2 = varargin{5};
+                            else
+                                type2 = type;
+                            end
                             [~,~,obj.op,obj.bd] = extract_boundary(vstart,vend,bnde,obj.p,...
                                 dir,obj.op,obj.bd,type,type2); %<--updates op and bd.
                             return;
