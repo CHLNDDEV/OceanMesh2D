@@ -730,13 +730,20 @@ classdef geodata
         
         function obj = extractContour(obj,ilev)
             % Extract a geometric contour from the DEM at elevation ilev.
+            % obj = extractContour(obj,ilev)
+            %
+            % Can use to get the mean sea level contour, e.g.;
+            % gdat = geodata('pslg',0,'h0',min_el,'dem',dem); % make the dummy gdat for the dem extents;
+            % lmsl = extractContour(gdat,0); %using the dummy gdat with dem info to get the 'lmsl' gdat with the 0-m contour.
+            
             [node,edge] = ...
                 getiso2( obj.Fb.GridVectors{1},obj.Fb.GridVectors{2},...
-                double(obj.Fb.Values),ilev) ;
+                double(obj.Fb.Values'),ilev) ;
             
             polyline = cell2mat(extdom_polygon(edge,node,-1,1,10)') ;
             
-            obj = geodata('pslg',polyline,'h0',obj.h0,'dem',obj.demfile) ;
+            obj = geodata('pslg',polyline,'bbox',obj.bbox,...
+                          'h0',obj.h0,'dem',obj.demfile) ;
             
         end
         
