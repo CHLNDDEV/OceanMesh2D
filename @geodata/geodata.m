@@ -803,9 +803,18 @@ classdef geodata
             % select optional types
             switch type
                 case('dem')
-                    % interpolate DEM's bathy linearly onto our edgefunction grid.
-                    [demx,demy] = ndgrid(obj.x0y0(1):obj.h0/111e3:obj.bbox(1,2), ...
-                        obj.x0y0(2):obj.h0/111e3:obj.bbox(2,2));
+                    % interpolate DEM's bathy linearly onto our 
+                    % edgefunction grid (or a coarsened version of it for
+                    % memory considerations)
+                    mem = inf; stride = obj.h0/111e3;
+                    while mem > 1
+                        xx = obj.x0y0(1):stride:obj.bbox(1,2);
+                        yy = obj.x0y0(2):stride:obj.bbox(2,2);
+                        xs = whos('xx'); ys = whos('yy');
+                        mem = xs.bytes*ys.bytes/1e9;
+                        stride = stride*2;
+                    end
+                    [demx,demy] = ndgrid(xx,yy);
                     demz = obj.Fb(demx,demy);
                     if ~isempty(obj.inner) && obj.inner(1) ~= 0
                         poly = [obj.outer; obj.inner];
