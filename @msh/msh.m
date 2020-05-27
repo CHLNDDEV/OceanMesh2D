@@ -1055,9 +1055,14 @@ classdef msh
 
             % Now do the smoothing if required
             if opt.ds
-                % Perform the direct smoothing
-                [obj.p,obj.t] = direct_smoother_lur(obj.p,obj.t,...
-                    pfixV,opt.nscreen);
+                if opt.ds == 2
+                    % Use Mesh2D's smooth2
+                    [obj.p,~,obj.t,~] = smooth2(obj.p,[],obj.t);
+                else
+                     % Perform the direct smoothing
+                    [obj.p,obj.t] = direct_smoother_lur(obj.p,obj.t,...
+                                    pfixV,opt.nscreen);
+                end
             end
 
             % Checking and displaying element quality
