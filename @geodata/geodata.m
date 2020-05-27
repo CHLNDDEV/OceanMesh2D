@@ -730,13 +730,20 @@ classdef geodata
         
         function obj = extractContour(obj,ilev)
             % Extract a geometric contour from the DEM at elevation ilev.
+            % obj = extractContour(obj,ilev)
+            %
+            % Can use to get the mean sea level contour, e.g.;
+            % gdat = geodata('pslg',0,'h0',min_el,'dem',dem); % make the dummy gdat for the dem extents;
+            % lmsl = extractContour(gdat,0); %using the dummy gdat with dem info to get the 'lmsl' gdat with the 0-m contour.
+            
             [node,edge] = ...
                 getiso2( obj.Fb.GridVectors{1},obj.Fb.GridVectors{2},...
-                double(obj.Fb.Values),ilev) ;
+                double(obj.Fb.Values'),ilev) ;
             
             polyline = cell2mat(extdom_polygon(edge,node,-1,1,10)') ;
             
-            obj = geodata('pslg',polyline,'h0',obj.h0,'dem',obj.demfile) ;
+            obj = geodata('pslg',polyline,'bbox',obj.bbox,...
+                          'h0',obj.h0,'dem',obj.demfile) ;
             
         end
         
@@ -796,9 +803,18 @@ classdef geodata
             % select optional types
             switch type
                 case('dem')
-                    % interpolate DEM's bathy linearly onto our edgefunction grid.
-                    [demx,demy] = ndgrid(obj.x0y0(1):obj.h0/111e3:obj.bbox(1,2), ...
-                        obj.x0y0(2):obj.h0/111e3:obj.bbox(2,2));
+                    % interpolate DEM's bathy linearly onto our 
+                    % edgefunction grid (or a coarsened version of it for
+                    % memory considerations)
+                    mem = inf; stride = obj.h0/111e3;
+                    while mem > 1
+                        xx = obj.x0y0(1):stride:obj.bbox(1,2);
+                        yy = obj.x0y0(2):stride:obj.bbox(2,2);
+                        xs = whos('xx'); ys = whos('yy');
+                        mem = xs.bytes*ys.bytes/1e9;
+                        stride = stride*2;
+                    end
+                    [demx,demy] = ndgrid(xx,yy);
                     demz = obj.Fb(demx,demy);
                     if ~isempty(obj.inner) && obj.inner(1) ~= 0
                         poly = [obj.outer; obj.inner];
