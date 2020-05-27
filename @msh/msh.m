@@ -920,7 +920,7 @@ classdef msh
             %
             % optional name-value pairs
             % 'db'  - boundary element cutoff quality (0 - 1)
-            % 'ds'  - perform direct smoother? (0 or 1)
+            % 'ds'  - perform smoothing? (0 [no], 1 [direct implicit], 2 [hill-climbing])
             % 'con' - upper bound on connectivity (6-19)
             % 'djc' - dj_cutoff (0 - 1 [area portion] or > 1 [km^2])
             % 'sc_maxit' - max iterations for deletion of singly connected
@@ -1056,10 +1056,10 @@ classdef msh
             % Now do the smoothing if required
             if opt.ds
                 if opt.ds == 2
-                    % Use Mesh2D's smooth2
+                    % Perform the hill-climbing smoothing
                     [obj.p,~,obj.t,~] = smooth2(obj.p,[],obj.t);
                 else
-                     % Perform the direct smoothing
+                    % Perform the direct smoothing
                     [obj.p,obj.t] = direct_smoother_lur(obj.p,obj.t,...
                                     pfixV,opt.nscreen);
                 end
