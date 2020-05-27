@@ -723,14 +723,25 @@ classdef edgefx
                 val = obj.F.Values;
                 tt = 'Total EdgeLength Function';
             end
+          
+            % working out stride
+            mem = inf; stride = obj.gridspace;
+            while mem > 1
+                xx = obj.x0y0(1):stride:obj.bbox(1,2);
+                yy = obj.x0y0(2):stride:obj.bbox(2,2);
+                xs = whos('xx'); ys = whos('yy');
+                mem = xs.bytes*ys.bytes/1e9;
+                stride = stride*2;
+            end
+            stride = ceil(stride/obj.gridspace);
+            I = [1:stride:size(xgrid,1)];
+            J = [1:stride:size(xgrid,2)];
             
             figure;
             m_proj('merc',...
                 'long',[obj.bbox(1,1) obj.bbox(1,2)],...
                 'lat',[obj.bbox(2,1) obj.bbox(2,2)])
-            hold on; m_fastscatter(xgrid,...
-                ygrid,...
-                val);
+            hold on; m_fastscatter(xgrid(I,J),ygrid(I,J),val(I,J));
             cb = colorbar; ylabel(cb,'edgelength in meters');
             colormap(lansey)
             m_grid() %'xtick',10,'tickdir','out',...
