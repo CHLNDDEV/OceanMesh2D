@@ -1101,29 +1101,40 @@ classdef msh
 
         function obj = lim_bathy_slope(obj,dfdx,overland)
             %obj = lim_bathy_slope(obj,dfdx,overland)
+            % overland = 0; limits both bathy and topography
+            % overland = 1; limits only topography
+            % overland = -1; limits only bathy
             if nargin < 3
                 overland  = 0;
             end
+            if overland == 0
+               % Call bathy then topo
+               obj = lim_bathy_slope(obj,dfdx,-1); 
+               obj = lim_bathy_slope(obj,dfdx,+1);
+               return 
+            end
+         
             % Limit to topo or bathymetric slope to dfdx on the edges
             imax = 100;
-            [edge,elen] = GetBarLengths(obj,0);
-            bt = obj.b;
-            if overland
+            [edge,elen] = GetBarLengths(obj,0);  
+            bt = obj.b; 
+            if overland == -1
+                I = bt < 0; 
+                word = 'bathymetric';
+            elseif overland == 1
                 I = bt > 0;
                 word = 'topographic';
-            else
-                I = bt < 0;
-                word = 'bathymetric';
             end
-            bt(I) = 0;
+            bt(I) = 0; 
+            bt(~I) = -overland*bt(~I);
             [bnew,flag] = limgrad(edge,elen,bt,dfdx,imax);
             if flag
-                obj.b(~I) = bnew(~I);
-                disp(['Successfully limited ' word ' slope to ' ...
-                    num2str(dfdx) ' in limgrad function'])
+               obj.b(~I) = -overland*bnew(~I);
+               disp(['Successfully limited ' word ' slope to ' ...
+                    num2str(dfdx) ' in limgrad function']) 
             else
-                warning(['Could not limit ' word ' slope to ' ...
-                    num2str(dfdx) ' in limgrad function'])
+               warning(['Could not limit ' word ' slope to  ' ...
+                       num2str(dfdx) ' in limgrad function']) 
             end
         end
 
