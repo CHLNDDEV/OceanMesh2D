@@ -12,6 +12,7 @@ function obj = Calc_f13(obj,attribute,varargin)
 %              'Ss' ('surface_submergence_state')
 %              'Re' ('initial_river_elevation')
 %              'Ad' ('advection_state')
+%              'Sb' ('subgrid_barrier')
 %
 %            3) then either: 
 %              'inpoly' followed by...
@@ -51,6 +52,9 @@ elseif strcmpi(attribute,'Re')
 elseif strcmpi(attribute,'Ad')
     attrname = 'advection_state';
     default_val = -999;
+elseif strcmpi(attribute,'Sb')
+     attrname = 'subgrid_barrier';
+     default_val = 99999;
 else
     error(['Attribute ' attribute ' not currently supported'])
 end
