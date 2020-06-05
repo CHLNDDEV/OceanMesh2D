@@ -908,6 +908,25 @@ classdef msh
                     obj = GridData(geodata,obj,varargin);
                 end
             end
+            % Test for nans
+            Inan = sum(isnan(obj.b));
+            if Inan > 0
+                warning('NaNs have been found in the bathymetry')
+            end
+            Inan = sum(isnan(obj.bx)) + sum(isnan(obj.by));
+            if Inan > 0
+                warning('NaNs have been found in the slope')
+            end
+            % Compute slope
+            [edge,elen] = GetBarLengths(obj,0);
+            mbe = obj.b(edge);
+            slope = abs(diff(mbe,[],2))./elen;
+            if max(slope) > 0.1
+                disp(['Maximum topographic gradient is '  num2str(max(slope))])
+                warning(['Maximum topographic gradient is larger than ' ...
+                  '0.1, which might cause problems for simulation. ' ...
+                  'Consider using the "lim_bathy_slope" msh class method']);
+            end
         end
 
         function [obj,qual] = clean(obj,varargin)
