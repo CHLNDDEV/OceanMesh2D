@@ -921,8 +921,8 @@ classdef msh
             [edge,elen] = GetBarLengths(obj,0);
             mbe = obj.b(edge);
             slope = abs(diff(mbe,[],2))./elen;
+            disp(['Maximum topographic gradient is '  num2str(max(slope))])
             if max(slope) > 0.1
-                disp(['Maximum topographic gradient is '  num2str(max(slope))])
                 warning(['Maximum topographic gradient is larger than ' ...
                   '0.1, which might cause problems for simulation. ' ...
                   'Consider using the "lim_bathy_slope" msh class method']);
