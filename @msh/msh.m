@@ -908,6 +908,25 @@ classdef msh
                     obj = GridData(geodata,obj,varargin);
                 end
             end
+            % Test for nans
+            Inan = sum(isnan(obj.b));
+            if Inan > 0
+                warning('NaNs have been found in the bathymetry')
+            end
+            Inan = sum(isnan(obj.bx)) + sum(isnan(obj.by));
+            if Inan > 0
+                warning('NaNs have been found in the slope')
+            end
+            % Compute slope
+            [edge,elen] = GetBarLengths(obj,0);
+            mbe = obj.b(edge);
+            slope = abs(diff(mbe,[],2))./elen;
+            disp(['Maximum topographic gradient is '  num2str(max(slope))])
+            if max(slope) > 0.1
+                warning(['Maximum topographic gradient is larger than ' ...
+                  '0.1, which might cause problems for simulation. ' ...
+                  'Consider using the "lim_bathy_slope" msh class method']);
+            end
         end
 
         function [obj,qual] = clean(obj,varargin)
@@ -1101,29 +1120,40 @@ classdef msh
 
         function obj = lim_bathy_slope(obj,dfdx,overland)
             %obj = lim_bathy_slope(obj,dfdx,overland)
+            % overland = 0; limits both bathy and topography
+            % overland = 1; limits only topography
+            % overland = -1; limits only bathy
             if nargin < 3
                 overland  = 0;
             end
+            if overland == 0
+               % Call bathy then topo
+               obj = lim_bathy_slope(obj,dfdx,-1); 
+               obj = lim_bathy_slope(obj,dfdx,+1);
+               return 
+            end
+         
             % Limit to topo or bathymetric slope to dfdx on the edges
             imax = 100;
-            [edge,elen] = GetBarLengths(obj,0);
-            bt = obj.b;
-            if overland
+            [edge,elen] = GetBarLengths(obj,0);  
+            bt = obj.b; 
+            if overland == -1
+                I = bt < 0; 
+                word = 'bathymetric';
+            elseif overland == 1
                 I = bt > 0;
                 word = 'topographic';
-            else
-                I = bt < 0;
-                word = 'bathymetric';
             end
-            bt(I) = 0;
+            bt(I) = 0; 
+            bt(~I) = -overland*bt(~I);
             [bnew,flag] = limgrad(edge,elen,bt,dfdx,imax);
             if flag
-                obj.b(~I) = bnew(~I);
-                disp(['Successfully limited ' word ' slope to ' ...
-                    num2str(dfdx) ' in limgrad function'])
+               obj.b(~I) = -overland*bnew(~I);
+               disp(['Successfully limited ' word ' slope to ' ...
+                    num2str(dfdx) ' in limgrad function']) 
             else
-                warning(['Could not limit ' word ' slope to ' ...
-                    num2str(dfdx) ' in limgrad function'])
+               warning(['Could not limit ' word ' slope to  ' ...
+                       num2str(dfdx) ' in limgrad function']) 
             end
         end
 
