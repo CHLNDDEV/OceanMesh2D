@@ -327,32 +327,21 @@ classdef msh
                     end
                     if ~isempty(obj.bd)
                         for nb = 1 : obj.bd.nbou
-                            if obj.bd.ibtype(nb) == 94
-                                if proj
-                                    m_plot(obj.p(obj.bd.nbvv(:),1),...
-                                        obj.p(obj.bd.nbvv(:),2),...
-                                        'r.','linewi',1.2);
-                                else
-                                    plot(obj.p(obj.bd.nbvv(:),1),...
-                                        obj.p(obj.bd.nbvv(:),2),...
-                                        'r.','linewi',1.2);
-                                end
-                                % internal weirs
-                            elseif obj.bd.ibtype(nb)  == 24
+                            if obj.bd.ibtype(nb)  == 24 || obj.bd.ibtype(nb) == 94
                                 if proj
                                     % plot front facing
                                     m_plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
                                         obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'g-','linewi',1.2);
                                     % plot back facing
                                     m_plot(obj.p(obj.bd.ibconn(1:obj.bd.nvell(nb),nb),1),...
-                                        obj.p(obj.bd.ibconn(1:obj.bd.nvell(nb),nb),2),'g-','linewi',1.2);
+                                        obj.p(obj.bd.ibconn(1:obj.bd.nvell(nb),nb),2),'y-','linewi',1.2);
                                 else
                                     % plot front facing
                                     plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
                                         obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'g-','linewi',1.2);
                                     % plot back facing
                                     plot(obj.p(obj.bd.ibconn(1:obj.bd.nvell(nb),nb),1),...
-                                        obj.p(obj.bd.ibconn(1:obj.bd.nvell(nb),nb),2),'g','linewi',1.2);
+                                        obj.p(obj.bd.ibconn(1:obj.bd.nvell(nb),nb),2),'y-','linewi',1.2);
                                 end
                             elseif obj.bd.ibtype(nb)  == 20
                                 if proj
@@ -846,6 +835,12 @@ classdef msh
                     idx=perm_inv(idx);
                     obj.f13.userval.Atr(i).Val(1,:) = idx;
                 end
+            end
+            
+            if ~isempty(obj.f5354)
+                disp('Renumbering the fort.5354...');
+                idx = perm_inv(obj.f5354.nodes);
+                obj.f5354.nodes = idx;
             end
         end
 
