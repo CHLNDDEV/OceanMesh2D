@@ -110,8 +110,12 @@ if ~isempty(boudat)
                 %otherwise
                 %    msgline = fgetl(fid) ;
             case 94
-                fprintf( fid, '%d %d \n' , boudat.nbvv(:,1:2)' ) ;
-                
+                idx = find( boudat.nbvv(:,i) ) ;
+                nbvv = full(boudat.nbvv(idx,i)) ;
+                ibconn = full(boudat.ibconn(idx,i)) ;
+                for ll = 1: length(idx)
+                    fprintf( fid, '%d %d \n' , nbvv(ll), ibconn(ll) ) ;
+                end
         end
     end
     % case of no bou

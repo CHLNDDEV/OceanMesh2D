@@ -327,32 +327,21 @@ classdef msh
                     end
                     if ~isempty(obj.bd)
                         for nb = 1 : obj.bd.nbou
-                            if obj.bd.ibtype(nb) == 94
-                                if proj
-                                    m_plot(obj.p(obj.bd.nbvv(:),1),...
-                                        obj.p(obj.bd.nbvv(:),2),...
-                                        'r.','linewi',1.2);
-                                else
-                                    plot(obj.p(obj.bd.nbvv(:),1),...
-                                        obj.p(obj.bd.nbvv(:),2),...
-                                        'r.','linewi',1.2);
-                                end
-                                % internal weirs
-                            elseif obj.bd.ibtype(nb)  == 24
+                            if obj.bd.ibtype(nb)  == 24 || obj.bd.ibtype(nb) == 94
                                 if proj
                                     % plot front facing
                                     m_plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
                                         obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'g-','linewi',1.2);
                                     % plot back facing
                                     m_plot(obj.p(obj.bd.ibconn(1:obj.bd.nvell(nb),nb),1),...
-                                        obj.p(obj.bd.ibconn(1:obj.bd.nvell(nb),nb),2),'g-','linewi',1.2);
+                                        obj.p(obj.bd.ibconn(1:obj.bd.nvell(nb),nb),2),'y-','linewi',1.2);
                                 else
                                     % plot front facing
                                     plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
                                         obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'g-','linewi',1.2);
                                     % plot back facing
                                     plot(obj.p(obj.bd.ibconn(1:obj.bd.nvell(nb),nb),1),...
-                                        obj.p(obj.bd.ibconn(1:obj.bd.nvell(nb),nb),2),'g','linewi',1.2);
+                                        obj.p(obj.bd.ibconn(1:obj.bd.nvell(nb),nb),2),'y-','linewi',1.2);
                                 end
                             elseif obj.bd.ibtype(nb)  == 20
                                 if proj
@@ -846,6 +835,12 @@ classdef msh
                     idx=perm_inv(idx);
                     obj.f13.userval.Atr(i).Val(1,:) = idx;
                 end
+            end
+            
+            if ~isempty(obj.f5354)
+                disp('Renumbering the fort.5354...');
+                idx = perm_inv(obj.f5354.nodes);
+                obj.f5354.nodes = idx;
             end
         end
 
@@ -2122,10 +2117,13 @@ classdef msh
                     % extract the inner region of obj1 (inset) from obj2 (base)
                     % assuming that the inset fits perfectly in the base
                     if extract
-                        K = boundary(obj1.p(:,1),obj1.p(:,2));
-                        bou = obj1.p(K,:);
-                        obj2o = obj2;
-                        obj2 = ExtractSubDomain(obj2,bou,1);
+                        [p1(:,1),p1(:,2)] = m_ll2xy(p1(:,1),p1(:,2)) ;
+                        [p2(:,1),p2(:,2)] = m_ll2xy(p2(:,1),p2(:,2)) ;
+                        cell2 = extdom_polygon(extdom_edges2(t1,p1),p1,-1,0);
+                        bou = cell2{1}(1:end-1,:);
+                        obj2o = obj2; obj2.p = p2;
+                        obj2 = ExtractSubDomain(obj2,bou,1,1);
+                        [obj2.p(:,1),obj2.p(:,2)] = m_xy2ll(obj2.p(:,1),obj2.p(:,2));
                     end
                     % concatenate
                     m1 = cat(obj1,obj2);
@@ -2459,7 +2457,7 @@ classdef msh
             obj.bd.nvel = 2*sum(obj.bd.nvell);
             % nbvv is a matrix of boundary nodes
             [nr1,nc1]=size(obj.bd.nbvv);
-            [nr2,nc2]=size(obj1.bd.nbvv);
+            nc2 = sum(jj); nr2 = sum(obj1.bd.nvell(jj));
             nbvv_old = obj.bd.nbvv;
             ibconn_old = obj.bd.ibconn;
             barinht_old = obj.bd.barinht;

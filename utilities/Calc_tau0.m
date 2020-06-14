@@ -5,11 +5,25 @@ function obj = Calc_tau0(obj,varargin)
 %
 %  Inputs:   1) A msh class obj with bathy on it
 %            2) Optional name-value arguments:
-%               'distance': the cutoff mean distance to neighbouring nodes
+%             - 'opt': -3 [default] => calculates spatially varying tau0
+%                                      factors
+%                     +ve => calculates the stable positive tau0 based on 
+%                            the value of 'opt', which is the intended 
+%                            simulation timestep
+%
+%             additional varargin options for 'opt' = -3:
+%             - 'distance': the cutoff mean distance to neighbouring nodes
 %               to switch between depth based tau0 (below) and the default
 %               value, 0.03 (default distance is 2 [km])
-%               'depth': the cutoff depth to switch between 0.005
+%             - 'depth': the cutoff depth to switch between 0.005
 %               and 0.02 (default is 10 [m])
+%
+%             additional varargin options for 'opt' = +ve:
+%             - 'kappa': the value of the time weighting factor, kappa for 
+%                        the future time step. Must be <= 1 and is 0.5 
+%                        by default.
+%             - 'sf': the safety factor applied to the stable value of
+%                     tau0. Must be <= 1 and is 0.6 by default. 
 %
 %  Outputs: 1) msh class obj with primitive_weighting_in_continuity_equation
 %              values populating the f13 struct
