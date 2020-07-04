@@ -222,7 +222,7 @@ classdef msh
                 type = 'tri';
             end
             if nargin < 3
-                proj = 1 ;
+                proj = 0 ;
             end
             if nargin < 4
                 projtype = [] ;
@@ -242,7 +242,7 @@ classdef msh
             end
                 
             % kjr default behavior, just use what's in the .mat file
-            if proj && isempty(projtype)
+            if isempty(projtype)
                 global MAP_PROJECTION MAP_VAR_LIST MAP_COORDS
                 if ~isempty(obj.coord)
                     % kjr 2018,10,17; Set up projected space imported from msh class
@@ -251,6 +251,7 @@ classdef msh
                     MAP_COORDS     = obj.coord ;
                     del = 0;
                     projtype = MAP_PROJECTION.name;
+                    proj =1; % swith projection on
                 end
             end
             
