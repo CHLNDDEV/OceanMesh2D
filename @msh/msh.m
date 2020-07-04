@@ -42,59 +42,78 @@ classdef msh
 
     methods
         % constructor/read mesh into class.
-        function obj = msh(fname,type)
+        function obj = msh(varargin)
+
             % Check for m_map dir
-            M_MAP_EXISTS=0 ;
-            if exist('m_proj','file')==2
-                M_MAP_EXISTS=1 ;
+            if exist('m_proj','file')~=2
+                error('The program m_map was not found. Please read the user guide')
             end
-            if M_MAP_EXISTS~=1
-                error('Where''s m_map? Please read the user guide')
-            end
-
             % Check for utilties dir
-            UTIL_DIR_EXISTS=0 ;
-            if exist('inpoly.m','file')
-                UTIL_DIR_EXISTS=1 ;
+            if ~exist('inpoly.m','file')
+                error('The utilities directory was not found. Please read the user guide')
             end
-            if UTIL_DIR_EXISTS~=1
-                error('Where''s the utilities directory? Please read the user guide')
-            end
-
             % Check for dataset dir
-            DATASET_DIR_EXISTS=0 ;
-            if exist('datasets','dir')==7
-                DATASET_DIR_EXISTS=1 ;
-            end
-            if DATASET_DIR_EXISTS~=1
-                warning('We suggest you to place your files in a datasets directory. Please read the user guide')
+            if exist('datasets','dir')~=7
+                warning('We suggest you to place your files in a folder called datasets. Please read the user guide')
             end
 
+            % just want a blank mesh object 
             if nargin == 0
                 obj.title = 'OceanMesh2D';
                 return
             end
+            
+            fname = []; 
+            % if only one arg. then assume filename of mesh file...
             if nargin == 1
-                type = '14';
+                % determine type of file 
+                if any(contains(varargin,'.14')) 
+                    type = '14';  
+                    fname = varargin{1}; 
+                end
+                % OTHER MESH FORMATS CAN GO HERE...
+                
+            else
+                % Otherwise, name value pairs specified.
+                % Parse other varargin
+                for kk = 1:2:length(varargin)
+                    if strcmp(varargin{kk},'fname')
+                       fname = varargin{kk+1};
+                    elseif strcmp(varargin{kk},'type')
+                        type = varargin{kk+1};
+                    elseif strcmp(varargin{kk},'points')
+                        obj.p = varargin{kk+1};
+                    elseif strcmp(varargin{kk},'elements')
+                        obj.t = varargin{kk+1};
+                    end
+                end
             end
+            
+            if isempty(fname)
+                error('Please speicfy the fname of the mesh as a name/value pair...');
+            end
+            
             if any(contains(type,'14'))
+                disp('INFO: ADCIRC fort.14 file will be read...')
                 bdflag = 1;
                 if any(contains(type,'14nob'))
                     bdflag = 0;
                 end
-                [t,p,b,op,bd,title] = readfort14([fname '.14'],bdflag);
+                [t,p,b,op,bd,title] = readfort14(fname,bdflag);
                 obj.p  = p; obj.t  = t; obj.b  = b;
                 obj.bd = bd; obj.op = op;
                 obj.title = title;
             end
             if any(contains(type,'13'))
-                obj.f13 = readfort13([fname '.13']);
+                disp('INFO: ADCIRC fort.13 file will be read...')
+                obj.f13 = readfort13(fname);
             end
             if any(contains(type,'15'))
+                disp('INFO: ADCIRC fort.15 file will be read...')
                 if isempty(obj.op) ||  isempty(obj.bd)
                     error('Boundary data required to read f15...also read in f14.')
                 end
-                obj.f15 = readfort15([fname '.15'],obj.op,obj.bd);
+                obj.f15 = readfort15(fname,obj.op,obj.bd);
             end
             if any(contains(type,'24'))
                 if isempty(obj.p)
@@ -106,7 +125,8 @@ classdef msh
                 if obj.f15.ntif == 0
                     error('No constituents in f15 to readfort24')
                 end
-                obj.f24 = readfort24( [fname '.24'], obj.f15.ntif, ...
+                 disp('INFO: ADCIRC fort.24 file will be read...')
+                obj.f24 = readfort24( fname, obj.f15.ntif, ...
                     length(obj.p), {obj.f15.tipotag.name} );
             end
         end
@@ -203,16 +223,16 @@ classdef msh
             %    j) 'qual'   - plots the element quality
             %    k) 'xx' -     plots an arbitrary f13 attribute 'xx' by
             %                  contains search
-            %    additional --> 
+            %    additional -->
             %    i)  add 'log' inside type to plot caxis in log space
             %    ii) add 'mesh' inside type to plot trimesh instead of trisurf
             % 3) proj: whether to plot in projected space or unprojected space
             %    a) 0       - plot in unprojected space
             %    b) 1       - plot in projected space (default)
-            % 4) projtype: what projection to plot in if proj = 1. 
+            % 4) projtype: what projection to plot in if proj = 1.
             %    default is the projection of the msh object
             % 5) bou: a local bounding box or polygon region to plot within
-            % 6) varargin options: 
+            % 6) varargin options:
             %    i) 'numticks': number of colorbar tickmarks and (optional) range:
             %           [numticks] or [numticks caxis_lower caxis_upper]
             %    ii) 'fontsize': figure fontsize
@@ -237,10 +257,10 @@ classdef msh
                 elseif strcmp(varargin{kk},'numticks')
                     numticks = varargin{kk+1};
                 elseif strcmp(varargin{kk},'holdon')
-                    holdon = varargin{kk+1};   
-                end        
+                    holdon = varargin{kk+1};
+                end
             end
-                
+
             % kjr default behavior, just use what's in the .mat file
             if isempty(projtype)
                 global MAP_PROJECTION MAP_VAR_LIST MAP_COORDS
@@ -254,7 +274,7 @@ classdef msh
                     proj =1; % swith projection on
                 end
             end
-            
+
             % Handle user specified subdomain
             if nargin < 5 || isempty(bou)
                 kept = (1:length(obj.p))';
@@ -270,10 +290,10 @@ classdef msh
                 % Get a subset given by bou
                 [obj,kept] = ExtractSubDomain(obj,bou);
             end
-            
+
             % Set up projected space
             del = setProj(obj,proj,projtype) ;
-            
+
             if del
                 % This deletes any elements straddling the -180/180
                 % boundary for plotting purposes
@@ -283,7 +303,7 @@ classdef msh
                 obj.t(abs(dxt(:,1)) > 180 | abs(dxt(:,2)) > 180 | ...
                       abs(dxt(:,3)) > 180,:) = [];
             end
-            
+
             logaxis = 0;
             idxl = strfind(type,'log');
             if ~isempty(idxl)
@@ -293,7 +313,7 @@ classdef msh
             idxl = strfind(type,'mesh');
             if ~isempty(idxl)
                 mesh = 1; type(idxl:idxl+3) = [];
-            end    
+            end
             earthres = 0;
             if strcmp(type,'resoearth')
                 type = 'reso'; earthres = 1;
@@ -302,14 +322,14 @@ classdef msh
             idxl = strfind(type,'notri');
             if ~isempty(idxl)
                 tri = 0; type(idxl:idxl+4) = [];
-            end  
-            
+            end
+
             % Make new figure if not holdon
             if ~holdon
                 figure;
             end
             hold on
-            
+
             switch type
                 % parse aux options first
                 case('tri')
@@ -352,7 +372,7 @@ classdef msh
                                     plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
                                         obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'r-','linewi',1.2);
                                 end
-                            else              
+                            else
                                 if proj
                                     m_plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
                                         obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'g-','linewi',1.2);
@@ -400,15 +420,15 @@ classdef msh
                             trisurf(obj.t,obj.p(:,1),obj.p(:,2),q)
                             shading interp;
                         end
-                        view(2); 
+                        view(2);
                     end
                     if logaxis
-                        cmocean('deep',numticks(1)-1); 
+                        cmocean('deep',numticks(1)-1);
                     else
                         if exist('demcmap','file')
                             demcmap(q);
-                        else   
-                            cmocean('topo','pivot',min(max(q),0)); 
+                        else
+                            cmocean('topo','pivot',min(max(q),0));
                         end
                     end
                     cb = colorbar;
@@ -434,19 +454,19 @@ classdef msh
                     if proj
                         if mesh
                             m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),...
-                                      hypot(obj.bx,obj.by));  
+                                      hypot(obj.bx,obj.by));
                         else
                             m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),...
                                       hypot(obj.bx,obj.by));
                         end
                     else
-                        if mesh 
+                        if mesh
                             trimesh(obj.t,obj.p(:,1),obj.p(:,2),...
                                     hypot(obj.bx,obj.by));
                         else
                             trisurf(obj.t,obj.p(:,1),obj.p(:,2),...
                                     hypot(obj.bx,obj.by));
-                            shading flat   
+                            shading flat
                         end
                         view(2);
                     end
@@ -471,7 +491,7 @@ classdef msh
                         [B1,IB] = unique(bars(:,1),'last');
                         [B2,IC] = unique(bars(:,2),'last');
                         d1 = NaN*obj.p(:,1); d2 = NaN*obj.p(:,1);
-                        d1(B1) = barlen(IB); d2(B2) = barlen(IC);  
+                        d1(B1) = barlen(IB); d2(B2) = barlen(IC);
                         z = min(d1,d2);
                         yylabel = 'minimum connected bar length [m]';
                     else
@@ -554,14 +574,14 @@ classdef msh
                     caxis([0 0.25]);
                     cb = colorbar;
                     title('Relaxation rate of topology');
-                    ylabel(cb,'decimal percent');            
+                    ylabel(cb,'decimal percent');
                 case('tau0')
                     if ~isempty(obj.f13)
                         ii = find(contains({obj.f13.defval.Atr(:).AttrName},'primitive'));
                         defval  = obj.f13.defval.Atr(ii).Val;
                         userval = obj.f13.userval.Atr(ii).Val;
                         tau0 = 0*obj.p(:,1) + defval;
-                        tau0(userval(1,:)) = userval(2,:)'; 
+                        tau0(userval(1,:)) = userval(2,:)';
                         fastscatter(obj.p(:,1),obj.p(:,2),tau0);
                         colormap([1 0 0; 0 1 0; 0 0 1]);
                         colorbar;
@@ -676,7 +696,7 @@ classdef msh
                         if mesh
                             m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),nq);
                         else
-                            m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),nq); 
+                            m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),nq);
                             m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),nq*0);
                             shading flat
                         end
@@ -837,7 +857,7 @@ classdef msh
                     obj.f13.userval.Atr(i).Val(1,:) = idx;
                 end
             end
-            
+
             if ~isempty(obj.f5354)
                 disp('Renumbering the fort.5354...');
                 idx = perm_inv(obj.f5354.nodes);
@@ -1124,32 +1144,32 @@ classdef msh
             end
             if overland == 0
                % Call bathy then topo
-               obj = lim_bathy_slope(obj,dfdx,-1); 
+               obj = lim_bathy_slope(obj,dfdx,-1);
                obj = lim_bathy_slope(obj,dfdx,+1);
-               return 
+               return
             end
-         
+
             % Limit to topo or bathymetric slope to dfdx on the edges
             imax = 100;
-            [edge,elen] = GetBarLengths(obj,0);  
-            bt = obj.b; 
+            [edge,elen] = GetBarLengths(obj,0);
+            bt = obj.b;
             if overland == -1
-                I = bt < 0; 
+                I = bt < 0;
                 word = 'bathymetric';
             elseif overland == 1
                 I = bt > 0;
                 word = 'topographic';
             end
-            bt(I) = 0; 
+            bt(I) = 0;
             bt(~I) = -overland*bt(~I);
             [bnew,flag] = limgrad(edge,elen,bt,dfdx,imax);
             if flag
                obj.b(~I) = -overland*bnew(~I);
                disp(['Successfully limited ' word ' slope to ' ...
-                    num2str(dfdx) ' in limgrad function']) 
+                    num2str(dfdx) ' in limgrad function'])
             else
                warning(['Could not limit ' word ' slope to  ' ...
-                       num2str(dfdx) ' in limgrad function']) 
+                       num2str(dfdx) ' in limgrad function'])
             end
         end
 
@@ -1686,7 +1706,7 @@ classdef msh
                     else
                         vstart = varargin{2}; vend = varargin{3};
                         if length(varargin) >= 4
-                            type = varargin{4}; 
+                            type = varargin{4};
                             if length(varargin) >= 5
                                 type2 = varargin{5};
                             else
@@ -2492,14 +2512,14 @@ classdef msh
         end
 
         function [out1,barlen,bars] = CalcCFL(obj,dt,type)
-            if isempty(obj.b) 
+            if isempty(obj.b)
                error('Bathymetry is required to estimate the Courant number');
             end
             if nargin < 3
                 % use spherical haversine distances
                 type = 0;
             end
-         
+
             g      = 9.81;        % gravity
             [bars,barlen] = GetBarLengths(obj,type);
             % sort bar lengths in ascending order
