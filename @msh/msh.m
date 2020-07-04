@@ -2491,10 +2491,14 @@ classdef msh
         end
 
         function [out1,barlen,bars] = CalcCFL(obj,dt,type)
+            if isempty(obj.b) 
+               error('Bathymetry is required to estimate the Courant number');
+            end
             if nargin < 3
                 % use spherical haversine distances
                 type = 0;
             end
+         
             g      = 9.81;        % gravity
             [bars,barlen] = GetBarLengths(obj,type);
             % sort bar lengths in ascending order
