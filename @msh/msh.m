@@ -57,23 +57,23 @@ classdef msh
                 warning('We suggest you to place your files in a folder called datasets. Please read the user guide')
             end
 
-            % just want a blank mesh object 
+            % just want a blank mesh object
             if nargin == 0
                 obj.title = 'OceanMesh2D';
                 return
             end
-            
-            fname = []; 
+
+            fname = [];
             aux = {};
             % if only one arg. then assume filename of mesh file...
             if nargin == 1
-                % determine type of file 
-                if any(contains(varargin,'.14')) 
-                    type = '14';  
-                    fname = varargin{1}; 
+                % determine type of file
+                if any(contains(varargin,'.14'))
+                    type = '14';
+                    fname = varargin{1};
                 end
                 % OTHER MESH FORMATS CAN GO HERE...
-                
+
             else
                 % Otherwise, name value pairs specified.
                 % Parse other varargin
@@ -91,16 +91,16 @@ classdef msh
                     end
                 end
             end
-            
+
             if isempty(fname)
                 error('Please speicfy the fname of the mesh as a name/value pair...');
             end
-            
-            
+
+
             if any(contains(fname,'14'))
                 type = '14';
             end
-            
+
             if any(contains(type,'14'))
                 disp('INFO: ADCIRC fort.14 file will be read...')
                 bdflag = 1;
@@ -112,11 +112,11 @@ classdef msh
                 obj.bd = bd; obj.op = op;
                 obj.title = title;
             % elseif any(contains(type,'otherformat'))
-            % OTHER FORMAT READING GOES HERE. 
+            % OTHER FORMAT READING GOES HERE.
             end
             % loop over all extra files passed
             for f = 1 : length(aux)
-                file = aux{f}; 
+                fname = aux{f};
                 if any(contains(file,'13'))
                     disp('INFO: ADCIRC fort.13 file will be read...')
                     obj.f13 = readfort13(fname);
@@ -143,7 +143,7 @@ classdef msh
                         length(obj.p), {obj.f15.tipotag.name} );
                 end
             end
-           
+
         end
 
         % write mesh to disk
