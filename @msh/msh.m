@@ -64,6 +64,7 @@ classdef msh
             end
             
             fname = []; 
+            aux = {};
             % if only one arg. then assume filename of mesh file...
             if nargin == 1
                 % determine type of file 
@@ -85,6 +86,8 @@ classdef msh
                         obj.p = varargin{kk+1};
                     elseif strcmp(varargin{kk},'elements')
                         obj.t = varargin{kk+1};
+                    elseif strcmp(varargin{kk},'aux')
+                        aux = varargin{kk+1};
                     end
                 end
             end
@@ -103,32 +106,39 @@ classdef msh
                 obj.p  = p; obj.t  = t; obj.b  = b;
                 obj.bd = bd; obj.op = op;
                 obj.title = title;
+            % elseif any(contains(type,'otherformat'))
+            % OTHER FORMAT READING GOES HERE. 
             end
-            if any(contains(type,'13'))
-                disp('INFO: ADCIRC fort.13 file will be read...')
-                obj.f13 = readfort13(fname);
+            % loop over all extra files passed
+            for f = 1 : length(aux)
+                file = aux{f}; 
+                if any(contains(file,'13'))
+                    disp('INFO: ADCIRC fort.13 file will be read...')
+                    obj.f13 = readfort13(fname);
+                end
+                if any(contains(file,'15'))
+                    disp('INFO: ADCIRC fort.15 file will be read...')
+                    if isempty(obj.op) ||  isempty(obj.bd)
+                        error('Boundary data required to read f15...also read in f14.')
+                    end
+                    obj.f15 = readfort15(fname,obj.op,obj.bd);
+                end
+                if any(contains(file,'24'))
+                    if isempty(obj.p)
+                        error('No vertices present to readfort24')
+                    end
+                    if isempty(obj.f15)
+                        error('No f15 present to readfort24')
+                    end
+                    if obj.f15.ntif == 0
+                        error('No constituents in f15 to readfort24')
+                    end
+                    disp('INFO: ADCIRC fort.24 file will be read...')
+                    obj.f24 = readfort24( fname, obj.f15.ntif, ...
+                        length(obj.p), {obj.f15.tipotag.name} );
+                end
             end
-            if any(contains(type,'15'))
-                disp('INFO: ADCIRC fort.15 file will be read...')
-                if isempty(obj.op) ||  isempty(obj.bd)
-                    error('Boundary data required to read f15...also read in f14.')
-                end
-                obj.f15 = readfort15(fname,obj.op,obj.bd);
-            end
-            if any(contains(type,'24'))
-                if isempty(obj.p)
-                    error('No vertices present to readfort24')
-                end
-                if isempty(obj.f15)
-                    error('No f15 present to readfort24')
-                end
-                if obj.f15.ntif == 0
-                    error('No constituents in f15 to readfort24')
-                end
-                 disp('INFO: ADCIRC fort.24 file will be read...')
-                obj.f24 = readfort24( fname, obj.f15.ntif, ...
-                    length(obj.p), {obj.f15.tipotag.name} );
-            end
+           
         end
 
         % write mesh to disk
