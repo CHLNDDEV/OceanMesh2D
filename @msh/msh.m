@@ -65,11 +65,11 @@ classdef msh
 
             fname = [];
             aux = {};
+            nob = 0;
             % if only one arg. then assume filename of mesh file...
             if nargin == 1
                 % determine type of file
                 if any(contains(varargin,'.14'))
-                    type = '14';
                     fname = varargin{1};
                 end
                 % OTHER MESH FORMATS CAN GO HERE...
@@ -80,31 +80,32 @@ classdef msh
                 for kk = 1:2:length(varargin)
                     if strcmp(varargin{kk},'fname')
                        fname = varargin{kk+1};
-                    elseif strcmp(varargin{kk},'type')
-                        type = varargin{kk+1};
                     elseif strcmp(varargin{kk},'points')
                         obj.p = varargin{kk+1};
                     elseif strcmp(varargin{kk},'elements')
                         obj.t = varargin{kk+1};
                     elseif strcmp(varargin{kk},'aux')
                         aux = varargin{kk+1};
+                    elseif strcmp(varargin{k},'nob')
+                        nob = varargin{kk+1};
                     end
                 end
             end
 
             if isempty(fname)
-                error('Please speicfy the fname of the mesh as a name/value pair...');
+                error('Please specify the fname of the mesh as a name/value pair...');
             end
 
-
-            if any(contains(fname,'14'))
+            if any(contains(fname,'.14'))
                 type = '14';
+            else
+                error('Please specify filename with suffix (e.g., fname.14)');
             end
 
-            if any(contains(type,'14'))
-                disp('INFO: ADCIRC fort.14 file will be read...')
+            if any(contains(type,'.14'))
+                disp('INFO: An ADCIRC fort.14 file will be read...')
                 bdflag = 1;
-                if any(contains(type,'14nob'))
+                if nob
                     bdflag = 0;
                 end
                 [t,p,b,op,bd,title] = readfort14(fname,bdflag);
@@ -117,18 +118,18 @@ classdef msh
             % loop over all extra files passed
             for f = 1 : length(aux)
                 fname = aux{f};
-                if any(contains(file,'13'))
+                if any(contains(file,'.13'))
                     disp('INFO: ADCIRC fort.13 file will be read...')
                     obj.f13 = readfort13(fname);
                 end
-                if any(contains(file,'15'))
+                if any(contains(file,'.15'))
                     disp('INFO: ADCIRC fort.15 file will be read...')
                     if isempty(obj.op) ||  isempty(obj.bd)
                         error('Boundary data required to read f15...also read in f14.')
                     end
                     obj.f15 = readfort15(fname,obj.op,obj.bd);
                 end
-                if any(contains(file,'24'))
+                if any(contains(file,'.24'))
                     if isempty(obj.p)
                         error('No vertices present to readfort24')
                     end
@@ -157,7 +158,7 @@ classdef msh
                 end
 
                 % renumber it use RCM by default
-                obj = renum(obj) ;
+                %obj = renum(obj) ;
 
                 if isempty(obj.b)
                     b_t = 0*obj.p(:,1);
