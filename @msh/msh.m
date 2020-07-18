@@ -96,6 +96,11 @@ classdef msh
                 error('Please speicfy the fname of the mesh as a name/value pair...');
             end
             
+            
+            if any(contains(fname,'14'))
+                type = '14';
+            end
+            
             if any(contains(type,'14'))
                 disp('INFO: ADCIRC fort.14 file will be read...')
                 bdflag = 1;
