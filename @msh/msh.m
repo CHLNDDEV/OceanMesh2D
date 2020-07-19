@@ -1,8 +1,33 @@
 classdef msh
-    %   MSH: Mesh class
-    %   Contains, handles, and builds properties of a mesh such as vertices,
-    %   an element table, bathymetry and ADCIRC style boundary types
-    %   Copyright (C) 2018  Keith Roberts & William Pringle
+    % MSH: Mesh class
+    % Contains, handles, and builds properties of a mesh such as vertices,
+    % an element table, bathymetry and ADCIRC style boundary types
+    % Copyright (C) 2018  Keith Roberts & William Pringle
+    %
+    % Class constructor/read a mesh into a msh class.
+    %
+    % Options are specified as name/value pairs for this class.
+    % NB: The file type is determined by suffix extension (e.g., 'fname.14')
+    %
+    % Usage:
+    %   obj = msh(varargin)
+    %
+    % Examples:
+    %   m = msh(); % returns a blank mesh object.
+    %   m = msh('fname.14'); % reads in from a fort.14 file
+    %   m = msh('fname','fname.14','aux',{'blah.13','otherfile.15'}); % reads in a fort.14 along with a fort.13 and fort.15
+    %   m = msh('points', point_array, 'elements', triangle_table); % reads in from points and elements format.
+    %
+    % varargin options:
+    %   i)   'fname' - The filename of the msh file.
+    %   ii)  'points' - a num_points x 2 array of points
+    %   iii) 'elements' - a num_elements x 3 array of triangles
+    %         indexing into points array.
+    %   iv)  'aux' - a cell-array with filenames of additional
+    %         files that pair with the mesh
+    %    v)  'nob' - 0/1 disable/enalbe the reading of
+    %         boundary conditions. Default 1
+    %
     %
     %   This program is free software: you can redistribute it and/or modify
     %   it under the terms of the GNU General Public License as published by
@@ -41,7 +66,6 @@ classdef msh
     end
 
     methods
-        % constructor/read mesh into class.
         function obj = msh(varargin)
 
             % Check for m_map dir
@@ -93,7 +117,8 @@ classdef msh
             end
 
             if isempty(fname)
-                error('Please specify the fname of the mesh as a name/value pair...');
+                help(msh)
+                error('See usage instructions above. Please specify the fname of the mesh as a name/value pair...');
             end
 
             if any(contains(fname,'.14'))
