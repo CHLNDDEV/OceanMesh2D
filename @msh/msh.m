@@ -25,8 +25,9 @@ classdef msh
     %         indexing into points array.
     %   iv)  'aux' - a cell-array with filenames of additional
     %         files that pair with the mesh
-    %    v)  'nob' - 0/1 disable/enalbe the reading of
-    %         boundary conditions. Default 1
+    %    v)  'nob' - 0/1 enable/disable the reading of
+    %         boundary conditions (nodestrings). 
+    %         Default  = 0 [i.e., will read in boundary conditions]
     %
     %
     %   This program is free software: you can redistribute it and/or modify
