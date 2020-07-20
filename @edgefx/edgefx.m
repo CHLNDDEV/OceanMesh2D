@@ -63,6 +63,7 @@ classdef edgefx
         AngOfRe % Angle of reslope
         g    % max allowable grade of mesh.
         dt   % theoretical simulateable timestep
+        usr
         
         F    % edge function in gridded interpolant format.
         
@@ -119,6 +120,7 @@ classdef edgefx
             addOptional(p,'fl',defval);
             addOptional(p,'Channels',defval);
             addOptional(p,'h0',defval);
+            addOptional(p,'usr',defval);
             
             % parse the inputs
             parse(p,varargin{:});
@@ -128,7 +130,7 @@ classdef edgefx
             inp = orderfields(inp,{'max_el','min_el_ch','AngOfRe',...
                 'geodata','lmsl','Channels',...
                 'dis','fs','fl','g','max_el_ns',...
-                'wl','slp','ch','dt','h0'});
+                'wl','slp','ch','dt','h0','usr'});
             fields = fieldnames(inp);
             % loop through and determine which args were passed.
             % also, assign reasonable default values if some options were
@@ -256,6 +258,13 @@ classdef edgefx
                             obj = chfx(obj,feat);
                             obj.used{end+1} = 'ch';
                         end
+                    case('usr')
+                        obj.usr = inp.(fields{i});
+                        if i == numel(fields)
+                            disp('Setting user defined function...');
+                            obj = usrfx(obj,feat);
+                            obj.used{end+1} = 'usr'
+                        end
                     case{'g','geodata','lmsl','max_el','min_el_ch',...
                             'Channels','max_el_ns','h0','dt','fl','AngOfRe'}
                         % dummy to avoid warning
@@ -267,6 +276,16 @@ classdef edgefx
                     disp('Finalized edge function!');
                 end
             end
+        end
+
+        function obj = usrfx(obj,feat)
+            xusr = ncread(obj.usr,'lon');
+            yusr = ncread(obj.usr,'lat');
+            husr = ncread(obj.usr,'cellWidth')*1000.0;
+            [x,y] = ndgrid(xusr,yusr);
+            Fusr = griddedInterpolant(x,y,husr,'linear','nearest');
+            [xg,yg] = CreateStructGrid(obj);
+            obj.usr = Fusr(xg,yg);
         end
         
         %% Traditional distance function, linear distance from coastline.
@@ -767,6 +786,10 @@ classdef edgefx
                         counter = counter + 1;
                         hh(:,:,counter) = obj.chd;
                         obj.ch = single(obj.chd);
+                    case('usr')
+                        counter =  1;
+                        hh(:,:,counter) = obj.usr;
+                        obj.usr = single(obj.usr)
                     otherwise
                         error('FATAL:  Could not finalize edge function');
                 end
