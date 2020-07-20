@@ -159,7 +159,9 @@ classdef msh
                         error('No vertices present to readfort24')
                     end
                     if isempty(obj.f15)
-                        error('No f15 present to readfort24')
+                        error(['No f15 present to readfort24.' ...
+                               ' (make sure fort.15 is listed before' ...
+                               ' fort.24 in aux cell array)'])
                     end
                     if obj.f15.ntif == 0
                         error('No constituents in f15 to readfort24')
