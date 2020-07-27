@@ -13,6 +13,7 @@ function obj = Calc_f13(obj,attribute,varargin)
 %              'Re' ('initial_river_elevation')
 %              'Ad' ('advection_state')
 %              'Sb' ('subgrid_barrier')
+%              'Es' ('elemental_slope_limiter')
 %
 %            3) then either: 
 %              'inpoly' followed by...
@@ -55,6 +56,9 @@ elseif strcmpi(attribute,'Ad')
 elseif strcmpi(attribute,'Sb')
      attrname = 'subgrid_barrier';
      default_val = 99999;
+elseif strcmpi(attribute,'Es')
+     attrname = 'elemental_slope_limiter';
+     default_val = -1e-3;
 else
     error(['Attribute ' attribute ' not currently supported'])
 end
