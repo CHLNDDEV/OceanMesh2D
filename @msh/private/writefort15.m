@@ -98,7 +98,9 @@ end
 fprintf( fid, '%g   \t \t ! RNDY \n', f15dat.rndy ) ;
 
 % DRAMP
-fprintf( fid, '%d   \t \t ! DRAMP \n',  f15dat.dramp ) ;
+L = length(f15dat.dramp);
+dfmt = repmat('%g ',1, L);
+fprintf( fid, [dfmt ' \t \t ! DRAMP \n'],  f15dat.dramp ) ;
 
 % A00, B00, C00
 fprintf( fid, '%g %g %g   \t  ! A00, B00, C00 \n', f15dat.a00b00c00 ) ; 
