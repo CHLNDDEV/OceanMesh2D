@@ -45,7 +45,7 @@ Please reach out to either Dr. William Pringle (wpringle@nd.edu) or Dr. Keith Ro
 
 ## `References!`
 
-If you make use of `OceanMesh2D` please include a reference to [1], and to any of [2]-[4] if pertinent:
+If you make use of `OceanMesh2D` please include a reference to [1], and to any of [2]-[5] if pertinent:
 ```
 
 [1] - Roberts, K. J., Pringle, W. J., and Westerink, J. J., 2019. 
