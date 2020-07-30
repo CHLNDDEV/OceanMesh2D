@@ -45,7 +45,7 @@ Please reach out to either Dr. William Pringle (wpringle@nd.edu) or Dr. Keith Ro
 
 ## `References!`
 
-If you make use of `OceanMesh2D` please include a reference to [1], and to any of [2]-[4] if pertinent:
+If you make use of `OceanMesh2D` please include a reference to [1], and to any of [2]-[5] if pertinent:
 ```
 
 [1] - Roberts, K. J., Pringle, W. J., and Westerink, J. J., 2019. 
@@ -55,10 +55,13 @@ If you make use of `OceanMesh2D` please include a reference to [1], and to any o
       OceanMesh2D: User guide - Precise distance-based two-dimensional automated mesh generation toolbox intended for coastal
       ocean/shallow water. https://doi.org/10.13140/RG.2.2.21840.61446/2.     
 [3] - Roberts, Keith J. Unstructured Mesh Generation and Dynamic Load Balancing for Coastal Ocean Hydrodynamic Simulation, 2019.
-      https://curate.nd.edu/show/4q77fr0022c
+      PhD Thesis, University of Notre Dame. https://curate.nd.edu/show/4q77fr0022c.
 [4] - Roberts, Keith J., Pringle W.J., Westerink J. J. Contreras, M.T., Wirasaet, D., 2019. 
       On the automatic and a priori design of unstructured mesh resolution for coastal ocean circulation models, 
-      Ocean Modelling, 144, 101509. https://doi.org/10.1016/j.ocemod.2019.101509
+      Ocean Modelling, 144, 101509. https://doi.org/10.1016/j.ocemod.2019.101509.
+[5] - Pringle, W. J., Wirasaet, D., Roberts, K. J., and Westerink, J. J., 2020.
+      Global Storm Tide Modeling with ADCIRC v55: Unstructured Mesh Design and Performance, 
+      Geoscientific Model Development Discussions. https://doi.org/10.5194/gmd-2020-123.
       
 ```
 
