@@ -314,7 +314,6 @@ classdef msh
                     MAP_COORDS     = obj.coord ;
                     del = 0;
                     projtype = MAP_PROJECTION.name;
-                    proj =1; % swith projection on
                 end
             end
 
