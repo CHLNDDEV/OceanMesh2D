@@ -314,7 +314,6 @@ classdef msh
                     MAP_COORDS     = obj.coord ;
                     del = 0;
                     projtype = MAP_PROJECTION.name;
-                    proj =1; % swith projection on
                 end
             end
 
@@ -2442,6 +2441,7 @@ classdef msh
                 obj.bx = obj.bx(pix); obj.by = obj.by(pix);
             end
             if ~isempty(obj.f13)
+                obj.f13.NumOfNodes = length(obj.p);
                 for ii = 1:obj.f13.nAttr
                     ind = obj.f13.userval.Atr(ii).Val(1,:);
                     val = obj.f13.userval.Atr(ii).Val(2:end,:);
