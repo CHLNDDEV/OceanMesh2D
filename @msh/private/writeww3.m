@@ -35,16 +35,17 @@ fprintf(fid,'%d\n', length(node(:,1)));
 fprintf(fid,'%s\n', '$EndNodes');
 fprintf(fid,'%s\n', '$Elements');
 fprintf(fid,'%d\n', length(EToV(:,1))+opedat.neta);
-   m=0;
-     for i=1:opedat.neta
-       m=m+1;
-       fprintf(fid,['%d %s %d %s %d %s %d %s %d %s %d\n'], m,'',15,'',2,'',0,'',0,'',opedat.nbdv(i));
-     end
-
-    for i=1:length(EToV(:,1))
-       m=m+1;
-      fprintf(fid,['%d %s %d %s %d %s %d %s %d %s %d %s %d %s %d %s %d\n'], m,'',2,'',3,'',0,'',i,'',0,'',EToV(i,1),'',EToV(i,2),'',EToV(i,3));
+m=0;
+for i=1:opedat.nope
+    for j=1:opedat.nvdll(i)
+        m=m+1;
+        fprintf(fid,['%d %s %d %s %d %s %d %s %d %s %d\n'], m,'',15,'',2,'',0,'',0,'',opedat.nbdv(j,i));
     end
+end
+for i=1:length(EToV(:,1))
+   m=m+1;
+   fprintf(fid,['%d %s %d %s %d %s %d %s %d %s %d %s %d %s %d %s %d\n'], m,'',2,'',3,'',0,'',i,'',0,'',EToV(i,1),'',EToV(i,2),'',EToV(i,3));
+end
 fprintf(fid,'%s', '$EndElements');
 fclose(fid) ;
 return
