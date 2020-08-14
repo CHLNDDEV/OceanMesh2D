@@ -75,7 +75,7 @@ if opt > 0
    return;
 end
 
-if isempty(obj.b) || any(obj.b) == 0
+if isempty(obj.b) || all(obj.b == 0)
     error('No bathymetry data in grid to calculate the tau0 coefficients')
 end
 
