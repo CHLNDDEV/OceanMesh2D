@@ -184,7 +184,7 @@ classdef meshgen
                         if obj.enforceWeirs
                             for j = 1 : length(obj.bou)
                                 if ~isempty(obj.bou{j}.weirEgfix)
-                                    obj.egfix = [obj.egfix ; obj.bou{j}.weirEgfix+length(obj.egfix)];
+                                    obj.egfix = [obj.egfix ; obj.bou{j}.weirEgfix+max(obj.egfix(:))];
                                 end
                             end
                         end
