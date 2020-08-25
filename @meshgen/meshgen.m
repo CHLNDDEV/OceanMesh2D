@@ -935,7 +935,7 @@ classdef meshgen
                 elock = edgeAttachments(TR,egfix) ;
                 tq = gettrimeshquan(p,t);
                 elock = unique(cell2mat(elock'));
-                dmy = elock(tq.qm(elock) < 0.35);
+                dmy = elock(tq.qm(elock) < 0.25);
                 badtria = t(dmy,:);
                 del     = badtria(badtria > nfix) ;
             end
