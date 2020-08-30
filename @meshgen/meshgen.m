@@ -183,8 +183,10 @@ classdef meshgen
                         end
                         if obj.enforceWeirs
                             for j = 1 : length(obj.bou)
-                                if ~isempty(obj.bou{j}.weirEgfix)
-                                    obj.egfix = [obj.egfix ; obj.bou{j}.weirEgfix+length(obj.egfix)];
+                           	if ~isempty(obj.bou{j}.weirEgfix) && ~isempty(obj.egfix)
+                                    obj.egfix = [obj.egfix ; obj.bou{j}.weirEgfix+max(obj.egfix(:))];
+                                else
+                                    obj.egfix =  obj.bou{j}.weirEgfix;
                                 end
                             end
                         end
@@ -935,7 +937,7 @@ classdef meshgen
                 elock = edgeAttachments(TR,egfix) ;
                 tq = gettrimeshquan(p,t);
                 elock = unique(cell2mat(elock'));
-                dmy = elock(tq.qm(elock) < 0.35);
+                dmy = elock(tq.qm(elock) < 0.25);
                 badtria = t(dmy,:);
                 del     = badtria(badtria > nfix) ;
             end
