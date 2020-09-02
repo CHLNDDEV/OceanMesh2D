@@ -1,8 +1,10 @@
 % Example_2_NY: Mesh the New York region in high resolution
 clearvars; clc;
-addpath(genpath('utilities/'))
-addpath(genpath('datasets/'))
-addpath(genpath('m_map/'))
+
+addpath(genpath('../utilities/'))
+addpath(genpath('../datasets/'))
+addpath(genpath('../m_map/'))
+
 %% STEP 1: Set mesh extents and set parameters for mesh.
 min_el    = 30;  	% Minimum resolution in meters.
 max_el    = 1e3; 	% Maximum resolution in meters. 
@@ -29,7 +31,7 @@ mshopts = mshopts.build;
 % Get out the msh class and put on bathy and nodestrings
 m = mshopts.grd;
 m = interp(m,gdat,'mindepth',1); % interpolate bathy to the mesh with minimum depth of 1 m
-m = makens(m,'auto',gdat,[],5);  % make the nodestring boundary conditions 
+m = make_bc(m,'auto',gdat,'depth',5);  % make the nodestring boundary conditions 
                                  % with min depth of 5 m on open boundary
 plot(m,'bd'); plot(m,'blog');    % plot triangulation, and bathy on log scale
 write(m,'NY_HR');                % write to ADCIRC compliant ascii file

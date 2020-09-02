@@ -45,8 +45,10 @@ while it < maxit && ~isempty(del)
     nnei = sum(conn,2);
     del  = find(nnei==1);
     t(del,:) = [];
-    % delete disjoint nodes
-    [p,t] = fixmesh(p,t);
+    % Delete disjoint nodes
+    obj.t = t;
+    obj = fixmeshandcarry(obj);
+    t = obj.t; p = obj.p;
     it = it + 1;
 end
 new = size(t,1);
@@ -55,8 +57,6 @@ if nscreen
     disp(['  ACCEPTED: deleted ' num2str(old-new) ' bad' ...
           ' elements that are connected to a single neighboring element '])
 end
-% Put back into msh obj
-obj.p = p; obj.t = t;
 %EOF
 end
 

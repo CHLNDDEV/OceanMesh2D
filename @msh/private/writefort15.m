@@ -11,7 +11,9 @@ fprintf(fid, '%s\n', f15dat.rundes ) ; % RUNDES
 fprintf(fid, '%s\n', f15dat.runid  ) ;  % RUNID
 
 % NFOVER
-fprintf(fid, '%d        \t ! NFOVER \n', f15dat.nfover ) ;
+L = length(f15dat.nfover);
+dfmt = repmat('%g ',1, L);
+fprintf( fid, [dfmt '        \t ! NFOVER \n'], f15dat.nfover ) ;
 
 % NABOUT
 fprintf(fid, '%d        \t ! NABOUT \n', f15dat.nabout ) ;
@@ -23,10 +25,10 @@ fprintf(fid, '%d        \t ! NSCREEN \n', f15dat.nscreen ) ;
 fprintf(fid, '%d        \t ! IHOT \n', f15dat.ihot ) ;
 
 % ICS
-fprintf(fid, '%d         \t ! ICS \n', f15dat.ics ) ;
+fprintf(fid, '%d        \t ! ICS \n', f15dat.ics ) ;
 
 % IM
-fprintf(fid,'%d          \t ! IM \n', f15dat.im ) ;
+fprintf(fid, '%d        \t ! IM \n', f15dat.im ) ;
 
 % IDEN
 if ( f15dat.im == 20 || f15dat.im == 30 || f15dat.im == 511113) 
@@ -34,19 +36,19 @@ if ( f15dat.im == 20 || f15dat.im == 30 || f15dat.im == 511113)
 end
 
 % NOLIBF
-fprintf( fid, '%d            \t ! NOLIBF \n', f15dat.nolibf ) ;
+fprintf(fid, '%d        \t ! NOLIBF \n', f15dat.nolibf ) ;
 
 % NOLIFA
-fprintf( fid, '%d            \t ! NOLIFA \n', f15dat.nolifa ) ;
+fprintf(fid, '%d        \t ! NOLIFA \n', f15dat.nolifa ) ;
 
 % NOLICA
-fprintf( fid, '%d           \t ! NOLICA \n', f15dat.nolica ) ; 
+fprintf(fid, '%d        \t ! NOLICA \n', f15dat.nolica ) ; 
 
 % NOLICAT
-fprintf( fid, '%d           \t ! NOLICAT \n', f15dat.nolicat ) ; 
+fprintf(fid, '%d        \t ! NOLICAT \n', f15dat.nolicat ) ; 
 
 % NWP
-fprintf(fid, '%d           \t ! NWP \n', f15dat.nwp ) ;
+fprintf(fid, '%d        \t ! NWP \n', f15dat.nwp ) ;
 if ( f15dat.nwp > 0 ) 
     for l = 1: f15dat.nwp
         fprintf(fid, '%s\n', f15dat.AttrName(l).name ) ; 
@@ -63,10 +65,10 @@ fprintf(fid, '%d   \t \t ! NTIP \n', f15dat.ntip ) ;
 fprintf(fid, '%d   \t \t ! NWS \n', f15dat.nws ) ;
 
 % NRAMP
-fprintf(fid, '%d    \t \t ! NRAMP \n', f15dat.nramp ) ;
+fprintf(fid, '%d   \t \t ! NRAMP \n', f15dat.nramp ) ;
 
 % G
-fprintf(fid, '%f    \t ! G  \n', f15dat.gravity ) ; 
+fprintf(fid, '%f   \t ! G  \n', f15dat.gravity ) ; 
 
 % TAU0
 fprintf(fid, '%g   \t \t ! TAU0 \n', f15dat.tau0 ) ; 
@@ -77,31 +79,33 @@ if ( abs(f15dat.tau0 + 5.D0) < 1e-10 )
 end
 
 % DTDP
-fprintf( fid, '%g    \t \t ! DTDP \n', f15dat.dtdp ) ; 
+fprintf( fid, '%g  \t \t ! DTDP \n', f15dat.dtdp ) ; 
 
 % STATIM
 fprintf( fid, '%g  \t \t ! STATIM \n',  f15dat.statim ) ; 
 
 % REFTIM
-fprintf( fid, '%g   \t \t ! REFTIM \n', f15dat.reftim ) ; 
+fprintf( fid, '%g  \t \t ! REFTIM \n', f15dat.reftim ) ; 
 
 % WTIMINC
 if f15dat.nws == 8 || f15dat.nws >= 19
   fprintf( fid, '%d %d %d %d %d %g ', f15dat.wtimnc ) ;
-  fprintf( fid, '    \t \t ! YYYY MM DD HH24 StormNumber BLAdj \n' ) ;  
+  fprintf( fid, '  \t ! YYYY MM DD HH24 StormNumber BLAdj \n' ) ;  
 elseif f15dat.nws > 0
   fprintf( fid, '%d  ', f15dat.wtimnc ) ;
-  fprintf( fid, '    \t \t ! WTMINC \n' ) ;       
+  fprintf( fid, '  \t ! WTMINC \n' ) ;       
 end
   
 % RNDY
 fprintf( fid, '%g   \t \t ! RNDY \n', f15dat.rndy ) ;
 
 % DRAMP
-fprintf( fid, '%d   \t \t ! DRAMP \n',  f15dat.dramp ) ;
+L = length(f15dat.dramp);
+dfmt = repmat('%g ',1, L);
+fprintf( fid, [dfmt ' \t \t ! DRAMP \n'],  f15dat.dramp ) ;
 
 % A00, B00, C00
-fprintf( fid, '%g %g %g   \t  ! A00, B00, C00 \n', f15dat.a00b00c00 ) ; 
+fprintf( fid, '%g %g %g  \t ! A00, B00, C00 \n', f15dat.a00b00c00 ) ; 
 
 % H0
 len = length(f15dat.h0) ;
@@ -122,7 +126,7 @@ end
 % ESLM, ESLC
 if ( f15dat.im <= 2 || f15dat.im == 10 || f15dat.im >= 111111 )
     fprintf( fid, '%f ', f15dat.elsm ) ; 
-    fprintf( fid, '    \t \t ! ELSM \n' ) ; 
+    fprintf( fid, '    \t ! ELSM \n' ) ; 
 end
 
 % CORI
@@ -148,7 +152,7 @@ end
 % Open boundary harmonic forcing  
 for k = 1: f15dat.nbfr
     fprintf(fid, '%s \n', f15dat.opealpha(k).name  ) ; 
-    fprintf(fid, '%16.9e %16.9e \n', f15dat.opealpha(k).val' ) ; 
+    fprintf(fid, '%16.9e %16.10g \n', f15dat.opealpha(k).val' ) ; 
 end
 
 %  ANGINN
@@ -263,7 +267,7 @@ fprintf( fid, '  \t ! NOUTGE, ... \n') ;
 
 % NOUTGV
 fprintf( fid, '%d %g %g %d', f15dat.outgv ) ;
-fprintf( fid, '   ! NOUTGV, ... \n') ;
+fprintf( fid, '  \t ! NOUTGV, ... \n') ;
 
 % NOUTGC
 if ( f15dat.im == 10 )
@@ -293,7 +297,7 @@ fprintf( fid, '%d ', f15dat.outhar_flag ) ;
 fprintf( fid, '  \t ! NHASE, NHASV, NHAGE, NHAGV \n' ) ; 
 
 % NHSTAR, NHSINC
-fprintf( fid, '%d %d  \t  ! NHSTAR, NHSINC \n', f15dat.nhstar) ;
+fprintf( fid, '%d %d  \t ! NHSTAR, NHSINC \n', f15dat.nhstar) ;
 
 % ITITER, ISLDIA, CONVCR, ITMAX
 fprintf( fid, '%d %d  %16.9e %d  \t ! ITITER, ISLDIA, CONVCR, ITMAX \n', f15dat.ititer ) ; 

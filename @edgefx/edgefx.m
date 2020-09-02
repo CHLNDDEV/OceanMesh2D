@@ -5,6 +5,26 @@ classdef edgefx
     %   resolution when building a mesh.
     %   Copyright (C) 2018  Keith Roberts & William Pringle
     %
+    %   The following properties (with default values) are available for input
+    %   to the edgefx method: 
+    %      defval = 0; % placeholder value if arg is not passed.
+    %      addOptional(p,'dis',defval);
+    %      addOptional(p,'fs',defval);
+    %      addOptional(p,'wl',defval);
+    %      addOptional(p,'slp',defval);
+    %      addOptional(p,'ch',defval);
+    %      addOptional(p,'min_el_ch',100);
+    %      addOptional(p,'AngOfRe',60);
+    %      addOptional(p,'max_el',inf);
+    %      addOptional(p,'max_el_ns',inf);
+    %      addOptional(p,'g',0.20);
+    %      addOptional(p,'geodata',defval)
+    %      addOptional(p,'lmsl',defval)
+    %      addOptional(p,'dt',-1);
+    %      addOptional(p,'fl',defval);
+    %      addOptional(p,'Channels',defval);
+    %      addOptional(p,'h0',defval);
+    %
     %   This program is free software: you can redistribute it and/or modify
     %   it under the terms of the GNU General Public License as published by
     %   the Free Software Foundation, either version 3 of the License, or
@@ -379,6 +399,11 @@ classdef edgefx
             % interpolate DEM's bathy linearly onto our edgefunction grid.
             [xg,yg] = CreateStructGrid(obj);
             tmpz    = feat.Fb(xg,yg);
+            if ~isempty(feat.Fb2)
+               tmpz2 = feat.Fb2(xg,yg); 
+               tmpz(isnan(tmpz)) = tmpz2(isnan(tmpz));
+               clear tmpz2
+            end
             % Initialise wld
             obj.wld = NaN([obj.nx,obj.ny]);
             grav    = 9.807;
@@ -413,6 +438,11 @@ classdef edgefx
             [xg,yg] = CreateStructGrid(obj);
             
             tmpz    = feat.Fb(xg,yg);
+            if ~isempty(feat.Fb2)
+               tmpz2 = feat.Fb2(xg,yg); 
+               tmpz(isnan(tmpz)) = tmpz2(isnan(tmpz));
+               clear tmpz2
+            end
             tmpz(tmpz > 50) = 50; % ensure no larger than 50 m above land
             % use a harvestine assumption
             dx = obj.h0*cosd(min(yg(1,:),85)); % for gradient function
@@ -445,12 +475,12 @@ classdef edgefx
             else
                 filtit = 0;
                 for lambda = obj.fl'
-                    if all(lambda ~= 0)
-                        % do a bandpass filter
-                        tmpz_ft  = filt2(tmpz,dy,lambda,'bp') ;
-                    elseif lambda(2) == 0
+                    if length(lambda) == 1 || lambda(2) == 0
                         % do a low pass filter
                         tmpz_ft  = filt2(tmpz,dy,lambda(1),'lp') ;
+                    elseif all(lambda ~= 0)
+                        % do a bandpass filter
+                        tmpz_ft  = filt2(tmpz,dy,lambda,'bp') ;
                     else
                         % highpass filter not recommended
                         warning(['Highpass filter on bathymetry in slope' ...
@@ -465,92 +495,80 @@ classdef edgefx
             if filtit == 1
                 tic
                 bs = NaN([obj.nx,obj.ny]);
-                div = 1e4; grav = 9.807;
-                nb = ceil([obj.nx,obj.ny]/div); n1s = 1;
-                for ii = 1:nb(1)
-                    n1e = min(obj.nx,n1s + div - 1); n2s = 1;
-                    for jj = 1:nb(2)
-                        n2e = min(obj.ny,n2s + div - 1);
-                        % Rossby radius of deformation filter
-                        % See Shelton, D. B., et al. (1998): Geographical variability of the first-baroclinic Rossby radius of deformation. J. Phys. Oceanogr., 28, 433-460.
-                        ygg = yg(n1s:n1e,n2s:n2e);
-                        f = 2*7.29e-5*abs(sind(ygg));
-                        if barot
-                            % barotropic case
-                            c = sqrt(grav*abs(tmpz(n1s:n1e,n2s:n2e)));
-                        else
-                            % baroclinic case (estimate Nm to be 2.5e-3)
-                            Nm = 2.5e-3;
-                            c = Nm*abs(tmpz(n1s:n1e,n2s:n2e))/pi;
-                        end
-                        rosb = c./f;
-                        clear f;
-                        % update for equatorial regions
-                        I = abs(ygg) < 5; Re = 6371e3;
-                        twobeta = 4*7.29e-5*cosd(ygg(I))/Re;
-                        rosb(I) = sqrt(c(I)./twobeta);
-                        clear twobeta
-                        % limit rossby radius to 10,000 km for practical purposes
-                        rosb(rosb > 1e7) = 1e7;
-                        % Keep lengthscales rbfilt * barotropic
-                        % radius of deformation
-                        rosb = min(10,max(0,floor(log2(rosb/dy/rbfilt))));
-                        edges = double(unique(rosb(:)));
-                        bst = rosb*0;
-                        for i = 1:length(edges)
-                            if edges(i) > 0
-                                mult = 2^edges(i);
-                                xl = max(1,n1s-mult/2);
-                                xu = min(obj.nx,n1e+mult/2);
-                                if (max(xg(:)) > 179 && min(xg(:)) < -179) || ...
-                                        (max(xg(:)) > 359 && min(xg(:)) < 1)
-                                    % wraps around
-                                    if xu == obj.nx && xl == 1
-                                        xr = [obj.nx-mult/2+1:1:obj.nx xl:xu ...
-                                            1:mult/2+n1e-obj.nx];
-                                    elseif xl == 1
-                                        % go to otherside
-                                        xr = [obj.nx-mult/2+1:1:obj.nx xl:xu];
-                                    elseif xu == obj.nx
-                                        % go to otherside
-                                        xr = [xl:xu 1:mult/2+n1e-obj.nx];
-                                    else
-                                        xr = xl:xu;
-                                    end
-                                else
-                                    xr = xl:xu;
-                                end
-                                yl = max(1,n2s-mult/2);
-                                yu = min(obj.ny,n2e+mult/2);
-                                if max(yg(:)) > 89 && yu == obj.ny
-                                    % create mirror around pole
-                                    yr = [yl:yu yu-1:-1:2*obj.ny-n2e-mult/2];
-                                else
-                                    yr = yl:yu;
-                                end
-                                if mult == 2
-                                    tmpz_ft = filt2(tmpz(xr,yr),dy,...
-                                        dy*2.01,'lp');
-                                else
-                                    tmpz_ft = filt2(tmpz(xr,yr),...
-                                        dy,dy*mult,'lp');
-                                end
-                                % delete the padded region
-                                tmpz_ft(1:find(xr == n1s)-1,:) = [];
-                                tmpz_ft(n1e-n1s+2:end,:) = [];
-                                tmpz_ft(:,1:find(yr == n2s)-1) = [];
-                                tmpz_ft(:,n2e-n2s+2:end) = [];
-                            else
-                                tmpz_ft = tmpz(n1s:n1e,n2s:n2e);
-                            end
-                            [by,bx] = EarthGradient(tmpz_ft,dy,dx(n2s:n2e)); % get slope in x and y directions
-                            tempbs  = sqrt(bx.^2 + by.^2);          % get overall slope
-                            bst(rosb == edges(i)) = tempbs(rosb == edges(i));
-                        end
-                        bs(n1s:n1e,n2s:n2e) = bst;
-                        n2s = n2e + 1;
+                % break into 10 deg latitude chunks, or less if higher res
+                div = ceil(min(1e7/obj.nx,10*obj.ny/(max(yg(:))-min(yg(:))))); 
+                grav = 9.807;
+                nb = ceil(obj.ny/div);
+                n2s = 1;
+                for jj = 1:nb
+                    n2e = min(obj.ny,n2s + div - 1);
+                    % Rossby radius of deformation filter
+                    % See Shelton, D. B., et al. (1998): Geographical variability of the first-baroclinic Rossby radius of deformation. J. Phys. Oceanogr., 28, 433-460.
+                    ygg = yg(:,n2s:n2e);
+                    dxx = mean(dx(n2s:n2e));
+                    f = 2*7.29e-5*abs(sind(ygg));
+                    if barot
+                        % barotropic case
+                        c = sqrt(grav*max(1,-tmpz(:,n2s:n2e)));
+                    else
+                        % baroclinic case (estimate Nm to be 2.5e-3)
+                        Nm = 2.5e-3;
+                        c = Nm*max(1,-tmpz(:,n2s:n2e))/pi;
                     end
-                    n1s = n1e + 1;
+                    rosb = c./f;
+                    clear f;
+                    % update for equatorial regions
+                    I = abs(ygg) < 5; Re = 6371e3;
+                    twobeta = 4*7.29e-5*cosd(ygg(I))/Re;
+                    rosb(I) = sqrt(c(I)./twobeta);
+                    clear twobeta
+                    % limit rossby radius to 10,000 km for practical purposes
+                    rosb(rosb > 1e7) = 1e7;
+                    % Keep lengthscales rbfilt * barotropic
+                    % radius of deformation
+                    rosb = min(10,max(0,floor(log2(rosb/dy/rbfilt))));
+                    edges = double(unique(rosb(:)));
+                    bst = rosb*0;
+                    for i = 1:length(edges)
+                        if edges(i) > 0
+                            mult = 2^edges(i);
+                            xl = 1; xu = obj.nx;
+                            if (max(xg(:)) > 179 && min(xg(:)) < -179) || ...
+                                    (max(xg(:)) > 359 && min(xg(:)) < 1)
+                                % wraps around
+                                xr = [obj.nx-mult/2+1:1:obj.nx xl:xu 1:mult/2];
+                            else
+                                xr = xl:xu;
+                            end
+                            yl = max(1,n2s-mult/2);
+                            yu = min(obj.ny,n2e+mult/2);
+                            if max(yg(:)) > 89 && yu == obj.ny
+                                % create mirror around pole
+                                yr = [yl:yu yu-1:-1:2*obj.ny-n2e-mult/2];
+                            else
+                                yr = yl:yu;
+                            end
+                            if mult == 2
+                                tmpz_ft = filt2(tmpz(xr,yr),...
+                                           [dxx dy],dy*2.01,'lp');
+                            else
+                                tmpz_ft = filt2(tmpz(xr,yr),...
+                                           [dxx dy],dy*mult,'lp');
+                            end
+                            % delete the padded region
+                            tmpz_ft(1:find(xr == 1,1,'first')-1,:) = [];
+                            tmpz_ft(obj.nx+1:end,:) = [];
+                            tmpz_ft(:,1:find(yr == n2s,1,'first')-1) = [];
+                            tmpz_ft(:,n2e-n2s+2:end) = [];
+                        else
+                            tmpz_ft = tmpz(:,n2s:n2e);
+                        end
+                        [by,bx] = EarthGradient(tmpz_ft,dy,dx(n2s:n2e)); % get slope in x and y directions
+                        tempbs  = sqrt(bx.^2 + by.^2);          % get overall slope
+                        bst(rosb == edges(i)) = tempbs(rosb == edges(i));
+                    end
+                    bs(:,n2s:n2e) = bst;
+                    n2s = n2e + 1;
                 end
                 toc
                 % legacy filter
@@ -604,7 +622,8 @@ classdef edgefx
                     dp2 = param(3);
                 end
                 % Calculating the slope function
-                tslpd = (2*pi/slpp)*max(1,abs(tmpz))./(bs+eps);
+                dp = max(1,-tmpz);
+                tslpd = (2*pi/slpp)*dp./(bs+eps);
                 obj.slpd(tmpz < dp1 & tmpz > dp2 ) = ...
                     tslpd(tmpz < dp1 & tmpz > dp2);
                 clearvars tslpd
@@ -622,12 +641,12 @@ classdef edgefx
             for jj = 1:length(obj.Channels)
                 if (isempty(obj.Channels{jj})); continue ;end
                 pts{jj} = obj.Channels{jj};
-                dp{jj} = feat.Fb(pts{jj});                                   % depth at x,y channel locations
-                radii{jj}=(tand(ang_of_reslope)*abs(dp{jj}));         % estimate of channel's width in degrees at x,y locations ASSUMING angle of reslope
+                dp{jj} = feat.Fb(pts{jj});                               % depth at x,y channel locations
+                radii{jj}=(tand(ang_of_reslope)*max(1,-dp{jj}));         % estimate of channel's width in degrees at x,y locations ASSUMING angle of reslope
                 tempbb{jj} = feat.boubox;
             end
             
-            [xg,yg]=CreateStructGrid(obj);
+            [xg,yg] = CreateStructGrid(obj);
             
             % STEP 2: For each channel point, set the resolution around a
             % neighborhood of points as |h|/ch where ch is non-dim # between 0.5-1.5
@@ -661,7 +680,13 @@ classdef edgefx
                 end
             end
             toc 
-            dp = abs(feat.Fb(xg(tidx),yg(tidx)));
+            tmpz = feat.Fb(xg(tidx),yg(tidx));
+            if ~isempty(feat.Fb2)
+               tmpz2 = feat.Fb2(xg(tidx),yg(tidx)); 
+               tmpz(isnan(tmpz)) = tmpz2(isnan(tmpz));
+               clear tmpz2
+            end
+            dp = max(1,-tmpz);
             obj.chd(tidx) = dp/obj.ch;
             obj.chd(obj.chd < obj.min_el_ch) = obj.min_el_ch;
             clearvars Fb pts dp radii tempbb xg yg
@@ -698,14 +723,25 @@ classdef edgefx
                 val = obj.F.Values;
                 tt = 'Total EdgeLength Function';
             end
+          
+            % working out stride
+            mem = inf; stride = obj.gridspace;
+            while mem > 1
+                xx = obj.x0y0(1):stride:obj.bbox(1,2);
+                yy = obj.x0y0(2):stride:obj.bbox(2,2);
+                xs = whos('xx'); ys = whos('yy');
+                mem = xs.bytes*ys.bytes/1e9;
+                stride = stride*2;
+            end
+            stride = ceil(stride/obj.gridspace);
+            I = [1:stride:size(xgrid,1)];
+            J = [1:stride:size(xgrid,2)];
             
             figure;
             m_proj('merc',...
                 'long',[obj.bbox(1,1) obj.bbox(1,2)],...
                 'lat',[obj.bbox(2,1) obj.bbox(2,2)])
-            hold on; m_fastscatter(xgrid,...
-                ygrid,...
-                val);
+            hold on; m_fastscatter(xgrid(I,J),ygrid(I,J),val(I,J));
             cb = colorbar; ylabel(cb,'edgelength in meters');
             colormap(lansey)
             m_grid() %'xtick',10,'tickdir','out',...
@@ -795,6 +831,17 @@ classdef edgefx
                 hh_m(nearshore & hh_m > obj.max_el_ns) = obj.max_el_ns;
             end
             hh_m(hh_m < obj.h0 ) = obj.h0;
+            
+            % Compute tmpz if necessary
+            if length(obj.max_el) > 1 || length(obj.g) > 1 || obj.dt(1) >= 0
+                tmpz    = feat.Fb(xg,yg);
+                if ~isempty(feat.Fb2)
+                   tmpz2 = feat.Fb2(xg,yg); 
+                   tmpz(isnan(tmpz)) = tmpz2(isnan(tmpz));
+                   clear tmpz2
+                end
+            end
+            
             for param = obj.max_el'
                 if numel(param)==1 && param~=0
                     mx   = obj.max_el(1);
@@ -806,15 +853,15 @@ classdef edgefx
                     dp1 = param(2);
                     dp2 = param(3);
                     
-                    limidx = (feat.Fb(xg,yg) < dp1 & ...
-                        feat.Fb(xg,yg) > dp2) & (hh_m > mx | isnan(hh_m));
+                    limidx = (tmpz < dp1 & tmpz > dp2) & ...
+                             (hh_m > mx | isnan(hh_m));
                     
                     hh_m( limidx ) = mx;
                 end
             end
             
             % Make sure this is called before releasing memory...
-            if obj.dt == 0
+            if obj.dt(1) == 0
                 % Find min allowable dt based on dis or fs function
                 if any(~cellfun('isempty',strfind(obj.used,'dis')))
                     hh_d = obj.hhd;
@@ -849,8 +896,7 @@ classdef edgefx
                     dp1  = param(2);
                     dp2  = param(3);
                     
-                    limidx = (feat.Fb(xg,yg) < dp1 & ...
-                        feat.Fb(xg,yg) > dp2) ;
+                    limidx = (tmpz < dp1 & tmpz > dp2) ;
                     
                     dmy( limidx ) = lim;
                 end
@@ -880,30 +926,76 @@ classdef edgefx
             end
             
             % Limit CFL if dt >= 0, dt = 0 finds dt automatically.
-            if obj.dt >= 0
-                if isempty(feat.Fb); error('No DEM supplied Can''t CFL limit.'); end
-                tmpz    = feat.Fb(xg,yg);
-                grav = 9.807; descfl = 0.50;
-                % limit the minimum depth to 1 m
-                tmpz(tmpz > - 1) = -1;
-                % wavespeed in ocean (second term represents orbital
+            if obj.dt(1) >= 0
+                if isempty(feat.Fb)
+                    error('No DEM supplied Can''t CFL limit.')
+                end
+                % Estimate wavespeed in ocean (second term represents orbital
                 % velocity at 0 degree phase for 1-m amp. wave).
+                grav = 9.807;
+                % Limit the minimum depth to 1 m (ignore overland)
+                tmpz(tmpz > - 1) = -1;
                 u = sqrt(grav*abs(tmpz)) + sqrt(grav./abs(tmpz));
-                if obj.dt == 0
-                    hh_d(hh_d < obj.h0) = obj.h0;
-                    obj.dt = min(min(descfl*hh_d./u));
+                
+                % Desired timestep to bound edgefx
+                desDt = obj.dt(1);
+                if isnan(desDt)
+                    disp('No timestep enforcement due to no distance function')
                 end
-                if isnan(obj.dt)
-                    disp('No timestep enforcement due to no distance function') 
+                
+                % Determine Courant min. and max. bounds  
+                if length(obj.dt) < 2
+                    % default behavior if no bounds are passed
+                    % for explicit type schemes we ensure the maxCr is
+                    % bounded
+                    minCr = eps; % Cannot be zero!!!
+                    maxCr = 0.5;
+                elseif length(obj.dt) == 2
+                    % minimum Courant number bound 
+                    minCr = obj.dt(2); 
+                    maxCr = inf; 
+                elseif length(obj.dt) == 3 
+                    % minimum and maximum Courant bound
+                    minCr = obj.dt(2);
+                    maxCr = obj.dt(3);
                 else
-                    disp(['Enforcing timestep of ',num2str(obj.dt),' seconds.']);
-                    cfl = (obj.dt*u)./hh_m; % this is your cfl
-                    dxn = u*obj.dt/descfl;      % assume simulation time step of dt sec and cfl of dcfl;
-                    hh_m( cfl > descfl) = dxn( cfl > descfl);   %--in planar metres
-                    clear cfl dxn
+                    error('Length of dt name-value pair should be <=3')
                 end
-                clear u hh_d
+                
+                if minCr > maxCr
+                    error('MinCr is > MaxCr, please switch order in dt name value call')
+                end
+                
+                % Enforcement of Courant bounds in mesh size function
+                fprintf(1, [ ...
+                    'Enforcing timestep of ',num2str(desDt),' seconds ', ...
+                    'with Courant number bounds of ',num2str(minCr),' to ',num2str(maxCr),'\n', ...
+                    ] ) ;
+                
+                % Automatic timestep selection option (for ADCIRC models)
+                if desDt == 0
+                    hh_d(hh_d < obj.h0) = obj.h0;
+                    obj.dt = min(min(minCr*hh_d./u));
+                    desDt  = obj.dt;
+                end
+                
+                Cr = (desDt*u)./hh_m; % Courant number for given desDt for mesh size variations
+                
+                % resolution that meets max. Cr. criteria for desDt
+                dxn_min = u*desDt/maxCr;
+                % resolution that meets min. Cr. criteria for desDt
+                dxn_max = u*desDt/minCr;
+                
+                % resolve min. Cr violations
+                hh_m( Cr <= minCr) = dxn_max( Cr <= minCr); %--in planar metres
+                
+                % resolve max. Cr violations
+                hh_m( Cr > maxCr) = dxn_min( Cr > maxCr);   %--in planar metres
+                
+                clear dxn_min dxn_max Cr
+                clear u hh_d tmpz
             end
+
             
             obj.F = griddedInterpolant(xg,yg,hh_m,'linear','nearest');
             

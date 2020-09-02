@@ -49,7 +49,7 @@ function obj = Make_Mesh_Boundaries_Traversable( obj, dj_cutoff, nscreen, proj )
 %  along with this program.  If not, see <http://www.gnu.org/licenses/>.  
 
 % Entering the code
-disp('Making mesh boundaries traversable...');  
+disp('Entry: Making mesh boundaries traversable...');  
 % This is to avoid heaps of warnings in the triangulation call which are
 % unneccesary
 warning('off','all')
@@ -63,11 +63,11 @@ if nargin < 4
    proj = 1; 
 end
 
+% fix mesh
+obj = fixmeshandcarry(obj);
+
 % Get p and t out of obj
 p = obj.p; t = obj.t;
-
-% Delete disjoint nodes
-[p,t] = fixmesh(p,t);
 
 % Get boundary edges and nodes
 [etbv,vxe] = extdom_edges2( t, p ) ;
@@ -86,13 +86,17 @@ while numel(etbv) > numel(vxe)
     t = delete_exterior_elements(p,t,dj_cutoff,nscreen,proj);
     
     % Delete disjoint nodes
-    [p,t] = fixmesh(p,t);
+    obj.t = t;
+    obj = fixmeshandcarry(obj);
+    t = obj.t; p = obj.p;
 
     % Delete elements in the interior of the mesh
     t = delete_interior_elements(p,t,nscreen);
      
     % Delete disjoint nodes
-    [p,t] = fixmesh(p,t);
+    obj.t = t;
+    obj = fixmeshandcarry(obj);
+    t = obj.t; p = obj.p;
     
     % Get boundary edges and nodes
     [etbv,vxe] = extdom_edges2( t, p ) ;
@@ -103,11 +107,9 @@ while numel(etbv) > numel(vxe)
     %end
 end
 % Finished cleaning
-disp('ALERT: finished cleaning up mesh..'); 
+disp('Exit: finished making mesh boundaries traversable..'); 
 % Turn warnings back on
 warning('on','all')
-% Put back into the msh object
-obj.p = p; obj.t = t;
 end
 % The sub-functions...
 %% Delete elements outside the main mesh depending on dj_cutoff input

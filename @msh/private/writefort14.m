@@ -79,9 +79,22 @@ if ~isempty(boudat)
                 % nbvv(1:nvell(i),i) = fscanf(fid,'%d \n', nvell(i) ) ;
                 fprintf( fid, '%d \n' , nonzeros(boudat.nbvv(:,i)) ) ;
             case  {3, 13, 23}
-                disp('Warning: 3 13 23 --- To be added')
+                % disp('3 13 23 ')
                 % val = fscanf(fid,'%g %g %g \n', [3 nvell(i)] )  ;
-                % nbvv(1:nvell(i),i) = val(1,:) ;
+                
+                idx = find( boudat.nbvv(:,i) ) ;
+                
+                nbvv = full(boudat.nbvv(idx,i)) ;
+                barinht = full(boudat.barinht(idx,i)) ;
+                barincfsp = full(boudat.barincfsp(idx,i)) ;
+                for ll = 1: length(idx)
+                    %
+                    % fprintf( fid, '%d %f %f \n', boudat.nbvv(idxn,i), ...
+                    %    boudat.barinht(idxn,1), boudat.barincfsp(idxn,i) ) ;
+                    fprintf( fid, '%d %16.10f %16.10f \n', nbvv(ll), ...
+                             barinht(ll), barincfsp(ll) ) ;
+                    %
+                end
             case  {4, 24}
                 % disp('4 24')
                 % val = fscanf(fid,'%g %g %g %g %g \n', [5 nvell(i)] )  ;
@@ -110,8 +123,12 @@ if ~isempty(boudat)
                 %otherwise
                 %    msgline = fgetl(fid) ;
             case 94
-                fprintf( fid, '%d %d \n' , boudat.nbvv(:,1:2)' ) ;
-                
+                idx = find( boudat.nbvv(:,i) ) ;
+                nbvv = full(boudat.nbvv(idx,i)) ;
+                ibconn = full(boudat.ibconn(idx,i)) ;
+                for ll = 1: length(idx)
+                    fprintf( fid, '%d %d \n' , nbvv(ll), ibconn(ll) ) ;
+                end
         end
     end
     % case of no bou

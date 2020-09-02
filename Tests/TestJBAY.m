@@ -1,5 +1,5 @@
 % Run example 5b to build a mesh around Jbay with the weirs
-run('../Example_5b_JBAY_w_weirs.m')
+run('../Examples/Example_5b_JBAY_w_weirs.m')
 
 ERR_TOL = 0.05;
 ERR2_TOL = 0.01;

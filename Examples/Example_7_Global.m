@@ -1,8 +1,10 @@
 % Example_7_Global: Make a global mesh
+
 clearvars; clc;
-addpath(genpath('utilities/'));
-addpath(genpath('datasets/'));
-addpath(genpath('m_map/'));
+
+addpath(genpath('../utilities/'));
+addpath(genpath('../datasets/'));
+addpath(genpath('../m_map/'));
 
 %% STEP 1: set mesh extents and set parameters for mesh. 
 %% The greater US East Coast and Gulf of Mexico region

@@ -5,11 +5,25 @@ function obj = Calc_tau0(obj,varargin)
 %
 %  Inputs:   1) A msh class obj with bathy on it
 %            2) Optional name-value arguments:
-%               'distance': the cutoff mean distance to neighbouring nodes
+%             - 'opt': -3 [default] => calculates spatially varying tau0
+%                                      factors
+%                     +ve => calculates the stable positive tau0 based on 
+%                            the value of 'opt', which is the intended 
+%                            simulation timestep
+%
+%             additional varargin options for 'opt' = -3:
+%             - 'distance': the cutoff mean distance to neighbouring nodes
 %               to switch between depth based tau0 (below) and the default
 %               value, 0.03 (default distance is 2 [km])
-%               'depth': the cutoff depth to switch between 0.005
+%             - 'depth': the cutoff depth to switch between 0.005
 %               and 0.02 (default is 10 [m])
+%
+%             additional varargin options for 'opt' = +ve:
+%             - 'kappa': the value of the time weighting factor, kappa for 
+%                        the future time step. Must be <= 1 and is 0.5 
+%                        by default.
+%             - 'sf': the safety factor applied to the stable value of
+%                     tau0. Must be <= 1 and is 0.6 by default. 
 %
 %  Outputs: 1) msh class obj with primitive_weighting_in_continuity_equation
 %              values populating the f13 struct
@@ -20,16 +34,16 @@ function obj = Calc_tau0(obj,varargin)
 
 attrname = 'primitive_weighting_in_continuity_equation';
 
-if isempty(obj.b)
-    error('No bathymetry data in grid to calculate the tau0 coefficients')
-end
-
 %% Test optional arguments
 % default
 MinDepth = 10; % m 
 Distance = 2; % km
+opt = -3; % calculate tau0 using -3 option
+mm  = 2/3; % consistent mass matrix
+kappa = 0.4; % GWCE weight
+sf = 0.6; % suggested safety factor
 if ~isempty(varargin)
-    names = {'depth','distance'};
+    names = {'depth','distance','opt','kappa','sf'};
     for ii = 1:length(names)
         ind = find(~cellfun(@isempty,strfind(varargin(1:2:end),names{ii})));
         if ~isempty(ind)
@@ -37,9 +51,32 @@ if ~isempty(varargin)
                 MinDepth = varargin{ind*2};
             elseif ii == 2
                 Distance = varargin{ind*2};
+            elseif ii == 3
+                opt = varargin{ind*2};
+            elseif ii == 4
+                kappa = varargin{ind*2};
+            elseif ii == 5
+                sf = varargin{ind*2};
             end
         end    
     end
+end
+
+if opt > 0
+   dt = opt;
+   obj.f15.tau0 = sf*4*(2-mm)*(3*kappa-1)/dt;
+   obj.f15.a00b00c00 = [kappa kappa 1-2*kappa];
+   obj.f15.im = 511111;
+   disp(['Computed constant value of tau0 = ' num2str(obj.f15.tau0) ' based on...'])
+   disp(['mm = ' num2str(mm)])
+   disp(['kappa = ' num2str(kappa)])
+   disp(['sf = ' num2str(sf)])
+   disp(['dt = ' num2str(dt)])
+   return;
+end
+
+if isempty(obj.b) || all(obj.b == 0)
+    error('No bathymetry data in grid to calculate the tau0 coefficients')
 end
 
 %% Get all the unique bar edges and distances

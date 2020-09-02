@@ -48,6 +48,7 @@ classdef meshgen
         anno          % Approx. Nearest Neighbor search object. 
         annData       % datat contained with KD-tree in anno
         Fb            % bathymetry data interpolant 
+        enforceWeirs  % whether or not to enforce weirs in meshgen 
     end
     
     
@@ -100,6 +101,8 @@ classdef meshgen
             addOptional(p,'ns_fix',defval);
             addOptional(p,'proj',defval);
             addOptional(p,'qual_tol',defval);
+            addOptional(p,'enforceWeirs',1);
+
             
             % parse the inputs
             parse(p,varargin{:});
@@ -111,7 +114,7 @@ classdef meshgen
             % kjr...order these argument so they are processed in a predictable
             % manner. Process the general opts first, then the OceanMesh
             % classes...then basic non-critical options. 
-            inp = orderfields(inp,{'h0','bbox','fh','inner','outer','mainland',...
+            inp = orderfields(inp,{'h0','bbox','enforceWeirs','fh','inner','outer','mainland',...
                                    'bou','ef',... %<--OceanMesh classes come after
                                    'egfix','pfix','fixboxes',...
                                    'plot_on','nscreen','itmax',...
@@ -164,9 +167,11 @@ classdef meshgen
                         else
                             obj.pfix = [];
                         end
-                        for j = 1 : length(obj.bou)
-                            if  ~isempty(obj.bou{j}.weirPfix)
-                                obj.pfix = [obj.pfix ; obj.bou{j}.weirPfix];
+                        if obj.enforceWeirs
+                            for j = 1 : length(obj.bou)
+                                if  ~isempty(obj.bou{j}.weirPfix)
+                                    obj.pfix = [obj.pfix ; obj.bou{j}.weirPfix];
+                                end
                             end
                         end
                     case('egfix')
@@ -176,9 +181,13 @@ classdef meshgen
                         else
                             obj.egfix = [];
                         end
-                        for j = 1 : length(obj.bou)
-                            if ~isempty(obj.bou{j}.weirEgfix)
-                                obj.egfix = [obj.egfix ; obj.bou{j}.weirEgfix+length(obj.egfix)];
+                        if obj.enforceWeirs
+                            for j = 1 : length(obj.bou)
+                           	if ~isempty(obj.bou{j}.weirEgfix) && ~isempty(obj.egfix)
+                                    obj.egfix = [obj.egfix ; obj.bou{j}.weirEgfix+max(obj.egfix(:))];
+                                else
+                                    obj.egfix =  obj.bou{j}.weirEgfix;
+                                end
                             end
                         end
                         obj.egfix = renumberEdges(obj.egfix);
@@ -370,6 +379,8 @@ classdef meshgen
                         dmy.p(:,1) = [lon_mi; lon_ma];
                         dmy.p(:,2) = [lat_mi; lat_ma];
                         del = setProj(dmy,1,obj.proj) ;
+                    case('enforceWeirs')
+                        obj.enforceWeirs = inp.(fields{i}); 
                 end
             end
             
@@ -452,6 +463,7 @@ classdef meshgen
                     disp(['    for box #' num2str(box_num)]);
                     % checking if cell or not and applying local values
                     h0_l = obj.h0(box_num);
+                    max_r0 = 1/h0_l^2;   
                     if ~iscell(obj.bbox)
                         bbox_l = obj.bbox'; % <--we must tranpose this!
                     else
@@ -511,15 +523,19 @@ classdef meshgen
                         %% 2. Remove points outside the region, apply the rejection method
                         p1 = p1(feval(obj.fd,p1,obj,box_num) < geps,:);     % Keep only d<0 points
                         r0 = 1./feval(fh_l,p1).^2;                          % Probability to keep point
-                        max_r0 = 1/h0_l^2;     
                         p1 = p1(rand(size(p1,1),1) < r0/max_r0,:);          % Rejection method
                         p  = [p; p1];                                       % Adding p1 to p
-                        % kjr make sure the corners of the box are added to
-                        % make the tile corner's fill the extent more
-                        % quickly. 
-                        plt = cell2mat(obj.boubox');
-                        plt(isnan(plt(:,1)),:)=[] ; 
-                        p = [p ; plt(1:end-1,:) ] ; 
+                    end
+                    if box_num == 1
+                        % add points along the outermost polygon to fill
+                        % outer extent more quickly. 
+                        outer_temp = obj.outer{1};
+                        Inan = find(isnan(outer_temp(:,1)),1,'first');
+                        p1 = outer_temp(1:Inan-1,:);
+                        p1 = p1(feval(obj.fd,p1,obj,box_num) < geps,:);     % Keep only d<0 points
+                        r0 = 1./feval(fh_l, p1).^2;                         % Probability to keep point
+                        p1 = p1(rand(size(p1,1),1) < r0/max_r0,:);          % Rejection method
+                        p = [p; p1];                                        % Adding p1 to p
                     end
                 end
             else
@@ -921,7 +937,7 @@ classdef meshgen
                 elock = edgeAttachments(TR,egfix) ;
                 tq = gettrimeshquan(p,t);
                 elock = unique(cell2mat(elock'));
-                dmy = elock(tq.qm(elock) < 0.35);
+                dmy = elock(tq.qm(elock) < 0.25);
                 badtria = t(dmy,:);
                 del     = badtria(badtria > nfix) ;
             end

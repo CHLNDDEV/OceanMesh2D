@@ -1,7 +1,7 @@
 function H = m_tricontour(tri,p,z,N,C)
-%  M_CONTOURF Adds filled contours to a map
-%    M_CONTOUR(LONG,LAT,DATA,...)
-%
+%   H = m_tricontour(tri,p,z,N,C)
+%   N-> number of contour levels
+%   C-> linespec color
 global MAP_PROJECTION
 
 % Have to have initialized a map first

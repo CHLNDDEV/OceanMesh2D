@@ -1,10 +1,11 @@
 % Example_6_GBAY: Mesh the Galveston bay (GBAY) region in
 % high resolution.
+
 clearvars; clc;
 
-addpath(genpath('utilities/'))
-addpath(genpath('datasets/'))
-addpath(genpath('m_map/'))
+addpath(genpath('../utilities/'))
+addpath(genpath('../datasets/'))
+addpath(genpath('../m_map/'))
 
 %% STEP 1: set mesh extents and set parameters for mesh.
 bbox = [-95.40 -94.4;
@@ -35,6 +36,6 @@ mshopts = mshopts.build;
 %% STEP 5: Plot it and write a triangulation fort.14 compliant file to disk.
 m = mshopts.grd;
 m = interp(m,gdat,'mindepth',1,'nan','fill'); % interpolate bathy to the mesh
-m = makens(m,'auto',gdat); % make the nodestring boundary conditions
+m = make_bc(m,'auto',gdat); % make the nodestring boundary conditions
 plot(m,'bd'); plot(m,'blog'); % plot triangulation and bathy
 write(m,'HoustonShipChannel');

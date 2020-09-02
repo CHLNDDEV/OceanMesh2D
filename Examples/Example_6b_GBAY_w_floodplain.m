@@ -1,12 +1,13 @@
 % Example_6b_GBAY_w_floodplain
 % Continue on from Example_6_GBAY.m by building on
 % a floodplain onto the mesh.
-%%
-clearvars; close all; clc;
 
-addpath(genpath('utilities/'))
-addpath(genpath('datasets/'))
-addpath(genpath('m_map/'))
+clearvars; clc;
+
+addpath(genpath('../utilities/'))
+addpath(genpath('../datasets/'))
+addpath(genpath('../m_map/'))
+
 %% STEP 1: set mesh extents and set parameters for mesh.
 min_el    = 60;  		    % Minimum mesh resolution in meters.
 max_el    = [1e3 0 -inf     % Globally, maximum mesh resolution in meters.

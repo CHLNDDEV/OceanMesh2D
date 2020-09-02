@@ -16,8 +16,6 @@ function [poly,poly_idx,opendat,boudat] = extract_boundary(v_start,v_end,bnde,pt
 %               counter-clockwise (0) or clockwise (1).
 %         opendat: open boundary information from a pre-existing grid
 %          boudat: land boundary information from a pre-exist
-%           type: flux (1) or elevation (2) nodestring
-%          type2: if flux, no-flux (20) or river (2) flux nodestring 
 % OUTPUTS:
 %          poly: the boundary of each enclosing polygon sorted in winding-order
 %                poly is returned as a cell-array of length number of polys.
@@ -25,6 +23,8 @@ function [poly,poly_idx,opendat,boudat] = extract_boundary(v_start,v_end,bnde,pt
 %                poly
 %       opendat: open boundary information with appened open bou
 %       boudat: land boundary information with appended land bou
+%         type: flux(1) or elevation (2) type bc
+%        type2: if flux, zero flux (20) or non-zero flux river (22) bc
 %
 % kjr,UND,CHL,2017
 %
@@ -187,7 +187,7 @@ if isempty(boudat)
     if type==1
         nbou = 0; nvel = 0; nvell = []; nbbv = [] ; 
         if ~exist('type2','var') 
-           type2 = input('What kind of flux boundary is it, 20(island),2(River)?');
+           type2 = input('What kind of flux boundary is it, 20(island),22(River)?');
         end
         for ii = 1 : length(poly)
             nbou = nbou + 1;
