@@ -5,15 +5,10 @@ function fh = edgefx_filter(fh,gdat)
 % used.
 % Coleman Blakely
 % January 22, 2020
+% Edited September 4, 2020 to remove the use of shapevectors and instead
+% use inpoly.m
 if length(fh) == 1
     disp('No need to do this silly')
-end
-% preallocate polyshape vector for finding whether boundaries are
-% overlapping
-S = cell(length(fh)-1,1);
-% build polyshapes starting with last (top) edgefunction and working down
-for kk = length(fh):-1:2
-    S{kk} = polyshape(fh{kk}.boubox);
 end
 % Loop through edgefunctions to 1) check if they overlap and 2) if they
 % overlap find the points that lie within the upper edgefunction and
@@ -27,14 +22,15 @@ for kk = length(fh):-1:2
     y_test = fh_test.F.GridVectors{2};
     [X_test, Y_test] = ndgrid(x_test,y_test);
     % Loop through all boxes that may be below the test box
-    for ii = kk-1:-1:2
-        % check if the test box overlaps the below box
-        if ~overlaps(S{kk},S{ii})
-            continue
-        end
+    for ii = kk-1:-1:1
         fh_lower = fh{ii};
         % find the test points that are within the lower boundary
         id_overlap = inpoly(test_pts,fh_lower.boubox(1:end-1,:));
+        % check to see if the test box overlaps the lower box. If not, skip
+        % this box
+        if sum(id_overlap)==0
+           continue 
+        end
         overlap_pts = test_pts(id_overlap,:);
         % create the grid of overlapping points to use in the gridded
         % interpolant
