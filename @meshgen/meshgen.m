@@ -292,7 +292,7 @@ classdef meshgen
                         if length(obj.ef) > 1
                             % kjr 2020, ensure the min. sizing func is
                             % used
-                            obj.ef = enforce_min(obj.ef); 
+                            obj.ef = enforce_min_ef(obj.ef); 
                             obj.ef = smooth_outer(obj.ef,obj.Fb);
                         end
                         
