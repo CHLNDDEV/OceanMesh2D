@@ -290,6 +290,9 @@ classdef meshgen
                         
                         % kjr 2018 smooth the outer automatically
                         if length(obj.ef) > 1
+                            % kjr 2020, ensure the min. sizing func is
+                            % used
+                            obj.ef = enforce_min(obj.ef); 
                             obj.ef = smooth_outer(obj.ef,obj.Fb);
                         end
                         
