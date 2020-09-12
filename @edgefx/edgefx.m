@@ -966,18 +966,19 @@ classdef edgefx
                     error('MinCr is > MaxCr, please switch order in dt name value call')
                 end
                 
+                % Automatic timestep selection option (for ADCIRC models)
+                if desDt == 0
+                    hh_d(hh_d < obj.h0) = obj.h0;
+                    obj.dt = min(min(maxCr*hh_d./u));
+                    desDt  = obj.dt;
+                end
+                
                 % Enforcement of Courant bounds in mesh size function
                 fprintf(1, [ ...
                     'Enforcing timestep of ',num2str(desDt),' seconds ', ...
                     'with Courant number bounds of ',num2str(minCr),' to ',num2str(maxCr),'\n', ...
                     ] ) ;
                 
-                % Automatic timestep selection option (for ADCIRC models)
-                if desDt == 0
-                    hh_d(hh_d < obj.h0) = obj.h0;
-                    obj.dt = min(min(minCr*hh_d./u));
-                    desDt  = obj.dt;
-                end
                 
                 Cr = (desDt*u)./hh_m; % Courant number for given desDt for mesh size variations
                 
