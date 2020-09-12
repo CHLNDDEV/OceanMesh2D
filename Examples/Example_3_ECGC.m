@@ -23,7 +23,7 @@ R         = 3; 			        % Number of elements to resolve feature.
   
 %% STEP 2: specify geographical datasets and process the geographical data
 %% to be used later with other OceanMesh classes...
-dem       = 'SRTM15+V2.nc';
+dem       = 'SRTM15+V2.1.nc';
 coastline = 'GSHHS_f_L1';
 gdat1 = geodata('shp',coastline,'dem',dem,'h0',min_el,...
                 'bbox',bbox);
