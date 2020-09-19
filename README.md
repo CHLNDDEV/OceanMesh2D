@@ -6,6 +6,14 @@ This is the default and recommended `PROJECTION` branch. Please use it unless yo
 
 OceanMesh2D is a set of user-friendly MATLAB functions to generate two-dimensional (2D) unstructured meshes for coastal ocean circulation problems. These meshes are based on a variety of feature driven geometric and bathymetric mesh size functions, which are generated according to user-defined parameters. Mesh generation is achieved through a force-balance algorithm combined with a number of topological improvement strategies aimed at improving the worst case triangle quality. The software embeds the mesh generation process into an object-orientated framework that contains pre- and post-processing workflows, which makes mesh generation flexible, reproducible, and script-able. 
 
+## `Slack`
+
+Besides posting issues with the code on Github, you can also ask questions via our Slack channel [here](https://join.slack.com/t/oceanmesh2d/shared_invite/zt-hcu2nag7-NUBw52cxxlYupLrc1hqvhw).
+
+Otherwise please reach out to either Dr. William Pringle (wpringle@nd.edu) or Dr. Keith Roberts (krober@usp.br) with questions or concerns or feel free to start an Issue in the issues tab above. 
+
+
+
 ## `Code framework` 
 `OceanMesh2D`  consists of four standalone classes that are called in sequence. It requires no paid toolboxes to build meshes and has been tested to work with a trial version of MATLAB.
 
@@ -39,9 +47,7 @@ Development paper[1]└── Examples/Example_6_GBAY.m %<- An example of the po
 
 All pull requests are tested with Jenkins on a local host. However, to ensure the software is fully functional on your system it's encouraged to run the tests in Tests/ yourself. 
 
-## `Questions?`
 
-Please reach out to either Dr. William Pringle (wpringle@nd.edu) or Dr. Keith Roberts (krober@usp.br) with questions or concerns or feel free to start an Issue in the issues tab above. 
 
 ## `References!`
 
