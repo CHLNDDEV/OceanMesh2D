@@ -49,6 +49,7 @@ classdef meshgen
         annData       % datat contained with KD-tree in anno
         Fb            % bathymetry data interpolant 
         enforceWeirs  % whether or not to enforce weirs in meshgen 
+        enforceMin    % whether or not to enfore minimum edgelength for all edgefxs
     end
     
     
@@ -102,7 +103,7 @@ classdef meshgen
             addOptional(p,'proj',defval);
             addOptional(p,'qual_tol',defval);
             addOptional(p,'enforceWeirs',1);
-
+            addOptional(p,'enforceMin',1);
             
             % parse the inputs
             parse(p,varargin{:});
@@ -114,7 +115,8 @@ classdef meshgen
             % kjr...order these argument so they are processed in a predictable
             % manner. Process the general opts first, then the OceanMesh
             % classes...then basic non-critical options. 
-            inp = orderfields(inp,{'h0','bbox','enforceWeirs','fh','inner','outer','mainland',...
+            inp = orderfields(inp,{'h0','bbox','enforceWeirs','enforceMin','fh',...
+                                   'inner','outer','mainland',...
                                    'bou','ef',... %<--OceanMesh classes come after
                                    'egfix','pfix','fixboxes',...
                                    'plot_on','nscreen','itmax',...
@@ -292,7 +294,9 @@ classdef meshgen
                         if length(obj.ef) > 1
                             % kjr 2020, ensure the min. sizing func is
                             % used
-                            obj.ef = enforce_min_ef(obj.ef); 
+                            if obj.enforceMin
+                                obj.ef = enforce_min_ef(obj.ef); 
+                            end
                             obj.ef = smooth_outer(obj.ef,obj.Fb);
                         end
                         
@@ -384,6 +388,8 @@ classdef meshgen
                         del = setProj(dmy,1,obj.proj) ;
                     case('enforceWeirs')
                         obj.enforceWeirs = inp.(fields{i}); 
+                    case('enforceMin')
+                        obj.enforceMin = inp.(fields{i}); 
                 end
             end
             
