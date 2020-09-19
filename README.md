@@ -8,7 +8,7 @@ OceanMesh2D is a set of user-friendly MATLAB functions to generate two-dimension
 
 ## `Slack`
 
-Besides posting issues with the code on Github, you can also ask questions via our Slack channel [here](oceanmesh2d.slack.com).
+Besides posting issues with the code on Github, you can also ask questions via our Slack channel [here](http://oceanmesh2d.slack.com).
 
 Otherwise please reach out to either Dr. William Pringle (wpringle@nd.edu) or Dr. Keith Roberts (krober@usp.br) with questions or concerns or feel free to start an Issue in the issues tab above. 
 
