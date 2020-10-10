@@ -471,7 +471,7 @@ classdef meshgen
                 for box_num = 1:length(obj.h0)
                     disp(['    for box #' num2str(box_num)]);
                     % checking if cell or not and applying local values
-                    h0_l = obj.h0(box_num);
+                    h0_l = min(obj.h0);
                     max_r0 = 1/h0_l^2;   
                     if ~iscell(obj.bbox)
                         bbox_l = obj.bbox'; % <--we must tranpose this!
