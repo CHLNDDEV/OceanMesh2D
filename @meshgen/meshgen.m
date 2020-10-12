@@ -462,6 +462,7 @@ classdef meshgen
             deps = sqrt(eps);
             ttol=0.1; Fscale = 1.2; deltat = 0.1;
             delIT = 0 ; delImp = 2;
+            LARGE_BAR =2; 
 
             % unpack initial points.
             p = obj.grd.p;
@@ -471,7 +472,14 @@ classdef meshgen
                 for box_num = 1:length(obj.h0)
                     disp(['    for box #' num2str(box_num)]);
                     % checking if cell or not and applying local values
-                    h0_l = min(obj.h0);
+                    h0_l = obj.h0(box_num);
+                    % if large difference in resolutions make sure the bar
+                    % split is activated 
+                    if max(obj.h0)/min(obj.h0) > 2
+                        disp('Using bar splits to ensure resolution transitions are smooth');
+                        imp = 2;
+                        LARGE_BAR = 1.50;
+                    end
                     max_r0 = 1/h0_l^2;   
                     if ~iscell(obj.bbox)
                         bbox_l = obj.bbox'; % <--we must tranpose this!
@@ -687,7 +695,7 @@ classdef meshgen
                  end
                 
                 % Termination quality, mesh quality reached is copacetic.
-                if ~mod(it,imp)
+                if ~mod(it,imp) && it > 20
                     qual_diff = mq_l3sig - obj.qual(max(1,it-imp),2);
                     if abs(qual_diff) < obj.qual_tol
                         % Do the final elimination of small connectivity
@@ -767,7 +775,7 @@ classdef meshgen
 
                         % Split long edges however many times to
                         % better lead to LN of 1
-                        if any(LN > 2)
+                        if any(LN > LARGE_BAR)
                             nsplit = floor(LN);
                             nsplit(nsplit < 1) = 1;
                             adding = 0;
@@ -823,6 +831,12 @@ classdef meshgen
                 
                 % 8. Termination criterion: Exceed itmax
                 it = it + 1 ;
+                
+                % set the improvement frequency back to normal
+                if it > 15
+                    imp = 10;
+                    LARGE_BAR =2;
+                end
                 
                 if ( it > obj.itmax )
                     % Do the final deletion of small connectivity
@@ -953,35 +967,7 @@ classdef meshgen
             
             
         end % end distmesh2d_plus
-        
-        function obj = nearshorefix(obj)
-            %% kjr make sure boundaries have good spacing on boundary.
-            % This is experimentary. 
-            t = obj.grd.t ; p = obj.grd.t;
-            [bnde, ~] = extdom_edges2(t,p);
-            [poly]  = extdom_polygon(bnde,p,1);
-
-            new = [];
-            for j = 1 : length(poly)
-                for i = 1 : length(poly{j})-2
-                    pt = poly{j}(i,:) ; % current point
-                    nxt= poly{j}(i+1,:) ; % next point
-                    nxt2 = poly{j}(i+2,:) ; % next next point
-
-                    dst1 = sqrt( (nxt(:,1)-pt(:,1)).^2 + (nxt(:,2)-pt(:,2)).^2 );     % dist to next point
-                    dst2 = sqrt( (nxt2(:,1)-nxt(:,1)).^2 + (nxt2(:,2)-nxt(:,2)).^2 ); % dist to next next point
-
-                    if dst2/dst1 > 2
-                        % split bar
-                        q = (nxt2 + nxt)/2;
-                        new = [new; q];
-                    end
-                end
-            end
-            p = [p; new]; % post fix new points (to avoid problems with pfix.)
-            t = delaunay_elim(p,obj.fd,geps,0);       % Delaunay with elimination
-            obj.grd.t = t ; obj.grd.p = t;
-        end
+       
         
         
     end % end methods
