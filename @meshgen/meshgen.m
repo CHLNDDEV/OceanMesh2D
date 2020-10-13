@@ -462,7 +462,6 @@ classdef meshgen
             deps = sqrt(eps);
             ttol=0.1; Fscale = 1.2; deltat = 0.1;
             delIT = 0 ; delImp = 2;
-            LARGE_BAR =2; 
 
             % unpack initial points.
             p = obj.grd.p;
@@ -473,13 +472,7 @@ classdef meshgen
                     disp(['    for box #' num2str(box_num)]);
                     % checking if cell or not and applying local values
                     h0_l = obj.h0(box_num);
-                    % if large difference in resolutions make sure the bar
-                    % split is activated 
-                    if max(obj.h0)/min(obj.h0) > 2
-                        disp('Using bar splits to ensure resolution transitions are smooth');
-                        imp = 2;
-                        LARGE_BAR = 1.50;
-                    end
+
                     max_r0 = 1/h0_l^2;   
                     if ~iscell(obj.bbox)
                         bbox_l = obj.bbox'; % <--we must tranpose this!
@@ -543,17 +536,26 @@ classdef meshgen
                         p1 = p1(rand(size(p1,1),1) < r0/max_r0,:);          % Rejection method
                         p  = [p; p1];                                       % Adding p1 to p
                     end
-                    if box_num == 1
-                        % add points along the outermost polygon to fill
-                        % outer extent more quickly. 
-                        outer_temp = obj.outer{1};
-                        Inan = find(isnan(outer_temp(:,1)),1,'first');
-                        p1 = outer_temp(1:Inan-1,:);
-                        p1 = p1(feval(obj.fd,p1,obj,box_num) < geps,:);     % Keep only d<0 points
-                        r0 = 1./feval(fh_l, p1).^2;                         % Probability to keep point
-                        p1 = p1(rand(size(p1,1),1) < r0/max_r0,:);          % Rejection method
-                        p = [p; p1];                                        % Adding p1 to p
-                    end
+%                     if box_num == 1
+%                         % add points along the outermost polygon to fill
+%                         % outer extent more quickly. 
+%                         outer_temp = obj.outer{1};
+%                         Inan = find(isnan(outer_temp(:,1)),1,'first');
+%                         p1 = outer_temp(1:Inan-1,:);
+%                         p1 = p1(feval(obj.fd,p1,obj,box_num) < geps,:);     % Keep only d<0 points
+%                         r0 = 1./feval(fh_l, p1).^2;                         % Probability to keep point
+%                         p1 = p1(rand(size(p1,1),1) < r0/max_r0,:);          % Rejection method
+%                         p = [p; p1];                                        % Adding p1 to p
+%                     end
+                     % add new points along boundary of multiscale nests
+                     if box_num < length(obj.h0)
+                         if max(obj.h0)/min(obj.h0) > 2
+                             for add = 1 : 5
+                                 new_points = split(p,fh_l);
+                                 p = [p; new_points];
+                             end
+                         end
+                     end
                 end
             else
                 disp('User-supplied initial points!');
@@ -561,6 +563,8 @@ classdef meshgen
                 imp = 10; % number of iterations to do mesh improvements (delete/add)
                 h0_l = obj.h0(end); % finest h0 (in case of a restart of meshgen.build).
             end
+            
+     
             
             % remove pfix/egfix outside of desired subdomain
             nfix = size(obj.pfix,1);    % Number of fixed points
@@ -775,7 +779,7 @@ classdef meshgen
 
                         % Split long edges however many times to
                         % better lead to LN of 1
-                        if any(LN > LARGE_BAR)
+                        if any(LN > 2)
                             nsplit = floor(LN);
                             nsplit(nsplit < 1) = 1;
                             adding = 0;
@@ -831,13 +835,7 @@ classdef meshgen
                 
                 % 8. Termination criterion: Exceed itmax
                 it = it + 1 ;
-                
-                % set the improvement frequency back to normal
-                if it > 15
-                    imp = 10;
-                    LARGE_BAR =2;
-                end
-                
+                                
                 if ( it > obj.itmax )
                     % Do the final deletion of small connectivity
                     [t,p] = delaunay_elim(p,obj.fd,geps,1);
