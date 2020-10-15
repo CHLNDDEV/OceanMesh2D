@@ -207,7 +207,7 @@ classdef meshgen
                         end
                         if obj.enforceWeirs
                             for j = 1 : length(obj.bou)
-                           	if ~isempty(obj.bou{j}.weirEgfix) && ~isempty(obj.egfix)
+                                if ~isempty(obj.bou{j}.weirEgfix) && ~isempty(obj.egfix)
                                     obj.egfix = [obj.egfix ; obj.bou{j}.weirEgfix+max(obj.egfix(:))];
                                 else
                                     obj.egfix =  obj.bou{j}.weirEgfix;
@@ -474,12 +474,12 @@ classdef meshgen
             %%
             tic
             it = 1 ;
-            qual_diff = 0;
             Re = 6378.137e3;
             geps = 1e-3*min(obj.h0)/Re; 
             deps = sqrt(eps);
             ttol=0.1; Fscale = 1.2; deltat = 0.1;
             delIT = 0 ; delImp = 2;
+            imp = 10; % number of iterations to do mesh improvements (delete/add)
 
             % unpack initial points.
             p = obj.grd.p;
@@ -577,7 +577,6 @@ classdef meshgen
             else
                 disp('User-supplied initial points!');
                 obj.grd.b = [];
-                imp = 10; % number of iterations to do mesh improvements (delete/add)
                 h0_l = obj.h0(end); % finest h0 (in case of a restart of meshgen.build).
             end
             
@@ -716,8 +715,8 @@ classdef meshgen
                  end
                 
                 % Termination quality, mesh quality reached is copacetic.
-                qual_diff = mq_l3sig - obj.qual(max(1,it-def_imp),2);
-                if ~mod(it,def_imp)
+                qual_diff = mq_l3sig - obj.qual(max(1,it-imp),2);
+                if ~mod(it,imp)
                     if abs(qual_diff) < obj.qual_tol
                         % Do the final elimination of small connectivity
                         [t,p] = delaunay_elim(p,obj.fd,geps,1);
@@ -781,7 +780,7 @@ classdef meshgen
                 % Mesh improvements (deleting and addition)
                 if ~mod(it,imp)
                     nn = []; pst = [];
-                    if force_improve || (qual_diff < imp*obj.qual_tol && qual_diff > 0)
+                    if qual_diff < imp*obj.qual_tol && qual_diff > 0
                         % Remove elements with small connectivity
                         nn = get_small_connectivity(p,t);
                         disp(['Deleting ' num2str(length(nn)) ' due to small connectivity'])
