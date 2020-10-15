@@ -1,5 +1,5 @@
 function polygon_struct = Read_shapefile( finputname, polygon, bbox, ...
-                                          h0, boubox, plot_on )
+                                          h0, boubox, plot_on, shapefile_3d)
 % Read_shapefile: Reads a shapefile or a NaN-delimited vector
 % containing polygons and/or segments in the the desired region
 % of interest. Classifies the vector data as either a
@@ -174,6 +174,9 @@ for i = 1 : size(tmpC,1)
         % using m_shaperead
         points = tmpC{i,1}(1:end,:) ;
         if size(points,2) == 3
+            points = points(:,1:2);
+        end
+        if shapefile_3d
             % if 3-D shapefile
             height = points(:,3); 
             points = points(:,1:2); 
