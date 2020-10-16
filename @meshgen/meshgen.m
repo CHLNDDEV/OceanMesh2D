@@ -553,26 +553,26 @@ classdef meshgen
                         p1 = p1(rand(size(p1,1),1) < r0/max_r0,:);          % Rejection method
                         p  = [p; p1];                                       % Adding p1 to p
                     end
-%                     if box_num == 1
-%                         % add points along the outermost polygon to fill
-%                         % outer extent more quickly. 
-%                         outer_temp = obj.outer{1};
-%                         Inan = find(isnan(outer_temp(:,1)),1,'first');
-%                         p1 = outer_temp(1:Inan-1,:);
-%                         p1 = p1(feval(obj.fd,p1,obj,box_num) < geps,:);     % Keep only d<0 points
-%                         r0 = 1./feval(fh_l, p1).^2;                         % Probability to keep point
-%                         p1 = p1(rand(size(p1,1),1) < r0/max_r0,:);          % Rejection method
-%                         p = [p; p1];                                        % Adding p1 to p
-%                     end
-                     % add new points along boundary of multiscale nests
-                     if box_num < length(obj.h0)
-                         if max(obj.h0)/min(obj.h0) > 2
-                             for add = 1 : 5
-                                 new_points = split(p,fh_l);
-                                 p = [p; new_points];
-                             end
-                         end
-                     end
+                    if box_num == 1
+                        % add points along the outermost polygon to fill
+                        % outer extent more quickly. 
+                        outer_temp = obj.outer{1};
+                        Inan = find(isnan(outer_temp(:,1)),1,'first');
+                        p1 = outer_temp(1:Inan-1,:);
+                        p1 = p1(feval(obj.fd,p1,obj,box_num) < geps,:);     % Keep only d<0 points
+                        r0 = 1./feval(fh_l, p1).^2;                         % Probability to keep point
+                        p1 = p1(rand(size(p1,1),1) < r0/max_r0,:);          % Rejection method
+                        p = [p; p1];                                        % Adding p1 to p
+                    end
+                    % add new points along boundary of multiscale nests
+                    if box_num < length(obj.h0)
+                        h0_rat = ceil(h0_l/obj.h0(box_num+1));
+                        nsplits = floor(log(h0_rat)/log(2));
+                        for add = 1:nsplits
+                            new_points = split(p,fh_l);
+                            p = [p; new_points];
+                        end
+                    end
                 end
             else
                 disp('User-supplied initial points!');
