@@ -96,15 +96,12 @@ for box_num = box_vec
             in_outer = ~in_outer;
         end
     else
-        in_boubox   = d_l*0;
-        in_outer    = d_l*0;
+        return
     end
     
     % d is signed negative if inside and vice versa.
     d_l = (-1).^( in_outer & in_boubox).*d_l;
-    
-    if sum(inside)==0; return; end
-    
+   
     d(inside) = d_l;
 end
 % EOF

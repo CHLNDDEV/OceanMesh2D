@@ -279,7 +279,9 @@ classdef msh
             %    i) 'numticks': number of colorbar tickmarks and (optional) range:
             %           [numticks] or [numticks caxis_lower caxis_upper]
             %    ii) 'fontsize': figure fontsize
-            %   iii) 'holdon'  : =1 to plot on existing figure (otherwise
+            %   iii) 'backcolor': figure background RGB color (where mesh
+            %                  doesn't exist), default is [1 1 1] => white
+            %   iv)  'holdon'  : =1 to plot on existing figure (otherwise
             %                    will use new figure)
             if nargin < 2
                 type = 'tri';
@@ -292,11 +294,14 @@ classdef msh
             end
             np_g = length(obj.p) ;
             fsz = 12; % default font size
+            bgc = [1 1 1]; % default background color
             numticks = 10; % default num of ticks
             holdon = 0;
             for kk = 1:2:length(varargin)
                 if strcmp(varargin{kk},'fontsize')
                     fsz = varargin{kk+1};
+                elseif strcmp(varargin{kk},'backcolor')
+                    bgc = varargin{kk+1};
                 elseif strcmp(varargin{kk},'numticks')
                     numticks = varargin{kk+1};
                 elseif strcmp(varargin{kk},'holdon')
@@ -790,6 +795,7 @@ classdef msh
             end
             ax = gca;
             ax.FontSize = fsz;
+            ax.Color = bgc;
             if proj == 1
                 % now add the box
                 m_grid('FontSize',fsz);
