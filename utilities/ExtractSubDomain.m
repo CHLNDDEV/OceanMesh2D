@@ -1,6 +1,7 @@
-function [obj,ind] = ExtractSubDomain(obj,bou,keep_inverse,centroid)
-% [obj,ind] = ExtractSubDomain(obj,bou,keep_inverse,centroid)
-%
+function [obj,ind] = ExtractSubDomain(obj,bou,keep_inverse,centroid,nscreen)
+% [obj,ind] = ExtractSubDomain(obj,bou,keep_inverse,centroid,nscreen)
+% 
+% Inputs:
 % bou: a polygon or a bbox to extract sub-domain (no NaNs allowed)
 % keep_inverse: = 0 [default] to get the sub-domain inside the bou polygon
 %               = 1 to get the sub-domain outside the bou polygon
@@ -8,7 +9,14 @@ function [obj,ind] = ExtractSubDomain(obj,bou,keep_inverse,centroid)
 %              of the element are inside (outside) the bou polygon
 %           = 1 inpolygon test is based on whether the element centroid
 %              is inside (outside) the bou polygon
+% nscreen: = 1 [default] display the notice to screen
+%          = 0 do not display the notice to screen
 % 
+% Outputs:
+% obj: the subset mesh obj (only p and t, properties untouched)
+% ind: an array of indices that can be used to map the mesh properties to
+% the output mesh subset with a subsequent call to "mapMeshProperties". 
+%
 p = obj.p; t = obj.t; 
 if nargin == 1 || (nargin == 3 && isempty(bou))
     plot(p(:,1),p(:,2),'k.');
@@ -20,6 +28,9 @@ if nargin < 3
 end
 if nargin < 4
     centroid = 0;
+end
+if nargin < 5
+    nscreen = 1;
 end
 if size(bou,1) == 2
      bou = [bou(1,1) bou(2,1);
@@ -41,15 +52,16 @@ if keep_inverse == 0
 else
     t(in,:) = [];
 end
+% Remove uncessary vertices and reorder triangulation
 [p1,t,ind] = fixmesh(p,t);
+% Put back into the msh obj
 obj.p = p1; obj.t = t;  
-if ~isempty(obj.b)
-    obj.b = obj.b(ind); 
+%
+if nscreen
+    % Displaying notice for mapping mesh properties
+    disp('NOTICE: Only p and t have been subset.')
+    disp('  To map mesh properties to the subset output the ind array and call: ')
+    disp('  mesh_obj = mapMeshProperties(mesh_obj,ind)')
 end
-if ~isempty(obj.bx)
-    obj.bx = obj.bx(ind); 
-end
-if ~isempty(obj.by)
-    obj.by = obj.by(ind);
-end
+% EOF
 end

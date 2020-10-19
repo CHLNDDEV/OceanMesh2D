@@ -335,7 +335,8 @@ classdef msh
                         bou(1,1) bou(2,1)];
                 end
                 % Get a subset given by bou
-                [obj,kept] = ExtractSubDomain(obj,bou);
+                [obj,kept] = ExtractSubDomain(obj,bou,[],[],0);
+                obj = mapMeshProperties(obj,kept);
             end
 
             % Set up projected space
@@ -3879,7 +3880,108 @@ classdef msh
             end
             boundary = cell2mat(boundary');
         end
-
+        
+        function obj = mapMeshProperties(obj,ind)
+            % obj = mapMeshProperties(obj,ind)
+            % Map properties of a msh obj given a subset of integers, 'ind'.
+            % Assumes that the p and t components of the mesh have already
+            % been changed 
+            % -> Common usage would be after receiving the indices as
+            %    an output from the fixmesh function
+            %
+            % ocean depths/topography
+            if ~isempty(obj.b)
+                obj.b = obj.b(ind); 
+            end
+            % topographic gradients
+            if ~isempty(obj.bx)
+                obj.bx = obj.bx(ind); 
+            end
+            if ~isempty(obj.by)
+                obj.by = obj.by(ind);
+            end
+            % open boundary info
+            if ~isempty(obj.op) && obj.op.nope > 0
+                for ib = 1 : obj.op.nope
+                    idx_old = obj.op.nbdv(1:obj.op.nvdll(ib),ib);
+                    % Only keep idx_old that is common to ind and map to ind
+                    [~,~,idx_new] = intersect(idx_old,ind);
+                    % Get the new length of this boundary
+                    obj.op.nvdll(ib) = length(idx_new);
+                    % Reset and reload the nbdv for this boundary
+                    obj.op.nbdv(:,ib) = 0;
+                    obj.op.nbdv(1:obj.op.nvdll(ib),ib) = idx_new;
+                end
+                obj.op.neta = sum(obj.op.nvdll);
+                if obj.op.neta == 0
+                    % Remove open boundary info...
+                    obj.op = []; 
+                else
+                    % Remove unnessary part from the nbdv
+                    obj.op.nbdv = obj.op.nbdv(1:max(obj.op.nvdll),:);
+                end
+            end
+            % land boundary info
+            if ~isempty(obj.bd) && obj.bd.nbou > 0
+                for ib = 1 : obj.bd.nbou
+                    nvell_old = obj.bd.nvell(ib);
+                    idx_old = obj.bd.nbvv(1:nvell_old,ib);
+                    % Only keep idx_old that is common to ind and map to ind
+                    [~,~,idx_new] = intersect(idx_old,ind);
+                    % Get the new length of this boundary
+                    obj.bd.nvell(ib) = length(idx_new);
+                    % Reset and reload the nbdv for this boundary
+                    obj.bd.nbvv(:,ib) = 0;
+                    obj.bd.nbvv(1:obj.bd.nvell(ib),ib) = idx_new;
+                    %
+                    % Proceed only if the ibconn field exists
+                    if ~isfield(obj.bd,'ibconn'); continue; end
+                    idx_old = obj.bd.ibconn(1:nvell_old,ib);
+                    % Only keep idx_old that is common to ind and map to ind
+                    [~,~,idx_new] = intersect(idx_old,ind);
+                    % Check the new length of this boundary
+                    if length(idx_new) ~=  obj.bd.nvell(ib)
+                        disp(['boundary number = ' num2str(ib)])
+                        error(['ibconn of subset is different length to nbvv. ' ...
+                               'Make sure the weir is fully within the subset'])
+                    end
+                    % Reset and reload the ibconn for this boundary
+                    obj.bd.ibconn(:,ib) = 0;
+                    obj.bd.ibconn(1:obj.bd.nvell(ib),ib) = idx_new;
+                end
+                obj.bd.nvel = sum(obj.bd.nvell);
+                if obj.bd.nvel == 0
+                    % Remove land boundary info...
+                    obj.bd = []; 
+                else
+                    % Remove unnessary part from the nbdv
+                    obj.bd.nbvv = obj.bd.nbvv(1:max(obj.bd.nvell),:);
+                    if isfield(obj.bd,'ibconn')
+                        obj.bd.ibconn = obj.bd.ibconn(1:max(obj.bd.nvell),:);
+                    end
+                end
+            end
+            % f13
+            if ~isempty(obj.f13)
+                obj.f13.NumOfNodes = length(ind);
+                for att = 1:obj.f13.nAttr
+                    % Get the old index for this attribute
+                    idx_old = obj.f13.userval.Atr(att).Val(1,:);
+                    val_old = obj.f13.userval.Atr(att).Val(2:end,:);
+                    % Only keep idx and val that is common to ind and map to ind
+                    [~,ind_new,idx_new] = intersect(idx_old,ind);
+                    val_new = val_old(:,ind_new);
+                    % Put the uservalues back into f13 struct
+                    obj.f13.userval.Atr(att).Val = [idx_new'; val_new];
+                end
+            end
+            % f24
+            if ~isempty(obj.f24)
+                obj.f24.Val = obj.f24.Val(:,:,ind);
+            end    
+        % EOF
+        end
+            
         function obj = pruneOverlandMesh(obj,elev,djc)
             %%%%%%%
             % Removes overland extent greater than certain elevation about
