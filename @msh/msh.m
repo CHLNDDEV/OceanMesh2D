@@ -324,7 +324,7 @@ classdef msh
 
             % Handle user specified subdomain
             if nargin < 5 || isempty(bou)
-                kept = (1:length(obj.p))';
+                % dummy
             else
                 if numel(bou) == 4
                     % i.e. is a bounding box
@@ -670,15 +670,17 @@ classdef msh
                 case('mann')
                     if ~isempty(obj.f13)
                         ii = find(contains({obj.f13.defval.Atr(:).AttrName},'mann'));
+                        if isempty(ii)
+                           disp('No Manning f13 attribute!'); return 
+                        end
                         defval  = obj.f13.defval.Atr(ii).Val;
                         userval = obj.f13.userval.Atr(ii).Val;
-                        values = max(userval(2:end,:)',[],2);
-                        alltogether = zeros(np_g,1)+defval ;
-                        alltogether(userval(1,:)',1) = values;
+                        values = obj.p(:,1)*0 + defval;
+                        values(userval(1,:)) = userval(2,:);
                         if proj
-                            m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),alltogether(kept));
+                            m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),values);
                         else
-                            trisurf(obj.t,obj.p(:,1),obj.p(:,2),alltogether(kept));
+                            trisurf(obj.t,obj.p(:,1),obj.p(:,2),values);
                         end
                         nouq = length(unique(values));
                         colormap(jet(nouq));
