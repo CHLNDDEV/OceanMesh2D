@@ -23,13 +23,13 @@ if nargin == 1 || (nargin == 3 && isempty(bou))
     h = impoly;
     bou  = h.getPosition;
 end
-if nargin < 3
+if nargin < 3 || isempty(keep_inverse)
     keep_inverse = 0;
 end
-if nargin < 4
+if nargin < 4 || isempty(centroid)
     centroid = 0;
 end
-if nargin < 5
+if nargin < 5 || isempty(nscreen)
     nscreen = 1;
 end
 if size(bou,1) == 2
