@@ -3917,7 +3917,11 @@ classdef msh
                 for ib = 1 : obj.op.nope
                     idx_old = obj.op.nbdv(1:obj.op.nvdll(ib),ib);
                     % Only keep idx_old that is common to ind and map to ind
-                    [~,~,idx_new] = intersect(idx_old,ind);
+                    [~,~,idx_new] = intersect(idx_old,ind,'stable');
+                    % if a polygon
+                    if length(idx_new) == length(idx_old)-1 && idx_old(end) == idx_old(1)
+                        idx_new(end+1) = idx_new(1);
+                    end
                     % Get the new length of this boundary
                     obj.op.nvdll(ib) = length(idx_new);
                     % Reset and reload the nbdv for this boundary
@@ -3939,7 +3943,11 @@ classdef msh
                     nvell_old = obj.bd.nvell(ib);
                     idx_old = obj.bd.nbvv(1:nvell_old,ib);
                     % Only keep idx_old that is common to ind and map to ind
-                    [~,~,idx_new] = intersect(idx_old,ind);
+                    [~,~,idx_new] = intersect(idx_old,ind,'stable');
+                    % if a polygon
+                    if length(idx_new) == length(idx_old)-1 && idx_old(end) == idx_old(1)
+                        idx_new(end+1) = idx_new(1);
+                    end
                     % Get the new length of this boundary
                     obj.bd.nvell(ib) = length(idx_new);
                     % Reset and reload the nbdv for this boundary
@@ -3950,7 +3958,7 @@ classdef msh
                     if ~isfield(obj.bd,'ibconn'); continue; end
                     idx_old = obj.bd.ibconn(1:nvell_old,ib);
                     % Only keep idx_old that is common to ind and map to ind
-                    [~,~,idx_new] = intersect(idx_old,ind);
+                    [~,~,idx_new] = intersect(idx_old,ind,'stable');
                     % Check the new length of this boundary
                     if length(idx_new) ~=  obj.bd.nvell(ib)
                         disp(['boundary number = ' num2str(ib)])

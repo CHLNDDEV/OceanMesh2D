@@ -30,6 +30,11 @@ mshopts = mshopts.build;
 % Get out the msh class and put on nodestrings
 m = mshopts.grd;
 m = make_bc(m,'auto',gdat,'distance'); % make the boundary conditions
-plot(m,'bd');
+plot(m,'bd',1);
 % if you want to write into fort.14...
 % write(m,'South_Island_NZ');
+
+%% STEP 6: Example of plotting a subdomain with bcs
+bbox_s =  [172   176;
+           -42   -39];
+plot(m,'bd',1,[],bbox_s)
