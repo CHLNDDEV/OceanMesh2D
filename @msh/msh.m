@@ -3864,13 +3864,22 @@ classdef msh
            egfix = renumberEdges(egfix) ;
         end
 
-        function boundary = getBoundaryOfMesh(obj)
-            %%%%%%%
-            % Returns the boundary of the mesh in a winding order as a
-            % NaN-delimited vector
+        function boundary = getBoundaryOfMesh(obj,ascell)
+            % boundary = getBoundaryOfMesh(obj,ascell)
+            %
+            % Returns the boundary of the mesh
+            %
             % INPUTS: msh_obj
-            % OUTPUTS: NaN-delimited vector in a "walking" order.
+            % OUTPUTS: msh boundary in one of two forms:
+            %   1) NaN-delimited vector in a "walking" order (ascell == 0 [default]) 
+            %   2) A cell for each polygon (ascell = 1)
+            %
             % kjr, April 2019
+            % wjp, Oct 2020
+            % 
+            if nargin < 2 || isempty(ascell)
+                ascell = 0;
+            end
             bnde = extdom_edges2(obj.t,obj.p) ;
             try
                 boundary = extdom_polygon(bnde,obj.p,-1) ;
@@ -3878,6 +3887,7 @@ classdef msh
                 warning('ALERT: Boundary of mesh is not walkable. Returning polylines.');
                 boundary = extdom_polygon(bnde,obj.p,-1,1) ;
             end
+            if ascell; return; end
             boundary = cell2mat(boundary');
         end
         
