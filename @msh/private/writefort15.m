@@ -31,7 +31,7 @@ fprintf(fid, '%d        \t ! ICS \n', f15dat.ics ) ;
 fprintf(fid, '%d        \t ! IM \n', f15dat.im ) ;
 
 % IDEN
-if ( f15dat.im == 20 || f15dat.im == 30 || f15dat.im == 511113) 
+if f15dat.im == 20 || f15dat.im == 30
     fprintf( fid, '%d           \t ! IDEN \n', f15dat.iden ) ; 
 end
 
