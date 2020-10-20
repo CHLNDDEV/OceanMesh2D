@@ -982,7 +982,6 @@ classdef msh
                 type = varargin{tI+1};                
             end
             % Test for nans
-            Inan = sum(isnan(obj.b));
             if strcmp(type,'all') || strcmp(type,'depth')
                 % In depths
                 Inan = sum(isnan(obj.b));
