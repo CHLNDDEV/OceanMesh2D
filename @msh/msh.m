@@ -747,7 +747,6 @@ classdef msh
                             m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),nq);
                         else
                             m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),nq);
-                            m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),nq*0);
                             shading flat
                         end
                     else
