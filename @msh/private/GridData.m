@@ -80,6 +80,9 @@ if ~isempty(varargin)
             if ii == 1
                 K = varargin{ind*2}; 
                 nn = length(K);
+                if nn == 0
+                   error('K index entry is empty!')
+                end
             elseif ii == 2
                 type = varargin{ind*2};
             elseif ii == 3
@@ -113,8 +116,13 @@ if maxdepth < inf
 end
 
 if strcmp(type,'slope')
-    warning(['You must have the bathymetry on the grid before '...
-            'calculating the slopes'])
+    if isempty(obj.b) || all(obj.b == 0) 
+        error(['You must have the bathymetry on the mesh before ' ...
+               'calculating the slopes'])
+    elseif sum(isnan(obj.b)) > 0
+        warning(['There are some NaNs in the bathymetry that could ' ...
+                 'affect the computation of the slopes'])
+    end
 end
 
 if strcmp(NaNs,'fill') || strcmp(NaNs,'fillinside')
@@ -122,9 +130,9 @@ if strcmp(NaNs,'fill') || strcmp(NaNs,'fillinside')
     nanfill = true;
 end
 if strcmp(NaNs,'fill')
-   warning(['Note that will try and put bathy everywhere on mesh even ' ...
-            'outside of gdat/dem extents unless K logical is set. ' ...
-            'Set to nan to "fillinside" to avoid this.'])
+   warning(['Note that nan "fill" option will try and put values everywhere ' ...
+            'on mesh even outside of gdat/dem extents unless K logical is ' ...
+            'set. Change nan to "fillinside" to avoid this.'])
 end
 
 %% Let's read the LON LAT of DEM if not already geodata
