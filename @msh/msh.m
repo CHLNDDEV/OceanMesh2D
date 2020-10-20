@@ -3993,6 +3993,7 @@ classdef msh
                     val_new = val_old(:,ind_new);
                     % Put the uservalues back into f13 struct
                     obj.f13.userval.Atr(att).Val = [idx_new'; val_new];
+                    obj.f13.userval.Atr(att).usernumnodes = length(idx_new);
                 end
             end
             % f24
