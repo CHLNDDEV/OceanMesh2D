@@ -957,7 +957,8 @@ classdef msh
             %   maxdepth - ensure the maximum depth is bounded in the
             %                         interpolated region
             %
-            %   ignoreOL - NaN overland data for more accurate seabed interpolation
+            %   ignoreOL - = 0 [default]: interpolate data without masking overland
+            %              = 1: Mask overland data which may help for seabed-only interpolation
 
             % if give cell of geodata or dems then interpolate all
             if iscell(geodata) || isstring(geodata)
@@ -2423,7 +2424,15 @@ classdef msh
             tin(~LIA) = tin(~LIA) + length(obj.p);
             obj.p = [obj.p; pin];
             obj.t = [obj.t; tin];
-            [obj.p, obj.t] = fixmesh(obj.p,obj.t);
+            % append to b and bx, by to avoid error in fixmeshandcarry
+            if ~isempty(obj.b)
+               obj.b = [obj.b; NaN(size(pin,1),1)];
+            end
+            if ~isempty(obj.bx)
+               obj.bx = [obj.bx; NaN(size(pin,1),1)];
+               obj.by = [obj.by; NaN(size(pin,1),1)];
+            end
+            obj = fixmeshandcarry(obj);
         end
 
         function obj = trim(obj,threshold)
