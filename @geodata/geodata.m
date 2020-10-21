@@ -57,6 +57,7 @@ classdef geodata
         pslg % piecewise liner straight line graph
         spacing = 2.0 ; %Relative spacing along polygon, large effect on computational efficiency of signed distance.
         gridspace
+        shapefile_3d % if the shapefile has a height attribute
     end
     
     methods
@@ -75,7 +76,6 @@ classdef geodata
             %addOptional(p,'weirs',defval);
             %addOptional(p,'pslg',defval);
             %addOptional(p,'boubox',defval);
-            %addOptional(p,'window',defval);
             
             % Check for m_map dir
             M_MAP_EXISTS=0 ;
@@ -119,6 +119,7 @@ classdef geodata
             addOptional(p,'pslg',defval);
             addOptional(p,'boubox',defval);
             addOptional(p,'window',defval);
+            addOptional(p,'shapefile_3d',defval);
             
             % parse the inputs
             parse(p,varargin{:});
@@ -202,6 +203,8 @@ classdef geodata
                             % Default value
                             obj.window = 5;
                         end
+                    case('shapefile_3d')
+                         obj.shapefile_3d = inp.(fields{i}) ;
                     case('weirs')
                         if ~iscell(inp.(fields{i})) && ~isstruct(inp.(fields{i})) && inp.(fields{i})==0, continue; end
                         if ~iscell(inp.(fields{i})) && ~isstruct(inp.(fields{i}))
@@ -321,7 +324,7 @@ classdef geodata
                 end
                 
                 polygon_struct = Read_shapefile( obj.contourfile, [], ...
-                    obj.bbox, obj.gridspace, obj.boubox, 0 );
+                    obj.bbox, obj.gridspace, obj.boubox, 0, obj.shapefile_3d);
                 
                 % Unpack data from function Read_Shapefile()s
                 obj.outer     = polygon_struct.outer;
