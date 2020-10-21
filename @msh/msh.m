@@ -592,6 +592,8 @@ classdef msh
                                                  max(q),numticks(1))),-1);
                         end
                         caxis([log10(min(desiredTicks)) log10(max(desiredTicks))]);
+                        % make sure they are unique (but plot won't look good)...
+                        desiredTicks = unique(desiredTicks);
                         cb.Ticks     = log10(desiredTicks);
                         for i = 1 : length(desiredTicks)
                             cb.TickLabels{i} = num2str(desiredTicks(i));
@@ -824,17 +826,18 @@ classdef msh
             R    = S(perm,perm);
             prn  = obj.p(perm,:);
             if ~isempty(obj.b)
-                brn  = obj.b(perm,:);
-                obj.b    = brn;
+                obj.b    = obj.b(perm);
             end
 
             if ~isempty(obj.bx)
-                brn  = obj.bx(perm,:);
-                obj.bx    = brn;
-
-                brn  = obj.by(perm,:);
-                obj.by    = brn;
+                obj.bx   = obj.bx(perm);
+                obj.by   = obj.by(perm);
             end
+            
+            if ~isempty(obj.f24)
+                obj.f24.Val = obj.f24.Val(:,:,perm);
+            end
+            
             obj.p    = prn;
             perm_inv(perm(1:np)) = ( 1 : np );
             ttemp = obj.t ;
@@ -856,10 +859,8 @@ classdef msh
             if ~isempty(obj.op) && obj.op.nope > 0
                 disp('Renumbering the elevation specified boundary nodestrings...');
                 for ib = 1 : obj.op.nope
-                    %for iv = 1 : obj.op.nvdll(ib)
                     node = obj.op.nbdv(1:obj.op.nvdll(ib),ib);
                     obj.op.nbdv(1:obj.op.nvdll(ib),ib) = perm_inv(node);
-                    %end
                 end
             end
 
@@ -902,8 +903,8 @@ classdef msh
             if ~isempty(obj.f13)
                 disp('Renumbering the fort.13...');
                 for i = 1 : obj.f13.nAttr
-                    idx=obj.f13.userval.Atr(i).Val(1,:);
-                    idx=perm_inv(idx);
+                    idx = obj.f13.userval.Atr(i).Val(1,:);
+                    idx = perm_inv(idx);
                     obj.f13.userval.Atr(i).Val(1,:) = idx;
                 end
             end
@@ -1043,17 +1044,17 @@ classdef msh
             if any(strcmp(varargin,'passive'))
                 disp('Employing passive option')
                 opt.db = 0.1; opt.ds = 0; opt.con = 10; opt.djc = 0;
-                opt.sc_maxit = 0; opt.mqa = 1e-4;
+                opt.sc_maxit = 0; opt.mqa = 1e-4; opt.renum = 0;
                 varargin(strcmp(varargin,'passive')) = [];
             elseif any(strcmp(varargin,'aggressive'))
                 disp('Employing aggressive option')
                 opt.db = 0.5; opt.ds = 1; opt.con = 9; opt.djc = 0.25;
-                opt.sc_maxit = inf; opt.mqa = 0.5;
+                opt.sc_maxit = inf; opt.mqa = 0.5; opt.renum = 1;
                 varargin(strcmp(varargin,'aggressive')) = [];
             else
                 disp('Employing default (medium) option or user-specified opts')
                 opt.db = 0.25; opt.ds = 1; opt.con = 9; opt.djc = 0.1;
-                opt.sc_maxit = 1; opt.mqa = 0.25;
+                opt.sc_maxit = 1; opt.mqa = 0.25; opt.renum = 1;
                 varargin(strcmp(varargin,'default')) = [];
                 varargin(strcmp(varargin,'medium')) = [];
             end
@@ -1061,7 +1062,7 @@ classdef msh
             opt.nscreen = 1; opt.projL = 1; pfixV = [];
             % process user-defined individual cleaning options
             optstring = {'nscreen','pfix','proj','con','djc','db','ds',...
-                'sc_maxit','mqa'};
+                'sc_maxit','mqa','renum'};
             for ii = 1:2:length(varargin)
                 jj = find(strcmp(varargin{ii},optstring));
                 if isempty(jj)
@@ -1084,6 +1085,8 @@ classdef msh
                     opt.sc_maxit  = varargin{ii + 1};
                 elseif jj == 9
                     opt.mqa  = varargin{ii + 1};
+                elseif jj == 10
+                    obj.renum = varargin{ii + 1};
                 end
             end
 
@@ -1141,8 +1144,12 @@ classdef msh
             % Delete elements with single edge connectivity
             obj = Fix_single_connec_edge_elements(obj,opt.sc_maxit,opt.nscreen);
 
+            % Renumber the mesh here
+            if opt.renum
+                obj = renum(obj);
+            end
+            
             % Reduce the mesh connectivity to maximum of con-1
-            obj = renum(obj);
             % May not always work without error
             if opt.con > 6
                 try
@@ -2461,26 +2468,11 @@ classdef msh
 
         function obj = fixmeshandcarry(obj)
             % obj = fixmeshandcarry(obj);
-            % "fixes" mesh and carries b, bx, by, f13 dat over
+            % "fixes" mesh and carries mesh properties over 
+            % e.g., b, bx, by, f13, f24, f5354 dat
             [obj.p,obj.t,pix] = fixmesh(obj.p,obj.t);
-            % move over b, slp, f13
-            if ~isempty(obj.b)
-                obj.b = obj.b(pix);
-            end
-            if ~isempty(obj.bx)
-                obj.bx = obj.bx(pix); obj.by = obj.by(pix);
-            end
-            if ~isempty(obj.f13)
-                obj.f13.NumOfNodes = length(obj.p);
-                for ii = 1:obj.f13.nAttr
-                    ind = obj.f13.userval.Atr(ii).Val(1,:);
-                    val = obj.f13.userval.Atr(ii).Val(2:end,:);
-                    [~,ia,ib] = intersect(pix,ind);
-                    va = val(:,ib);
-                    obj.f13.userval.Atr(ii).Val = [ia'; va];
-                    obj.f13.userval.Atr(ii).usernumnodes = length(ia);
-                end
-            end
+            % carry over...
+            obj = mapMeshProperties(obj,pix);
         end
 
 
@@ -4021,6 +4013,12 @@ classdef msh
             if ~isempty(obj.f24)
                 obj.f24.Val = obj.f24.Val(:,:,ind);
             end    
+            % f5354
+            if ~isempty(obj.f5354)
+                idx_old = obj.f5354.nodes;
+                [~,idx_new] = intersect(idx_old,ind);
+                obj.f5354.nodes = idx_new;
+            end
         % EOF
         end
             
