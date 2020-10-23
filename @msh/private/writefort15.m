@@ -88,9 +88,12 @@ fprintf( fid, '%g  \t \t ! STATIM \n',  f15dat.statim ) ;
 fprintf( fid, '%g  \t \t ! REFTIM \n', f15dat.reftim ) ; 
 
 % WTIMINC
-if f15dat.nws == 8 || f15dat.nws >= 19
-  fprintf( fid, '%d %d %d %d %d %g ', f15dat.wtimnc ) ;
+if f15dat.nws == 8
+  fprintf( fid, '%d %d %d %d %d %g', f15dat.wtimnc ) ;
   fprintf( fid, '  \t ! YYYY MM DD HH24 StormNumber BLAdj \n' ) ;  
+elseif f15dat.nws >= 19
+  fprintf( fid, '%d %d %d %d %d %g %d', f15dat.wtimnc ) ;
+  fprintf( fid, '  \t ! YYYY MM DD HH24 StormNumber BLAdj geofactor \n' ) ;  
 elseif f15dat.nws > 0
   fprintf( fid, '%d  ', f15dat.wtimnc ) ;
   fprintf( fid, '  \t ! WTMINC \n' ) ;       
