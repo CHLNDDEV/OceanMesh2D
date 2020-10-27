@@ -283,10 +283,10 @@ classdef msh
             %                  doesn't exist), default is [1 1 1] => white
             %   iv)  'holdon'  : =1 to plot on existing figure (otherwise
             %                    will use new figure)
-            if nargin < 2
+            if nargin < 2 || isempty(type)
                 type = 'tri';
             end
-            if nargin < 3
+            if nargin < 3 || isempty(proj)
                 proj = 0 ;
             end
             if nargin < 4

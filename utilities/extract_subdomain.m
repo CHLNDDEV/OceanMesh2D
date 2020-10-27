@@ -2,7 +2,9 @@ function [obj,ind] = extract_subdomain(obj,bou,keep_inverse,centroid,nscreen)
 % [obj,ind] = extract_subdomain(obj,bou,keep_inverse,centroid,nscreen)
 % 
 % Inputs:
-% bou: a polygon or a bbox to extract sub-domain (no NaNs allowed)
+% bou: a bbox, i.e.: [lon min, lon_max;
+%                     lat_min, lat_max], or    
+%      a NaN-delimited polygon of the domain to extract
 % keep_inverse: = 0 [default] to get the sub-domain inside the bou polygon
 %               = 1 to get the sub-domain outside the bou polygon
 % centroid: = 0 [default] inpolygon test is based on whether all vertices
@@ -32,19 +34,38 @@ end
 if nargin < 5 || isempty(nscreen)
     nscreen = 1;
 end
+% converting bbox to polygon
 if size(bou,1) == 2
      bou = [bou(1,1) bou(2,1);
-            bou(1,1) bou(2,2); ...
+            bou(1,1) bou(2,2); 
             bou(1,2) bou(2,2);
-            bou(1,2) bou(2,1); ...
+            bou(1,2) bou(2,1); 
             bou(1,1) bou(2,1)];
+end
+nans = false;
+% check whether there are nans in the bou
+if sum(isnan(bou(:,1))) > 0; nans = true; end
+if nans
+    edges = Get_poly_edges(bou);
 end
 if centroid
     bxyc = baryc(obj);
-    in = inpoly(bxyc,bou);
+    if ~nans
+        in = inpoly(bxyc,bou);
+    else
+        in = inpoly(bxyc,bou,edges);
+    end
 else
     bxy1 = p(t(:,1),:); bxy2 = p(t(:,2),:); bxy3 = p(t(:,3),:); 
-    in1 = inpoly(bxy1,bou); in2 = inpoly(bxy2,bou); in3 = inpoly(bxy3,bou);
+    if ~nans
+        in1 = inpoly(bxy1,bou); 
+        in2 = inpoly(bxy2,bou); 
+        in3 = inpoly(bxy3,bou);
+    else
+        in1 = inpoly(bxy1,bou,edges); 
+        in2 = inpoly(bxy2,bou,edges); 
+        in3 = inpoly(bxy3,bou,edges);
+    end
     in = in1 & in2 & in3;
 end
 if keep_inverse == 0
