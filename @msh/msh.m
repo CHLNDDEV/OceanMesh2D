@@ -335,7 +335,7 @@ classdef msh
                         bou(1,1) bou(2,1)];
                 end
                 % Get a subset given by bou
-                [obj,kept] = ExtractSubDomain(obj,bou,[],[],0);
+                [obj,kept] = extract_subdomain(obj,bou,[],[],0);
                 obj = mapMeshProperties(obj,kept);
             end
 
@@ -2214,7 +2214,7 @@ classdef msh
                         cell2 = extdom_polygon(extdom_edges2(t1,p1),p1,-1,0);
                         bou = cell2{1}(1:end-1,:);
                         obj2o = obj2; obj2.p = p2;
-                        obj2 = ExtractSubDomain(obj2,bou,1,1);
+                        obj2 = extract_subdomain(obj2,bou,1,1);
                         [obj2.p(:,1),obj2.p(:,2)] = m_xy2ll(obj2.p(:,1),obj2.p(:,2));
                     end
                     % concatenate

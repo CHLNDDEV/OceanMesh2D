@@ -1,5 +1,5 @@
-function [obj,ind] = ExtractSubDomain(obj,bou,keep_inverse,centroid,nscreen)
-% [obj,ind] = ExtractSubDomain(obj,bou,keep_inverse,centroid,nscreen)
+function [obj,ind] = extract_subdomain(obj,bou,keep_inverse,centroid,nscreen)
+% [obj,ind] = extract_subdomain(obj,bou,keep_inverse,centroid,nscreen)
 % 
 % Inputs:
 % bou: a polygon or a bbox to extract sub-domain (no NaNs allowed)
