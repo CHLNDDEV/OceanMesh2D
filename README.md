@@ -82,3 +82,23 @@ The boundary of the meshing domain must be a polygon (first point equals the las
   <img src = "imgs/ResoNA.png"> &nbsp &nbsp &nbsp &nbsp
   <img src = "imgs/Globalocean.jpg"> &nbsp &nbsp &nbsp &nbsp
 </p>
+
+Changelog
+=========
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
+
+## Unreleased - 2020/10/28
+### Added
+- Changelog to README
+- "mapMeshProperties" msh method ports over mesh properties for a mesh subset
+
+### Changed
+- renamed "ExtractSubDomain.m" to "extract_subdomain.m"
+- improving "extract_subdomain.m" help and facilitating NaN-delimited polygons
+- ability to return boundary as a cell in "getBoundaryOfMesh" msh method
+- "Example_1_NZ.m" includes example of plotting bcs of a msh subset
+- using "mapMeshproperties" method in "fixmeshandcarry" 
+- using "fixmeshandcarry" in the "cat" msh method
+- improving warning and error messages for the "interp" msh method
+- adding geofactor into "writefort15" for the GAHM vortex model
