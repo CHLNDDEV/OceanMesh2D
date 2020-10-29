@@ -55,6 +55,7 @@ b_lon = obj.p(nodes,1); b_lat = obj.p(nodes,2);
 %% Load tide data and make vectors
 lon = ncread(tidalele,'lon_z');
 lat = ncread(tidalele,'lat_z');
+const_t = ncread(tidalele,'con');
 lonu = double(ncread(tidalvel,'lon_u'));
 latu = double(ncread(tidalvel,'lat_u'));
 lonv = double(ncread(tidalvel,'lon_v'));
