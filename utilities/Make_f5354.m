@@ -23,9 +23,13 @@ end
 cidx = strfind(tidalele,'**') ;
 if ~isempty(cidx)
     tidalele(cidx:cidx+1) = lower(obj.f15.bountag(1).name);
+    tidalvel(cidx:cidx+1) = lower(obj.f15.bountag(1).name);
 end
 if ~exist(tidalele,'file')
    error(['tidal database file does not exist: ' tidalele])        
+end
+if ~exist(tidalvel,'file')
+   error(['tidal database file does not exist: ' tidalvel])        
 end
 
 ii = find(contains({obj.f13.defval.Atr(:).AttrName},'sponge'));
