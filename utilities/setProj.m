@@ -1,5 +1,5 @@
 function [del,obj] = setProj(obj,proj,projtype,insert)
-    % [del,obj] = setProj(obj,proj,projtype)
+    % [del,obj] = setProj(obj,proj,projtype,insert)
     % kjr generic function to parse projected space options
     % returns del flag to delete overlapping elements when plotting
     % global models.

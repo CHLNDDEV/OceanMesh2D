@@ -10,10 +10,6 @@ function obj = Make_f5354( obj, tidalele, tidalvel )
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % check entry
-if ~exist(tidalele,'file')
-   error(['tidal database file does not exist: ' tidalele])        
-end
-
 if isempty(obj.b)
    error('Requires depths into the msh object to calculate the velocity') 
 end
@@ -21,6 +17,15 @@ end
 if isempty(obj.f15)
    error(['The msh object must have the f15 struct populated '...
           'with tidal boundary information']) 
+end
+
+% if we are using wildcard for each constituent in list of files 
+cidx = strfind(tidalele,'**') ;
+if ~isempty(cidx)
+    tidalele(cidx:cidx+1) = lower(obj.f15.bountag(1).name);
+end
+if ~exist(tidalele,'file')
+   error(['tidal database file does not exist: ' tidalele])        
 end
 
 ii = find(contains({obj.f13.defval.Atr(:).AttrName},'sponge'));
@@ -55,10 +60,12 @@ latu = double(ncread(tidalvel,'lat_u'));
 lonv = double(ncread(tidalvel,'lon_v'));
 latv = double(ncread(tidalvel,'lat_v'));
 L = size(lon); Lx = size(lonu); Ly = size(lonv);
-const_t = ncread(tidalele,'con');
-lon(lon > 180) = lon(lon > 180) - 360;
-lonu(lonu > 180) = lonu(lonu > 180) - 360;
-lonv(lonv > 180) = lonv(lonv > 180) - 360;
+if max(obj.p(:,1)) <= 180
+    % change longitude to -180-180 format if msh is in that format
+    lon(lon > 180) = lon(lon > 180) - 360;
+    lonu(lonu > 180) = lonu(lonu > 180) - 360;
+    lonv(lonv > 180) = lonv(lonv > 180) - 360;
+end
 lon = reshape(lon,[],1);
 lat = reshape(lat,[],1);
 lonu = reshape(lonu,[],1);
@@ -106,7 +113,14 @@ obj.f5354.nodes = nodes;
 keep = true(obj.f5354.nfreq,1);
 for j = 1:obj.f5354.nfreq
     % Read the current consituent
-    % For real part
+    if ~isempty(cidx)
+        tidalele(cidx:cidx+1) = lower(obj.f15.bountag(j).name);
+        tidalvel(cidx:cidx+1) = lower(obj.f15.bountag(j).name);
+        if exist(tidalele,'file')
+            const_t = ncread(tidalele,'con');
+        end
+    end
+    % check this constituent exists
     k = find(startsWith(string(const_t'),lower(obj.f15.bountag(j).name)),1);
     if isempty(k)
        disp(['No tidal data in file for constituent ' ...

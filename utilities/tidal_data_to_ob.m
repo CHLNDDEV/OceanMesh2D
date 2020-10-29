@@ -10,6 +10,11 @@ function obj = tidal_data_to_ob(obj,tidal_database,const)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % check entry
+% if we are using wildcard for each constituent in list of files 
+cidx = strfind(tidal_database,'**') ;
+if ~isempty(cidx)
+    tidal_database(cidx:cidx+1) = lower(const{1});
+end
 if ~exist(tidal_database,'file')
    error(['tidal database file does not exist: ' tidal_database])        
 end
@@ -49,7 +54,13 @@ end
 lon = ncread(tidal_database,'lon_z');
 lat = ncread(tidal_database,'lat_z');
 const_t = ncread(tidal_database,'con');
-lon(lon > 180) = lon(lon > 180) - 360;
+if min(size(lon)) == 1
+    [lon,lat] = meshgrid(lon,lat); 
+end
+if max(obj.p(:,1)) <= 180
+    % change to -180 to 180 format if msh is in that format
+    lon(lon > 180) = lon(lon > 180) - 360;
+end
 lon_x = reshape(lon,[],1);
 lat_y = reshape(lat,[],1);
 
@@ -73,18 +84,32 @@ lon_x = lon_x(Kd); lat_y = lat_y(Kd);
 keep = true(obj.f15.nbfr,1);
 for j = 1:obj.f15.nbfr
     % Read the current consituent
-    % For real part
+    if ~isempty(cidx)
+        tidal_database(cidx:cidx+1) = lower(const{j});
+        if exist(tidal_database,'file')
+            const_t = ncread(tidal_database,'con');
+        end
+    end
     k = find(startsWith(string(const_t'),lower(const{j})));
     if isempty(k)
        disp(['No tidal data in file for constituent ' const{j}])
        keep(j) = false;  
        continue
     end
-    Re_now = ncread(tidal_database,'hRe',[1 1 k],[size(lon) 1]);
+        % For real part
+    if min(size(const_t)) > 1
+        Re_now = ncread(tidal_database,'hRe',[1 1 k],[size(lon) 1]);
+    else
+        Re_now = double(ncread(tidal_database,'hRe'))/1000;
+    end
     % reshape to vector
     Re_now = reshape(Re_now,[],1);
     % For imaginary part
-    Im_now = ncread(tidal_database,'hIm',[1 1 k],[size(lon) 1]);
+    if min(size(const_t)) > 1
+        Im_now = ncread(tidal_database,'hIm',[1 1 k],[size(lon) 1]);
+    else
+        Im_now = double(ncread(tidal_database,'hIm'))/1000;
+    end
     % reshape to vector    
     Im_now = reshape(Im_now,[],1);
     % Eliminate regions outside of search area and on land
