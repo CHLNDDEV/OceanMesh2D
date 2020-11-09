@@ -341,7 +341,7 @@ classdef geodata
                 
                 % Handle the case for user defined mesh boundary information
                 polygon_struct = Read_shapefile( [], obj.pslg, ...
-                    obj.bbox, obj.gridspace, obj.boubox, 0 );
+                    obj.bbox, obj.gridspace, obj.boubox, 0, obj.shapefile_3d);
                 
                 % Unpack data from function Read_Shapefile()s
                 obj.outer     = polygon_struct.outer;
@@ -657,7 +657,7 @@ classdef geodata
             
             % check for inpoly goodness read the GSHHS checker
             ps = Read_shapefile( {'GSHHS_l_L1'}, [], ...
-                obj.bbox, obj.gridspace, obj.boubox, 0 );
+                obj.bbox, obj.gridspace, obj.boubox, 0, 0 );
             
             % make a "fake" tester grid
             x = linspace(obj.bbox(1,1),obj.bbox(1,2),100);
