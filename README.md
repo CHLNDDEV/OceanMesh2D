@@ -1,20 +1,54 @@
 # `OceanMesh2D:`
 ## `Precise distance-based two-dimensional automated mesh generation toolbox intended for coast ocean/shallow water flow models`
 
+Table of contents
+=================
+
+<!--ts-->
+   * [OceanMesh2D](#oceanmesh2d)
+   * [Table of contents](#table-of-contents)
+   * [Getting help](#getting-help)
+   * [Contributing](#contributing)
+   * [Code framework](#code-framework)
+   * [Starting out](#starting-out)
+   * [References](#references)
+   * [Gallery](#gallery)
+   * [Changelog](#changelog)
+<!--te-->
+
 ## IMPORTANT NOTE:
 This is the default and recommended `PROJECTION` branch. Please use it unless you otherwise require legacy (`MASTER` branch) or the absolute newest features (`DEV` branch). 
 
 OceanMesh2D is a set of user-friendly MATLAB functions to generate two-dimensional (2D) unstructured meshes for coastal ocean circulation problems. These meshes are based on a variety of feature driven geometric and bathymetric mesh size functions, which are generated according to user-defined parameters. Mesh generation is achieved through a force-balance algorithm combined with a number of topological improvement strategies aimed at improving the worst case triangle quality. The software embeds the mesh generation process into an object-orientated framework that contains pre- and post-processing workflows, which makes mesh generation flexible, reproducible, and script-able. 
 
-## `Slack`
+Getting help
+==============
 
-Besides posting issues with the code on Github, you can also ask questions via our Slack channel [here](https://join.slack.com/t/oceanmesh2d/shared_invite/zt-igvr8rvo-OctG9t0QEYNyyvVr55ynUQ).
+Besides posting [issues](https://github.com/CHLNDDEV/OceanMesh2D/issues) with the code on Github, you can also ask questions via our Slack channel [here](https://join.slack.com/t/oceanmesh2d/shared_invite/zt-igvr8rvo-OctG9t0QEYNyyvVr55ynUQ).
 
 Otherwise please reach out to either Dr. William Pringle (wpringle@nd.edu) or Dr. Keith Roberts (krober@usp.br) with questions or concerns or feel free to start an Issue in the issues tab above. 
 
 
+Contributing
+============
 
-## `Code framework` 
+All contributions are welcome!
+
+To contribute to the software:
+
+1. [Fork](https://docs.github.com/en/free-pro-team@latest/github/getting-started-with-github/fork-a-repo) the repository.
+2. Clone the forked repository, add your contributions and push the changes to your fork.
+3. Create a [Pull request](https://github.com/krober10nd/OceanMesh2D/pulls)
+
+Before creating the pull request, make sure that the examples pass...
+
+Some things that will increase the chance that your pull request is accepted:
+-  Write minimal working [examples](https://en.wikipedia.org/wiki/Minimal_working_example#:~:text=In%20computing%2C%20a%20minimal%20working,to%20be%20demonstrated%20and%20reproduced) that demonstrate the functionality.
+- Write good commit and pull request messages.
+
+
+Code framework
+================
 `OceanMesh2D`  consists of four standalone classes that are called in sequence. It requires no paid toolboxes to build meshes and has been tested to work with a trial version of MATLAB.
 
     OceanMesh2D::
@@ -23,7 +57,8 @@ Otherwise please reach out to either Dr. William Pringle (wpringle@nd.edu) or Dr
     ├── meshgen -- generate mesh based on mesh size functions and boundaries.
     └── msh     -- store, write, read, inspect, and visualize meshes and their axuillary components for numerical simulation.
 
-## `Starting Out`
+Starting Out
+============
 
 Clone or download and unzip the current [repository](https://github.com/CHLNDDEV/OceanMesh2D/archive/Projection.zip)
 
@@ -43,13 +78,15 @@ Development paper[1]└── Examples/Example_6_GBAY.m %<- An example of the po
 
 ```
 
-## `Testing` 
+Testing
+==========
 
 All pull requests are tested with Jenkins on a local host. However, to ensure the software is fully functional on your system it's encouraged to run the tests in Tests/ yourself. 
 
 
 
-## `References!`
+References!
+==============
 
 If you make use of `OceanMesh2D` please include a reference to [1], and to any of [2]-[5] if pertinent:
 ```
@@ -74,7 +111,9 @@ If you make use of `OceanMesh2D` please include a reference to [1], and to any o
 ## `DISCLAIMER: `
 The boundary of the meshing domain must be a polygon (first point equals the last and non-self intersecting) but it does not need to be simplified. Read the user guide for more information about the inputs.
 
-## `GALLERY: `
+GALLERY: 
+=========
+* These images can be made by running the [examples](https://github.com/CHLNDDEV/OceanMesh2D/tree/Projection/Examples)
 <p align="center">
   <img src = "imgs/VizGilgo.png"> &nbsp &nbsp &nbsp &nbsp
   <img src = "imgs/Example1.png"> &nbsp &nbsp &nbsp &nbsp
@@ -89,6 +128,11 @@ Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## Unreleased - 2020/10/28
+
+### Fixed
+- Users without mapping toolbox could not read in shapefiles because of a bug that 
+  made them required to have a 3d shapefiles.
+
 ### Added
 - Changelog to README
 - "mapMeshProperties" msh method ports over mesh properties for a mesh subset
