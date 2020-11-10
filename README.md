@@ -38,7 +38,7 @@ To contribute to the software:
 
 1. [Fork](https://docs.github.com/en/free-pro-team@latest/github/getting-started-with-github/fork-a-repo) the repository.
 2. Clone the forked repository, add your contributions and push the changes to your fork.
-3. Create a [Pull request](https://github.com/krober10nd/OceanMesh2D/pulls)
+3. Create a [Pull request](https://github.com/CHLNDDEV/OceanMesh2D/pulls)
 
 Before creating the pull request, make sure that the examples pass...
 
