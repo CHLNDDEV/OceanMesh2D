@@ -195,7 +195,7 @@ function [amp_b, phs_b] = interp_h(fname,k,L,I,Kd,b_x,b_y,x,y)
     xx = x; yy = y; xx(K) = []; yy(K) = []; 
     % Make into complex number
     Z = Re_now - Im_now*1i;
-     Do the scattered Interpolation
+    % Do the scattered Interpolation
     F = scatteredInterpolant(xx,yy,Z,'natural');
     BZ = F(b_x,b_y);  
     % Convert real and imaginary parts to amplitude and phase
