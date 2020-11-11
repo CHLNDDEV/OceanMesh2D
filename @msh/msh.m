@@ -176,6 +176,16 @@ classdef msh
 
         % write mesh to disk
         function write(obj,fname,type)
+        % Usage:
+        % write(obj,fname,type)
+        %
+        % Examples:
+        % write(obj);       % writes all available data to fort_1.xx (ADCIRC) files
+        % write(obj,fname); % writes all available data to fname.xx (ADCIRC) files
+        % write(obj,fname,'14');  % writes mesh data to fname.14 (ADCIRC) file
+        % write(obj,fname,'gr3'); % writes mesh data to fname.gr3 (SCHISM) file
+        % write(obj,fname,'ww3'); % writes mesh data to fname.ww3 (WaveWatchIII) file
+        % write(obj,fname,{'13','14'}); % writes mesh data and f13 attribute data to fname.14 and fname.13 (ADCIRC) files
             if nargin == 1
                 fname = 'fort_1';
             end
@@ -207,7 +217,8 @@ classdef msh
                     writefort5354( obj.f5354, fname );
                 end
             else
-                if any(contains(type,'14')) || any(contains(type,'ww3'))
+                if any(contains(type,'14')) || any(contains(type,'ww3')) || ...
+                   any(contains(type,'gr3'))
                     if isempty(obj.p)
                         error('No mesh, cannot write.')
                     end
@@ -218,6 +229,15 @@ classdef msh
                     end
                     if any(contains(type,'14'))
                         writefort14( [fname '.14'] , obj.t, obj.p, b_t, ...
+                            obj.op , obj.bd ,obj.title ) ;
+                    end
+                    if any(contains(type,'gr3'))
+                        if ~isempty(obj.bd)
+                            % schism only accepts ibtype 0 or 1 for land bcs
+                            obj.bd.ibtype(obj.bd.ibtype == 21) = 1;
+                            obj.bd.ibtype(obj.bd.ibtype == 20) = 0;
+                        end
+                        writefort14( [fname '.gr3'] , obj.t, obj.p, b_t, ...
                             obj.op , obj.bd ,obj.title ) ;
                     end
                     if any(contains(type,'ww3'))
