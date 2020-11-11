@@ -43,9 +43,8 @@ To contribute to the software:
 Before creating the pull request, make sure that the examples pass...
 
 Some things that will increase the chance that your pull request is accepted:
--  Write minimal working [examples](https://en.wikipedia.org/wiki/Minimal_working_example#:~:text=In%20computing%2C%20a%20minimal%20working,to%20be%20demonstrated%20and%20reproduced) that demonstrate the functionality.
+- Write minimal working [examples](https://en.wikipedia.org/wiki/Minimal_working_example#:~:text=In%20computing%2C%20a%20minimal%20working,to%20be%20demonstrated%20and%20reproduced) that demonstrate the functionality.
 - Write good commit and pull request messages.
-
 
 Code framework
 ================
