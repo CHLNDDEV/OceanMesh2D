@@ -10,10 +10,6 @@ function obj = Make_f5354( obj, tidalele, tidalvel )
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % check entry
-if ~exist(tidalele,'file')
-   error(['tidal database file does not exist: ' tidalele])        
-end
-
 if isempty(obj.b)
    error('Requires depths into the msh object to calculate the velocity') 
 end
@@ -21,6 +17,19 @@ end
 if isempty(obj.f15)
    error(['The msh object must have the f15 struct populated '...
           'with tidal boundary information']) 
+end
+
+% if we are using wildcard for each constituent in list of files 
+cidx = strfind(tidalele,'**') ;
+if ~isempty(cidx)
+    tidalele(cidx:cidx+1) = lower(obj.f15.bountag(1).name);
+    tidalvel(cidx:cidx+1) = lower(obj.f15.bountag(1).name);
+end
+if ~exist(tidalele,'file')
+   error(['tidal database file does not exist: ' tidalele])        
+end
+if ~exist(tidalvel,'file')
+   error(['tidal database file does not exist: ' tidalvel])        
 end
 
 ii = find(contains({obj.f13.defval.Atr(:).AttrName},'sponge'));
@@ -50,15 +59,27 @@ b_lon = obj.p(nodes,1); b_lat = obj.p(nodes,2);
 %% Load tide data and make vectors
 lon = ncread(tidalele,'lon_z');
 lat = ncread(tidalele,'lat_z');
+const_t = ncread(tidalele,'con');
 lonu = double(ncread(tidalvel,'lon_u'));
 latu = double(ncread(tidalvel,'lat_u'));
 lonv = double(ncread(tidalvel,'lon_v'));
 latv = double(ncread(tidalvel,'lat_v'));
 L = size(lon); Lx = size(lonu); Ly = size(lonv);
-const_t = ncread(tidalele,'con');
-lon(lon > 180) = lon(lon > 180) - 360;
-lonu(lonu > 180) = lonu(lonu > 180) - 360;
-lonv(lonv > 180) = lonv(lonv > 180) - 360;
+if min(L) == 1
+    [lon,lat] = meshgrid(lon,lat); 
+end
+if min(Lx) == 1
+    [lonu,latu] = meshgrid(lonu,latu); 
+end
+if min(Ly) == 1
+    [lonv,latv] = meshgrid(lonv,latv); 
+end
+if max(obj.p(:,1)) <= 180
+    % change longitude to -180-180 format if msh is in that format
+    lon(lon > 180) = lon(lon > 180) - 360;
+    lonu(lonu > 180) = lonu(lonu > 180) - 360;
+    lonv(lonv > 180) = lonv(lonv > 180) - 360;
+end
 lon = reshape(lon,[],1);
 lat = reshape(lat,[],1);
 lonu = reshape(lonu,[],1);
@@ -106,7 +127,14 @@ obj.f5354.nodes = nodes;
 keep = true(obj.f5354.nfreq,1);
 for j = 1:obj.f5354.nfreq
     % Read the current consituent
-    % For real part
+    if ~isempty(cidx)
+        tidalele(cidx:cidx+1) = lower(obj.f15.bountag(j).name);
+        tidalvel(cidx:cidx+1) = lower(obj.f15.bountag(j).name);
+        if exist(tidalele,'file')
+            const_t = ncread(tidalele,'con');
+        end
+    end
+    % check this constituent exists
     k = find(startsWith(string(const_t'),lower(obj.f15.bountag(j).name)),1);
     if isempty(k)
        disp(['No tidal data in file for constituent ' ...
@@ -144,12 +172,19 @@ end
 
 function [amp_b, phs_b] = interp_h(fname,k,L,I,Kd,b_x,b_y,x,y)
     Re = 'hRe'; Im = 'hIm';
-    Re_now = ncread(fname,Re,[1 1 k],[L 1]);
+    try
+       % Real part
+       Re_now = ncread(fname,Re,[1 1 k],[L 1]);
+       % Imaginary part
+       Im_now = ncread(fname,Im,[1 1 k],[L 1]);
+    catch
+       % Real part - convert from mm to m
+       Re_now = double(ncread(fname,Re))/1000;
+       % Imaginary part - convert from mm to m
+       Im_now = double(ncread(fname,Im))/1000;
+    end
     % reshape to vector
     Re_now = reshape(Re_now,[],1);
-    % For imaginary part
-    Im_now = ncread(fname,Im,[1 1 k],[L 1]);
-    % reshape to vector    
     Im_now = reshape(Im_now,[],1);
     % Eliminate regions outside of search area and on land
     % Linear extrapolation of ocean values will be conducted where 
@@ -174,12 +209,22 @@ end
 
 function [amp_u, phs_u, amp_v, phs_v] = interp_u(fname,k,Lx,Ly,Iu,Iv,... 
                                                Kdu,Kdv,b_x,b_y,xu,xv,yu,yv)
-    Re = 'URe'; Im = 'UIm';
-    Re_now = ncread(fname,Re,[1 1 k],[Lx 1]);
+    % % For U component of transport
+    try 
+       Re = 'URe'; Im = 'UIm';
+       % For real part
+       Re_now = ncread(fname,Re,[1 1 k],[Lx 1]);
+       % For imaginary part
+       Im_now = ncread(fname,Im,[1 1 k],[Lx 1]);
+    catch
+       Re = 'uRe'; Im = 'uIm';
+       % For real part - convert from cm^2/s to m^2/s
+       Re_now = double(ncread(fname,Re))/1e4;
+       % For imaginary part - convert from cm^2/s to m^2/s
+       Im_now = double(ncread(fname,Im))/1e4;
+    end 
     % reshape to vector
     Re_now = reshape(Re_now,[],1);
-    % For imaginary part
-    Im_now = ncread(fname,Im,[1 1 k],[Lx 1]);
     % reshape to vector    
     Im_now = reshape(Im_now,[],1);
     % Eliminate regions outside of search area and on land
@@ -192,7 +237,7 @@ function [amp_u, phs_u, amp_v, phs_v] = interp_u(fname,k,Lx,Ly,Iu,Iv,...
     % Make into complex number
     Z = Re_now - Im_now*1i;
     % Do the scattered Interpolation
-    F = scatteredInterpolant(xx,yy,double(Z),'natural');
+    F = scatteredInterpolant(xx,yy,Z,'natural');
     BZ = F(b_x,b_y);  
     % Convert real and imaginary parts to amplitude and phase
     amp_u = abs(BZ);  
@@ -202,12 +247,22 @@ function [amp_u, phs_u, amp_v, phs_v] = interp_u(fname,k,Lx,Ly,Iu,Iv,...
     % phs_b that is negative -180 - 0 becomes 180 - 360
     phs_u(phs_u < 0) = phs_u(phs_u < 0) + 360;
     
-    Re = 'VRe'; Im = 'VIm';
-    Re_now = ncread(fname,Re,[1 1 k],[Ly 1]);
+    % % For the V-component of transport
+    try 
+       Re = 'VRe'; Im = 'VIm';
+       % For real part
+       Re_now = ncread(fname,Re,[1 1 k],[Ly 1]);
+       % For imaginary part
+       Im_now = ncread(fname,Im,[1 1 k],[Ly 1]);
+    catch
+       Re = 'vRe'; Im = 'vIm';
+       % For real part - convert from cm^2/s to m^2/s
+       Re_now = double(ncread(fname,Re))/1e4;
+       % For imaginary part - convert from cm^2/s to m^2/s
+       Im_now = double(ncread(fname,Im))/1e4;
+    end 
     % reshape to vector
     Re_now = reshape(Re_now,[],1);
-    % For imaginary part
-    Im_now = ncread(fname,Im,[1 1 k],[Ly 1]);
     % reshape to vector    
     Im_now = reshape(Im_now,[],1);
     % Eliminate regions outside of search area and on land
@@ -220,7 +275,7 @@ function [amp_u, phs_u, amp_v, phs_v] = interp_u(fname,k,Lx,Ly,Iu,Iv,...
     % Make into complex number
     Z = Re_now - Im_now*1i;
     % Do the scattered Interpolation
-    F = scatteredInterpolant(xx,yy,double(Z),'natural');
+    F = scatteredInterpolant(xx,yy,Z,'natural');
     BZ = F(b_x,b_y);  
     % Convert real and imaginary parts to amplitude and phase
     amp_v = abs(BZ);  

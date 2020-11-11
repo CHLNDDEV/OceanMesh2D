@@ -778,7 +778,7 @@ classdef msh
                         end
                         defval  = obj.f13.defval.Atr(ii).Val;
                         userval = obj.f13.userval.Atr(ii).Val;
-                        values = obj.p(:,1)*0 + defval;
+                        values = obj.p(:,1)*0 + defval';
                         values(userval(1,:),:) = userval(2:end,:)';
                         % just take the inf norm
                         values = max(values,[],2);
@@ -1263,8 +1263,12 @@ classdef msh
             %
             % ---------
             % 'auto' - automatically applies elevation and no-flux bcs to mesh based on geodata class
+            %     NB: Use 'auto_outer' option to only apply bcs to the outermost
+            %     polygon and ignore the islands
             % varargins:
-            % varargin{1}: geodata class
+            % varargin{1}: geodata class 
+            %     NB: User may supply an empty varargin{1} if you have interpolated depths
+            %     to your mesh in which case the 'depth' based classification will be enforced
             % varargin{2} (optional): method of classification:
             %    - 'distance': classifies as ocean based on distance to shoreline
             %    - 'depth': classifies as ocean based on depth
@@ -1277,6 +1281,11 @@ classdef msh
             % varargin{4} (optional):
             %    - if varargin{2} is 'both': the depth below which a boundary is
             %      classifed as ocean (default is 10 m)
+            %    - if varargin{2} is not 'both': the minimum number of
+            %      vertices for a boundary to be classifed as ocean (default is 10)
+            % varargin{5} (optional):
+            %    - if varargin{2} is 'both': the minimum number of
+            %      vertices for a boundary to be classifed as ocean (default is 10)
             %
             % ---------
             % 'outer' - applies user-defined bc to a segment of the outer mesh polygon
@@ -1309,18 +1318,27 @@ classdef msh
             end
             L = 1e3;
             switch type
-                case('auto')
+                case{'auto','auto_outer'}
                     % automatically applies elevation and no-flux bcs to mesh based on geodata class
+                    outer_only = false;
+                    if contains(type,'outer'); outer_only = true; end
                     if isempty(varargin)
                         error('must supply a geodata class for "auto" as third input')
                     end
                     gdat = varargin{1};
-                    if ~isa(gdat,'geodata')
-                        error('third input must be a geodata class for "auto"')
+                    if isempty(gdat)
+                        disp(['gdat is empty: enforcing the ' ...
+                              'depth-based "auto" option.'])
+                        classifier = 'depth';
+                    else
+                        if ~isa(gdat,'geodata')
+                            error('third input must be a geodata class for "auto"')
+                        end
+                        dist_lim = 10*gdat.gridspace;
+                        classifier = 'both';
                     end
                     depth_lim = -10;
-                    dist_lim = 10*gdat.gridspace;
-                    classifier = 'both';
+                    cut_lim = 10;
                     if length(varargin) > 1 && ~isempty(varargin{2})
                         classifier = varargin{2};
                     end
@@ -1329,16 +1347,36 @@ classdef msh
                             if length(varargin) > 2 && ~isempty(varargin{3})
                                 dist_lim = varargin{3};
                             end
+                            if length(varargin) > 3 && ~isempty(varargin{4})
+                                cut_lim = varargin{4};
+                            end
                         case('depth')
-                            if isempty(gdat.Fb)
-                                error('No DEM info to use "depth" classification criteria')
+                            if (isempty(obj.b) || sum(obj.b) == 0) && ...
+                               (isempty(dat) || isempty(gdat.Fb))
+                                if isempty(obj.b) || sum(obj.b) == 0
+                                    warning('No depths on the mesh')
+                                end
+                                if ~isempty(gdat) && isempty(gdat.Fb)
+                                    warning('No DEM info in gdat')
+                                end
+                                error('Cannot use "depth" classification criteria for above reasons')
                             end
                             if length(varargin) > 2 && ~isempty(varargin{3})
                                 depth_lim = -varargin{3};
                             end
+                            if length(varargin) > 3 && ~isempty(varargin{4})
+                                cut_lim = varargin{4};
+                            end
                         case('both')
-                            if isempty(gdat.Fb)
-                                error('No DEM info to use "both" classification criteria')
+                            if (isempty(obj.b) || sum(obj.b) == 0) && ...
+                               (isempty(dat) || isempty(gdat.Fb))
+                                if isempty(obj.b) || sum(obj.b) == 0
+                                    warning('No depths on the mesh')
+                                end
+                                if ~isempty(gdat) && isempty(gdat.Fb)
+                                    warning('No DEM info in gdat')
+                                end
+                                error('Cannot use "both" classification criteria for above reasons')
                             end
                             if length(varargin) > 2 && ~isempty(varargin{3})
                                 dist_lim = varargin{3};
@@ -1346,8 +1384,11 @@ classdef msh
                             if length(varargin) > 3 && ~isempty(varargin{4})
                                 depth_lim = -varargin{4};
                             end
+                            if length(varargin) > 4 && ~isempty(varargin{5})
+                                cut_lim = varargin{4};
+                            end
                     end
-                    cut_lim = 10;
+                    
 
                     % Check for global mesh
                     Le = find(obj.p(:,1) < -179, 1);
@@ -1382,12 +1423,20 @@ classdef msh
                             eb_class = ldst > dist_lim;
                             if strcmp(classifier,'both')
                                 % ii) based on depth
-                                eb_depth = gdat.Fb(eb_mid);
+                                if ~isempty(obj.b) && sum(obj.b) > 0
+                                    eb_depth = -mean(obj.b(etbv),2);
+                                elseif ~isempty(gdat)
+                                    eb_depth = gdat.Fb(eb_mid);
+                                end
                                 eb_class = eb_class & eb_depth < depth_lim;
                             end
                         case('depth')
                             % ii) based on depth
-                            eb_depth = gdat.Fb(eb_mid);
+                            if ~isempty(obj.b) && sum(obj.b) > 0
+                                eb_depth = -mean(obj.b(etbv),2);
+                            elseif ~isempty(gdat)
+                                eb_depth = gdat.Fb(eb_mid);
+                            end
                             eb_class = eb_depth < depth_lim;
                     end
 
@@ -1470,6 +1519,9 @@ classdef msh
                                     ibtype(nbou) = 20;
                                     nbvv(1:nvell(nbou),nbou) = idv_t';
                                 end
+                            end
+                            if outer_only
+                                break;
                             end
                         else
                             % % polygon is an island

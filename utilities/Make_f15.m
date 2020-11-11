@@ -25,11 +25,15 @@ function obj = Make_f15( obj, ts, te, dt, varargin )
 %               automatically calculated based on ts and te. 
 %
 %               'tidal_database' : the directory + filename tidal database of
-%               elevations to interpolate to your boundaries. At the moment
-%               just handles TPXO9.1 (Netcdf), available for download at:
-%               http://volkov.oce.orst.edu/tides/global.html. The filename 
-%               will be 'h_tpxo9.v1.nc'. This option requires the 'const' 
-%               name-value pair input.
+%               elevations to interpolate to your boundaries. 
+%               This option requires the 'const' name-value pair input.
+%               Use either:
+%               a) TPXO9.1 (Netcdf), available for download at:
+%                  http://volkov.oce.orst.edu/tides/global.html. The 
+%                  filename will be 'h_tpxo9.v1.nc'. 
+%               b) The TPXO Atlas (Netcdf) in which case the filename 
+%                  is 'h_**_tpxo9_atlas_30.nc' (for e.g., the tpxo9 atlas) 
+%                  where the wildcard is used in place of the constituent name
 %
 %               'sta_database' : a 1x2 cell, where the first element contains
 %               a character referring to a specific database. At the moment

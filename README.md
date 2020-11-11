@@ -43,9 +43,8 @@ To contribute to the software:
 Before creating the pull request, make sure that the examples pass...
 
 Some things that will increase the chance that your pull request is accepted:
--  Write minimal working [examples](https://en.wikipedia.org/wiki/Minimal_working_example#:~:text=In%20computing%2C%20a%20minimal%20working,to%20be%20demonstrated%20and%20reproduced) that demonstrate the functionality.
+- Write minimal working [examples](https://en.wikipedia.org/wiki/Minimal_working_example#:~:text=In%20computing%2C%20a%20minimal%20working,to%20be%20demonstrated%20and%20reproduced) that demonstrate the functionality.
 - Write good commit and pull request messages.
-
 
 Code framework
 ================
@@ -126,6 +125,15 @@ Changelog
 =========
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
+
+## Unreleased - 2020/11/11
+### Added
+- Ability to use the TPXO9 Atlas for the tidal bcs and sponge (inside tidal_data_to_ob.m and Calc_Sponge.m) by using '**' wildcards in place of the constituent name within the tidal atlas filename (the atlas has an individual file for each constituent).
+- Introducing 'auto_outer' option for the make_bc msh method which populates the bc for the outermost mesh boundary polygon (ignores islands)
+
+### Changed
+- for the make_bc msh method 'auto'/'auto_outer' options, allowing for the 'depth' method of classification to use the interpolated depths on the mesh if gdat is empty. 
+- improving help for make_bc msh method, Make_f15.m and Calc_Sponge.m
 
 ## Unreleased - 2020/10/28
 
