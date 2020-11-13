@@ -176,6 +176,16 @@ classdef msh
 
         % write mesh to disk
         function write(obj,fname,type)
+        % Usage:
+        % write(obj,fname,type)
+        %
+        % Examples:
+        % write(obj);       % writes all available data to fort_1.xx (ADCIRC) files
+        % write(obj,fname); % writes all available data to fname.xx (ADCIRC) files
+        % write(obj,fname,'14');  % writes mesh data to fname.14 (ADCIRC) file
+        % write(obj,fname,'gr3'); % writes mesh data to fname.gr3 (SCHISM) file
+        % write(obj,fname,'ww3'); % writes mesh data to fname.ww3 (WaveWatchIII) file
+        % write(obj,fname,{'13','14'}); % writes mesh data and f13 attribute data to fname.14 and fname.13 (ADCIRC) files
             if nargin == 1
                 fname = 'fort_1';
             end
@@ -207,7 +217,8 @@ classdef msh
                     writefort5354( obj.f5354, fname );
                 end
             else
-                if any(contains(type,'14')) || any(contains(type,'ww3'))
+                if any(contains(type,'14')) || any(contains(type,'ww3')) || ...
+                   any(contains(type,'gr3'))
                     if isempty(obj.p)
                         error('No mesh, cannot write.')
                     end
@@ -218,6 +229,15 @@ classdef msh
                     end
                     if any(contains(type,'14'))
                         writefort14( [fname '.14'] , obj.t, obj.p, b_t, ...
+                            obj.op , obj.bd ,obj.title ) ;
+                    end
+                    if any(contains(type,'gr3'))
+                        if ~isempty(obj.bd)
+                            % schism only accepts ibtype 0 or 1 for land bcs
+                            obj.bd.ibtype(obj.bd.ibtype == 21) = 1;
+                            obj.bd.ibtype(obj.bd.ibtype == 20) = 0;
+                        end
+                        writefort14( [fname '.gr3'] , obj.t, obj.p, b_t, ...
                             obj.op , obj.bd ,obj.title ) ;
                     end
                     if any(contains(type,'ww3'))
@@ -283,10 +303,10 @@ classdef msh
             %                  doesn't exist), default is [1 1 1] => white
             %   iv)  'holdon'  : =1 to plot on existing figure (otherwise
             %                    will use new figure)
-            if nargin < 2
+            if nargin < 2 || isempty(type)
                 type = 'tri';
             end
-            if nargin < 3
+            if nargin < 3 || isempty(proj)
                 proj = 0 ;
             end
             if nargin < 4
@@ -324,7 +344,7 @@ classdef msh
 
             % Handle user specified subdomain
             if nargin < 5 || isempty(bou)
-                kept = (1:length(obj.p))';
+                % dummy
             else
                 if numel(bou) == 4
                     % i.e. is a bounding box
@@ -335,7 +355,8 @@ classdef msh
                         bou(1,1) bou(2,1)];
                 end
                 % Get a subset given by bou
-                [obj,kept] = ExtractSubDomain(obj,bou);
+                [obj,kept] = extract_subdomain(obj,bou,[],[],0);
+                obj = mapMeshProperties(obj,kept);
             end
 
             % Set up projected space
@@ -591,6 +612,8 @@ classdef msh
                                                  max(q),numticks(1))),-1);
                         end
                         caxis([log10(min(desiredTicks)) log10(max(desiredTicks))]);
+                        % make sure they are unique (but plot won't look good)...
+                        desiredTicks = unique(desiredTicks);
                         cb.Ticks     = log10(desiredTicks);
                         for i = 1 : length(desiredTicks)
                             cb.TickLabels{i} = num2str(desiredTicks(i));
@@ -669,15 +692,17 @@ classdef msh
                 case('mann')
                     if ~isempty(obj.f13)
                         ii = find(contains({obj.f13.defval.Atr(:).AttrName},'mann'));
+                        if isempty(ii)
+                           disp('No Manning f13 attribute!'); return 
+                        end
                         defval  = obj.f13.defval.Atr(ii).Val;
                         userval = obj.f13.userval.Atr(ii).Val;
-                        values = max(userval(2:end,:)',[],2);
-                        alltogether = zeros(np_g,1)+defval ;
-                        alltogether(userval(1,:)',1) = values;
+                        values = obj.p(:,1)*0 + defval;
+                        values(userval(1,:)) = userval(2,:);
                         if proj
-                            m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),alltogether(kept));
+                            m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),values);
                         else
-                            trisurf(obj.t,obj.p(:,1),obj.p(:,2),alltogether(kept));
+                            trisurf(obj.t,obj.p(:,1),obj.p(:,2),values);
                         end
                         nouq = length(unique(values));
                         colormap(jet(nouq));
@@ -744,7 +769,6 @@ classdef msh
                             m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),nq);
                         else
                             m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),nq);
-                            m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),nq*0);
                             shading flat
                         end
                     else
@@ -774,7 +798,7 @@ classdef msh
                         end
                         defval  = obj.f13.defval.Atr(ii).Val;
                         userval = obj.f13.userval.Atr(ii).Val;
-                        values = obj.p(:,1)*0 + defval;
+                        values = obj.p(:,1)*0 + defval';
                         values(userval(1,:),:) = userval(2:end,:)';
                         % just take the inf norm
                         values = max(values,[],2);
@@ -822,17 +846,18 @@ classdef msh
             R    = S(perm,perm);
             prn  = obj.p(perm,:);
             if ~isempty(obj.b)
-                brn  = obj.b(perm,:);
-                obj.b    = brn;
+                obj.b    = obj.b(perm);
             end
 
             if ~isempty(obj.bx)
-                brn  = obj.bx(perm,:);
-                obj.bx    = brn;
-
-                brn  = obj.by(perm,:);
-                obj.by    = brn;
+                obj.bx   = obj.bx(perm);
+                obj.by   = obj.by(perm);
             end
+            
+            if ~isempty(obj.f24)
+                obj.f24.Val = obj.f24.Val(:,:,perm);
+            end
+            
             obj.p    = prn;
             perm_inv(perm(1:np)) = ( 1 : np );
             ttemp = obj.t ;
@@ -854,10 +879,8 @@ classdef msh
             if ~isempty(obj.op) && obj.op.nope > 0
                 disp('Renumbering the elevation specified boundary nodestrings...');
                 for ib = 1 : obj.op.nope
-                    %for iv = 1 : obj.op.nvdll(ib)
                     node = obj.op.nbdv(1:obj.op.nvdll(ib),ib);
                     obj.op.nbdv(1:obj.op.nvdll(ib),ib) = perm_inv(node);
-                    %end
                 end
             end
 
@@ -900,8 +923,8 @@ classdef msh
             if ~isempty(obj.f13)
                 disp('Renumbering the fort.13...');
                 for i = 1 : obj.f13.nAttr
-                    idx=obj.f13.userval.Atr(i).Val(1,:);
-                    idx=perm_inv(idx);
+                    idx = obj.f13.userval.Atr(i).Val(1,:);
+                    idx = perm_inv(idx);
                     obj.f13.userval.Atr(i).Val(1,:) = idx;
                 end
             end
@@ -954,7 +977,8 @@ classdef msh
             %   maxdepth - ensure the maximum depth is bounded in the
             %                         interpolated region
             %
-            %   ignoreOL - NaN overland data for more accurate seabed interpolation
+            %   ignoreOL - = 0 [default]: interpolate data without masking overland
+            %              = 1: Mask overland data which may help for seabed-only interpolation
 
             % if give cell of geodata or dems then interpolate all
             if iscell(geodata) || isstring(geodata)
@@ -972,24 +996,37 @@ classdef msh
                     obj = GridData(geodata,obj,varargin);
                 end
             end
+            type = 'all';
+            tI = find(strcmp(varargin,'type'));
+            if ~isempty(tI)
+                type = varargin{tI+1};                
+            end
             % Test for nans
-            Inan = sum(isnan(obj.b));
-            if Inan > 0
-                warning('NaNs have been found in the bathymetry')
+            if strcmp(type,'all') || strcmp(type,'depth')
+                % In depths
+                Inan = sum(isnan(obj.b));
+                if Inan > 0
+                    warning('NaNs have been found in the bathymetry')
+                end
             end
-            Inan = sum(isnan(obj.bx)) + sum(isnan(obj.by));
-            if Inan > 0
-                warning('NaNs have been found in the slope')
+            if strcmp(type,'all') || strcmp(type,'slope')
+                % In slope
+                Inan = sum(isnan(obj.bx)) + sum(isnan(obj.by));
+                if Inan > 0
+                    warning('NaNs have been found in the slope')
+                end
             end
-            % Compute slope
-            [edge,elen] = GetBarLengths(obj,0);
-            mbe = obj.b(edge);
-            slope = abs(diff(mbe,[],2))./elen;
-            disp(['Maximum topographic gradient is '  num2str(max(slope))])
-            if max(slope) > 0.1
-                warning(['Maximum topographic gradient is larger than ' ...
-                  '0.1, which might cause problems for simulation. ' ...
-                  'Consider using the "lim_bathy_slope" msh class method']);
+            % Compute slope of b (not the values of bx/by)
+            if strcmp(type,'all') || strcmp(type,'depth')
+                [edge,elen] = GetBarLengths(obj,0);
+                mbe = obj.b(edge);
+                slope = abs(diff(mbe,[],2))./elen;
+                disp(['Maximum topographic gradient is '  num2str(max(slope))])
+                if max(slope) > 0.1
+                    warning(['Maximum topographic gradient is larger than ' ...
+                      '0.1, which might cause problems for simulation. ' ...
+                      'Consider using the "lim_bathy_slope" msh class method']);
+                end
             end
         end
 
@@ -1027,17 +1064,17 @@ classdef msh
             if any(strcmp(varargin,'passive'))
                 disp('Employing passive option')
                 opt.db = 0.1; opt.ds = 0; opt.con = 10; opt.djc = 0;
-                opt.sc_maxit = 0; opt.mqa = 1e-4;
+                opt.sc_maxit = 0; opt.mqa = 1e-4; opt.renum = 0;
                 varargin(strcmp(varargin,'passive')) = [];
             elseif any(strcmp(varargin,'aggressive'))
                 disp('Employing aggressive option')
                 opt.db = 0.5; opt.ds = 1; opt.con = 9; opt.djc = 0.25;
-                opt.sc_maxit = inf; opt.mqa = 0.5;
+                opt.sc_maxit = inf; opt.mqa = 0.5; opt.renum = 1;
                 varargin(strcmp(varargin,'aggressive')) = [];
             else
                 disp('Employing default (medium) option or user-specified opts')
                 opt.db = 0.25; opt.ds = 1; opt.con = 9; opt.djc = 0.1;
-                opt.sc_maxit = 1; opt.mqa = 0.25;
+                opt.sc_maxit = 1; opt.mqa = 0.25; opt.renum = 1;
                 varargin(strcmp(varargin,'default')) = [];
                 varargin(strcmp(varargin,'medium')) = [];
             end
@@ -1045,7 +1082,7 @@ classdef msh
             opt.nscreen = 1; opt.projL = 1; pfixV = [];
             % process user-defined individual cleaning options
             optstring = {'nscreen','pfix','proj','con','djc','db','ds',...
-                'sc_maxit','mqa'};
+                'sc_maxit','mqa','renum'};
             for ii = 1:2:length(varargin)
                 jj = find(strcmp(varargin{ii},optstring));
                 if isempty(jj)
@@ -1068,6 +1105,8 @@ classdef msh
                     opt.sc_maxit  = varargin{ii + 1};
                 elseif jj == 9
                     opt.mqa  = varargin{ii + 1};
+                elseif jj == 10
+                    obj.renum = varargin{ii + 1};
                 end
             end
 
@@ -1125,8 +1164,12 @@ classdef msh
             % Delete elements with single edge connectivity
             obj = Fix_single_connec_edge_elements(obj,opt.sc_maxit,opt.nscreen);
 
+            % Renumber the mesh here
+            if opt.renum
+                obj = renum(obj);
+            end
+            
             % Reduce the mesh connectivity to maximum of con-1
-            obj = renum(obj);
             % May not always work without error
             if opt.con > 6
                 try
@@ -1240,8 +1283,12 @@ classdef msh
             %
             % ---------
             % 'auto' - automatically applies elevation and no-flux bcs to mesh based on geodata class
+            %     NB: Use 'auto_outer' option to only apply bcs to the outermost
+            %     polygon and ignore the islands
             % varargins:
-            % varargin{1}: geodata class
+            % varargin{1}: geodata class 
+            %     NB: User may supply an empty varargin{1} if you have interpolated depths
+            %     to your mesh in which case the 'depth' based classification will be enforced
             % varargin{2} (optional): method of classification:
             %    - 'distance': classifies as ocean based on distance to shoreline
             %    - 'depth': classifies as ocean based on depth
@@ -1254,6 +1301,11 @@ classdef msh
             % varargin{4} (optional):
             %    - if varargin{2} is 'both': the depth below which a boundary is
             %      classifed as ocean (default is 10 m)
+            %    - if varargin{2} is not 'both': the minimum number of
+            %      vertices for a boundary to be classifed as ocean (default is 10)
+            % varargin{5} (optional):
+            %    - if varargin{2} is 'both': the minimum number of
+            %      vertices for a boundary to be classifed as ocean (default is 10)
             %
             % ---------
             % 'outer' - applies user-defined bc to a segment of the outer mesh polygon
@@ -1286,18 +1338,27 @@ classdef msh
             end
             L = 1e3;
             switch type
-                case('auto')
+                case{'auto','auto_outer'}
                     % automatically applies elevation and no-flux bcs to mesh based on geodata class
+                    outer_only = false;
+                    if contains(type,'outer'); outer_only = true; end
                     if isempty(varargin)
                         error('must supply a geodata class for "auto" as third input')
                     end
                     gdat = varargin{1};
-                    if ~isa(gdat,'geodata')
-                        error('third input must be a geodata class for "auto"')
+                    if isempty(gdat)
+                        disp(['gdat is empty: enforcing the ' ...
+                              'depth-based "auto" option.'])
+                        classifier = 'depth';
+                    else
+                        if ~isa(gdat,'geodata')
+                            error('third input must be a geodata class for "auto"')
+                        end
+                        dist_lim = 10*gdat.gridspace;
+                        classifier = 'both';
                     end
                     depth_lim = -10;
-                    dist_lim = 10*gdat.gridspace;
-                    classifier = 'both';
+                    cut_lim = 10;
                     if length(varargin) > 1 && ~isempty(varargin{2})
                         classifier = varargin{2};
                     end
@@ -1306,16 +1367,36 @@ classdef msh
                             if length(varargin) > 2 && ~isempty(varargin{3})
                                 dist_lim = varargin{3};
                             end
+                            if length(varargin) > 3 && ~isempty(varargin{4})
+                                cut_lim = varargin{4};
+                            end
                         case('depth')
-                            if isempty(gdat.Fb)
-                                error('No DEM info to use "depth" classification criteria')
+                            if (isempty(obj.b) || sum(obj.b) == 0) && ...
+                               (isempty(dat) || isempty(gdat.Fb))
+                                if isempty(obj.b) || sum(obj.b) == 0
+                                    warning('No depths on the mesh')
+                                end
+                                if ~isempty(gdat) && isempty(gdat.Fb)
+                                    warning('No DEM info in gdat')
+                                end
+                                error('Cannot use "depth" classification criteria for above reasons')
                             end
                             if length(varargin) > 2 && ~isempty(varargin{3})
                                 depth_lim = -varargin{3};
                             end
+                            if length(varargin) > 3 && ~isempty(varargin{4})
+                                cut_lim = varargin{4};
+                            end
                         case('both')
-                            if isempty(gdat.Fb)
-                                error('No DEM info to use "both" classification criteria')
+                            if (isempty(obj.b) || sum(obj.b) == 0) && ...
+                               (isempty(dat) || isempty(gdat.Fb))
+                                if isempty(obj.b) || sum(obj.b) == 0
+                                    warning('No depths on the mesh')
+                                end
+                                if ~isempty(gdat) && isempty(gdat.Fb)
+                                    warning('No DEM info in gdat')
+                                end
+                                error('Cannot use "both" classification criteria for above reasons')
                             end
                             if length(varargin) > 2 && ~isempty(varargin{3})
                                 dist_lim = varargin{3};
@@ -1323,8 +1404,11 @@ classdef msh
                             if length(varargin) > 3 && ~isempty(varargin{4})
                                 depth_lim = -varargin{4};
                             end
+                            if length(varargin) > 4 && ~isempty(varargin{5})
+                                cut_lim = varargin{4};
+                            end
                     end
-                    cut_lim = 10;
+                    
 
                     % Check for global mesh
                     Le = find(obj.p(:,1) < -179, 1);
@@ -1359,12 +1443,20 @@ classdef msh
                             eb_class = ldst > dist_lim;
                             if strcmp(classifier,'both')
                                 % ii) based on depth
-                                eb_depth = gdat.Fb(eb_mid);
+                                if ~isempty(obj.b) && sum(obj.b) > 0
+                                    eb_depth = -mean(obj.b(etbv),2);
+                                elseif ~isempty(gdat)
+                                    eb_depth = gdat.Fb(eb_mid);
+                                end
                                 eb_class = eb_class & eb_depth < depth_lim;
                             end
                         case('depth')
                             % ii) based on depth
-                            eb_depth = gdat.Fb(eb_mid);
+                            if ~isempty(obj.b) && sum(obj.b) > 0
+                                eb_depth = -mean(obj.b(etbv),2);
+                            elseif ~isempty(gdat)
+                                eb_depth = gdat.Fb(eb_mid);
+                            end
                             eb_class = eb_depth < depth_lim;
                     end
 
@@ -1447,6 +1539,9 @@ classdef msh
                                     ibtype(nbou) = 20;
                                     nbvv(1:nvell(nbou),nbou) = idv_t';
                                 end
+                            end
+                            if outer_only
+                                break;
                             end
                         else
                             % % polygon is an island
@@ -2191,7 +2286,7 @@ classdef msh
                         cell2 = extdom_polygon(extdom_edges2(t1,p1),p1,-1,0);
                         bou = cell2{1}(1:end-1,:);
                         obj2o = obj2; obj2.p = p2;
-                        obj2 = ExtractSubDomain(obj2,bou,1,1);
+                        obj2 = extract_subdomain(obj2,bou,1,1);
                         [obj2.p(:,1),obj2.p(:,2)] = m_xy2ll(obj2.p(:,1),obj2.p(:,2));
                     end
                     % concatenate
@@ -2420,7 +2515,15 @@ classdef msh
             tin(~LIA) = tin(~LIA) + length(obj.p);
             obj.p = [obj.p; pin];
             obj.t = [obj.t; tin];
-            [obj.p, obj.t] = fixmesh(obj.p,obj.t);
+            % append to b and bx, by to avoid error in fixmeshandcarry
+            if ~isempty(obj.b)
+               obj.b = [obj.b; NaN(size(pin,1),1)];
+            end
+            if ~isempty(obj.bx)
+               obj.bx = [obj.bx; NaN(size(pin,1),1)];
+               obj.by = [obj.by; NaN(size(pin,1),1)];
+            end
+            obj = fixmeshandcarry(obj);
         end
 
         function obj = trim(obj,threshold)
@@ -2437,26 +2540,11 @@ classdef msh
 
         function obj = fixmeshandcarry(obj)
             % obj = fixmeshandcarry(obj);
-            % "fixes" mesh and carries b, bx, by, f13 dat over
+            % "fixes" mesh and carries mesh properties over 
+            % e.g., b, bx, by, f13, f24, f5354 dat
             [obj.p,obj.t,pix] = fixmesh(obj.p,obj.t);
-            % move over b, slp, f13
-            if ~isempty(obj.b)
-                obj.b = obj.b(pix);
-            end
-            if ~isempty(obj.bx)
-                obj.bx = obj.bx(pix); obj.by = obj.by(pix);
-            end
-            if ~isempty(obj.f13)
-                obj.f13.NumOfNodes = length(obj.p);
-                for ii = 1:obj.f13.nAttr
-                    ind = obj.f13.userval.Atr(ii).Val(1,:);
-                    val = obj.f13.userval.Atr(ii).Val(2:end,:);
-                    [~,ia,ib] = intersect(pix,ind);
-                    va = val(:,ib);
-                    obj.f13.userval.Atr(ii).Val = [ia'; va];
-                    obj.f13.userval.Atr(ii).usernumnodes = length(ia);
-                end
-            end
+            % carry over...
+            obj = mapMeshProperties(obj,pix);
         end
 
 
@@ -3863,13 +3951,22 @@ classdef msh
            egfix = renumberEdges(egfix) ;
         end
 
-        function boundary = getBoundaryOfMesh(obj)
-            %%%%%%%
-            % Returns the boundary of the mesh in a winding order as a
-            % NaN-delimited vector
+        function boundary = getBoundaryOfMesh(obj,ascell)
+            % boundary = getBoundaryOfMesh(obj,ascell)
+            %
+            % Returns the boundary of the mesh
+            %
             % INPUTS: msh_obj
-            % OUTPUTS: NaN-delimited vector in a "walking" order.
+            % OUTPUTS: msh boundary in one of two forms:
+            %   1) NaN-delimited vector in a "walking" order (ascell == 0 [default]) 
+            %   2) A cell for each polygon (ascell = 1)
+            %
             % kjr, April 2019
+            % wjp, Oct 2020
+            % 
+            if nargin < 2 || isempty(ascell)
+                ascell = 0;
+            end
             bnde = extdom_edges2(obj.t,obj.p) ;
             try
                 boundary = extdom_polygon(bnde,obj.p,-1) ;
@@ -3877,9 +3974,126 @@ classdef msh
                 warning('ALERT: Boundary of mesh is not walkable. Returning polylines.');
                 boundary = extdom_polygon(bnde,obj.p,-1,1) ;
             end
+            if ascell; return; end
             boundary = cell2mat(boundary');
         end
-
+        
+        function obj = mapMeshProperties(obj,ind)
+            % obj = mapMeshProperties(obj,ind)
+            % Map properties of a msh obj given a subset of integers, 'ind'.
+            % Assumes that the p and t components of the mesh have already
+            % been changed 
+            % -> Common usage would be after receiving the indices as
+            %    an output from the fixmesh function
+            %
+            % ocean depths/topography
+            if ~isempty(obj.b)
+                obj.b = obj.b(ind); 
+            end
+            % topographic gradients
+            if ~isempty(obj.bx)
+                obj.bx = obj.bx(ind); 
+            end
+            if ~isempty(obj.by)
+                obj.by = obj.by(ind);
+            end
+            % open boundary info
+            if ~isempty(obj.op) && obj.op.nope > 0
+                for ib = 1 : obj.op.nope
+                    idx_old = obj.op.nbdv(1:obj.op.nvdll(ib),ib);
+                    % Only keep idx_old that is common to ind and map to ind
+                    [~,~,idx_new] = intersect(idx_old,ind,'stable');
+                    % if a polygon
+                    if length(idx_new) == length(idx_old)-1 && idx_old(end) == idx_old(1)
+                        idx_new(end+1) = idx_new(1);
+                    end
+                    % Get the new length of this boundary
+                    obj.op.nvdll(ib) = length(idx_new);
+                    % Reset and reload the nbdv for this boundary
+                    obj.op.nbdv(:,ib) = 0;
+                    obj.op.nbdv(1:obj.op.nvdll(ib),ib) = idx_new;
+                end
+                obj.op.neta = sum(obj.op.nvdll);
+                if obj.op.neta == 0
+                    % Remove open boundary info...
+                    obj.op = []; 
+                else
+                    % Remove unnessary part from the nbdv
+                    obj.op.nbdv = obj.op.nbdv(1:max(obj.op.nvdll),:);
+                end
+            end
+            % land boundary info
+            if ~isempty(obj.bd) && obj.bd.nbou > 0
+                for ib = 1 : obj.bd.nbou
+                    nvell_old = obj.bd.nvell(ib);
+                    idx_old = obj.bd.nbvv(1:nvell_old,ib);
+                    % Only keep idx_old that is common to ind and map to ind
+                    [~,~,idx_new] = intersect(idx_old,ind,'stable');
+                    % if a polygon
+                    if length(idx_new) == length(idx_old)-1 && idx_old(end) == idx_old(1)
+                        idx_new(end+1) = idx_new(1);
+                    end
+                    % Get the new length of this boundary
+                    obj.bd.nvell(ib) = length(idx_new);
+                    % Reset and reload the nbdv for this boundary
+                    obj.bd.nbvv(:,ib) = 0;
+                    obj.bd.nbvv(1:obj.bd.nvell(ib),ib) = idx_new;
+                    %
+                    % Proceed only if the ibconn field exists
+                    if ~isfield(obj.bd,'ibconn'); continue; end
+                    idx_old = obj.bd.ibconn(1:nvell_old,ib);
+                    % Only keep idx_old that is common to ind and map to ind
+                    [~,~,idx_new] = intersect(idx_old,ind,'stable');
+                    % Check the new length of this boundary
+                    if length(idx_new) ~=  obj.bd.nvell(ib)
+                        disp(['boundary number = ' num2str(ib)])
+                        error(['ibconn of subset is different length to nbvv. ' ...
+                               'Make sure the weir is fully within the subset'])
+                    end
+                    % Reset and reload the ibconn for this boundary
+                    obj.bd.ibconn(:,ib) = 0;
+                    obj.bd.ibconn(1:obj.bd.nvell(ib),ib) = idx_new;
+                end
+                obj.bd.nvel = sum(obj.bd.nvell);
+                if obj.bd.nvel == 0
+                    % Remove land boundary info...
+                    obj.bd = []; 
+                else
+                    % Remove unnessary part from the nbdv
+                    obj.bd.nbvv = obj.bd.nbvv(1:max(obj.bd.nvell),:);
+                    if isfield(obj.bd,'ibconn')
+                        obj.bd.ibconn = obj.bd.ibconn(1:max(obj.bd.nvell),:);
+                    end
+                end
+            end
+            % f13
+            if ~isempty(obj.f13)
+                obj.f13.NumOfNodes = length(ind);
+                for att = 1:obj.f13.nAttr
+                    % Get the old index for this attribute
+                    idx_old = obj.f13.userval.Atr(att).Val(1,:);
+                    val_old = obj.f13.userval.Atr(att).Val(2:end,:);
+                    % Only keep idx and val that is common to ind and map to ind
+                    [~,ind_new,idx_new] = intersect(idx_old,ind);
+                    val_new = val_old(:,ind_new);
+                    % Put the uservalues back into f13 struct
+                    obj.f13.userval.Atr(att).Val = [idx_new'; val_new];
+                    obj.f13.userval.Atr(att).usernumnodes = length(idx_new);
+                end
+            end
+            % f24
+            if ~isempty(obj.f24)
+                obj.f24.Val = obj.f24.Val(:,:,ind);
+            end    
+            % f5354
+            if ~isempty(obj.f5354)
+                idx_old = obj.f5354.nodes;
+                [~,idx_new] = intersect(idx_old,ind);
+                obj.f5354.nodes = idx_new;
+            end
+        % EOF
+        end
+            
         function obj = pruneOverlandMesh(obj,elev,djc)
             %%%%%%%
             % Removes overland extent greater than certain elevation about

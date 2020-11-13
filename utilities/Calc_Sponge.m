@@ -1,13 +1,20 @@
 function obj = Calc_Sponge(obj,W,generator,varargin)
 % obj = Calc_Sponge(obj,W,generator,varargin)
 % Adds the sponge information into the f13 struct in the msh class obj.
-% Must specify the width (W) of the sponge and the sponge layer type:
-% = 1 -> generating-absorbing with tidal solutions (need fort.53001/54001)
-% = 0 -> fully absorbing sponge 
-% = -1 -> generating-absorbing with arbitrary solutions (need fort.2001)
-% Other inputs are optional.
 %
-% Default for other inputs are:
+% W - width of the sponge:
+%   = width in degrees
+%   or  
+%   = [period, frac]; 
+%     where period of a wave [s] (e.g. M2), and frac is fraction of the
+%     wavelength to set as sponge width W.
+%
+% generator - sponge layer type:
+%   = 1 -> generating-absorbing with tidal solutions (need fort.53001/54001)
+%   = 0 -> fully absorbing sponge 
+%   = -1 -> generating-absorbing with arbitrary solutions (need fort.2001)
+%
+% Default for other optional name-value pair varargins are:
 % F = 20, dis_ratio = 0.5 and spngtype = 'poly', 
 % i.e. that a polynomial (2nd order) type function on sigma will be used so 
 % that half of the way into the sponge (dis_ratio) the signal will be 
