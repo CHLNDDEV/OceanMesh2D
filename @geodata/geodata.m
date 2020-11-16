@@ -819,17 +819,7 @@ classdef geodata
                     end
                     [demx,demy] = ndgrid(xx,yy);
                     demz = obj.Fb(demx,demy);
-                    if ~isempty(obj.inner) && obj.inner(1) ~= 0
-                        poly = [obj.outer; obj.inner];
-                    else
-                        poly = obj.outer;
-                    end
-                    edges = Get_poly_edges( poly );
-                    in = inpoly([demx(:),demy(:)],poly, edges);
-                    if obj.inpoly_flip
-                        in = ~in;
-                    end
-                    m_fastscatter(demx(in),demy(in),demz(in));
+                    m_fastscatter(demx(:),demy(:),demz(:));
                     cb = colorbar; ylabel(cb,'topo-bathy depth [m]')
                 case('omega')
                     % hatch the meshing domain, Omega
