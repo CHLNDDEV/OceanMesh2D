@@ -107,7 +107,7 @@ classdef msh
                         obj.t = varargin{kk+1};
                     elseif strcmp(varargin{kk},'aux')
                         aux = varargin{kk+1};
-                    elseif strcmp(varargin{k},'nob')
+                    elseif strcmp(varargin{kk},'nob')
                         nob = varargin{kk+1};
                     end
                 end
