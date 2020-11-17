@@ -174,12 +174,12 @@ if isempty(obj.f15)
     f15dat.nextraline = 10; 
     f15dat.extraline(1).msg = obj.title ;
     f15dat.extraline(2).msg = 'Affiliation';
-    f15dat.extraline(3).msg = 'OceanMesh2D';
+    f15dat.extraline(3).msg = 'Made by OceanMesh2D';
     f15dat.extraline(4).msg = 'History: None';
     f15dat.extraline(5).msg = 'https://github.com/CHLNDDEV/OceanMesh2D/';
     f15dat.extraline(6).msg = 'Comments: None' ;
     f15dat.extraline(7).msg = 'Host: Name';
-    f15dat.extraline(8).msg = 'Metric, MSL';
+    f15dat.extraline(8).msg = 'Metric, Datum';
     f15dat.extraline(9).msg = 'name@instit.edu';
     f15dat.extraline(10).msg = '';
     
