@@ -173,7 +173,7 @@ if isempty(obj.f15)
     % Extra lines for NETCDF
     f15dat.nextraline = 10; 
     f15dat.extraline(1).msg = obj.title ;
-    f15dat.extraline(2).msg = 'Notre Dame CHL';
+    f15dat.extraline(2).msg = 'Affiliation';
     f15dat.extraline(3).msg = 'OceanMesh2D';
     f15dat.extraline(4).msg = 'History: None';
     f15dat.extraline(5).msg = 'https://github.com/CHLNDDEV/OceanMesh2D/';
