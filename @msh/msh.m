@@ -473,11 +473,7 @@ classdef msh
                     if logaxis
                         q = log10(max(1,abs(obj.b))); % plot on log scale
                     else
-                        if exist('demcmap','file')
-                            q = -obj.b;
-                        else
-                            q = obj.b;
-                        end
+                        q = obj.b;
                     end
                     if proj
                         if mesh
@@ -497,11 +493,7 @@ classdef msh
                     if logaxis
                         cmocean('deep',numticks(1)-1);
                     else
-                        if exist('demcmap','file')
-                           demcmap(q);
-                        else
-                            cmocean('topo','pivot',min(max(q),pivot));
-                        end
+                        cmocean('topo','pivot',min(max(q),pivot));
                     end
                     cb = colorbar;
                     if logaxis
