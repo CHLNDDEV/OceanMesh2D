@@ -1372,7 +1372,7 @@ classdef msh
                             end
                         case('depth')
                             if (isempty(obj.b) || sum(obj.b) == 0) && ...
-                               (isempty(dat) || isempty(gdat.Fb))
+                               (isempty(gdat) || isempty(gdat.Fb))
                                 if isempty(obj.b) || sum(obj.b) == 0
                                     warning('No depths on the mesh')
                                 end
@@ -1389,7 +1389,7 @@ classdef msh
                             end
                         case('both')
                             if (isempty(obj.b) || sum(obj.b) == 0) && ...
-                               (isempty(dat) || isempty(gdat.Fb))
+                               (isempty(gdat) || isempty(gdat.Fb))
                                 if isempty(obj.b) || sum(obj.b) == 0
                                     warning('No depths on the mesh')
                                 end
