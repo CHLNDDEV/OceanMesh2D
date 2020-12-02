@@ -26,7 +26,7 @@ classdef msh
     %   iv)  'aux' - a cell-array with filenames of additional
     %         files that pair with the mesh
     %    v)  'nob' - 0/1 enable/disable the reading of
-    %         boundary conditions (nodestrings). 
+    %         boundary conditions (nodestrings).
     %         Default  = 0 [i.e., will read in boundary conditions]
     %
     %
@@ -102,7 +102,7 @@ classdef msh
                     if strcmp(varargin{kk},'fname')
                         fname = varargin{kk+1};
                     elseif strcmp(varargin{kk},'points')
-                        obj.p = varargin{kk+1}; 
+                        obj.p = varargin{kk+1};
                     elseif strcmp(varargin{kk},'elements')
                         obj.t = varargin{kk+1};
                     elseif strcmp(varargin{kk},'aux')
@@ -112,14 +112,14 @@ classdef msh
                     end
                 end
             end
-            
+
             % Return if we filled in points and or elements manually
             if ~isempty(obj.p) || ~isempty(obj.t)
                 obj.title = 'Manual Input';
-                return; 
+                return;
             end
-            
-            if isempty(fname) 
+
+            if isempty(fname)
                 help(msh)
                 error('See usage instructions above. Please specify the fname of the mesh as a name/value pair...');
             end
@@ -303,6 +303,8 @@ classdef msh
             %                  doesn't exist), default is [1 1 1] => white
             %   iv)  'holdon'  : =1 to plot on existing figure (otherwise
             %                    will use new figure)
+            %   v)   'pivot'   : value in meters for which to assume is datum when
+            %                    plotting topo-bathymetry (default 0.0 m)
             if nargin < 2 || isempty(type)
                 type = 'tri';
             end
@@ -317,6 +319,7 @@ classdef msh
             bgc = [1 1 1]; % default background color
             numticks = 10; % default num of ticks
             holdon = 0;
+            pivot = 0.0; % assume datum is 0.0 m
             for kk = 1:2:length(varargin)
                 if strcmp(varargin{kk},'fontsize')
                     fsz = varargin{kk+1};
@@ -326,6 +329,8 @@ classdef msh
                     numticks = varargin{kk+1};
                 elseif strcmp(varargin{kk},'holdon')
                     holdon = varargin{kk+1};
+                elseif strcmp(varargin{kk}, 'pivot')
+                    pivot = varargin{kk+1};
                 end
             end
 
@@ -494,9 +499,9 @@ classdef msh
                         cmocean('deep',numticks(1)-1);
                     else
                         if exist('demcmap','file')
-                            demcmap(q);
+                           demcmap(q);
                         else
-                            cmocean('topo','pivot',min(max(q),0));
+                            cmocean('topo','pivot',min(max(q),pivot));
                         end
                     end
                     cb = colorbar;
@@ -693,7 +698,7 @@ classdef msh
                     if ~isempty(obj.f13)
                         ii = find(contains({obj.f13.defval.Atr(:).AttrName},'mann'));
                         if isempty(ii)
-                           disp('No Manning f13 attribute!'); return 
+                           disp('No Manning f13 attribute!'); return
                         end
                         defval  = obj.f13.defval.Atr(ii).Val;
                         userval = obj.f13.userval.Atr(ii).Val;
@@ -853,11 +858,11 @@ classdef msh
                 obj.bx   = obj.bx(perm);
                 obj.by   = obj.by(perm);
             end
-            
+
             if ~isempty(obj.f24)
                 obj.f24.Val = obj.f24.Val(:,:,perm);
             end
-            
+
             obj.p    = prn;
             perm_inv(perm(1:np)) = ( 1 : np );
             ttemp = obj.t ;
@@ -999,7 +1004,7 @@ classdef msh
             type = 'all';
             tI = find(strcmp(varargin,'type'));
             if ~isempty(tI)
-                type = varargin{tI+1};                
+                type = varargin{tI+1};
             end
             % Test for nans
             if strcmp(type,'all') || strcmp(type,'depth')
@@ -1168,7 +1173,7 @@ classdef msh
             if opt.renum
                 obj = renum(obj);
             end
-            
+
             % Reduce the mesh connectivity to maximum of con-1
             % May not always work without error
             if opt.con > 6
@@ -1286,7 +1291,7 @@ classdef msh
             %     NB: Use 'auto_outer' option to only apply bcs to the outermost
             %     polygon and ignore the islands
             % varargins:
-            % varargin{1}: geodata class 
+            % varargin{1}: geodata class
             %     NB: User may supply an empty varargin{1} if you have interpolated depths
             %     to your mesh in which case the 'depth' based classification will be enforced
             % varargin{2} (optional): method of classification:
@@ -1408,7 +1413,7 @@ classdef msh
                                 cut_lim = varargin{4};
                             end
                     end
-                    
+
 
                     % Check for global mesh
                     Le = find(obj.p(:,1) < -179, 1);
@@ -2540,7 +2545,7 @@ classdef msh
 
         function obj = fixmeshandcarry(obj)
             % obj = fixmeshandcarry(obj);
-            % "fixes" mesh and carries mesh properties over 
+            % "fixes" mesh and carries mesh properties over
             % e.g., b, bx, by, f13, f24, f5354 dat
             [obj.p,obj.t,pix] = fixmesh(obj.p,obj.t);
             % carry over...
@@ -3958,12 +3963,12 @@ classdef msh
             %
             % INPUTS: msh_obj
             % OUTPUTS: msh boundary in one of two forms:
-            %   1) NaN-delimited vector in a "walking" order (ascell == 0 [default]) 
+            %   1) NaN-delimited vector in a "walking" order (ascell == 0 [default])
             %   2) A cell for each polygon (ascell = 1)
             %
             % kjr, April 2019
             % wjp, Oct 2020
-            % 
+            %
             if nargin < 2 || isempty(ascell)
                 ascell = 0;
             end
@@ -3977,22 +3982,22 @@ classdef msh
             if ascell; return; end
             boundary = cell2mat(boundary');
         end
-        
+
         function obj = mapMeshProperties(obj,ind)
             % obj = mapMeshProperties(obj,ind)
             % Map properties of a msh obj given a subset of integers, 'ind'.
             % Assumes that the p and t components of the mesh have already
-            % been changed 
+            % been changed
             % -> Common usage would be after receiving the indices as
             %    an output from the fixmesh function
             %
             % ocean depths/topography
             if ~isempty(obj.b)
-                obj.b = obj.b(ind); 
+                obj.b = obj.b(ind);
             end
             % topographic gradients
             if ~isempty(obj.bx)
-                obj.bx = obj.bx(ind); 
+                obj.bx = obj.bx(ind);
             end
             if ~isempty(obj.by)
                 obj.by = obj.by(ind);
@@ -4016,7 +4021,7 @@ classdef msh
                 obj.op.neta = sum(obj.op.nvdll);
                 if obj.op.neta == 0
                     % Remove open boundary info...
-                    obj.op = []; 
+                    obj.op = [];
                 else
                     % Remove unnessary part from the nbdv
                     obj.op.nbdv = obj.op.nbdv(1:max(obj.op.nvdll),:);
@@ -4057,7 +4062,7 @@ classdef msh
                 obj.bd.nvel = sum(obj.bd.nvell);
                 if obj.bd.nvel == 0
                     % Remove land boundary info...
-                    obj.bd = []; 
+                    obj.bd = [];
                 else
                     % Remove unnessary part from the nbdv
                     obj.bd.nbvv = obj.bd.nbvv(1:max(obj.bd.nvell),:);
@@ -4084,7 +4089,7 @@ classdef msh
             % f24
             if ~isempty(obj.f24)
                 obj.f24.Val = obj.f24.Val(:,:,ind);
-            end    
+            end
             % f5354
             if ~isempty(obj.f5354)
                 idx_old = obj.f5354.nodes;
@@ -4093,7 +4098,7 @@ classdef msh
             end
         % EOF
         end
-            
+
         function obj = pruneOverlandMesh(obj,elev,djc)
             %%%%%%%
             % Removes overland extent greater than certain elevation about
