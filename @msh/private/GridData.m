@@ -220,7 +220,7 @@ xt = [obj.p(obj.t(:,1),1) obj.p(obj.t(:,2),1) ...
       obj.p(obj.t(:,3),1) obj.p(obj.t(:,1),1)];
 dxt = diff(xt,[],2);
 tt = obj.t;
-tt(abs(dxt(:,1)) > 180 | abs(dxt(:,2)) > 180 |  abs(dxt(:,2)) > 180,:) = [];
+tt(abs(dxt(:,1)) > 180 | abs(dxt(:,2)) > 180 |  abs(dxt(:,3)) > 180,:) = [];
 
 % Do this once;
 vtoe_o = VertToEle(tt); %find connecting elements to each node

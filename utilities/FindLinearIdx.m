@@ -3,6 +3,7 @@ function [IX,IX1,IX2] = FindLinearIdx(x,y,lon,lat)
 % from a matrix of x-locations X and y-locations Y of both size nx columns and ny rows.
 % lon and lat must be matrices created by ndgrid. 
 % kjr, 20171210 chl, und.
+% wjp, 20201120 making sure dx and dy can be different
 ny = size(lon,1);
 nx = size(lon,2);
 np = numel(x);
@@ -10,11 +11,13 @@ np = numel(x);
 X = reshape(lon,[],1);
 Y = reshape(lat,[],1);
 
+% Get the grid spacing in x and y directions 
+% (trying both directions so could be meshgrid or ndgrid format)
+dx  = max(abs(lon(2,1)-lon(1,1)),abs(lon(1,2)-lon(1,1)));
+dy  = max(abs(lat(1,2)-lat(1,1)),abs(lat(2,1)-lat(1,1)));
+
 x = x(:);
 y = y(:);
-
-dx  = X(2)-X(1);
-dy  = dx;
 
 IX1 = (x-X(1))./dx + 1;
 IX2 = (y-Y(1))./dy + 1;

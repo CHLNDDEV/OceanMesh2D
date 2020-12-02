@@ -314,7 +314,6 @@ classdef msh
             if nargin < 4
                 projtype = [] ;
             end
-            np_g = length(obj.p) ;
             fsz = 12; % default font size
             bgc = [1 1 1]; % default background color
             numticks = 10; % default num of ticks
@@ -474,11 +473,7 @@ classdef msh
                     if logaxis
                         q = log10(max(1,abs(obj.b))); % plot on log scale
                     else
-                        if exist('demcmap','file')
-                            q = -obj.b;
-                        else
-                            q = obj.b;
-                        end
+                        q = obj.b;
                     end
                     if proj
                         if mesh
@@ -498,11 +493,7 @@ classdef msh
                     if logaxis
                         cmocean('deep',numticks(1)-1);
                     else
-                        if exist('demcmap','file')
-                           demcmap(q);
-                        else
-                            cmocean('topo','pivot',min(max(q),pivot));
-                        end
+                        cmocean('topo','pivot',min(max(q),pivot));
                     end
                     cb = colorbar;
                     if logaxis
@@ -983,8 +974,12 @@ classdef msh
             %                         interpolated region
             %
             %   ignoreOL - = 0 [default]: interpolate data without masking overland
-            %              = 1: Mask overland data which may help for seabed-only interpolation
-
+            %              = 1          : Mask overland data which may help for seabed-only interpolation
+            %     invert - = 0          : does not invert values of the dem
+            %                             (i.e., keeps the sign of the topography the same as the dem)
+            %              = 1 [default]: inverts the values of the dem
+            %                             (underwater is positive depth)
+            
             % if give cell of geodata or dems then interpolate all
             if iscell(geodata) || isstring(geodata)
                 for i = 1:length(geodata)
@@ -1001,6 +996,19 @@ classdef msh
                     obj = GridData(geodata,obj,varargin);
                 end
             end
+            % Inverting if necessary
+            invert = 1;
+            tI = find(strcmp(varargin,'invert'));
+            if ~isempty(tI)
+                invert = varargin{tI+1};
+            end
+            % the output from GridData is underwater positive value so no
+            % inversion means flipping back
+            if ~invert
+                obj.b = -obj.b;
+            end
+            
+            % Checking the data...
             type = 'all';
             tI = find(strcmp(varargin,'type'));
             if ~isempty(tI)

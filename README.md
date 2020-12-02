@@ -133,12 +133,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
   made them required to have a 3d shapefiles.
 - plotting `gdat` with no shoreline. 
 - plotting a mesh's bathymetry with a non-zero datum using cmocean.
+- cell-averaging interpolation method in msh.interp fixed for unequal lon-lat DEM grid spacings
 
 ### Added
 - Ability to use the TPXO9 Atlas for the tidal bcs and sponge (inside tidal_data_to_ob.m and Calc_Sponge.m) by using '**' wildcards in place of the constituent name within the tidal atlas filename (the atlas has an individual file for each constituent).
 - Introducing 'auto_outer' option for the make_bc msh method which populates the bc for the outermost mesh boundary polygon (ignores islands)
 - Changelog to README
 - "mapMeshProperties" msh method ports over mesh properties for a mesh subset
+- 'invert' option in the msh.interp method to turn off the DEM value inversion typically performed
 
 ### Changed
 - for the make_bc msh method 'auto'/'auto_outer' options, allowing for the 'depth' method of classification to use the interpolated depths on the mesh if gdat is empty. 
