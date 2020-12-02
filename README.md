@@ -132,7 +132,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Users without mapping toolbox could not read in shapefiles because of a bug that 
   made them required to have a 3d shapefiles.
 - plotting `gdat` with no shoreline. 
-  
+- plotting a mesh's bathymetry with a non-zero datum using cmocean.
+
 ### Added
 - Ability to use the TPXO9 Atlas for the tidal bcs and sponge (inside tidal_data_to_ob.m and Calc_Sponge.m) by using '**' wildcards in place of the constituent name within the tidal atlas filename (the atlas has an individual file for each constituent).
 - Introducing 'auto_outer' option for the make_bc msh method which populates the bc for the outermost mesh boundary polygon (ignores islands)
