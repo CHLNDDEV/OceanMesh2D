@@ -360,7 +360,7 @@ classdef msh
                 end
                 % Get a subset given by bou
                 [obj,kept] = extract_subdomain(obj,bou,[],[],0);
-                obj = mapMeshProperties(obj,kept);
+                obj = map_mesh_properties(obj,kept);
             end
 
             % Set up projected space
@@ -493,7 +493,7 @@ classdef msh
                     if logaxis
                         cmocean('deep',numticks(1)-1);
                     else
-                        cmocean('topo','pivot',min(max(q),pivot));
+                        cmocean('-topo','pivot',min(max(q),pivot));
                     end
                     cb = colorbar;
                     if logaxis
@@ -794,7 +794,8 @@ classdef msh
                         end
                         defval  = obj.f13.defval.Atr(ii).Val;
                         userval = obj.f13.userval.Atr(ii).Val;
-                        values = obj.p(:,1)*0 + defval';
+                        defval = reshape(defval,1,[]);
+                        values = obj.p(:,1)*0 + defval;
                         values(userval(1,:),:) = userval(2:end,:)';
                         % just take the inf norm
                         values = max(values,[],2);
@@ -2557,7 +2558,7 @@ classdef msh
             % e.g., b, bx, by, f13, f24, f5354 dat
             [obj.p,obj.t,pix] = fixmesh(obj.p,obj.t);
             % carry over...
-            obj = mapMeshProperties(obj,pix);
+            obj = map_mesh_properties(obj,pix);
         end
 
 
@@ -3991,8 +3992,8 @@ classdef msh
             boundary = cell2mat(boundary');
         end
 
-        function obj = mapMeshProperties(obj,ind)
-            % obj = mapMeshProperties(obj,ind)
+        function obj = map_mesh_properties(obj,ind)
+            % obj = map_mesh_properties(obj,ind)
             % Map properties of a msh obj given a subset of integers, 'ind'.
             % Assumes that the p and t components of the mesh have already
             % been changed
@@ -4017,7 +4018,8 @@ classdef msh
                     % Only keep idx_old that is common to ind and map to ind
                     [~,~,idx_new] = intersect(idx_old,ind,'stable');
                     % if a polygon
-                    if length(idx_new) == length(idx_old)-1 && idx_old(end) == idx_old(1)
+                    if ~isempty(idx_new) && ...
+                        length(idx_new) == length(idx_old)-1 && idx_old(end) == idx_old(1)
                         idx_new(end+1) = idx_new(1);
                     end
                     % Get the new length of this boundary
@@ -4043,7 +4045,8 @@ classdef msh
                     % Only keep idx_old that is common to ind and map to ind
                     [~,~,idx_new] = intersect(idx_old,ind,'stable');
                     % if a polygon
-                    if length(idx_new) == length(idx_old)-1 && idx_old(end) == idx_old(1)
+                    if ~isempty(idx_new) && ...
+                       length(idx_new) == length(idx_old)-1 && idx_old(end) == idx_old(1)
                         idx_new(end+1) = idx_new(1);
                     end
                     % Get the new length of this boundary
