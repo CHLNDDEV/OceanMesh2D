@@ -1,5 +1,8 @@
 # `OceanMesh2D:`
-## `Precise distance-based two-dimensional automated mesh generation toolbox intended for coast ocean/shallow water flow models`
+<p align="center">
+  <a href="https://github.com/krober10nd/SeismicMesh"><img alt="SeismicMesh" src="https://user-images.githubusercontent.com/18619644/101161624-dfad0680-360f-11eb-8aea-377c808b2794.png" width="80%"></a>
+  <p align="center">Precise distance-based two-dimensional automated mesh generation toolbox intended for coast ocean/shallow water flow models.</p>
+</p>
 
 Table of contents
 =================
