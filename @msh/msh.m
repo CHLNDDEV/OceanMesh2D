@@ -134,8 +134,8 @@ classdef msh
                 obj.p  = p; obj.t  = t; obj.b  = b;
                 obj.bd = bd; obj.op = op;
                 obj.title = title;
-            % elseif any(contains(type,'otherformat'))
-            % OTHER FORMAT READING GOES HERE.
+                % elseif any(contains(type,'otherformat'))
+                % OTHER FORMAT READING GOES HERE.
             else
                 % for now only handling fort.14 mesh type
                 error('Please specify filename with suffix (e.g., fname.14)');
@@ -160,8 +160,8 @@ classdef msh
                     end
                     if isempty(obj.f15)
                         error(['No f15 present to readfort24.' ...
-                               ' (make sure fort.15 is listed before' ...
-                               ' fort.24 in aux cell array)'])
+                            ' (make sure fort.15 is listed before' ...
+                            ' fort.24 in aux cell array)'])
                     end
                     if obj.f15.ntif == 0
                         error('No constituents in f15 to readfort24')
@@ -176,16 +176,16 @@ classdef msh
 
         % write mesh to disk
         function write(obj,fname,type)
-        % Usage:
-        % write(obj,fname,type)
-        %
-        % Examples:
-        % write(obj);       % writes all available data to fort_1.xx (ADCIRC) files
-        % write(obj,fname); % writes all available data to fname.xx (ADCIRC) files
-        % write(obj,fname,'14');  % writes mesh data to fname.14 (ADCIRC) file
-        % write(obj,fname,'gr3'); % writes mesh data to fname.gr3 (SCHISM) file
-        % write(obj,fname,'ww3'); % writes mesh data to fname.ww3 (WaveWatchIII) file
-        % write(obj,fname,{'13','14'}); % writes mesh data and f13 attribute data to fname.14 and fname.13 (ADCIRC) files
+            % Usage:
+            % write(obj,fname,type)
+            %
+            % Examples:
+            % write(obj);       % writes all available data to fort_1.xx (ADCIRC) files
+            % write(obj,fname); % writes all available data to fname.xx (ADCIRC) files
+            % write(obj,fname,'14');  % writes mesh data to fname.14 (ADCIRC) file
+            % write(obj,fname,'gr3'); % writes mesh data to fname.gr3 (SCHISM) file
+            % write(obj,fname,'ww3'); % writes mesh data to fname.ww3 (WaveWatchIII) file
+            % write(obj,fname,{'13','14'}); % writes mesh data and f13 attribute data to fname.14 and fname.13 (ADCIRC) files
             if nargin == 1
                 fname = 'fort_1';
             end
@@ -218,7 +218,7 @@ classdef msh
                 end
             else
                 if any(contains(type,'14')) || any(contains(type,'ww3')) || ...
-                   any(contains(type,'gr3'))
+                        any(contains(type,'gr3'))
                     if isempty(obj.p)
                         error('No mesh, cannot write.')
                     end
@@ -370,10 +370,10 @@ classdef msh
                 % This deletes any elements straddling the -180/180
                 % boundary for plotting purposes
                 xt = [obj.p(obj.t(:,1),1) obj.p(obj.t(:,2),1) ...
-                     obj.p(obj.t(:,3),1) obj.p(obj.t(:,1),1)];
+                    obj.p(obj.t(:,3),1) obj.p(obj.t(:,1),1)];
                 dxt = diff(xt,[],2);
                 obj.t(abs(dxt(:,1)) > 180 | abs(dxt(:,2)) > 180 | ...
-                      abs(dxt(:,3)) > 180,:) = [];
+                    abs(dxt(:,3)) > 180,:) = [];
             end
 
             logaxis = 0;
@@ -413,9 +413,9 @@ classdef msh
                 case('bd')
                     if tri
                         if proj
-                           m_triplot(obj.p(:,1),obj.p(:,2),obj.t);
+                            m_triplot(obj.p(:,1),obj.p(:,2),obj.t);
                         else
-                           simpplot(obj.p,obj.t);
+                            simpplot(obj.p,obj.t);
                         end
                     end
                     if ~isempty(obj.bd)
@@ -499,12 +499,12 @@ classdef msh
                     if logaxis
                         if length(numticks) >= 3
                             desiredTicks = round(10.^(linspace(...
-                                           log10(numticks(2)),...
-                                           log10(numticks(3)),...
-                                           numticks(1))),1);
+                                log10(numticks(2)),...
+                                log10(numticks(3)),...
+                                numticks(1))),1);
                         else
                             desiredTicks = round(10.^(linspace(min(q),...
-                                                   max(q),numticks(1))),1);
+                                max(q),numticks(1))),1);
                         end
                         caxis([log10(min(desiredTicks)) log10(max(desiredTicks))]);
                         cb.Ticks     = log10(desiredTicks);
@@ -518,18 +518,18 @@ classdef msh
                     if proj
                         if mesh
                             m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),...
-                                      hypot(obj.bx,obj.by));
+                                hypot(obj.bx,obj.by));
                         else
                             m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),...
-                                      hypot(obj.bx,obj.by));
+                                hypot(obj.bx,obj.by));
                         end
                     else
                         if mesh
                             trimesh(obj.t,obj.p(:,1),obj.p(:,2),...
-                                    hypot(obj.bx,obj.by));
+                                hypot(obj.bx,obj.by));
                         else
                             trisurf(obj.t,obj.p(:,1),obj.p(:,2),...
-                                    hypot(obj.bx,obj.by));
+                                hypot(obj.bx,obj.by));
                             shading flat
                         end
                         view(2);
@@ -600,12 +600,12 @@ classdef msh
                     if logaxis
                         if length(numticks) >= 3
                             desiredTicks = round(10.^(linspace(...
-                                           log10(numticks(2)),...
-                                           log10(numticks(3)),...
-                                           numticks(1))),-1);
+                                log10(numticks(2)),...
+                                log10(numticks(3)),...
+                                numticks(1))),-1);
                         else
                             desiredTicks = round(10.^(linspace(min(q),...
-                                                 max(q),numticks(1))),-1);
+                                max(q),numticks(1))),-1);
                         end
                         caxis([log10(min(desiredTicks)) log10(max(desiredTicks))]);
                         % make sure they are unique (but plot won't look good)...
@@ -689,7 +689,7 @@ classdef msh
                     if ~isempty(obj.f13)
                         ii = find(contains({obj.f13.defval.Atr(:).AttrName},'mann'));
                         if isempty(ii)
-                           disp('No Manning f13 attribute!'); return
+                            disp('No Manning f13 attribute!'); return
                         end
                         defval  = obj.f13.defval.Atr(ii).Val;
                         userval = obj.f13.userval.Atr(ii).Val;
@@ -980,7 +980,7 @@ classdef msh
             %                             (i.e., keeps the sign of the topography the same as the dem)
             %              = 1 [default]: inverts the values of the dem
             %                             (underwater is positive depth)
-            
+
             % if give cell of geodata or dems then interpolate all
             if iscell(geodata) || isstring(geodata)
                 for i = 1:length(geodata)
@@ -1008,7 +1008,7 @@ classdef msh
             if ~invert
                 obj.b = -obj.b;
             end
-            
+
             % Checking the data...
             type = 'all';
             tI = find(strcmp(varargin,'type'));
@@ -1038,8 +1038,8 @@ classdef msh
                 disp(['Maximum topographic gradient is '  num2str(max(slope))])
                 if max(slope) > 0.1
                     warning(['Maximum topographic gradient is larger than ' ...
-                      '0.1, which might cause problems for simulation. ' ...
-                      'Consider using the "lim_bathy_slope" msh class method']);
+                        '0.1, which might cause problems for simulation. ' ...
+                        'Consider using the "lim_bathy_slope" msh class method']);
                 end
             end
         end
@@ -1201,7 +1201,7 @@ classdef msh
                 else
                     % Perform the direct smoothing
                     [obj.p,obj.t] = direct_smoother_lur(obj.p,obj.t,...
-                                    pfixV,opt.nscreen);
+                        pfixV,opt.nscreen);
                 end
             end
 
@@ -1248,10 +1248,10 @@ classdef msh
                 overland  = 0;
             end
             if overland == 0
-               % Call bathy then topo
-               obj = lim_bathy_slope(obj,dfdx,-1);
-               obj = lim_bathy_slope(obj,dfdx,+1);
-               return
+                % Call bathy then topo
+                obj = lim_bathy_slope(obj,dfdx,-1);
+                obj = lim_bathy_slope(obj,dfdx,+1);
+                return
             end
 
             % Limit to topo or bathymetric slope to dfdx on the edges
@@ -1269,12 +1269,12 @@ classdef msh
             bt(~I) = -overland*bt(~I);
             [bnew,flag] = limgrad(edge,elen,bt,dfdx,imax);
             if flag
-               obj.b(~I) = -overland*bnew(~I);
-               disp(['Successfully limited ' word ' slope to ' ...
+                obj.b(~I) = -overland*bnew(~I);
+                disp(['Successfully limited ' word ' slope to ' ...
                     num2str(dfdx) ' in limgrad function'])
             else
-               warning(['Could not limit ' word ' slope to  ' ...
-                       num2str(dfdx) ' in limgrad function'])
+                warning(['Could not limit ' word ' slope to  ' ...
+                    num2str(dfdx) ' in limgrad function'])
             end
         end
 
@@ -1362,7 +1362,7 @@ classdef msh
                     gdat = varargin{1};
                     if isempty(gdat)
                         disp(['gdat is empty: enforcing the ' ...
-                              'depth-based "auto" option.'])
+                            'depth-based "auto" option.'])
                         classifier = 'depth';
                     else
                         if ~isa(gdat,'geodata')
@@ -1386,7 +1386,7 @@ classdef msh
                             end
                         case('depth')
                             if (isempty(obj.b) || sum(obj.b) == 0) && ...
-                               (isempty(gdat) || isempty(gdat.Fb))
+                                    (isempty(gdat) || isempty(gdat.Fb))
                                 if isempty(obj.b) || sum(obj.b) == 0
                                     warning('No depths on the mesh')
                                 end
@@ -1403,7 +1403,7 @@ classdef msh
                             end
                         case('both')
                             if (isempty(obj.b) || sum(obj.b) == 0) && ...
-                               (isempty(gdat) || isempty(gdat.Fb))
+                                    (isempty(gdat) || isempty(gdat.Fb))
                                 if isempty(obj.b) || sum(obj.b) == 0
                                     warning('No depths on the mesh')
                                 end
@@ -2227,10 +2227,10 @@ classdef msh
                 disp(['The djc for the pruned obj2 is: ' num2str(prune_djc)])
                 if lock_dis > 0
                     disp(['Locking points a distance of ' ...
-                          num2str(lock_dis) ' deg away from intersection'])
+                        num2str(lock_dis) ' deg away from intersection'])
                 else
                     disp(['Locking points more than 2*maximum edge ' ...
-                          'length in obj1 away from intersection'])
+                        'length in obj1 away from intersection'])
                 end
             end
             %%%%%%%%%%%%%%% end of parsing inpiuts %%%%%%%%%%
@@ -2357,7 +2357,7 @@ classdef msh
                     % generated through the above deletion step
                     pruned2 = msh() ; pruned2.p = p2; pruned2.t = t2;
                     pruned2 = Make_Mesh_Boundaries_Traversable(...
-                                                     pruned2,prune_djc,1);
+                        pruned2,prune_djc,1);
                     t2 = pruned2.t; p2 = pruned2.p;
                     % get new poly_vec2
                     if strcmp(type,'arb')
@@ -2531,11 +2531,11 @@ classdef msh
             obj.t = [obj.t; tin];
             % append to b and bx, by to avoid error in fixmeshandcarry
             if ~isempty(obj.b)
-               obj.b = [obj.b; NaN(size(pin,1),1)];
+                obj.b = [obj.b; NaN(size(pin,1),1)];
             end
             if ~isempty(obj.bx)
-               obj.bx = [obj.bx; NaN(size(pin,1),1)];
-               obj.by = [obj.by; NaN(size(pin,1),1)];
+                obj.bx = [obj.bx; NaN(size(pin,1),1)];
+                obj.by = [obj.by; NaN(size(pin,1),1)];
             end
             obj = fixmeshandcarry(obj);
         end
@@ -2664,7 +2664,7 @@ classdef msh
 
         function [out1,barlen,bars] = CalcCFL(obj,dt,type)
             if isempty(obj.b)
-               error('Bathymetry is required to estimate the Courant number');
+                error('Bathymetry is required to estimate the Courant number');
             end
             if nargin < 3
                 % use spherical haversine distances
@@ -2788,7 +2788,7 @@ classdef msh
 
             % no cr_max, use default
             if nargin < 3
-               cr_max = 0.5;
+                cr_max = 0.5;
             end
 
             % no cr_min supplied
@@ -3962,7 +3962,7 @@ classdef msh
                 egfix(DEL1,:) = [];
                 pfix = obj.p(unique(egfix(:)),:);
             end
-           egfix = renumberEdges(egfix) ;
+            egfix = renumberEdges(egfix) ;
         end
 
         function boundary = getBoundaryOfMesh(obj,ascell)
@@ -4019,7 +4019,7 @@ classdef msh
                     [~,~,idx_new] = intersect(idx_old,ind,'stable');
                     % if a polygon
                     if ~isempty(idx_new) && ...
-                        length(idx_new) == length(idx_old)-1 && idx_old(end) == idx_old(1)
+                            length(idx_new) == length(idx_old)-1 && idx_old(end) == idx_old(1)
                         idx_new(end+1) = idx_new(1);
                     end
                     % Get the new length of this boundary
@@ -4046,7 +4046,7 @@ classdef msh
                     [~,~,idx_new] = intersect(idx_old,ind,'stable');
                     % if a polygon
                     if ~isempty(idx_new) && ...
-                       length(idx_new) == length(idx_old)-1 && idx_old(end) == idx_old(1)
+                            length(idx_new) == length(idx_old)-1 && idx_old(end) == idx_old(1)
                         idx_new(end+1) = idx_new(1);
                     end
                     % Get the new length of this boundary
@@ -4064,7 +4064,7 @@ classdef msh
                     if length(idx_new) ~=  obj.bd.nvell(ib)
                         disp(['boundary number = ' num2str(ib)])
                         error(['ibconn of subset is different length to nbvv. ' ...
-                               'Make sure the weir is fully within the subset'])
+                            'Make sure the weir is fully within the subset'])
                     end
                     % Reset and reload the ibconn for this boundary
                     obj.bd.ibconn(:,ib) = 0;
@@ -4107,7 +4107,7 @@ classdef msh
                 [~,idx_new] = intersect(idx_old,ind);
                 obj.f5354.nodes = idx_new;
             end
-        % EOF
+            % EOF
         end
 
         function obj = pruneOverlandMesh(obj,elev,djc)
@@ -4241,6 +4241,61 @@ classdef msh
 
             end
 
+        end
+
+
+        function poly = get_poly(obj, auto)
+            % obj = get_poly(obj, auto)
+            % Get the walkable polygon around a hole in the
+            % mesh by clicking the starting point.
+            % Common use case would be to re-mesh an area of the mesh.
+            %
+            % Input(s)
+            % obj - msh object
+            % auto - whether user clicks or not to draw polygon
+            %
+            % Return(s)
+            % poly - a cell-array of polygons
+            %
+            % See also Examples/Example_12_Remeshing_Patches.m
+            %
+            % Created by Keith Roberts, 2020, USP
+            dir = 1;
+
+            if nargin < 3
+                auto = 1;
+            end
+
+            [bnde,bpts] = extdom_edges2(obj.t,obj.p);
+
+            if auto == 1
+                [poly] = extdom_polygon(bnde,obj.p,dir);
+            else
+                % use this to figure out the vstart and vend
+                figure, plot(bpts(:,1),bpts(:,2),'k.');
+                %hold on; fastscatter(obj.p(:,1),obj.p(:,2),obj.b) ;
+                caxis([-10 10]) ; axis equal ;
+                title('Use the data cursor to identify the starting point');
+                dcm_obj = datacursormode(gcf);
+                set(dcm_obj,'UpdateFcn',{@myupdatefcn2,bpts})
+
+                % Use data cursor to get the values of the boundary nodes.
+                vstart=input('Enter the index for the starting point : ');
+
+                bndidx = unique(bnde(:));
+                vstart = bndidx(vstart);
+                vend = vstart; % assume start is end
+
+                [poly,~,~,~] = extract_boundary(vstart,vend,bnde,obj.p,dir,[],[],0,0);
+            end
+
+            function txt = myupdatefcn2(~,event_obj,myarray)
+                pos = get(event_obj,'Position');
+                ind = find(abs(myarray(:,1)-pos(1))<eps & abs(myarray(:,2)-pos(2))<eps);
+                txt = {['X: ',num2str(pos(1))],...
+                    ['Y: ',num2str(pos(2))],...
+                    ['Index: ',num2str(ind')]};
+            end
         end
 
 
