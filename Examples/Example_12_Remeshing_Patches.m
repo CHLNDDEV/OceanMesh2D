@@ -1,10 +1,10 @@
-% Example_12_remeshing
+% Example_12_Remeshing_Patches.m
 % 
 % This example highlights a workflow on how to re-mesh and insert patches
 % using user defined mesh sizing functions from OceanMesh2D preserving
-% subdomain boundaries exactly.
+% the pathces subdomain boundaries exactly.
 %
-% By Keith Roberts, 2020, USP
+% By Keith Roberts, 2020, USP, Brazil.
 
 clearvars; clc;
 
