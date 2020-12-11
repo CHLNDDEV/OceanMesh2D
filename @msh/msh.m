@@ -4257,7 +4257,7 @@ classdef msh
             % Return(s)
             % poly - a cell-array of polygons
             %
-            % See also Examples/Example_12_fixing_up.m
+            % See also Examples/Example_12_Remeshing_Patches.m
             %
             % Created by Keith Roberts, 2020, USP
             dir = 1;
