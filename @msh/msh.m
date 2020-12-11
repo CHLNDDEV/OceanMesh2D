@@ -65,10 +65,10 @@ classdef msh
         pfix   % fixed points that were constrained in msh
         egfix  % fixed eges that were constraind in msh
     end
-
+    
     methods
         function obj = msh(varargin)
-
+            
             % Check for m_map dir
             if exist('m_proj','file')~=2
                 error('The program m_map was not found. Please read the user guide')
@@ -81,13 +81,13 @@ classdef msh
             if exist('datasets','dir')~=7
                 warning('We suggest you to place your files in a folder called datasets. Please read the user guide')
             end
-
+            
             % just want a blank mesh object
             if nargin == 0
                 obj.title = 'OceanMesh2D';
                 return
             end
-
+            
             fname = [];
             aux = {};
             nob = 0;
@@ -112,18 +112,18 @@ classdef msh
                     end
                 end
             end
-
+            
             % Return if we filled in points and or elements manually
             if ~isempty(obj.p) || ~isempty(obj.t)
                 obj.title = 'Manual Input';
                 return;
             end
-
+            
             if isempty(fname)
                 help(msh)
                 error('See usage instructions above. Please specify the fname of the mesh as a name/value pair...');
             end
-
+            
             if any(contains(fname,'.14')) || any(contains(fname,'.grd'))
                 disp('INFO: An ADCIRC fort.14 file will be read...')
                 bdflag = 1;
@@ -134,8 +134,8 @@ classdef msh
                 obj.p  = p; obj.t  = t; obj.b  = b;
                 obj.bd = bd; obj.op = op;
                 obj.title = title;
-            % elseif any(contains(type,'otherformat'))
-            % OTHER FORMAT READING GOES HERE.
+                % elseif any(contains(type,'otherformat'))
+                % OTHER FORMAT READING GOES HERE.
             else
                 % for now only handling fort.14 mesh type
                 error('Please specify filename with suffix (e.g., fname.14)');
@@ -160,8 +160,8 @@ classdef msh
                     end
                     if isempty(obj.f15)
                         error(['No f15 present to readfort24.' ...
-                               ' (make sure fort.15 is listed before' ...
-                               ' fort.24 in aux cell array)'])
+                            ' (make sure fort.15 is listed before' ...
+                            ' fort.24 in aux cell array)'])
                     end
                     if obj.f15.ntif == 0
                         error('No constituents in f15 to readfort24')
@@ -171,21 +171,21 @@ classdef msh
                         length(obj.p), {obj.f15.tipotag.name} );
                 end
             end
-
+            
         end
-
+        
         % write mesh to disk
         function write(obj,fname,type)
-        % Usage:
-        % write(obj,fname,type)
-        %
-        % Examples:
-        % write(obj);       % writes all available data to fort_1.xx (ADCIRC) files
-        % write(obj,fname); % writes all available data to fname.xx (ADCIRC) files
-        % write(obj,fname,'14');  % writes mesh data to fname.14 (ADCIRC) file
-        % write(obj,fname,'gr3'); % writes mesh data to fname.gr3 (SCHISM) file
-        % write(obj,fname,'ww3'); % writes mesh data to fname.ww3 (WaveWatchIII) file
-        % write(obj,fname,{'13','14'}); % writes mesh data and f13 attribute data to fname.14 and fname.13 (ADCIRC) files
+            % Usage:
+            % write(obj,fname,type)
+            %
+            % Examples:
+            % write(obj);       % writes all available data to fort_1.xx (ADCIRC) files
+            % write(obj,fname); % writes all available data to fname.xx (ADCIRC) files
+            % write(obj,fname,'14');  % writes mesh data to fname.14 (ADCIRC) file
+            % write(obj,fname,'gr3'); % writes mesh data to fname.gr3 (SCHISM) file
+            % write(obj,fname,'ww3'); % writes mesh data to fname.ww3 (WaveWatchIII) file
+            % write(obj,fname,{'13','14'}); % writes mesh data and f13 attribute data to fname.14 and fname.13 (ADCIRC) files
             if nargin == 1
                 fname = 'fort_1';
             end
@@ -193,10 +193,10 @@ classdef msh
                 if isempty(obj.p)
                     error('No mesh, cannot write.')
                 end
-
+                
                 % renumber it use RCM by default
                 %obj = renum(obj) ;
-
+                
                 if isempty(obj.b)
                     b_t = 0*obj.p(:,1);
                 else
@@ -218,7 +218,7 @@ classdef msh
                 end
             else
                 if any(contains(type,'14')) || any(contains(type,'ww3')) || ...
-                   any(contains(type,'gr3'))
+                        any(contains(type,'gr3'))
                     if isempty(obj.p)
                         error('No mesh, cannot write.')
                     end
@@ -268,7 +268,7 @@ classdef msh
                 end
             end
         end
-
+        
         % general plot function
         function h = plot(obj,type,proj,projtype,bou,varargin)
             % h = plot(obj,type,proj,projtype,bou,varargin)
@@ -332,7 +332,7 @@ classdef msh
                     pivot = varargin{kk+1};
                 end
             end
-
+            
             % kjr default behavior, just use what's in the .mat file
             if isempty(projtype)
                 global MAP_PROJECTION MAP_VAR_LIST MAP_COORDS
@@ -345,7 +345,7 @@ classdef msh
                     projtype = MAP_PROJECTION.name;
                 end
             end
-
+            
             % Handle user specified subdomain
             if nargin < 5 || isempty(bou)
                 % dummy
@@ -362,20 +362,20 @@ classdef msh
                 [obj,kept] = extract_subdomain(obj,bou,[],[],0);
                 obj = map_mesh_properties(obj,kept);
             end
-
+            
             % Set up projected space
             del = setProj(obj,proj,projtype) ;
-
+            
             if del
                 % This deletes any elements straddling the -180/180
                 % boundary for plotting purposes
                 xt = [obj.p(obj.t(:,1),1) obj.p(obj.t(:,2),1) ...
-                     obj.p(obj.t(:,3),1) obj.p(obj.t(:,1),1)];
+                    obj.p(obj.t(:,3),1) obj.p(obj.t(:,1),1)];
                 dxt = diff(xt,[],2);
                 obj.t(abs(dxt(:,1)) > 180 | abs(dxt(:,2)) > 180 | ...
-                      abs(dxt(:,3)) > 180,:) = [];
+                    abs(dxt(:,3)) > 180,:) = [];
             end
-
+            
             logaxis = 0;
             idxl = strfind(type,'log');
             if ~isempty(idxl)
@@ -395,13 +395,13 @@ classdef msh
             if ~isempty(idxl)
                 tri = 0; type(idxl:idxl+4) = [];
             end
-
+            
             % Make new figure if not holdon
             if ~holdon
                 figure;
             end
             hold on
-
+            
             switch type
                 % parse aux options first
                 case('tri')
@@ -413,9 +413,9 @@ classdef msh
                 case('bd')
                     if tri
                         if proj
-                           m_triplot(obj.p(:,1),obj.p(:,2),obj.t);
+                            m_triplot(obj.p(:,1),obj.p(:,2),obj.t);
                         else
-                           simpplot(obj.p,obj.t);
+                            simpplot(obj.p,obj.t);
                         end
                     end
                     if ~isempty(obj.bd)
@@ -499,12 +499,12 @@ classdef msh
                     if logaxis
                         if length(numticks) >= 3
                             desiredTicks = round(10.^(linspace(...
-                                           log10(numticks(2)),...
-                                           log10(numticks(3)),...
-                                           numticks(1))),1);
+                                log10(numticks(2)),...
+                                log10(numticks(3)),...
+                                numticks(1))),1);
                         else
                             desiredTicks = round(10.^(linspace(min(q),...
-                                                   max(q),numticks(1))),1);
+                                max(q),numticks(1))),1);
                         end
                         caxis([log10(min(desiredTicks)) log10(max(desiredTicks))]);
                         cb.Ticks     = log10(desiredTicks);
@@ -518,18 +518,18 @@ classdef msh
                     if proj
                         if mesh
                             m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),...
-                                      hypot(obj.bx,obj.by));
+                                hypot(obj.bx,obj.by));
                         else
                             m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),...
-                                      hypot(obj.bx,obj.by));
+                                hypot(obj.bx,obj.by));
                         end
                     else
                         if mesh
                             trimesh(obj.t,obj.p(:,1),obj.p(:,2),...
-                                    hypot(obj.bx,obj.by));
+                                hypot(obj.bx,obj.by));
                         else
                             trisurf(obj.t,obj.p(:,1),obj.p(:,2),...
-                                    hypot(obj.bx,obj.by));
+                                hypot(obj.bx,obj.by));
                             shading flat
                         end
                         view(2);
@@ -600,12 +600,12 @@ classdef msh
                     if logaxis
                         if length(numticks) >= 3
                             desiredTicks = round(10.^(linspace(...
-                                           log10(numticks(2)),...
-                                           log10(numticks(3)),...
-                                           numticks(1))),-1);
+                                log10(numticks(2)),...
+                                log10(numticks(3)),...
+                                numticks(1))),-1);
                         else
                             desiredTicks = round(10.^(linspace(min(q),...
-                                                 max(q),numticks(1))),-1);
+                                max(q),numticks(1))),-1);
                         end
                         caxis([log10(min(desiredTicks)) log10(max(desiredTicks))]);
                         % make sure they are unique (but plot won't look good)...
@@ -689,7 +689,7 @@ classdef msh
                     if ~isempty(obj.f13)
                         ii = find(contains({obj.f13.defval.Atr(:).AttrName},'mann'));
                         if isempty(ii)
-                           disp('No Manning f13 attribute!'); return
+                            disp('No Manning f13 attribute!'); return
                         end
                         defval  = obj.f13.defval.Atr(ii).Val;
                         userval = obj.f13.userval.Atr(ii).Val;
@@ -822,10 +822,10 @@ classdef msh
                 m_grid('FontSize',fsz);
             end
         end
-
+        
         % renumber mesh min. bw
         function obj=renum(obj)
-
+            
             np=length(obj.p); nt=length(obj.t);
             % Calculate adjacency matrix of t
             S = sparse(obj.t(:,[1,1,2,2,3,3]),obj.t(:,[2,3,1,3,1,2]),1,np,np);
@@ -837,7 +837,7 @@ classdef msh
             [i,j] = find(S);
             bw = max(i-j) + 1;
             disp(['Initial bandwidth is ',num2str(bw)]);
-
+            
             % renumber with minimizing bw
             perm = symrcm(S);
             R    = S(perm,perm);
@@ -845,16 +845,16 @@ classdef msh
             if ~isempty(obj.b)
                 obj.b    = obj.b(perm);
             end
-
+            
             if ~isempty(obj.bx)
                 obj.bx   = obj.bx(perm);
                 obj.by   = obj.by(perm);
             end
-
+            
             if ~isempty(obj.f24)
                 obj.f24.Val = obj.f24.Val(:,:,perm);
             end
-
+            
             obj.p    = prn;
             perm_inv(perm(1:np)) = ( 1 : np );
             ttemp = obj.t ;
@@ -871,7 +871,7 @@ classdef msh
             [i,j] = find(R);
             bw = max(i-j) + 1;
             disp(['Renumbered bandwidth is ',num2str(bw)]);
-
+            
             % renum the nodestrings
             if ~isempty(obj.op) && obj.op.nope > 0
                 disp('Renumbering the elevation specified boundary nodestrings...');
@@ -880,7 +880,7 @@ classdef msh
                     obj.op.nbdv(1:obj.op.nvdll(ib),ib) = perm_inv(node);
                 end
             end
-
+            
             if ~isempty(obj.bd) && obj.bd.nbou > 0
                 disp('Renumbering the flux boundary nodestrings...');
                 for ib = 1 : obj.bd.nbou
@@ -897,7 +897,7 @@ classdef msh
                     end
                 end
                 obj.bd.nbvv = nbvv;
-
+                
                 % renumber the various components of the weir connectivity
                 if isfield(obj.bd,'ibconn')
                     for ib = 1 : obj.bd.nbou
@@ -916,7 +916,7 @@ classdef msh
                     obj.bd.ibconn = ibconn;
                 end
             end
-
+            
             if ~isempty(obj.f13)
                 disp('Renumbering the fort.13...');
                 for i = 1 : obj.f13.nAttr
@@ -925,14 +925,14 @@ classdef msh
                     obj.f13.userval.Atr(i).Val(1,:) = idx;
                 end
             end
-
+            
             if ~isempty(obj.f5354)
                 disp('Renumbering the fort.5354...');
                 idx = perm_inv(obj.f5354.nodes);
                 obj.f5354.nodes = idx;
             end
         end
-
+        
         % interp bathy/slope
         function obj = interp(obj,geodata,varargin)
             % obj = interp(obj,geodata,varargin)
@@ -1038,12 +1038,12 @@ classdef msh
                 disp(['Maximum topographic gradient is '  num2str(max(slope))])
                 if max(slope) > 0.1
                     warning(['Maximum topographic gradient is larger than ' ...
-                      '0.1, which might cause problems for simulation. ' ...
-                      'Consider using the "lim_bathy_slope" msh class method']);
+                        '0.1, which might cause problems for simulation. ' ...
+                        'Consider using the "lim_bathy_slope" msh class method']);
                 end
             end
         end
-
+        
         function [obj,qual] = clean(obj,varargin)
             % [obj,qual] = clean(obj,varargin)
             % obj - msh object
@@ -1064,16 +1064,16 @@ classdef msh
             % 'nscreen' - print info to screen? (default = 1)
             % 'pfix' - fixed points to keep (default empty)
             % 'proj' -to project or not (default = 1)
-
+            
             if ~isempty(varargin)
                 if iscell(varargin{1}); varargin = varargin{1}; end
             end
             % keep for parsing to recursive function
             varargino = varargin;
-
+            
             % Fixing up the mesh automatically
             disp('Beginning mesh cleaning and smoothing operations...');
-
+            
             %process categorical cleaning options
             if any(strcmp(varargin,'passive'))
                 disp('Employing passive option')
@@ -1123,12 +1123,12 @@ classdef msh
                     obj.renum = varargin{ii + 1};
                 end
             end
-
+            
             % display options
             disp('INFO: The following cleaning options have been enabled..')
             disp(opt)
             disp(['length of pfix = ' num2str(length(pfixV))])
-
+            
             if opt.projL
                 global MAP_PROJECTION MAP_VAR_LIST MAP_COORDS
                 if ~isempty(obj.coord)
@@ -1142,12 +1142,12 @@ classdef msh
                     [pfixV(:,1),pfixV(:,2)] = m_ll2xy(pfixV(:,1),pfixV(:,2));
                 end
             end
-
+            
             % "fix" mesh and carry
             obj = fixmeshandcarry(obj);
-
+            
             LT = size(obj.t,1);
-
+            
             if opt.db
                 while 1
                     % Begin by just deleting poor mesh boundary elements
@@ -1171,18 +1171,18 @@ classdef msh
                 [obj.p,obj.t] = ...
                     collapse_thin_triangles(obj.p,obj.t,opt.db);
             end
-
+            
             % Make mesh traversable
             obj = Make_Mesh_Boundaries_Traversable(obj,opt.djc,opt.nscreen);
-
+            
             % Delete elements with single edge connectivity
             obj = Fix_single_connec_edge_elements(obj,opt.sc_maxit,opt.nscreen);
-
+            
             % Renumber the mesh here
             if opt.renum
                 obj = renum(obj);
             end
-
+            
             % Reduce the mesh connectivity to maximum of con-1
             % May not always work without error
             if opt.con > 6
@@ -1192,7 +1192,7 @@ classdef msh
                     warning('Could not reduce connectivity mesh');
                 end
             end
-
+            
             % Now do the smoothing if required
             if opt.ds
                 if opt.ds == 2
@@ -1201,10 +1201,10 @@ classdef msh
                 else
                     % Perform the direct smoothing
                     [obj.p,obj.t] = direct_smoother_lur(obj.p,obj.t,...
-                                    pfixV,opt.nscreen);
+                        pfixV,opt.nscreen);
                 end
             end
-
+            
             % Checking and displaying element quality
             tq = gettrimeshquan( obj.p, obj.t);
             mq_m = mean(tq.qm);
@@ -1213,7 +1213,7 @@ classdef msh
             mq_l3sig = mq_m - 3*mq_s;
             qual = [mq_m,mq_l3sig,mq_l];
             LTn = size(obj.t,1);
-
+            
             if mq_l < opt.mqa && (opt.ds || LT ~= LTn)
                 % Need to clean it again
                 disp('Poor or overlapping elements, cleaning again')
@@ -1232,13 +1232,13 @@ classdef msh
                 disp(['mean quality is ' num2str(mq_m)])
                 disp(['min quality is ' num2str(mq_l)])
             end
-
+            
             % Do the transformation back
             if opt.projL
                 [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
             end
         end
-
+        
         function obj = lim_bathy_slope(obj,dfdx,overland)
             %obj = lim_bathy_slope(obj,dfdx,overland)
             % overland = 0; limits both bathy and topography
@@ -1248,12 +1248,12 @@ classdef msh
                 overland  = 0;
             end
             if overland == 0
-               % Call bathy then topo
-               obj = lim_bathy_slope(obj,dfdx,-1);
-               obj = lim_bathy_slope(obj,dfdx,+1);
-               return
+                % Call bathy then topo
+                obj = lim_bathy_slope(obj,dfdx,-1);
+                obj = lim_bathy_slope(obj,dfdx,+1);
+                return
             end
-
+            
             % Limit to topo or bathymetric slope to dfdx on the edges
             imax = 100;
             [edge,elen] = GetBarLengths(obj,0);
@@ -1269,21 +1269,21 @@ classdef msh
             bt(~I) = -overland*bt(~I);
             [bnew,flag] = limgrad(edge,elen,bt,dfdx,imax);
             if flag
-               obj.b(~I) = -overland*bnew(~I);
-               disp(['Successfully limited ' word ' slope to ' ...
+                obj.b(~I) = -overland*bnew(~I);
+                disp(['Successfully limited ' word ' slope to ' ...
                     num2str(dfdx) ' in limgrad function'])
             else
-               warning(['Could not limit ' word ' slope to  ' ...
-                       num2str(dfdx) ' in limgrad function'])
+                warning(['Could not limit ' word ' slope to  ' ...
+                    num2str(dfdx) ' in limgrad function'])
             end
         end
-
+        
         % re-direct makens to make_bc
         function obj = makens(obj,type,varargin)
             % 'makens' is deprecated. Please use 'make_bc'
             obj = make_bc(obj,type,varargin);
         end
-
+        
         % make_bc: make boundary conditions
         function obj = make_bc(obj,type,varargin)
             % obj = make_bc(obj,type,varargin)
@@ -1362,7 +1362,7 @@ classdef msh
                     gdat = varargin{1};
                     if isempty(gdat)
                         disp(['gdat is empty: enforcing the ' ...
-                              'depth-based "auto" option.'])
+                            'depth-based "auto" option.'])
                         classifier = 'depth';
                     else
                         if ~isa(gdat,'geodata')
@@ -1386,7 +1386,7 @@ classdef msh
                             end
                         case('depth')
                             if (isempty(obj.b) || sum(obj.b) == 0) && ...
-                               (isempty(gdat) || isempty(gdat.Fb))
+                                    (isempty(gdat) || isempty(gdat.Fb))
                                 if isempty(obj.b) || sum(obj.b) == 0
                                     warning('No depths on the mesh')
                                 end
@@ -1403,7 +1403,7 @@ classdef msh
                             end
                         case('both')
                             if (isempty(obj.b) || sum(obj.b) == 0) && ...
-                               (isempty(gdat) || isempty(gdat.Fb))
+                                    (isempty(gdat) || isempty(gdat.Fb))
                                 if isempty(obj.b) || sum(obj.b) == 0
                                     warning('No depths on the mesh')
                                 end
@@ -1422,15 +1422,15 @@ classdef msh
                                 cut_lim = varargin{4};
                             end
                     end
-
-
+                    
+                    
                     % Check for global mesh
                     Le = find(obj.p(:,1) < -179, 1);
                     Ri = find(obj.p(:,1) > 179, 1);
                     if ~isempty(Le) && ~isempty(Ri)
                         error('Detected global mesh, cannot apply "auto" makens. Try "inner" option')
                     end
-
+                    
                     % Get the boundary edges and mid-points
                     etbv  = extdom_edges2(obj.t,obj.p);
                     x = obj.p(:,1); y = obj.p(:,2);
@@ -1438,7 +1438,7 @@ classdef msh
                     y_mid = mean(y(etbv),2);
                     eb_mid = [x_mid, y_mid];
                     clear x y x_mid y_mid
-
+                    
                     % classify each boundary edge
                     % eb_class is 1 if it is classed as ocean
                     switch classifier
@@ -1473,13 +1473,13 @@ classdef msh
                             end
                             eb_class = eb_depth < depth_lim;
                     end
-
+                    
                     [polys,poly_idxs] = extdom_polygon(etbv,obj.p,1);
-
+                    
                     % classify each boundary polygon.
                     nope = 0; neta = 0; nbou  = 0; nvel  = 0;
                     npolys = length(polys);
-
+                    
                     for i = 1:npolys
                         % Get the edge numbers for this polygon
                         idv = poly_idxs{i};
@@ -1493,12 +1493,12 @@ classdef msh
                         [~,ed_id2,poly_id2] = intersect(fliplr(etbv),poly_ed,'rows','stable');
                         eb_class_t2 = eb_class(ed_id2);
                         eb_class_t(poly_id2) = eb_class_t2;
-
+                        
                         % check if part of polygon is an ocean
                         eb_sum = sum(eb_class_t);
                         if eb_sum > 0
                             % % Consists of both ocean and mainland
-
+                            
                             % If a boundary segment is composed of both
                             % ocean and mainland, then the whole segment is
                             % 'cut up' into segments. Special care is
@@ -1506,7 +1506,7 @@ classdef msh
                             % type boundary starts following then by mainland
                             % etc.
                             Cuts  = find(diff(eb_class_t) ~= 0);
-
+                            
                             % Do not include open boundary that is
                             % smaller than cutlim vertices across
                             rm = false(length(Cuts),1);
@@ -1528,7 +1528,7 @@ classdef msh
                                 end
                             end
                             Cuts(rm) = [];
-
+                            
                             ns = 1;
                             for ii = 1:length(Cuts)+1
                                 if ii > length(Cuts)
@@ -1566,7 +1566,7 @@ classdef msh
                             ibtype(nbou) = 21;
                         end
                     end
-
+                    
                     % enter our results in the msh op and bd fields
                     if nope > 0
                         % ocean boundary
@@ -1576,7 +1576,7 @@ classdef msh
                         obj.op.ibtype = ibtypee ;
                         obj.op.nbdv = nbdv;
                     end
-
+                    
                     if nbou > 0
                         % land boundary
                         obj.bd.nbou = nbou ;
@@ -1585,7 +1585,7 @@ classdef msh
                         obj.bd.ibtype = ibtype ;
                         obj.bd.nbvv = nbvv ;
                     end
-
+                    
                 case('auto_old')
                     % % keeping the old auto for regression
                     if isempty(varargin)
@@ -1608,11 +1608,11 @@ classdef msh
                     if ~isempty(Le) && ~isempty(Ri)
                         error('Detected global mesh, cannot apply "auto" makens. Try "inner" option')
                     end
-
+                    
                     % Get the boundaries
                     [etbv,~]  = extdom_edges2(obj.t,obj.p);
                     [~,poly_idx] = extdom_polygon(etbv,obj.p,1);
-
+                    
                     outerbox = gdat.outer(1:find(isnan(gdat.outer(:,1)),1,'first'),:);
                     if ~isempty(gdat.mainland)
                         mainland = gdat.mainland;
@@ -1622,11 +1622,11 @@ classdef msh
                         inner = gdat.inner;
                         inner(isnan(inner(:,1)),:) = [];
                     end
-
+                    
                     % Get geodata outer and mainland polygons
                     nope = 0; neta = 0; nbou  = 0; nvel  = 0;
                     island_check = true; mainland_been = false;
-
+                    
                     % loop through all the polygons
                     for poly_count = 1 : length(poly_idx)
                         idv = poly_idx{poly_count};
@@ -1666,13 +1666,13 @@ classdef msh
                                 % Dummy all underwater
                                 zvalue = 0*obj.p(idv,1) - 1e4;
                             end
-
+                            
                             % find the boundaries that are mainland
                             main = mdst < odst | zvalue > -depthlim;
-
+                            
                             % indices of switch
                             Cuts  = find(diff(main) ~= 0);
-
+                            
                             % Do not include open boundary that is
                             % smaller than cutlim vertices across
                             rm = false(length(Cuts),1);
@@ -1690,7 +1690,7 @@ classdef msh
                                 end
                             end
                             Cuts(rm) = [];
-
+                            
                             if isempty(Cuts)
                                 if sum(main)/length(main) > 0.5
                                     % get mainland
@@ -1751,7 +1751,7 @@ classdef msh
                             nbdv(1:nvdll(nope),nope) = idv';
                         end
                     end
-
+                    
                     if nope > 0
                         % ocean boundary
                         obj.op.nope = nope ;
@@ -1760,7 +1760,7 @@ classdef msh
                         obj.op.ibtype = ibtypee ;
                         obj.op.nbdv = nbdv;
                     end
-
+                    
                     if nbou > 0
                         % land boundary
                         obj.bd.nbou = nbou ;
@@ -1769,9 +1769,9 @@ classdef msh
                         obj.bd.ibtype = ibtype ;
                         obj.bd.nbvv = nbvv ;
                     end
-
+                    
                 case{'inner','islands'}
-
+                    
                     nbou = 0;
                     nvel = 0;
                     ibt = 21;
@@ -1779,15 +1779,15 @@ classdef msh
                         ibt = varargin{1};
                     end
                     disp(['setting ibtype to ' num2str(ibt)])
-
+                    
                     [etbv,~]  = extdom_edges2(obj.t,obj.p);
                     [poly,poly_idx,max_ind] = extdom_polygon(etbv,obj.p,1);
-
+                    
                     % the largest polygon will be a combination of ocean and mainland
                     % boundaries. Deal with this first, then remove it from the polygon
                     poly(max_ind) = [];
                     poly_idx(max_ind) = [];
-
+                    
                     % loop through the remaining polygons
                     nvell = zeros(1,length(poly)); ibtype = nvell + ibt;
                     nbvv  = zeros(max(cellfun('length',poly_idx)),length(poly));
@@ -1800,7 +1800,7 @@ classdef msh
                         nbvv(1:nvell(nbou),nbou) = int32(idv');
                     end
                     nbvv = int32(nbvv);
-
+                    
                     % ocean boundary
                     if isempty(obj.op)
                         obj.op.nope = 0 ;
@@ -1809,7 +1809,7 @@ classdef msh
                         obj.op.ibtype = 0 ;
                         obj.op.nbdv = 0;
                     end
-
+                    
                     % land boundary
                     if nbou == 0
                         disp('No islands found!')
@@ -1835,15 +1835,15 @@ classdef msh
                             obj.bd.nbvv = [obj.bd.nbvv nbvv];
                         end
                     end
-
+                    
                 case('outer')
                     if isempty(varargin)
                         error('must specify direction of boundary in third entry')
                     end
                     dir = varargin{1};
-
+                    
                     [bnde,bpts] = extdom_edges2(obj.t,obj.p);
-
+                    
                     if length(varargin) < 3
                         % use this to figure out the vstart and vend
                         figure, plot(bpts(:,1),bpts(:,2),'k.');
@@ -1852,11 +1852,11 @@ classdef msh
                         title('use data cursor to identify vstart and vend');
                         dcm_obj = datacursormode(gcf);
                         set(dcm_obj,'UpdateFcn',{@myupdatefcn2,bpts})
-
+                        
                         % Use data cursor to get the values of the boundary nodes.
                         vstart=input('Enter the value for vstart : ');
                         vend=input('Enter the value for vend : ');
-
+                        
                         bndidx = unique(bnde(:));
                         vstart = bndidx(vstart);
                         vend   = bndidx(vend);
@@ -1876,7 +1876,7 @@ classdef msh
                     end
                     [~,~,obj.op,obj.bd] = extract_boundary(vstart,vend,bnde,obj.p,...
                         dir,obj.op,obj.bd); %<--updates op and bd.
-
+                    
                 case('delete')
                     % have the user select the nodestring '
                     plot(obj,'bd') ;
@@ -1892,7 +1892,7 @@ classdef msh
                         k = k + 1 ;
                         bounodes(idx2(i):idx2(i+1)-1,2) = k ;
                     end
-
+                    
                     dcm_obj = datacursormode(gcf);
                     title('use data cursor to select nodestring to be deleted');
                     pause
@@ -1910,7 +1910,7 @@ classdef msh
                     obj.bd.nvell(del)=[] ;
                     obj.bd.ibtype(del)=[] ;
                     obj.bd.nvel = obj.bd.nvel - num_delnodes ;
-
+                    
                 case('weirs')
                     if isempty(varargin)
                         error('Third input must be a geodata class obj')
@@ -1926,7 +1926,7 @@ classdef msh
                     if length(varargin) > 2 && ~isempty(varargin{3})
                         hts = varargin{3};
                     end
-
+                    
                     % identifying and adding internal weir type boundaries (ibtype=24)
                     for ii = 1 : length(gdat.ibconn_pts) % for each weir
                         [front_nn, d1] = ourKNNsearch(obj.p',gdat.ibconn_pts{ii}(:,1:2)',1);
@@ -1943,7 +1943,7 @@ classdef msh
                         %                         plot(obj,'tri',0) ;
                         %                         hold on; plot(obj.p(front_nn,1),obj.p(front_nn,2),'r.') ;
                         %                         hold on; plot(obj.p(back_nn,1),obj.p(back_nn,2),'gs') ;
-
+                        
                         % add to the boundary struct
                         if  ~isempty(obj.bd)
                             % unpack current boundaries
@@ -1952,14 +1952,14 @@ classdef msh
                             nvell  = obj.bd.nvell;
                             nbvv   = obj.bd.nbvv;
                             ibtype = obj.bd.ibtype;
-
+                            
                             % append on the weir
                             nbou = nbou + 1;
                             nvell(nbou) = length(front_nn) ; % only list front facing nodes in nbvv for barriers
                             nvel = nvel + nvell(nbou);
                             nbvv(1:nvell(nbou),nbou) = front_nn;
                             ibtype(nbou) = 24;
-
+                            
                             % repackage it
                             obj.bd.nbou   = nbou ;
                             obj.bd.nvel   = nvel ;
@@ -1974,14 +1974,14 @@ classdef msh
                             nvell = [] ;
                             ibtype= [] ;
                             nbvv  = [] ;
-
+                            
                             % append on the weir
                             nbou = nbou + 1;
                             nvell(nbou) = length(front_nn) ; % only list front facing nodes in nbvv for barriers
                             nvel = nvel + nvell(nbou);
                             nbvv(1:nvell(nbou),nbou) = front_nn;
                             ibtype(nbou) = 24;
-
+                            
                             % package it
                             obj.bd.nbou   = nbou ;
                             obj.bd.nvel   = nvel ;
@@ -1989,7 +1989,7 @@ classdef msh
                             obj.bd.ibtype = ibtype ;
                             obj.bd.nbvv   = nbvv ;
                         end
-
+                        
                         % either append or create new weir connectivity tables
                         if isfield(obj.bd,'ibconn')
                             % then append
@@ -2055,7 +2055,7 @@ classdef msh
                 otherwise
                     error(['unrecognized type = ',type])
             end
-
+            
             function txt = myupdatefcn2(~,event_obj,myarray)
                 pos = get(event_obj,'Position');
                 ind = find(abs(myarray(:,1)-pos(1))<eps & abs(myarray(:,2)-pos(2))<eps);
@@ -2064,8 +2064,8 @@ classdef msh
                     ['Index: ',num2str(ind')]};
             end
         end
-
-
+        
+        
         function [p1,t1,pw,tw]=extractWeirs(p1,t1,obj)
             % Return the points and elements associated with the weirs
             % while removing these elements and nodes from the obj.
@@ -2102,8 +2102,8 @@ classdef msh
             % clear unnecessary vars from memory
             clear vtoe unconnec_eles connec_eles objn p1o
         end
-
-
+        
+        
         function merge = plus(obj1,obj2,type,cleanargin)
             % merge = plus(obj1,obj2,type,cleanargin)
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2163,7 +2163,7 @@ classdef msh
             % kjr, usp. nov 2019. Better merging wrt to fixed constraints.
             %                     now collapses thin triangles incrementally
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+            
             %%%%%%%%%%% Parsing inputs %%%%%%%%%%%%%%%%%%%%%%%%%%%%
             if nargin < 3
                 type = 'arb';
@@ -2227,24 +2227,24 @@ classdef msh
                 disp(['The djc for the pruned obj2 is: ' num2str(prune_djc)])
                 if lock_dis > 0
                     disp(['Locking points a distance of ' ...
-                          num2str(lock_dis) ' deg away from intersection'])
+                        num2str(lock_dis) ' deg away from intersection'])
                 else
                     disp(['Locking points more than 2*maximum edge ' ...
-                          'length in obj1 away from intersection'])
+                        'length in obj1 away from intersection'])
                 end
             end
             %%%%%%%%%%%%%%% end of parsing inpiuts %%%%%%%%%%
-
+            
             p1 = obj1.p; t1 = obj1.t;
             p2 = obj2.p; t2 = obj2.t;
-
+            
             pfix1 = obj1.pfix; nfix1 = length(pfix1);
             pfix2 = obj2.pfix; nfix2 = length(pfix2);
-
+            
             % all combined edge constraints
             nfix    = nfix1+nfix2 ;
             pfixx   = [pfix1; pfix2] ;
-
+            
             global MAP_PROJECTION MAP_COORDS MAP_VAR_LIST
             if ~isempty(obj2.coord)
                 if any(min(obj1.p) < min(obj2.p)) || ...
@@ -2267,7 +2267,7 @@ classdef msh
                 end
                 setProj(obj2,1,projname);
             end
-
+            
             % check to see if we can do the trivial merge
             extract = 0;
             if strcmp(type,'matche')
@@ -2286,7 +2286,7 @@ classdef msh
                     type = 'match';
                 end
             end
-
+            
             switch(type)
                 case {'match','matche'}
                     %% Matching meshes - may be overlapping but there are
@@ -2306,7 +2306,7 @@ classdef msh
                     % concatenate
                     m1 = cat(obj1,obj2);
                     merge = msh(); merge.p = m1.p; merge.t = m1.t; clear m1
-
+                    
                 otherwise
                     %% Abitrary non-matching overlapping meshes
                     % Project both meshes into the space of the global mesh
@@ -2315,19 +2315,19 @@ classdef msh
                     if nfix > 0
                         [pfixx(:,1),pfixx(:,2)] = m_ll2xy(pfixx(:,1),pfixx(:,2));
                     end
-
+                    
                     % checking for weirs in obj1 to keep
                     if ~isempty(obj1.bd) && any(obj1.bd.ibtype == 24)
                         disp('Weirs found in obj1, extracting to ensure they are preserved')
                         [p1,t1,pwin1,twin1] = extractWeirs(p1,t1,obj1);
                     end
-
+                    
                     % checking for weirs in obj2 to keep
                     if ~isempty(obj2.bd) && any(obj2.bd.ibtype == 24)
                         disp('Weirs found in obj2, extracting to ensure they are preserved')
                         [p2,t2,pwin2,twin2] = extractWeirs(p2,t2,obj2);
                     end
-
+                    
                     disp('Forming outer boundary for base...')
                     try
                         cell2 = extdom_polygon(extdom_edges2(t2,p2),p2,-1,0);
@@ -2336,7 +2336,7 @@ classdef msh
                     catch
                         error('Mesh 2 is invalid. Please execute msh.clean on object');
                     end
-
+                    
                     disp('Forming outer boundary for inset...')
                     try
                         [cell1] = extdom_polygon(extdom_edges2(t1,p1),p1,-1,0);
@@ -2345,7 +2345,7 @@ classdef msh
                     catch
                         error('Mesh 1 is invalid. Please execute msh.clean on object');
                     end
-
+                    
                     % Delete the region in the global mesh that is in the
                     % intersection with inset.
                     disp('Deleting intersection...');
@@ -2357,7 +2357,7 @@ classdef msh
                     % generated through the above deletion step
                     pruned2 = msh() ; pruned2.p = p2; pruned2.t = t2;
                     pruned2 = Make_Mesh_Boundaries_Traversable(...
-                                                     pruned2,prune_djc,1);
+                        pruned2,prune_djc,1);
                     t2 = pruned2.t; p2 = pruned2.p;
                     % get new poly_vec2
                     if strcmp(type,'arb')
@@ -2365,7 +2365,7 @@ classdef msh
                         poly_vec2 = cell2mat(cell2');
                         [edges2] = Get_poly_edges(poly_vec2);
                     end
-
+                    
                     disp('Merging...')
                     DTbase = delaunayTriangulation(p1);
                     DTbase.Points(end+(1:length(p2)),:) = p2;
@@ -2374,7 +2374,7 @@ classdef msh
                     else
                         bdx = [];
                     end
-
+                    
                     % Prune triangles outside both domains.
                     disp('Pruning...')
                     for ii = 1:2
@@ -2388,25 +2388,25 @@ classdef msh
                             nn = setdiff(I',[bdx; bdnodes]);
                             DTbase.Points(unique(nn),:) = [];
                         end
-
+                        
                         pm = DTbase.Points; tm = DTbase.ConnectivityList;
-
+                        
                         pmid = (pm(tm(:,1),:)+pm(tm(:,2),:)+pm(tm(:,3),:))/3;
-
+                        
                         %in1 is inside the inset boundary polygon
                         in1 = inpoly(pmid,poly_vec1,edges1);
-
+                        
                         %in2 is inside the global boundary polygon
                         in2 = inpoly(pmid,poly_vec2,edges2);
-
+                        
                         % remove triangles that aren't in the global mesh or
                         % aren't in the inset mesh
                         del = (~in1 & ~in2);
                         tm(del,:) = [];
                     end
-
+                    
                     merge = msh() ; merge.p = pm; merge.t = tm ;
-
+                    
                     if ~isempty(cleanargin)
                         % convert to degrees to calculate distance
                         [t_p1(:,1),t_p1(:,2)] = m_xy2ll(p1(:,1),p1(:,2));
@@ -2428,48 +2428,48 @@ classdef msh
                         merge = clean(merge,cleanargin);
                     end
                     clear pm tm pmid p1 t1 p2 t2
-
+                    
                     merge.pfix  = pfixx ;
                     % edges don't move but they are no longer valid after merger
                     merge.egfix = [];
-
+                    
                     % put the weirs from obj1 back into merge
                     if ~isempty(obj1.bd) && any(obj1.bd.ibtype == 24)
                         disp('Putting the weirs from obj1 back into merged mesh')
                         wm = msh(); wm.p = pwin1; wm.t = twin1;
                         merge = cat(merge,wm);
                     end
-
+                    
                     % put the weirs from obj2 back into merge
                     if ~isempty(obj2.bd) && any(obj2.bd.ibtype == 24)
                         disp('Putting the weirs from obj2 back into merged mesh')
                         wm = msh(); wm.p = pwin2; wm.t = twin2;
                         merge = cat(merge,wm);
                     end
-
+                    
                     % convert back to lat-lon wgs84
                     [merge.p(:,1),merge.p(:,2)] = ...
                         m_xy2ll(merge.p(:,1),merge.p(:,2));
-
+                    
                     if nfix > 0
                         [merge.pfix(:,1),merge.pfix(:,2)] = ...
                             m_xy2ll(pfixx(:,1),pfixx(:,2));
                     end
             end
-
+            
             merge.proj    = MAP_PROJECTION ;
             merge.coord   = MAP_COORDS ;
             merge.mapvar  = MAP_VAR_LIST ;
-
+            
             % Check element order
             merge = CheckElementOrder(merge);
-
+            
             if ~isempty(cleanargin) && ...
                     (strcmp(type,'match') || strcmp(type,'matche'))
                 % let's clean if match type
                 merge = clean(merge,cleanargin);
             end
-
+            
             % Carry over bathy and gradients
             if ~isempty(obj1.b) && ~isempty(obj2.b)
                 disp('Carrying over bathy and slope values.')
@@ -2486,7 +2486,7 @@ classdef msh
                     merge.by(dst1 <= dst2) = obj1.by(idx1(dst1 <= dst2));
                 end
             end
-
+            
             if ~isempty(obj1.f13)
                 disp('Carrying over obj1 f13 data.')
                 merge.f13 = obj1.f13;
@@ -2500,22 +2500,22 @@ classdef msh
                         merge.f13.userval.Atr(ii).Val(2:end,I);
                 end
             end
-
+            
             if ~isempty(obj1.bd) && any(obj1.bd.ibtype == 24)
                 disp('Carrying over weir nodestrings from obj1.')
                 merge = carryoverweirs(merge,obj1);
             end
-
+            
             if ~isempty(obj2.bd) && any(obj2.bd.ibtype == 24)
                 disp('Carrying over weir nodestrings from obj2.')
                 if exist('obj2o','var'); obj2 = obj2o; end
                 merge = carryoverweirs(merge,obj2);
             end
-
+            
             disp('NB: f15, obj2 f13 data, non-weir nodestrings etc. are not carried over.')
-
+            
         end
-
+        
         function obj = cat(obj,obj1)
             % obj = cat(obj,obj1)
             % cat two non-overlapping meshes
@@ -2531,15 +2531,15 @@ classdef msh
             obj.t = [obj.t; tin];
             % append to b and bx, by to avoid error in fixmeshandcarry
             if ~isempty(obj.b)
-               obj.b = [obj.b; NaN(size(pin,1),1)];
+                obj.b = [obj.b; NaN(size(pin,1),1)];
             end
             if ~isempty(obj.bx)
-               obj.bx = [obj.bx; NaN(size(pin,1),1)];
-               obj.by = [obj.by; NaN(size(pin,1),1)];
+                obj.bx = [obj.bx; NaN(size(pin,1),1)];
+                obj.by = [obj.by; NaN(size(pin,1),1)];
             end
             obj = fixmeshandcarry(obj);
         end
-
+        
         function obj = trim(obj,threshold)
             % obj = trim(obj,threshold)
             % trim a mesh excluding elevations above the threshold
@@ -2551,7 +2551,7 @@ classdef msh
             obj.t(bem < -threshold,:) = []; % of element are above the threshold.
             obj = fixmeshandcarry(obj);
         end
-
+        
         function obj = fixmeshandcarry(obj)
             % obj = fixmeshandcarry(obj);
             % "fixes" mesh and carries mesh properties over
@@ -2560,8 +2560,8 @@ classdef msh
             % carry over...
             obj = map_mesh_properties(obj,pix);
         end
-
-
+        
+        
         function obj = CheckElementOrder(obj,proj)
             if nargin == 1
                 proj = 0;
@@ -2602,7 +2602,7 @@ classdef msh
                 disp('All elements now in counterclockwise order')
             end
         end
-
+        
         function obj = carryoverweirs(obj,obj1)
             idx1 = ourKNNsearch(obj.p',obj1.p',1);
             if isempty(obj.bd)
@@ -2635,19 +2635,19 @@ classdef msh
             barinht_old = obj.bd.barinht;
             barincfsb_old = obj.bd.barincfsb;
             barincfsp_old = obj.bd.barincfsp;
-
+            
             obj.bd.nbvv = zeros(max(nr1,nr2),max(nc1,nc1+nc2));
             obj.bd.ibconn = zeros(max(nr1,nr2),max(nc1,nc1+nc2));
             obj.bd.barinht = zeros(max(nr1,nr2),max(nc1,nc1+nc2));
             obj.bd.barincfsb = zeros(max(nr1,nr2),max(nc1,nc1+nc2));
             obj.bd.barincfsp = zeros(max(nr1,nr2),max(nc1,nc1+nc2));
-
+            
             obj.bd.nbvv(1:nr1,1:nc1)=nbvv_old;
             obj.bd.ibconn(1:nr1,1:nc1)=ibconn_old;
             obj.bd.barinht(1:nr1,1:nc1)=barinht_old;
             obj.bd.barincfsb(1:nr1,1:nc1)=barincfsb_old;
             obj.bd.barincfsp(1:nr1,1:nc1)=barincfsp_old;
-
+            
             % remap
             jj = find(jj);
             for ii = startBou:obj.bd.nbou
@@ -2655,22 +2655,22 @@ classdef msh
                 idx = jj(idx);
                 nodes =  full(obj1.bd.nbvv(1:obj1.bd.nvell(idx),idx));
                 nodes2 = full(obj1.bd.ibconn(1:obj1.bd.nvell(idx),idx));
-
+                
                 obj.bd.nbvv(1:obj.bd.nvell(ii),ii)   = idx1(nodes);
                 obj.bd.ibconn(1:obj.bd.nvell(ii),ii) = idx1(nodes2);
-
+                
             end
         end
-
+        
         function [out1,barlen,bars] = CalcCFL(obj,dt,type)
             if isempty(obj.b)
-               error('Bathymetry is required to estimate the Courant number');
+                error('Bathymetry is required to estimate the Courant number');
             end
             if nargin < 3
                 % use spherical haversine distances
                 type = 0;
             end
-
+            
             g      = 9.81;        % gravity
             [bars,barlen] = GetBarLengths(obj,type);
             % sort bar lengths in ascending order
@@ -2682,7 +2682,7 @@ classdef msh
             d1 = NaN*obj.p(:,1); d2 = NaN*obj.p(:,1);
             d1(B1) = barlen(IB); d2(B2) = barlen(IC);
             d = min(d1,d2);
-
+            
             % wavespeed in ocean (second term represents orbital
             % velocity at 0 degree phase for 1-m amp. wave).
             U = sqrt(g*max(obj.b,1)) + sqrt(g./max(obj.b,1));
@@ -2696,7 +2696,7 @@ classdef msh
                 out1 = dt;
             end
         end
-
+        
         function [bars,barlen] = GetBarLengths(obj,type)
             % [bars,barlen] = GetBarLengths(obj,type)
             % Get bars and bar lengths of the elements in msh object
@@ -2737,18 +2737,18 @@ classdef msh
                 [x, y] = CPP_conv( obj.p(:,1), obj.p(:,2) );
                 barlen = hypot(diff(x(bars),[],2)./sfac,diff(y(bars),[],2));
             end
-
+            
             function [ x,y ] = CPP_conv( lon,lat )
                 %CPP_conv Converts lat and lon to x and y
                 lon0 =  mean(lon) * pi/180; lat0 = mean(lat) * pi/180;
-
+                
                 R = 6378206.4;
                 lonr = lon * pi/180; latr = lat * pi/180;
                 x = R * (lonr - lon0) * cos(lat0);
                 y = R * latr;
             end
         end
-
+        
         function obj = BoundCr(obj,dt,cr_max,cr_min,varargin)
             % obj = BoundCr(obj,dt,cr_max,cr_min,varargin)
             % Decimate/refine a mesh to achieve Cr max/min bounds for
@@ -2770,8 +2770,8 @@ classdef msh
             %                       OUTPUTS
             % obj is a mesh where the regions that were modified now
             % respect the Courant bounds.
-
-
+            
+            
             % AUTHORSHIP:
             % kjr, chl, und, 2017 (originally checktimestep)
             % kjr, chl, und, 2018 <--updated for projected spaces
@@ -2779,18 +2779,18 @@ classdef msh
             % using the msh clean, and CFL calc type option
             % kjr, poli, usp 2020 <--Rewrote and generalized. Now add and as well as delete
             %                        to achieve min and max. Courant bound.
-
+            
             % Set up input args and catch errors.
             if nargin < 2
                 help BoundCr
                 error('Please supply correct input args...See help printout above');
             end
-
+            
             % no cr_max, use default
             if nargin < 3
-               cr_max = 0.5;
+                cr_max = 0.5;
             end
-
+            
             % no cr_min supplied
             if nargin < 4
                 cr_min = 0;
@@ -2802,9 +2802,9 @@ classdef msh
             else
                 maxIT = 10;
             end
-
+            
             disp(['Desired time step is ' num2str(dt) ' s'])
-
+            
             %% Deal with any projection information for accurate bar
             % length calculations.
             type  = 0;       %<-- 0 == Haversine, 1 == CPP with correction factor
@@ -2819,10 +2819,10 @@ classdef msh
                 lat_mi = min(obj.p(:,2)); lat_ma = max(obj.p(:,2));
                 m_proj('Trans','lon',[lon_mi lon_ma],'lat',[lat_mi lat_ma]) ;
             end
-
+            
             %% Project into space..
             [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2));
-
+            
             %% Make bathy interpolant for reprojection later on.
             F = scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.b,...
                 'linear','nearest');
@@ -2832,16 +2832,16 @@ classdef msh
                 Fy = scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.by,...
                     'linear','nearest');
             end
-
+            
             % clear some things which cause error in renum
             obj.bx = []; obj.by = []; obj.f13 = [];
             obj.bd = []; obj.op = [];
-
+            
             % OPTIONALLY BOUND THE MAXIMUM COURANT NUMBER BY DELETING
             if cr_max > eps % if cr_max is set to 0 this is skipped
                 disp(['Editing the mesh to bound max. Courant number to ' num2str(cr_max)])
                 it  = 0; % iteration counter
-
+                
                 if ~isempty(obj.pfix)
                     [pf(:,1),pf(:,2)] = m_ll2xy(obj.pfix(:,1),obj.pfix(:,2));
                 else
@@ -2855,7 +2855,7 @@ classdef msh
                     Cr = CalcCFL(obj,dt,type);
                     [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2));
                     bad = real(Cr) > cr_max;
-
+                    
                     display(['Number of maximum Cr bound violations ',num2str(sum(bad))]);
                     disp(['Max Cr is : ',num2str(max(real(Cr)))]);
                     if it == maxIT,   break; end
@@ -2875,67 +2875,67 @@ classdef msh
                 disp(['Achieved max Cr of ',num2str(max(real(Cr))),...
                     ' after ',num2str(it),' iterations.']);
             end
-
+            
             % OPTIONALLY BOUND THE MINIMUM COURANT NUMBER BY REFINING
             if cr_min > eps %if cr_min is set to 0 this is skipped
                 disp(['Editing the mesh to bound min. Courant number to ' num2str(cr_min)])
                 it  = 0; % iteration counter
-
+                
                 if ~isempty(obj.pfix)
                     [pf(:,1),pf(:,2)] = m_ll2xy(obj.pfix(:,1),obj.pfix(:,2));
                 else
                     pf = [];
                 end
-
+                
                 tic
                 while 1
                     [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
                     Cr = CalcCFL(obj,dt,type);
                     [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2));
                     bad = real(Cr) < cr_min;
-
+                    
                     display(['Number of minimum Cr bound violations ',num2str(sum(bad))]);
                     disp(['Min. Cr is : ',num2str(min(real(Cr)))]);
                     if it == maxIT,   break; end
                     badnum = sum(bad);
                     if badnum == 0; break; end
                     it = it + 1;
-
+                    
                     % refine select elements using an octree approach
                     obj = RefineTrias(obj,bad);
-
+                    
                     % put bathy back on
                     obj.b = F(obj.p(:,1),obj.p(:,2));
-
+                    
                 end
             end
-
+            
             % add bathy back on
             obj.b = F(obj.p(:,1),obj.p(:,2));
             if exist('Fx','var')
                 obj.bx = Fx(obj.p(:,1),obj.p(:,2));
                 obj.by = Fy(obj.p(:,1),obj.p(:,2));
             end
-
+            
             disp('Boundary and f13 info has been deleted...');
             disp('bathy and slope info is carried over');
-
+            
             % find nans
             if ~isempty(find(isnan(obj.b), 1))
                 warning('NaNs in bathy found')
             end
-
+            
             % convert back to lat-lon wgs84
             [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
-
+            
             % Check Element order
             obj = CheckElementOrder(obj);
             return;
-
+            
             function obj = DecimateTria(obj,bad)
                 % helper function to delete triangles to achieve max. Cr
                 % bound.
-
+                
                 % form outer polygon of mesh for cleaning up.
                 bnde = extdom_edges2(obj.t,obj.p);
                 poly1 = extdom_polygon(bnde,obj.p,-1);
@@ -2976,7 +2976,7 @@ classdef msh
                 obj.p = pm; obj.t = tm;
             end
             return;
-
+            
             function obj = RefineTrias(obj,bad)
                 % helper function to refine triangles to achieve min.
                 % Courant bound
@@ -2993,11 +2993,11 @@ classdef msh
                 [pnew,~,tnew] = tridiv2(ptemp,edges,ttemp,tnum,yesrefine);
                 obj.p = pnew; obj.t = tnew;
             end
-
-
+            
+            
         end
-
-
+        
+        
         function obj = CheckTimestep(obj,dt,varargin)
             % obj = CheckTimestep(obj,dt,varargin)
             % varargin(1) is desired CFL (< 1) or maximum iterations (> 1)
@@ -3013,9 +3013,9 @@ classdef msh
             % kjr, chl, und, 2018 <--updated for projected spaces
             % wjp, chl, und, 2019 <--updates to carry over slopes and
             % using the msh clean, and CFL calc type option
-
+            
             warning('This function is not recommended. Use "BoundCr" instead')
-
+            
             type       = 0;       %<-- 0 == Haversine, 1 == CPP with correction factor
             desCFL     = 0.50;    %<-- set desired cfl (generally less than 0.80 for stable).
             desIt = inf;          %<-- desired number of iterations
@@ -3043,10 +3043,10 @@ classdef msh
                 lat_mi = min(obj.p(:,2)); lat_ma = max(obj.p(:,2));
                 m_proj('Trans','lon',[lon_mi lon_ma],'lat',[lat_mi lat_ma]) ;
             end
-
+            
             %% Project..
             [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2));
-
+            
             %% Make bathy interpolant
             F = scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.b,...
                 'linear','nearest');
@@ -3056,11 +3056,11 @@ classdef msh
                 Fy = scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.by,...
                     'linear','nearest');
             end
-
+            
             % clear some things which cause error in renum
             obj.bx = []; obj.by = []; obj.f13 = [];
             obj.bd = []; obj.op = [];
-
+            
             %% Delete CFL violations
             it  = 0;
             CFL = 999;
@@ -3098,29 +3098,29 @@ classdef msh
             toc
             disp(['Achieved max CFL of ',num2str(max(real(CFL))),...
                 ' after ',num2str(it),' iterations.']);
-
+            
             % add bathy back on
             obj.b = F(obj.p(:,1),obj.p(:,2));
             if exist('Fx','var')
                 obj.bx = Fx(obj.p(:,1),obj.p(:,2));
                 obj.by = Fy(obj.p(:,1),obj.p(:,2));
             end
-
+            
             disp('Boundary and f13 info has been deleted...');
             disp('bathy and slope info is carried over');
-
+            
             % find nans
             if ~isempty(find(isnan(obj.b), 1))
                 warning('NaNs in bathy found')
             end
-
+            
             % convert back to lat-lon wgs84
             [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
-
+            
             % Check Element order
             obj = CheckElementOrder(obj);
             return;
-
+            
             function obj = DecimateTria(obj,bad)
                 % form outer polygon of mesh for cleaning up.
                 bnde = extdom_edges2(obj.t,obj.p);
@@ -3162,8 +3162,8 @@ classdef msh
                 obj.p = pm; obj.t = tm;
             end
         end
-
-
+        
+        
         function [] = GatherStationsFromKML(obj,kmlfile,ofname,varargin)
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % Read a kml file created in google maps to get coordinates of
@@ -3191,7 +3191,7 @@ classdef msh
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             %% Variables to set
             if nargin < 3, error('Not enough input arguments!'); end
-
+            
             if ~isempty(varargin)
                 names = {'const','Source'};
                 for ii = 1:length(names)
@@ -3204,7 +3204,7 @@ classdef msh
                         end
                     end
                 end
-
+                
             else
                 % Set the constituents we wanna look at
                 const = {'M2','S2','N2','K2','K1','O1','P1','Q1'};
@@ -3212,7 +3212,7 @@ classdef msh
                     'KHAO','GESLA','UHSLC_Fast','Truth_Coast',...
                     'Various_Publications','ST727','IHO',};
             end
-
+            
             %% Reading the kml
             T = [];
             for kml = kmlfile
@@ -3227,7 +3227,7 @@ classdef msh
                 T_n.StyleUrl = [];
                 T = [T; T_n];
             end
-
+            
             %% Convert description to amp and phases
             obs = NaN(height(T),length(const)*2);
             for i = 1:height(T)
@@ -3285,11 +3285,11 @@ classdef msh
             T.Description = [];
             % Combine
             T = [T T1];
-
+            
             %% Only keep stations within our domain
             bnde = extdom_edges2(obj.t,obj.p);
             poly = extdom_polygon(bnde,obj.p,0);
-
+            
             k=0; poly_vec=[];
             for i = 1 : length(poly)
                 for ii = 1 : length(poly{i})
@@ -3333,7 +3333,7 @@ classdef msh
             T_new = T_new(IA,:);
             [~,IA] = sort(T_new.Source);
             T_new = T_new(IA,:);
-
+            
             %% Write to the .csv
             % Output table of the names and positions
             writetable(T_new(IA,:),ofname)
@@ -3346,31 +3346,31 @@ classdef msh
             %             obj.f15.elvstaname = [obj.f15.elvstaname;
             %                 strcat(Sta_name(Sta_type(:,1) == 1),' ID:',...
             %                 Sta_ID(Sta_type(:,1) == 1))];
-
+            
         end
-
+        
         function [ef,efx,efy]=reconstructEdgefx(obj,efdx)
             % Given a msh object, reconstruct the edge function resolution
             % with a resolution equal to efdx in WGS84 degrees.
             efdx = efdx/111e3;
-
+            
             TR = triangulation(obj.t,obj.p(:,1),obj.p(:,2));
             [~,cr] = circumcenter(TR);
-
+            
             for i = 1  : length(obj.t)
                 cl = cr(i) ;
                 for j = 1 :  3
                     z(obj.t(i,j)) = cl;
                 end
             end
-
+            
             bbox = [min(obj.p); max(obj.p)]';
             [efx,efy] = ndgrid(bbox(1,1):efdx:bbox(1,2),...
                 bbox(2,1):efdx:bbox(2,2));
             F = scatteredInterpolant(obj.p(:,1),obj.p(:,2),z','linear','linear');
-
+            
             ef = F(efx,efy);
-
+            
             bnde = extdom_edges2(obj.t,obj.p);
             poly1=extdom_polygon(bnde,obj.p,1);
             for i = 1 : length(poly1)
@@ -3381,14 +3381,14 @@ classdef msh
             in = inpoly([efx(:),efy(:)],poly_vec1,edges1);
             ef(~in) = NaN;
         end
-
+        
         function [centroids,bc] = baryc(obj)
             centroids = (obj.p(obj.t(:,1),:)+obj.p(obj.t(:,2),:)+obj.p(obj.t(:,3),:))/3;
             if nargout > 1 && ~isempty(obj.b)
                 bc = (obj.b(obj.t(:,1))+obj.b(obj.t(:,2))+obj.b(obj.t(:,3)))/3;
             end
         end
-
+        
         function [obj3] = minus(obj1,obj2)
             % Given two overlapping triangulations described in msh objects
             % obj1 and obj2, remove the triangles in obj1 with centroids
@@ -3404,23 +3404,23 @@ classdef msh
             poly = extdom_polygon(bnde,obj2.p,-1);
             polyc= cell2mat(poly');
             edges=Get_poly_edges(polyc);
-
+            
             centroids = baryc(obj1) ;
             in = inpoly(centroids,polyc,edges);
-
+            
             tempp = obj1.p;
             tempt = obj1.t;
-
+            
             tempt(in,:) = [] ;
             [tempp,tempt]=fixmesh(tempp,tempt) ;
-
+            
             obj3 = msh();
             obj3.p = tempp; obj3.t = tempt;
             obj3 = renum(obj3);
-
+            
         end
-
-
+        
+        
         function obj = bound_con_int(obj,nvl) %nvu,
             %  bound_con_int updates all interior nodes that are connected
             %  to more than 7 nodes and less than 21 so that every node is
@@ -3457,7 +3457,7 @@ classdef msh
             %             Apr. 26, 2018, Keith Roberts--Merged into msh class for
             %             OceanMesh software
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+            
             % convert msh obj to fem_struct
             bnde=extdom_edges2(obj.t,obj.p);
             fem_struct.x = obj.p(:,1);
@@ -3475,7 +3475,7 @@ classdef msh
                 warning('Reduce nodal connectivity will erase your nodal attributes and control file. Go on?');
                 pause
             end
-
+            
             %Ensure the appropriate number of input arguements is given, checks that the
             %fem_struct is valid.
             if nargin == 0
@@ -3494,7 +3494,7 @@ classdef msh
             %             else
             %                 nvu = 4;
             %             end
-
+            
             %Make sure that the lower limit of connecitivity count falls between
             % 8 and 20 nodes
             if nargin == 2
@@ -3509,16 +3509,16 @@ classdef msh
             else
                 nvl = 8;
             end
-
+            
             %Sets the intial fem_struct variables and determines the max
             %connectivity. Displays errors if the connectivity is to high.
-
+            
             % List of all nodes not on the boundary;
             tmpnodes = setdiff(1:1:length(fem_struct.x),unique(fem_struct.bnd(:)));
             bndrynodes = unique(fem_struct.bnd(:));
-
+            
             nelems = size(fem_struct.e,1);
-
+            
             % Determine if fem_struct.nei is present, if not added it.
             try
                 nc = size(fem_struct.nei(tmpnodes,:),2);
@@ -3531,32 +3531,32 @@ classdef msh
                 disp('The neigbor list was successfully added.');
                 nc = size(fem_struct.nei(tmpnodes,:),2);
             end
-
+            
             nelems_orig = nelems;
             nnodes_orig = length(fem_struct.x);
             nc_orig = nc;
-
+            
             [~,J1] = find(fem_struct.nei(bndrynodes,:)~=0);
             highbndry = max(J1);
             clear J1
-
+            
             %nsmall = any(fem_struct.nei(j,nvu+1));
-
+            
             if nc > 21
                 error(['The connectivity is too high and must be brought down to at least',...
                     '20 by hand.']);
             end
-
+            
             if nc <= nvl-1
                 disp(['The grids nodal connectivity is not higher than ',num2str(nvl),', nothing will be done.']);
                 disp('Returning the original mesh.');
                 return
             end
-
+            
             disp(' ')
             disp('NOTE: NO UPDATING IS DONE FOR BOUNDARY NODES.');
             disp(' ')
-
+            
             %Begins loop to update nodes.
             tempr = size(fem_struct.nei,2);
             if tempr < nvl-1 %7
@@ -3571,13 +3571,13 @@ classdef msh
             disp(' ')
             while tempr ~= 0 && i <= imax
                 disp(['Pass number ',num2str(i,'%4.0f'),' through the loop'])
-
+                
                 %tmpnodes2 = tmpnodes;
                 %iupdnn=find(fem_struct.nei(tmpnodes,nvl)~=0);  %nodes with high connectivity
                 %tmpnodes = tmpnodes(iupdnn);
                 %clear tmpnodes2
                 nnodes = size(fem_struct.nei(tmpnodes,:),1);
-
+                
                 j2 = 1;
                 while j2 <= nnodes
                     jj = tmpnodes(j2);
@@ -3589,7 +3589,7 @@ classdef msh
                         %tempnc = nc - temp1; TCM
                         tempnc = sum(~ismember((fem_struct.nei(jj,:)),0)); %TCM
                         % TCM -- END -- 09/19/2006
-
+                        
                         disp(['Updating node number ',num2str(jj),' using',' fix ',num2str(tempnc)]);
                         switch tempnc
                             case {13,14,15,16,17,18,19,20}
@@ -3620,7 +3620,7 @@ classdef msh
                         j2 = j2 + 1;
                     end
                 end
-
+                
                 %Check if any nodes where added to the do not update lists.
                 try
                     fixedint = fixedint;
@@ -3629,9 +3629,9 @@ classdef msh
                     fixedint = 1:0;
                     fixedintnei = 1:0;
                 end
-
+                
                 %Create do not update list for interior nodes.
-
+                
                 %newnei = fem_struct.nei(fixedint,:);
                 %temp1 = ismember(fem_struct.nei(fixedint,:),0);
                 %temp2 = sum(temp1,2);
@@ -3642,11 +3642,11 @@ classdef msh
                 %fixedintnei(temp5) = [];
                 %temp6 = size(temp5,1);
                 %i2flag = i2flag - temp6;
-
+                
                 int = setdiff(1:length(fem_struct.x),bndrynodes);
-
+                
                 tmpnodes = setdiff(int,fixedint);
-
+                
                 i = i + 1;
                 %tmpnodes = setdiff(1:1:length(fem_struct.x),unique(fem_struct.bnd(:)));
                 if size(fem_struct.nei,2) > nvl-1
@@ -3655,18 +3655,18 @@ classdef msh
                     tempr = 0;
                 end
             end
-
-
-
+            
+            
+            
             %Creates the output structure.
             fem = fem_struct;
             [~,J1] = find(fem_struct.nei(tmpnodes,:)~=0);
             highint = max(J1);
-
+            
             fem.nei = fem.nei(:,1:max(highint,highbndry));
             fem = el_areas(fem);
-
-
+            
+            
             % Display a message that we reached the maximum number of loop iterations
             % prior to minimizing the interior nodal connectivity list
             if i>imax && highint > nvl-1 %7
@@ -3675,7 +3675,7 @@ classdef msh
                     ' exceeded before all interior nodes']);
                 disp('reached their miniminal connecitvity.');
             end
-
+            
             % Display a summary of mesh updates.
             disp(' ')
             disp([num2str(size(fem.e,1)-nelems_orig),' elements have been added']);
@@ -3685,8 +3685,8 @@ classdef msh
             disp(['The maximum nodal connectivity for a boundary node',...
                 ' is ',num2str(highbndry),'.']);
             disp(' ');
-
-
+            
+            
             % kjr convert back to msh obj.
             obj.p = [fem_struct.x,fem_struct.y];
             if ~isempty(obj.b)
@@ -3694,7 +3694,7 @@ classdef msh
             end
             obj.t = fem_struct.e;
         end
-
+        
         function obj = flipEdge(obj,j,k)
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             %Line_swap is mesh refining tool that swaps an edge that two elements
@@ -3731,7 +3731,7 @@ classdef msh
             %       April 2018.
             %%%
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+            
             % convert msh obj to fem_struct
             bnde=extdom_edges2(obj.t,obj.p);
             fem_struct.x = obj.p(:,1);
@@ -3749,7 +3749,7 @@ classdef msh
                 warning('Reduce nodal connectivity will erase your nodal attributes and control file. Go on?');
                 pause
             end
-
+            
             %Ensure the apropriate number of input arguements is given, checks that the
             %fem_struct is valid.
             if nargin == 0
@@ -3775,27 +3775,27 @@ classdef msh
             else
                 error('Too many input arguments.');
             end
-
-
+            
+            
             %Sets the intial fem_struct variables.
             x = fem_struct.x;
             y = fem_struct.y;
             enodes = fem_struct.e;
             ar = fem_struct.ar;
-
+            
             %Determine if the elements share a common edge.
             elems = enodes([j;k],:);
             comp = unique(intersect(elems(1,:),elems(2,:)));
             if length(comp) < 2
                 error('The elements do not share a common edge.');
             end
-
+            
             %Indentify each node for swapping.
             [nodes,ti,tj] = unique(elems);
             temp1 = setdiff((1:6),ti);
             temp1 = elems(temp1);
             temp2 = setdiff(nodes,temp1);
-
+            
             %Determine if the angle between the elements is too big for line_swap to
             %effectively operate on it.
             a2 = (x(enodes([j;k],3))-x(enodes([j;k],2))).^2+(y(enodes([j;k],3))-y(enodes([j;k],2))).^2;
@@ -3820,7 +3820,7 @@ classdef msh
                 disp(['Warning: The elements created will contain large angles.']);
             end
             clear a2 b2 c2 A B C ang
-
+            
             %Swap the lines in the enodes list.
             temp3 = setdiff(elems(1,:),temp1);
             temp4 = setdiff(elems(2,:),temp1);
@@ -3829,24 +3829,24 @@ classdef msh
             temp6 = find(elems(2,:) == temp1(2));
             elems(2,temp6) = temp3;
             clear temp5 temp6;
-
+            
             %Recomputes the areas for the new elements.
             xnodes = x(elems);
             ynodes = y(elems);
             temparea = 0.5*(xnodes(:,1).*(ynodes(:,2)-ynodes(:,3))+xnodes(:,2).*...
                 (ynodes(:,3)-ynodes(:,1))+xnodes(:,3).*(ynodes(:,1)-ynodes(:,2)));
             clear xnodes ynodes x y;
-
+            
             %Addes the new elements and areas to the global lists.
             enodes([j;k,],:) = elems;
             ar([j;k]) = temparea(:);
             clear elems temparea;
-
+            
             %Create the output structure.
             fem = fem_struct;
             fem.e = enodes;
             fem.ar = ar;
-
+            
             %Updates the nei if present.
             try
                 nei = fem_struct.nei;
@@ -3882,14 +3882,14 @@ classdef msh
                 fem.nei = nei;
             catch
             end
-
+            
             % kjr convert back to msh obj.
             obj.p = []; obj.b = []; obj.t =[];
             obj.p = [fem_struct.x,fem_struct.y];
             obj.b = fem_struct.z;
             obj.t = fem_struct.e;
         end
-
+        
         function mfixed = MergeFP(muw,mfp)
             %%%%%%%
             % Merges a watertight mesh muw with a mesh that contains both
@@ -3905,45 +3905,45 @@ classdef msh
             % mfixed: a final merged msh that seamlessly mates with the
             % underwater mesh.
             % kjr, April 2019
-
+            
             m3 = mfp - muw ;
-
+            
             dt = delaunayTriangulation(muw.p) ;
-
+            
             dt.Points(end+(1:length(m3.p)),:) = m3.p ;
-
+            
             tmp = mfp;
-
+            
             tmp.p = dt.Points ; tmp.t = dt.ConnectivityList;
-
+            
             % delete points outside mfp and muw
             bnde = extdom_edges2(mfp.t,mfp.p) ;
             polyt=extdom_polygon(bnde,mfp.p,-1,0,20) ;
             polyt=cell2mat(polyt') ;
-
+            
             ee   = Get_poly_edges(polyt) ;
             bc   = baryc(tmp) ;
             infp   = inpoly(bc,polyt,ee) ;
-
+            
             bnde = extdom_edges2(muw.t,muw.p) ;
             polyt=extdom_polygon(bnde,muw.p,-1,0,20) ;
             polyt=cell2mat(polyt') ;
-
+            
             ee   = Get_poly_edges(polyt) ;
             bc   = baryc(tmp) ;
             inuw   = inpoly(bc,polyt,ee) ;
-
+            
             tmp.t(~infp & ~inuw,:) = [] ;
-
+            
             [tmp.p,tmp.t] = fixmesh(tmp.p,tmp.t) ;
-
+            
             mfixed = tmp ;
-
+            
             mfixed = renum(mfixed) ;
-
-
+            
+            
         end
-
+        
         function [pfix,egfix] = extractFixedConstraints(obj)
             %%%%%%%
             % Extract boundary of mesh in no order.
@@ -3962,9 +3962,9 @@ classdef msh
                 egfix(DEL1,:) = [];
                 pfix = obj.p(unique(egfix(:)),:);
             end
-           egfix = renumberEdges(egfix) ;
+            egfix = renumberEdges(egfix) ;
         end
-
+        
         function boundary = getBoundaryOfMesh(obj,ascell)
             % boundary = getBoundaryOfMesh(obj,ascell)
             %
@@ -3991,7 +3991,7 @@ classdef msh
             if ascell; return; end
             boundary = cell2mat(boundary');
         end
-
+        
         function obj = map_mesh_properties(obj,ind)
             % obj = map_mesh_properties(obj,ind)
             % Map properties of a msh obj given a subset of integers, 'ind'.
@@ -4019,7 +4019,7 @@ classdef msh
                     [~,~,idx_new] = intersect(idx_old,ind,'stable');
                     % if a polygon
                     if ~isempty(idx_new) && ...
-                        length(idx_new) == length(idx_old)-1 && idx_old(end) == idx_old(1)
+                            length(idx_new) == length(idx_old)-1 && idx_old(end) == idx_old(1)
                         idx_new(end+1) = idx_new(1);
                     end
                     % Get the new length of this boundary
@@ -4046,7 +4046,7 @@ classdef msh
                     [~,~,idx_new] = intersect(idx_old,ind,'stable');
                     % if a polygon
                     if ~isempty(idx_new) && ...
-                       length(idx_new) == length(idx_old)-1 && idx_old(end) == idx_old(1)
+                            length(idx_new) == length(idx_old)-1 && idx_old(end) == idx_old(1)
                         idx_new(end+1) = idx_new(1);
                     end
                     % Get the new length of this boundary
@@ -4064,7 +4064,7 @@ classdef msh
                     if length(idx_new) ~=  obj.bd.nvell(ib)
                         disp(['boundary number = ' num2str(ib)])
                         error(['ibconn of subset is different length to nbvv. ' ...
-                               'Make sure the weir is fully within the subset'])
+                            'Make sure the weir is fully within the subset'])
                     end
                     % Reset and reload the ibconn for this boundary
                     obj.bd.ibconn(:,ib) = 0;
@@ -4107,9 +4107,9 @@ classdef msh
                 [~,idx_new] = intersect(idx_old,ind);
                 obj.f5354.nodes = idx_new;
             end
-        % EOF
+            % EOF
         end
-
+        
         function obj = pruneOverlandMesh(obj,elev,djc)
             %%%%%%%
             % Removes overland extent greater than certain elevation about
@@ -4132,7 +4132,7 @@ classdef msh
             obj.b = Fb(obj.p) ;
             [obj.p(:,1),obj.p(:,2)] =  m_xy2ll(obj.p(:,1),obj.p(:,2));
         end
-
+        
         function obj = interpFP(obj,gdat,muw,gdatuw,minb,CAN)
             %%%%%%%
             % Interpolate topography onto a mesh with floodplain
@@ -4155,7 +4155,7 @@ classdef msh
             % a msh_obj with bathy/topo on its vertices
             %
             % kjr, april 2019
-
+            
             % parsing some inputs (or set to default)
             if nargin < 5
                 minb = 1;
@@ -4163,23 +4163,23 @@ classdef msh
             if nargin < 6
                 CAN = 3;
             end
-
+            
             bnde = extdom_edges2(muw.t,muw.p) ;
             bou = extdom_polygon(bnde,muw.p,-1) ;
             bou = cell2mat(bou') ;
-
+            
             dmy1 = obj; % land + uw
-
+            
             ee = Get_poly_edges(bou);
             in = inpoly(dmy1.p,bou,ee) ;
-
+            
             % get the "on"
             on = ismembertol(dmy1.p,muw.p,1e-5,'ByRows',true);
-
+            
             obj.b = (1:length(obj.p(:,1)))'*0 ;
-
+            
             if ~iscell(gdat); gdat = {gdat}; end
-
+            
             for i = 1 : length(gdat)
                 if isempty(gdat{i}.Fb)
                     disp(['Entry ',num2str(i), ' does not contain DEM, skipping']);
@@ -4191,9 +4191,9 @@ classdef msh
                     in2 = inpoly(dmy1.p,gdat{i}.boubox(1:end-1,:)) ;
                 end
                 dmy1 = interp(obj,gdatuw(i),'type','depth','ignoreOL',1);
-
+                
                 dmy2 = interp(obj,gdat(i),'type','depth','N',CAN) ; % use smooth overland
-
+                
                 if ~isempty(gdat{i}.mainlandb) || ~isempty(gdat{i}.innerb)
                     riverbound = [];
                     if ~isempty(gdat{i}.mainlandb)
@@ -4218,7 +4218,7 @@ classdef msh
                                 gdat{i}.innerb(isn1:isn2,:)];
                         end
                     end
-
+                    
                     % kjr 2018,10,17; Set up projected space imported from msh class
                     dmyriver = dmy2;
                     dmyriver.p = [dmyriver.p; riverbound(:,1:2)];
@@ -4238,14 +4238,52 @@ classdef msh
                 dmy1.b = max(dmy1.b,minb); % bound the depth by minb
                 obj.b(uw & in2,1) = dmy1.b(uw & in2,1) ;
                 obj.b(~uw & in2,1) = dmy2.b(~uw & in2,1) ;
-
+                
             end
-
+            
         end
-
-
+        
+        
+        function poly = get_poly(obj)
+            % obj = get_poly(obj)
+            % Get the walkable polygon around a hole in the
+            % mesh by clicking the starting point.
+            % Common use case would be to re-mesh an area of the mesh.
+            % 
+            % Input(s)
+            % obj - msh object
+            % 
+            % Return(s)
+            % poly - a cell-array of polygons
+            %
+            % See also Examples/Example_12_fixing_up.m
+            %
+            % Created by Keith Roberts, 2020, USP
+            dir = 1;
+            
+            [bnde,bpts] = extdom_edges2(obj.t,obj.p);
+            
+            % use this to figure out the vstart and vend
+            figure, plot(bpts(:,1),bpts(:,2),'k.');
+            %hold on; fastscatter(obj.p(:,1),obj.p(:,2),obj.b) ;
+            caxis([-10 10]) ; axis equal ;
+            title('Use the data cursor to identify the starting point');
+            dcm_obj = datacursormode(gcf);
+            set(dcm_obj,'UpdateFcn',{@myupdatefcn2,bpts})
+            
+            % Use data cursor to get the values of the boundary nodes.
+            vstart=input('Enter the index for the starting point : ');
+            
+            bndidx = unique(bnde(:));
+            vstart = bndidx(vstart);
+            vend = vstart; % assume start is end
+            
+            [poly,~,~,~] = extract_boundary(vstart,vend,bnde,obj.p,dir,[],[],0,0);
+        end
+        
+        
     end % end methods
-
-
-
+    
+    
+    
 end % end class
