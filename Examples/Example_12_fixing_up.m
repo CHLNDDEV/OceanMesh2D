@@ -47,7 +47,7 @@ hole = [  174.1578  -45.9624
     174.4151  -44.5821];
 % This extracts the parent mesh but with the polygon removed.
 subdomain = extract_subdomain(m,hole,1);
-% Visualzie it
+% Visualize the subdomain.
 plot(subdomain);
 %% Get the boundary of this hole in the mesh
 % Follow the instructions in the title of the plot and click on one of the 
@@ -60,11 +60,12 @@ poly = get_poly(subdomain);
 
 subdomain_new = mesh2dgen(poly{1},fh); 
 
-%% Merge it in
-% Since the boundaries match identically, this is a trivial merge.
+%% Merge the patch back into the parent mesh.
+% Since the boundaries match identically, this is a trivial merge
+% and we use the `match` option.
 m_new = plus(subdomain_new, m, 'match');
 
-
+% Visualize the final result (the red indicates the area that we remeshed).
 plot(m_new); hold on; plot(poly{1}(1:end-1,1),poly{1}(1:end-1,2),'r-','linewi',3);
 
 
