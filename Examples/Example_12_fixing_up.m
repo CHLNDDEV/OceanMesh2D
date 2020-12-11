@@ -40,11 +40,14 @@ m = mshopts.grd;
 %% Extract the region which you want to remesh
 % For the purpose of this example, we have drawn a random polygon on top
 % of the mesh for which we would like to remesh.
-hole = [  174.1578  -45.9624
-    172.5435  -46.8280
-    171.7715  -46.1261
-    172.5903  -45.0266
-    174.4151  -44.5821];
+hole = [  172.7361  -44.0332
+  172.4602  -44.3989
+  171.2402  -45.2966
+  171.4459  -46.6907
+  174.5999  -45.1137
+  173.5714  -43.6053
+  173.0915  -44.1310];
+
 % This extracts the parent mesh but with the polygon removed.
 subdomain = extract_subdomain(m,hole);
 % Visualzie it
