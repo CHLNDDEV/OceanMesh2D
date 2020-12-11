@@ -5,8 +5,8 @@ function mfp = mesh2dgen( polygon, fh )
 % We make the assumption that floodplain domain is relatively small so that
 % projection is not that important..
 %
-% NOTE: Must download the mesh2d package separately to use
-% (https://github.com/dengwirda/mesh2d)
+% This section of the code used `mesh2d` by DR. Darren Engwirda
+% https://github.com/dengwirda/mesh2d
 
 opts.iter = 100;
 opts.kind = 'delaunay';
