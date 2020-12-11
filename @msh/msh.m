@@ -4249,10 +4249,10 @@ classdef msh
             % Get the walkable polygon around a hole in the
             % mesh by clicking the starting point.
             % Common use case would be to re-mesh an area of the mesh.
-            % 
+            %
             % Input(s)
             % obj - msh object
-            % 
+            %
             % Return(s)
             % poly - a cell-array of polygons
             %
@@ -4279,6 +4279,14 @@ classdef msh
             vend = vstart; % assume start is end
             
             [poly,~,~,~] = extract_boundary(vstart,vend,bnde,obj.p,dir,[],[],0,0);
+            
+            function txt = myupdatefcn2(~,event_obj,myarray)
+                pos = get(event_obj,'Position');
+                ind = find(abs(myarray(:,1)-pos(1))<eps & abs(myarray(:,2)-pos(2))<eps);
+                txt = {['X: ',num2str(pos(1))],...
+                    ['Y: ',num2str(pos(2))],...
+                    ['Index: ',num2str(ind')]};
+            end
         end
         
         

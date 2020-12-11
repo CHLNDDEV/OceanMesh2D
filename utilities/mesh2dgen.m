@@ -1,9 +1,9 @@
 function mfp = mesh2dgen( polygon, fh )
-% mfp = mesh2dgen( polygon, fh ) 
+% mfp = mesh2dgen( polygon, fh )
 % Generates a mesh using mesh2d based on a nan-delimited polygon on wgs84
 % lat-lon coordinates and the oceanmesh2D edgefx class, fh
 % We make the assumption that floodplain domain is relatively small so that
-% projection is not that important.. 
+% projection is not that important..
 %
 % NOTE: Must download the mesh2d package separately to use
 % (https://github.com/dengwirda/mesh2d)
@@ -20,8 +20,9 @@ if isa(fh,'edgefx')
 else
     hfun = fh;
 end
+
 % make the delaunay refinement mesh
-[p2,etri,t2,tnum] = refine2_om(node,edge,[],opts,hfun);  
+[p2,etri,t2,tnum] = refine2_om(node,edge,[],opts,hfun);
 % smooth2
 [p2,~,t2,~] = smooth2(p2,etri,t2,tnum);
 
