@@ -1,8 +1,11 @@
-% Example_12_Remeshing_Patches.m
+% Example_11_Remeshing_Patches.m
 % 
 % This example highlights a workflow on how to re-mesh and insert patches
 % using user defined mesh sizing functions from OceanMesh2D preserving
 % the pathces subdomain boundaries exactly.
+%
+% This requires the mesh2d package to be on the path.
+% https://github.com/dengwirda/mesh2d
 %
 % By Keith Roberts, 2020, USP, Brazil.
 
