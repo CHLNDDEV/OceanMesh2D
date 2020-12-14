@@ -35,6 +35,8 @@ mshopts = mshopts.build;
 %% STEP 5: Plot it and write a triangulation fort.14 compliant file to disk.
 % Get out the msh class and put on nodestrings
 m = mshopts.grd;
+% Interpolate topobathy data onto the vertices of the mesh.
+m = interp(m,'SRTM15+V2.1.nc'); 
 %% Extract the region which you want to remesh
 % For the purpose of this example, we have drawn a random polygon on top
 % of the mesh for which we would like to remesh.
@@ -46,8 +48,8 @@ hole = [  172.7361  -44.0332
   173.5714  -43.6053
   173.0915  -44.1310];
 % This extracts the parent mesh but with the polygon removed.
-subdomain = extract_subdomain(m,hole);
-% Visualzie it
+subdomain = extract_subdomain(m,hole); 
+% Visualize the subdomain
 plot(subdomain);
 %% Get the boundary of this hole in the mesh
 % Follow the instructions in the title of the plot and click on one of the 
@@ -60,7 +62,11 @@ poly = get_poly(subdomain);
 subdomain_new = mesh2dgen(poly{1},fh); 
 %% Merge the patch in
 % Remove the subdomain from the parent mesh
-m = extract_subdomain(m,hole,1);
+m_w_hole = extract_subdomain(m,hole,1);
 % Since the boundaries match identically, this is a trivial merge.
-m_new = plus(subdomain_new, m, 'match');
-plot(m_new); hold on; plot(poly{1}(1:end-1,1),poly{1}(1:end-1,2),'r-','linewi',3);
+m_new = plus(subdomain_new, m_w_hole, 'match');
+% Use a trivial nearest neighbor interpolation to put the bathy back on 
+% the new mesh
+ind = nearest_neighbor_map(m, m_new);
+m_new.b = m.b(ind); 
+plot(m_new,'bmesh'); hold on; plot(poly{1}(1:end-1,1),poly{1}(1:end-1,2),'r-','linewi',3);
