@@ -4297,6 +4297,32 @@ classdef msh
                     ['Index: ',num2str(ind')]};
             end
         end
+        
+                
+        function [smoothed] = mesh_patch_smoother(obj, poly)
+            % obj = mesh_patch_smoother(obj, poly)
+            % Smooth a patch of elements perserving the boundaries of the patch.
+            % If poly is not supplied, prompts the user to draw it.
+            %
+            % Inputs
+            % obj - msh object.
+            % poly - a single polygon (does not require to be NaN-delimited).
+            %
+            % Outputs
+            % smoothed - original msh obj but patch smoothed.
+            %
+            % Author Keith R. USP, Brazil, 2020
+            
+            if nargin < 2
+                h = impoly;
+                poly = h.getPosition;
+            end
+            sub1  = extract_subdomain(obj, poly,0);
+            sub2  = extract_subdomain(obj, poly,1);
+            sub1 = clean(sub1, {'ds',2,'mqa',1e-4,'djc',0.0,'con',5,'db',0,'sc_maxit',0});
+            smoothed = plus(sub1,sub2,'match',{'djc',0.0,'ds',0,'db',0,'con',5,'mqa',1e-4,'sc_maxit',0});
+        end
+        
 
 
     end % end methods
