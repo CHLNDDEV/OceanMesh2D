@@ -620,16 +620,17 @@ function h = gaussian2D(siz, std)
     [x,y] = meshgrid(-siz(2):siz(2),-siz(1):siz(1));
 
     
-    std = max(std);
-    sr = siz(2)/siz(1);
-    if sr > 1
-        sy = sr^2; sx = 1;
-    else
-        sx = sr^2; sy = 1;
-    end
+    %std = max(std);
+    %sr = siz(2)/siz(1);
+    %if sr > 1
+    %    sy = sr^2; sx = 1;
+    %else
+    %    sx = sr^2; sy = 1;
+    %end
     
     % analytic function
-    h = exp(-(sx*x.*x + sy*y.*y)/(2*std*std));
+    h = exp(-(x.*x/(2*std(end)*std(end)) + y.*y/(2*std(1)*std(1))));
+    %h = exp(-(sx*x.*x + sy*y.*y)/(2*std*std));
 
     % truncate very small values to zero
     h(h<eps*max(h(:))) = 0;
