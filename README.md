@@ -136,6 +136,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - cell-averaging interpolation method in msh.interp fixed for unequal lon-lat DEM grid spacings
 
 ### Added
+- Mesh patch smoother
 - Ability to remesh abritary patches of elements within the domain while respecting user-defined mesh sizes and the patches boundaries. 
 - Ability to use the TPXO9 Atlas for the tidal bcs and sponge (inside tidal_data_to_ob.m and Calc_Sponge.m) by using '**' wildcards in place of the constituent name within the tidal atlas filename (the atlas has an individual file for each constituent).
 - Introducing 'auto_outer' option for the make_bc msh method which populates the bc for the outermost mesh boundary polygon (ignores islands)
