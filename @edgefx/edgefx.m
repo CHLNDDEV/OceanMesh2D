@@ -14,7 +14,6 @@ classdef edgefx
     %      addOptional(p,'slp',defval);
     %      addOptional(p,'ch',defval);
     %      addOptional(p,'min_el_ch',100);
-    %      addOptional(p,'AngOfRe',60);
     %      addOptional(p,'max_el',inf);
     %      addOptional(p,'max_el_ns',inf);
     %      addOptional(p,'g',0.20);
@@ -24,7 +23,7 @@ classdef edgefx
     %      addOptional(p,'fl',defval);
     %      addOptional(p,'Channels',defval);
     %      addOptional(p,'h0',defval);
-    %      addOptional(p,'variable_angle_of_reslope',defval);
+    %      addOptional(p,'angle_of_reslope',defval);
     %
     %   This program is free software: you can redistribute it and/or modify
     %   it under the terms of the GNU General Public License as published by
@@ -75,7 +74,7 @@ classdef edgefx
 
         min_el_ch % min. element size along the channel
         Channels % cell array of streams.
-        variable_angle_of_reslope % cell array of channel and ridge reslope angles.
+        angle_of_reslope % scalar or cell array of channel and ridge reslope angles.
 
     end
 
@@ -111,7 +110,6 @@ classdef edgefx
             addOptional(p,'slp',defval);
             addOptional(p,'ch',defval);
             addOptional(p,'min_el_ch',100);
-            addOptional(p,'AngOfRe',60);
             addOptional(p,'max_el',inf);
             addOptional(p,'max_el_ns',inf);
             addOptional(p,'g',0.20);
@@ -121,17 +119,17 @@ classdef edgefx
             addOptional(p,'fl',defval);
             addOptional(p,'Channels',defval);
             addOptional(p,'h0',defval);
-            addOptional(p,'variable_angle_of_reslope',defval);
+            addOptional(p,'angle_of_reslope',60);
 
             % parse the inputs
             parse(p,varargin{:});
             % store the inputs as a struct
             inp = p.Results;
             % get the fieldnames of the edge functions
-            inp = orderfields(inp,{'max_el','min_el_ch','AngOfRe',...
+            inp = orderfields(inp,{'max_el','min_el_ch','angle_of_reslope',...
                 'geodata','lmsl','Channels',...
                 'dis','fs','fl','g','max_el_ns',...
-                'wl','slp','ch','dt','h0','variable_angle_of_reslope'});
+                'wl','slp','ch','dt','h0'});
             fields = fieldnames(inp);
             % loop through and determine which args were passed.
             % also, assign reasonable default values if some options were
@@ -187,20 +185,15 @@ classdef edgefx
                         if obj.min_el_ch ~= 100
                             obj.min_el_ch = inp.(fields{i});
                         end
-                    case('AngOfRe')
-                        obj.AngOfRe=inp.(fields{i});
-                        if obj.AngOfRe ==60
-                            obj.AngOfRe = inp.(fields{i});
-                        end
                     case('Channels')
                         obj.Channels=inp.(fields{i});
                         if ~isempty(obj.Channels) ~=0
                             obj.Channels = inp.(fields{i});
                         end
-                    case('variable_angle_of_reslope')
-                        obj.variable_angle_of_reslope=inp.(fields{i});
-                        if ~isempty(obj.variable_angle_of_reslope) ~=0
-                            obj.variable_angle_of_reslope = inp.(fields{i});
+                    case('angle_of_reslope')
+                        obj.angle_of_reslope=inp.(fields{i});
+                        if ~isempty(obj.angle_of_reslope) ~=0
+                            obj.angle_of_reslope = inp.(fields{i});
                         end
                 end
             end
@@ -266,7 +259,7 @@ classdef edgefx
                         end
                     case{'g','geodata','lmsl','max_el','min_el_ch',...
                             'Channels','max_el_ns','h0','dt','fl',...
-                            'AngOfRe','variable_angle_of_reslope'}
+                            'angle_of_reslope'}
                         % dummy to avoid warning
                     otherwise
                         warning('Unexpected edge function name/value pairs.')
@@ -643,7 +636,7 @@ classdef edgefx
         %% Channel edgefunction
         function obj = chfx(obj,feat)
 
-            ang_of_reslope=obj.AngOfRe ;      % Estimate width of channel using tangent of this angle times depth.
+            % Estimate width of channel using tangent of this angle times depth.
 
             % STEP 1: Calculate the width of each channel using a v-shape approx to
             % channel's cross sectional area.
@@ -651,10 +644,10 @@ classdef edgefx
                 if (isempty(obj.Channels{jj})); continue ;end
                 pts{jj} = obj.Channels{jj};
                 dp{jj} = feat.Fb(pts{jj});                               % depth at x,y channel locations
-                if (isempty(obj.variable_angle_of_reslope{jj}) ~= 0)
-                    radii{jj}=(tand(variable_angle_of_reslope{jj})*max(1,-dp{jj})); % allowing for variable angle of reslope for channel radii calculation
+                if length(obj.angle_of_reslope) > 1
+                    radii{jj}=(tand(obj.angle_of_reslope{jj})*max(1,-dp{jj})); % allowing for variable angle of reslope for channel radii calculation
                 else
-                    radii{jj}=(tand(ang_of_reslope)*max(1,-dp{jj}));         % estimate of channel's width in degrees at x,y locations ASSUMING angle of reslope
+                    radii{jj}=(tand(obj.angle_of_reslope)*max(1,-dp{jj}));         % estimate of channel's width in degrees at x,y locations ASSUMING angle of reslope
                 end
                 tempbb{jj} = feat.boubox;
             end
