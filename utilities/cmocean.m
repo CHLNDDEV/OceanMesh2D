@@ -212,6 +212,8 @@ end
 
 if autopivot
    clim = caxis; 
+   clim(1) = min(clim(1),PivotValue);
+   clim(2) = max(clim(2),PivotValue);
    assert(PivotValue>=clim(1) & PivotValue<=clim(2),'Error: pivot value must be within the current color axis limits.') 
    maxval = max(abs(clim-PivotValue)); 
    cmap = interp1(linspace(-maxval,maxval,size(cmap,1))+PivotValue, cmap, linspace(clim(1),clim(2),size(cmap,1)),'linear');

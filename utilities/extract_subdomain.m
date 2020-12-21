@@ -17,7 +17,7 @@ function [obj,ind] = extract_subdomain(obj,bou,keep_inverse,centroid,nscreen)
 % Outputs:
 % obj: the subset mesh obj (only p and t, properties untouched)
 % ind: an array of indices that can be used to map the mesh properties to
-% the output mesh subset with a subsequent call to "mapMeshProperties". 
+% the output mesh subset with a subsequent call to "map_mesh_properties". 
 %
 p = obj.p; t = obj.t; 
 if nargin == 1 || (nargin == 3 && isempty(bou))
@@ -82,7 +82,7 @@ if nscreen
     % Displaying notice for mapping mesh properties
     disp('NOTICE: Only p and t have been subset.')
     disp('  To map mesh properties to the subset output the ind array and call: ')
-    disp('  mesh_obj = mapMeshProperties(mesh_obj,ind)')
+    disp('  mesh_obj = map_mesh_properties(mesh_obj,ind)')
 end
 % EOF
 end

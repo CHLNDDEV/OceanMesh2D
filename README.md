@@ -126,26 +126,27 @@ Changelog
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
-## Unreleased - 2020/11/11
-### Added
-- Ability to use the TPXO9 Atlas for the tidal bcs and sponge (inside tidal_data_to_ob.m and Calc_Sponge.m) by using '**' wildcards in place of the constituent name within the tidal atlas filename (the atlas has an individual file for each constituent).
-- Introducing 'auto_outer' option for the make_bc msh method which populates the bc for the outermost mesh boundary polygon (ignores islands)
-
-### Changed
-- for the make_bc msh method 'auto'/'auto_outer' options, allowing for the 'depth' method of classification to use the interpolated depths on the mesh if gdat is empty. 
-- improving help for make_bc msh method, Make_f15.m and Calc_Sponge.m
-
-## Unreleased - 2020/10/28
+## Unreleased 
 
 ### Fixed
 - Users without mapping toolbox could not read in shapefiles because of a bug that 
   made them required to have a 3d shapefiles.
+- plotting `gdat` with no shoreline. 
+- plotting a mesh's bathymetry with a non-zero datum using cmocean.
+- cell-averaging interpolation method in msh.interp fixed for unequal lon-lat DEM grid spacings
 
 ### Added
+- Mesh patch smoother
+- Ability to remesh abritary patches of elements within the domain while respecting user-defined mesh sizes and the patches boundaries. 
+- Ability to use the TPXO9 Atlas for the tidal bcs and sponge (inside tidal_data_to_ob.m and Calc_Sponge.m) by using '**' wildcards in place of the constituent name within the tidal atlas filename (the atlas has an individual file for each constituent).
+- Introducing 'auto_outer' option for the make_bc msh method which populates the bc for the outermost mesh boundary polygon (ignores islands)
 - Changelog to README
 - "mapMeshProperties" msh method ports over mesh properties for a mesh subset
+- 'invert' option in the msh.interp method to turn off the DEM value inversion typically performed
 
 ### Changed
+- for the make_bc msh method 'auto'/'auto_outer' options, allowing for the 'depth' method of classification to use the interpolated depths on the mesh if gdat is empty. 
+- improving help for make_bc msh method, Make_f15.m and Calc_Sponge.m
 - renamed "ExtractSubDomain.m" to "extract_subdomain.m"
 - improving "extract_subdomain.m" help and facilitating NaN-delimited polygons
 - ability to return boundary as a cell in "getBoundaryOfMesh" msh method
@@ -154,3 +155,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - using "fixmeshandcarry" in the "cat" msh method
 - improving warning and error messages for the "interp" msh method
 - adding geofactor into "writefort15" for the GAHM vortex model
+
