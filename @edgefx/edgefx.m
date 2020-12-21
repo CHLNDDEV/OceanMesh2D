@@ -24,6 +24,7 @@ classdef edgefx
     %      addOptional(p,'fl',defval);
     %      addOptional(p,'Channels',defval);
     %      addOptional(p,'h0',defval);
+    %      addOptional(p,'variAOR',defval);
     %
     %   This program is free software: you can redistribute it and/or modify
     %   it under the terms of the GNU General Public License as published by
@@ -74,6 +75,7 @@ classdef edgefx
 
         min_el_ch % min. element size along the channel
         Channels % cell array of streams.
+        variAOR % cell array of channel and ridge reslope angles.
 
     end
 
@@ -119,6 +121,7 @@ classdef edgefx
             addOptional(p,'fl',defval);
             addOptional(p,'Channels',defval);
             addOptional(p,'h0',defval);
+            addOptional(p,'variAOR',defval);
 
             % parse the inputs
             parse(p,varargin{:});
@@ -128,7 +131,7 @@ classdef edgefx
             inp = orderfields(inp,{'max_el','min_el_ch','AngOfRe',...
                 'geodata','lmsl','Channels',...
                 'dis','fs','fl','g','max_el_ns',...
-                'wl','slp','ch','dt','h0'});
+                'wl','slp','ch','dt','h0','variAOR'});
             fields = fieldnames(inp);
             % loop through and determine which args were passed.
             % also, assign reasonable default values if some options were
@@ -194,6 +197,11 @@ classdef edgefx
                         if ~isempty(obj.Channels) ~=0
                             obj.Channels = inp.(fields{i});
                         end
+                    case('variAOR')
+                        obj.variAOR=inp.(fields{i});
+                        if ~isempty(obj.variAOR) ~=0
+                            obj.variAOR = inp.(fields{i});
+                        end
                 end
             end
 
@@ -257,7 +265,8 @@ classdef edgefx
                             obj.used{end+1} = 'ch';
                         end
                     case{'g','geodata','lmsl','max_el','min_el_ch',...
-                            'Channels','max_el_ns','h0','dt','fl','AngOfRe'}
+                            'Channels','max_el_ns','h0','dt','fl',...
+                            'AngOfRe','variAOR'}
                         % dummy to avoid warning
                     otherwise
                         warning('Unexpected edge function name/value pairs.')
@@ -642,7 +651,11 @@ classdef edgefx
                 if (isempty(obj.Channels{jj})); continue ;end
                 pts{jj} = obj.Channels{jj};
                 dp{jj} = feat.Fb(pts{jj});                               % depth at x,y channel locations
-                radii{jj}=(tand(ang_of_reslope)*max(1,-dp{jj}));         % estimate of channel's width in degrees at x,y locations ASSUMING angle of reslope
+                if (isempty(obj.variAOR{jj}) ~= 0)
+                    radii{jj}=(tand(variAOR{jj})*max(1,-dp{jj})); % allowing for variable angle of reslope for channel radii calculation
+                else
+                    radii{jj}=(tand(ang_of_reslope)*max(1,-dp{jj}));         % estimate of channel's width in degrees at x,y locations ASSUMING angle of reslope
+                end
                 tempbb{jj} = feat.boubox;
             end
 
