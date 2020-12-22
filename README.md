@@ -108,7 +108,7 @@ If you make use of `OceanMesh2D` please include a reference to [1], and to any o
       Geoscientific Model Development Discussions. https://doi.org/10.5194/gmd-2020-123.
       
 ```
-In addition, best practice when using software in a scientific publication is to cite the permanent doi corresponding to the version used. All our releases are archived at the following `Zenodo` repository doi [link](https://doi.org/10.5281/zenodo.1341384). 
+In addition, best practice when using software in a scientific publication is to cite the permanent doi corresponding to the version used (e.g., for reproducibility). All our releases are archived at the following `Zenodo` repository doi [link](https://doi.org/10.5281/zenodo.1341384). 
 ```
 Authors (202X). CHLNDDEV/OceanMesh2D: OceanMesh2D VX.X. Zenodo. https://doi.org/10.5281/zenodo.1341384
 ```
