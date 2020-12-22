@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://github.com/CHLNDDEV/OceanMesh2D"><img alt="OceanMesh2D" src="imgs/Oceanmesh_logo_transparent.svg" width="95%"></a>
+  <a href="https://github.com/CHLNDDEV/OceanMesh2D"><img alt="OceanMesh2D" src="imgs/Oceanmesh_logo_white.png" width="95%"></a>
   <p align="center">Precise distance-based two-dimensional automated mesh generation toolbox intended for coast ocean/shallow water flow models.</p>
 </p>
 
