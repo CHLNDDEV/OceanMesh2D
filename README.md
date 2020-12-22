@@ -89,7 +89,7 @@ All pull requests are tested with Jenkins on a local host. However, to ensure th
 References!
 ==============
 
-If you make use of `OceanMesh2D` please include a reference to [1], and to any of [2]-[5] if pertinent:
+If you make use of `OceanMesh2D` please include a reference to [1], and to any of [2]-[5] if pertinent ([latex .bib file](https://github.com/CHLNDDEV/OceanMesh2D/tree/Projection/UserGuide/OceanMesh2D_library.bib)). We would also appreciate using our [logo](https://github.com/CHLNDDEV/OceanMesh2D/tree/Projection/imgs) in a presentation featuring `OceanMesh2D`.
 ```
 
 [1] - Roberts, K. J., Pringle, W. J., and Westerink, J. J., 2019. 
@@ -108,6 +108,11 @@ If you make use of `OceanMesh2D` please include a reference to [1], and to any o
       Geoscientific Model Development Discussions. https://doi.org/10.5194/gmd-2020-123.
       
 ```
+In addition, best practice when using software in a scientific publication is to cite the permanent doi corresponding to the version used. All our releases are archived at the following `Zenodo` repository doi [link](https://doi.org/10.5281/zenodo.1341384). 
+```
+Authors (202X). CHLNDDEV/OceanMesh2D: OceanMesh2D VX.X. Zenodo. https://doi.org/10.5281/zenodo.1341384
+```
+Please fill in the version (VX.X), author list and year corresponding to the version used.
 
 ## `DISCLAIMER: `
 The boundary of the meshing domain must be a polygon (first point equals the last and non-self intersecting) but it does not need to be simplified. Read the user guide for more information about the inputs.
