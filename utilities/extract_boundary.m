@@ -97,6 +97,9 @@ while cut
             poly_idx{p} = flipud(poly_idx{p});
         end
     end
+     % fix reversal of last two points
+    poly{p} = [poly{p}(1:end-2,:);poly{p}(end,:); poly{p}(end-1,:)];
+    poly_idx{p} = [poly_idx{p}(1:end-2,:);poly_idx{p}(end,:); poly_idx{p}(end-1,:)];
 end
 for ii = 1 : p
     hold on; plot(poly{ii}(:,1),poly{ii}(:,2),'r-','linewi',2);
