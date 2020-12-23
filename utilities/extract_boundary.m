@@ -65,6 +65,12 @@ while cut
     
     temp  = pts(bnde(r,:)',:);
     temp2 = bnde(r,:)';
+    if v_next ~= temp2(2)
+      % swap 
+      temp = flipud(temp); 
+      temp2 = flipud(temp2); 
+    end
+    
     k = 2;
     while v_next~=v_end % terminates when we reach v_end
         rt= (v_next==bnde(:,1) | v_next==bnde(:,2)) &  active;
@@ -97,9 +103,6 @@ while cut
             poly_idx{p} = flipud(poly_idx{p});
         end
     end
-     % fix reversal of last two points
-    poly{p} = [poly{p}(1:end-2,:);poly{p}(end,:); poly{p}(end-1,:)];
-    poly_idx{p} = [poly_idx{p}(1:end-2,:);poly_idx{p}(end,:); poly_idx{p}(end-1,:)];
 end
 for ii = 1 : p
     hold on; plot(poly{ii}(:,1),poly{ii}(:,2),'r-','linewi',2);
