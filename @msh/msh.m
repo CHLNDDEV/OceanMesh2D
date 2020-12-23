@@ -493,7 +493,7 @@ classdef msh
                     if logaxis
                         cmocean('deep',numticks(1)-1);
                     else
-                        cmocean('-topo','pivot',min(max(q),pivot));
+                        cmocean('-topo','pivot',min(max(q),pivot),numticks(1));
                     end
                     cb = colorbar;
                     if logaxis
