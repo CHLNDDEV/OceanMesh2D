@@ -89,6 +89,9 @@ while cut
         % exhausted all edges and couldn't connect
         if(~any(active)), cut=false; disp('coudln''t conntect'); break, end
     end
+    if length(temp) == 2
+        cut = false;
+    end
     poly{p}     = temp;
     poly_idx{p} = temp2;
     [area] = parea(poly{p}(:,1),poly{p}(:,2));
