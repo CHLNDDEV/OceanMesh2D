@@ -1,5 +1,7 @@
-# `OceanMesh2D:`
-## `Precise distance-based two-dimensional automated mesh generation toolbox intended for coast ocean/shallow water flow models`
+<p align="center">
+  <a href="https://github.com/CHLNDDEV/OceanMesh2D"><img alt="OceanMesh2D" src="imgs/Oceanmesh_logo_white.png" width="95%"></a>
+  <p align="center">Precise distance-based two-dimensional automated mesh generation toolbox intended for coast ocean/shallow water flow models.</p>
+</p>
 
 Table of contents
 =================
@@ -26,7 +28,7 @@ Getting help
 
 Besides posting [issues](https://github.com/CHLNDDEV/OceanMesh2D/issues) with the code on Github, you can also ask questions via our Slack channel [here](https://join.slack.com/t/oceanmesh2d/shared_invite/zt-igvr8rvo-OctG9t0QEYNyyvVr55ynUQ).
 
-Otherwise please reach out to either Dr. William Pringle (wpringle@nd.edu) or Dr. Keith Roberts (krober@usp.br) with questions or concerns or feel free to start an Issue in the issues tab above. 
+Otherwise please reach out to either Dr. William Pringle (wpringle@anl.gov) or Dr. Keith Roberts (krober@usp.br) with questions or concerns or feel free to start an Issue in the issues tab above. 
 
 
 Contributing
@@ -87,7 +89,7 @@ All pull requests are tested with Jenkins on a local host. However, to ensure th
 References!
 ==============
 
-If you make use of `OceanMesh2D` please include a reference to [1], and to any of [2]-[5] if pertinent:
+If you make use of `OceanMesh2D` please include a reference to [1], and to any of [2]-[5] if pertinent ([latex .bib file](https://github.com/CHLNDDEV/OceanMesh2D/tree/Projection/UserGuide/OceanMesh2D_library.bib)). We would also appreciate using our [logo](https://github.com/CHLNDDEV/OceanMesh2D/tree/Projection/imgs) in a presentation featuring `OceanMesh2D`.
 ```
 
 [1] - Roberts, K. J., Pringle, W. J., and Westerink, J. J., 2019. 
@@ -106,6 +108,11 @@ If you make use of `OceanMesh2D` please include a reference to [1], and to any o
       Geoscientific Model Development Discussions. https://doi.org/10.5194/gmd-2020-123.
       
 ```
+In addition, best practice when using software in a scientific publication is to cite the permanent doi corresponding to the version used (e.g., for reproducibility). All our releases are archived at the following `Zenodo` repository doi [link](https://doi.org/10.5281/zenodo.1341384). 
+```
+Authors (202X). CHLNDDEV/OceanMesh2D: OceanMesh2D VX.X. Zenodo. https://doi.org/10.5281/zenodo.1341384
+```
+Please fill in the version (VX.X), author list and year corresponding to the version used.
 
 ## `DISCLAIMER: `
 The boundary of the meshing domain must be a polygon (first point equals the last and non-self intersecting) but it does not need to be simplified. Read the user guide for more information about the inputs.
@@ -126,16 +133,19 @@ Changelog
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
-## Unreleased 
+### Unreleased 
+## Fixed
+- Boundary labeling fix
 
-### Fixed
+### [3.3.0] - 2020-12-21
+## Fixed
 - Users without mapping toolbox could not read in shapefiles because of a bug that 
   made them required to have a 3d shapefiles.
 - plotting `gdat` with no shoreline. 
 - plotting a mesh's bathymetry with a non-zero datum using cmocean.
 - cell-averaging interpolation method in msh.interp fixed for unequal lon-lat DEM grid spacings
 
-### Added
+## Added
 - Mesh patch smoother
 - Ability to remesh abritary patches of elements within the domain while respecting user-defined mesh sizes and the patches boundaries. 
 - Ability to use the TPXO9 Atlas for the tidal bcs and sponge (inside tidal_data_to_ob.m and Calc_Sponge.m) by using '**' wildcards in place of the constituent name within the tidal atlas filename (the atlas has an individual file for each constituent).
@@ -144,7 +154,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - "mapMeshProperties" msh method ports over mesh properties for a mesh subset
 - 'invert' option in the msh.interp method to turn off the DEM value inversion typically performed
 
-### Changed
+## Changed
 - for the make_bc msh method 'auto'/'auto_outer' options, allowing for the 'depth' method of classification to use the interpolated depths on the mesh if gdat is empty. 
 - improving help for make_bc msh method, Make_f15.m and Calc_Sponge.m
 - renamed "ExtractSubDomain.m" to "extract_subdomain.m"

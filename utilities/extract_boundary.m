@@ -65,6 +65,12 @@ while cut
     
     temp  = pts(bnde(r,:)',:);
     temp2 = bnde(r,:)';
+    if v_next ~= temp2(2)
+      % swap 
+      temp = flipud(temp); 
+      temp2 = flipud(temp2); 
+    end
+    
     k = 2;
     while v_next~=v_end % terminates when we reach v_end
         rt= (v_next==bnde(:,1) | v_next==bnde(:,2)) &  active;
@@ -82,6 +88,9 @@ while cut
         if(v_next==v_end), cut=false; disp('reached ending'); end
         % exhausted all edges and couldn't connect
         if(~any(active)), cut=false; disp('coudln''t conntect'); break, end
+    end
+    if length(temp) == 2
+        cut = false;
     end
     poly{p}     = temp;
     poly_idx{p} = temp2;
