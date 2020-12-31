@@ -275,7 +275,7 @@ classdef msh
             %
             % 1) obj: msh object
             %
-            % 2) type: plot type, choose from:
+            % type: plot type, choose from:
             %    a) 'tri'  - (default) plots the triangulation
             %    b) 'bd'   - same as tri but with nodestrings/boundary
             %                conditions plotted
@@ -290,10 +290,10 @@ classdef msh
             %    k) 'xx' -     plots an arbitrary f13 attribute 'xx' by
             %                  contains search
             %
-            % 3) proj: what projection to plot in (LIST PROJS)
+            % proj: what projection to plot in ('equi','lamb','stereo')
             %    default is the projection of the msh object
             %
-            % 4) plotting options:
+            % plotting options:
             %    i) 'colormap': number of colormap intervals and (optional) range:
             %                    [num_intervals] or; 
             %                    [num_intervals caxis_lower caxis_upper]
@@ -304,12 +304,13 @@ classdef msh
             %                    will use new figure)
             %    v) 'pivot'   : value in meters for which to assume is datum when
             %                    plotting topo-bathymetry (default 0.0 m)
-            %   vi) 'bou'     : TO BE WRITTEN
-            %   vii) 'type'   : TO BE WRITTEN
+            %   vi) 'subset'  : Plot a subset bounded by the corner
+            %                   coordinates
             %
             % OTHER NOTES -->
-            %    i)  add 'log' inside type to plot caxis in log space
-            %    ii) add 'mesh' inside type to plot trimesh instead of trisurf
+            %    i)  add 'log' inside 'type' to plot caxis in log space
+            %    ii) add 'mesh' inside 'type' to plot the triangulation
+            %        instead of surface
             
             fsz = 12; % default font size
             bgc = [1 1 1]; % default background color
@@ -319,7 +320,7 @@ classdef msh
             proj = 0;
             projtype = []; 
             type = 'tri'; 
-            bou = [];
+            subset = [];
             for kk = 1:2:length(varargin)
                 if strcmp(varargin{kk},'fontsize')
                     fsz = varargin{kk+1};
@@ -336,8 +337,8 @@ classdef msh
                     proj = 1; 
                 elseif strcmp(varargin{kk},'type')
                     type = varargin{kk+1}; 
-                elseif strcmp(varargin{kk},'bou')
-                    bou = varargin{kk+1}; 
+                elseif strcmp(varargin{kk},'subset')
+                    subset = varargin{kk+1}; 
                 end
             end
             
@@ -358,15 +359,15 @@ classdef msh
             end
             
             % Handle user specified subdomain
-            if ~isempty(bou)
+            if ~isempty(subset)
                 % i.e. is a bounding box
-                bou = [bou(1,1) bou(2,1);
-                    bou(1,1) bou(2,2); ...
-                    bou(1,2) bou(2,2);
-                    bou(1,2) bou(2,1); ...
-                    bou(1,1) bou(2,1)];
+                subset = [subset(1,1) subset(2,1);
+                    subset(1,1) subset(2,2); ...
+                    subset(1,2) subset(2,2);
+                    subset(1,2) subset(2,1); ...
+                    subset(1,1) subset(2,1)];
                 % Get a subset given by bou
-                [obj,kept] = extract_subdomain(obj,bou,[],[],0);
+                [obj,kept] = extract_subdomain(obj,subset,[],[],0);
                 obj = map_mesh_properties(obj,kept);
             end
 
