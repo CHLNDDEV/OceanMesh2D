@@ -138,6 +138,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## Changed
 - `msh.plot()` overhaul. All options specified via kwarg.
 
+## Fixed
+- Boundary labeling fix
+
 ### [3.3.0] - 2020-12-21
 ## Fixed
 - Users without mapping toolbox could not read in shapefiles because of a bug that
