@@ -270,12 +270,15 @@ classdef msh
         end
 
         % general plot function
-        function h = plot(obj,type,proj,projtype,bou,varargin)
-            % h = plot(obj,type,proj,projtype,bou,varargin)
+        function h = plot(obj,varargin)
+            % h = plot(obj,varargin)
+            %
             % 1) obj: msh object
+            %
             % 2) type: plot type, choose from:
             %    a) 'tri'  - (default) plots the triangulation
-            %    b) 'bd'   - same as tri but with nodestrings plotted
+            %    b) 'bd'   - same as tri but with nodestrings/boundary
+            %                conditions plotted
             %    c) 'ob'   - outer boundary of the mesh
             %    d) 'b'    - plots the bathymetry
             %    e) 'slp'  - plots the bathymetric gradients
@@ -286,16 +289,11 @@ classdef msh
             %    j) 'transect' - plot a bathy transect through GUI
             %    k) 'xx' -     plots an arbitrary f13 attribute 'xx' by
             %                  contains search
-            %    additional -->
-            %    i)  add 'log' inside type to plot caxis in log space
-            %    ii) add 'mesh' inside type to plot trimesh instead of trisurf
-            % 3) proj: whether to plot in projected space or unprojected space
-            %    a) 0       - plot in unprojected space
-            %    b) 1       - plot in projected space (default)
-            % 4) projtype: what projection to plot in if proj = 1.
+            %
+            % 3) proj: what projection to plot in (LIST PROJS)
             %    default is the projection of the msh object
-            % 5) bou: a local bounding box or polygon region to plot within
-            % 6) varargin options:
+            %
+            % 4) plotting options:
             %    i) 'colormap': number of colormap intervals and (optional) range:
             %                    [num_intervals] or; 
             %                    [num_intervals caxis_lower caxis_upper]
@@ -306,20 +304,22 @@ classdef msh
             %                    will use new figure)
             %    v) 'pivot'   : value in meters for which to assume is datum when
             %                    plotting topo-bathymetry (default 0.0 m)
-            if nargin < 2 || isempty(type)
-                type = 'tri';
-            end
-            if nargin < 3 || isempty(proj)
-                proj = 0 ;
-            end
-            if nargin < 4
-                projtype = [];
-            end
+            %   vi) 'bou'     : TO BE WRITTEN
+            %   vii) 'type'   : TO BE WRITTEN
+            %
+            % OTHER NOTES -->
+            %    i)  add 'log' inside type to plot caxis in log space
+            %    ii) add 'mesh' inside type to plot trimesh instead of trisurf
+            
             fsz = 12; % default font size
             bgc = [1 1 1]; % default background color
             cmap_int = 10; % default num of colormap intervals
             holdon = 0;
             pivot = 0.0; % assume datum is 0.0 m
+            proj = 0;
+            projtype = []; 
+            type = 'tri'; 
+            bou = [];
             for kk = 1:2:length(varargin)
                 if strcmp(varargin{kk},'fontsize')
                     fsz = varargin{kk+1};
@@ -331,8 +331,16 @@ classdef msh
                     holdon = varargin{kk+1};
                 elseif strcmp(varargin{kk}, 'pivot')
                     pivot = varargin{kk+1};
+                elseif strcmp(varargin{kk}, 'proj')
+                    projtype = varargin{kk+1}; 
+                    proj = 1; 
+                elseif strcmp(varargin{kk},'type')
+                    type = varargin{kk+1}; 
+                elseif strcmp(varargin{kk},'bou')
+                    bou = varargin{kk+1}; 
                 end
             end
+            
 
             % kjr default behavior, just use what's in the .mat file
             if isempty(projtype)
@@ -345,22 +353,18 @@ classdef msh
                     del = 0;
                     projtype = MAP_PROJECTION.name;
                 else
-                    error('no projection in msh class, please specify the plotting projection')
+                    error('no projection in msh class, please specify the plotting projection plot(m,''proj'',''lamb'')')
                 end
             end
-
+            
             % Handle user specified subdomain
-            if nargin < 5 || isempty(bou)
-                % dummy
-            else
-                if numel(bou) == 4
-                    % i.e. is a bounding box
-                    bou = [bou(1,1) bou(2,1);
-                        bou(1,1) bou(2,2); ...
-                        bou(1,2) bou(2,2);
-                        bou(1,2) bou(2,1); ...
-                        bou(1,1) bou(2,1)];
-                end
+            if ~isempty(bou)
+                % i.e. is a bounding box
+                bou = [bou(1,1) bou(2,1);
+                    bou(1,1) bou(2,2); ...
+                    bou(1,2) bou(2,2);
+                    bou(1,2) bou(2,1); ...
+                    bou(1,1) bou(2,1)];
                 % Get a subset given by bou
                 [obj,kept] = extract_subdomain(obj,bou,[],[],0);
                 obj = map_mesh_properties(obj,kept);
