@@ -22,8 +22,13 @@ mshopts = mshopts.build;
 
 m = mshopts.grd; 
 
+% Plotting mesh without cleaning
 plot(m)
+title('Mesh without cleaning')
 
+% clean
 m = m.clean;
 
+% Plotting mesh with cleaning
 plot(m)
+title('Mesh after cleaning')

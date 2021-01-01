@@ -81,9 +81,9 @@ m = interp(m,gdat,'mindepth',1); % interpolate bathy to the mesh with minimum de
 m = make_bc(m,'auto',gdat{1}); % make the nodestring boundary conditions
 
 %% Plot and save the msh class object/write to fort.14
-plot(m,'bd'); % plot triangulation with nodestrings
-plot(m,'b'); % plot the bathy
-plot(m,'reso',1,[],[],[10, 0 10e3]) % plot the resolution
+plot(m,'type','bd'); % plot triangulation with boundary conditions
+plot(m,'type','b');  % plot the bathy
+plot(m,'type','reso','colormap',[10 0 10e3]) % plot the resolution
 % Save as a msh class
 save('PRVI_msh.mat','m');
 % Write an ADCIRC fort.14 compliant file to disk.

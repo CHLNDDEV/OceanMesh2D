@@ -69,4 +69,6 @@ m_new = plus(subdomain_new, m_w_hole, 'match');
 % the new mesh
 ind = nearest_neighbor_map(m, m_new);
 m_new.b = m.b(ind); 
-plot(m_new,'bmesh'); hold on; plot(poly{1}(1:end-1,1),poly{1}(1:end-1,2),'r-','linewi',3);
+% Plot the bathy on the mesh with hole polygon in red
+plot(m_new,'type','bmesh'); hold on; 
+plot(poly{1}(1:end-1,1),poly{1}(1:end-1,2),'r-','linewi',3);
