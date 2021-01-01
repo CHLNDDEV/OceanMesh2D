@@ -275,25 +275,38 @@ classdef msh
             %
             % 1) obj: msh object
             %
-            % type: plot type, choose from:
+            % 2) varargin kwargs:
+            % 
+            % 'type': plot type, choose from:
             %    a) 'tri'  - (default) plots the triangulation
-            %    b) 'bd'   - same as tri but with nodestrings/boundary
-            %                conditions plotted
+            %    b) 'bd'   - same as tri but with nodestrings/boundary conditions plotted 
             %    c) 'ob'   - outer boundary of the mesh
             %    d) 'b'    - plots the bathymetry
             %    e) 'slp'  - plots the bathymetric gradients
-            %    f) 'reso' - plots the element circumradius
+            %    f) 'reso' - plots the element circumradius (resolution) based on the projection
             %    g) 'resodx' - plots the gradient in 'reso'
             %    h) 'qual'   - plots the element quality
             %    i) 'sponge' - plots the sponge zone/strength coefficients
             %    j) 'transect' - plot a bathy transect through GUI
             %    k) 'xx' -     plots an arbitrary f13 attribute 'xx' by
             %                  contains search
+            %   
+            % 'type' ADDITIONALS. 
+            %   Add the following words inside the type character string to implement desired behaviors:
+            %    aa) 'notri': plot without the triangulation (used with 'bd' option)
+            %    bb) 'earth': use with 'reso' option to plot resolution using element edgelengths on the Earth
+            %    cc) 'log': use with options that use a colormap to plot the caxis in log space
+            %    dd) 'mesh': use with options that use a colormap to plot colors on the element 
+            %                edges (a mesh look) instead of on the element faces (a surface look)
             %
-            % proj: what projection to plot in ('equi','lamb','stereo')
-            %    default is the projection of the msh object
+            % 'proj': what available m_map projection to plot in e.g.,: 'equi', 'lamb', 'stereo'
+            %    Select 'none' to plot without the m_map projection.
+            %    Default is the projection of the msh object. 
             %
-            % plotting options:
+            % 'subset': Plot a subset of the mesh bounded by the corner coordinates
+            %           (a bounding box: [west east; south north])
+            %
+            % options to refine the look of the plot:
             %    i) 'colormap': number of colormap intervals and (optional) range:
             %                    [num_intervals] or; 
             %                    [num_intervals caxis_lower caxis_upper]
@@ -304,20 +317,14 @@ classdef msh
             %                    will use new figure)
             %    v) 'pivot'   : value in meters for which to assume is datum when
             %                    plotting topo-bathymetry (default 0.0 m)
-            %   vi) 'subset'  : Plot a subset bounded by the corner
-            %                   coordinates
             %
-            % OTHER NOTES -->
-            %    i)  add 'log' inside 'type' to plot caxis in log space
-            %    ii) add 'mesh' inside 'type' to plot the triangulation
-            %        instead of surface
             
             fsz = 12; % default font size
             bgc = [1 1 1]; % default background color
             cmap_int = 10; % default num of colormap intervals
             holdon = 0;
             pivot = 0.0; % assume datum is 0.0 m
-            proj = 0;
+            proj = 1;
             projtype = []; 
             type = 'tri'; 
             subset = [];
@@ -334,7 +341,6 @@ classdef msh
                     pivot = varargin{kk+1};
                 elseif strcmp(varargin{kk}, 'proj')
                     projtype = varargin{kk+1}; 
-                    proj = 1; 
                 elseif strcmp(varargin{kk},'type')
                     type = varargin{kk+1}; 
                 elseif strcmp(varargin{kk},'subset')
@@ -342,7 +348,6 @@ classdef msh
                 end
             end
             
-
             % kjr default behavior, just use what's in the .mat file
             if isempty(projtype)
                 global MAP_PROJECTION MAP_VAR_LIST MAP_COORDS
@@ -354,8 +359,13 @@ classdef msh
                     del = 0;
                     projtype = MAP_PROJECTION.name;
                 else
-                    error('no projection in msh class, please specify the plotting projection plot(m,''proj'',''lamb'')')
+                    error(['no native projection in msh class, please specify the plotting projection: ' ...
+                           'plot(m,''proj'',''lamb''), or no projection: plot(m,''proj'',''none'')'])
                 end
+            end
+
+            if strcmp(projtype,'none')
+               proj = 0;
             end
             
             % Handle user specified subdomain
@@ -376,12 +386,12 @@ classdef msh
 
             if del
                 % This deletes any elements straddling the -180/180
-                % boundary for plotting purposes
+                % boundary for plotting purposes (doesn't for stereo)
                 xt = [obj.p(obj.t(:,1),1) obj.p(obj.t(:,2),1) ...
-                    obj.p(obj.t(:,3),1) obj.p(obj.t(:,1),1)];
+                      obj.p(obj.t(:,3),1) obj.p(obj.t(:,1),1)];
                 dxt = diff(xt,[],2);
                 obj.t(abs(dxt(:,1)) > 180 | abs(dxt(:,2)) > 180 | ...
-                    abs(dxt(:,3)) > 180,:) = [];
+                      abs(dxt(:,3)) > 180,:) = [];
             end
 
             logaxis = 0;
@@ -395,8 +405,9 @@ classdef msh
                 mesh = 1; type(idxl:idxl+3) = [];
             end
             earthres = 0;
-            if strcmp(type,'resoearth')
-                type = 'reso'; earthres = 1;
+            idxl = strfind(type,'earth');
+            if ~isempty(idxl)
+                earthres = 1; type(idxl:idxl+4) = [];
             end
             tri = 1;
             idxl = strfind(type,'notri');
