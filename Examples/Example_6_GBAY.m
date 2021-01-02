@@ -37,5 +37,7 @@ mshopts = mshopts.build;
 m = mshopts.grd;
 m = interp(m,gdat,'mindepth',1,'nan','fill'); % interpolate bathy to the mesh
 m = make_bc(m,'auto',gdat); % make the nodestring boundary conditions
-plot(m,'bd'); plot(m,'blog'); % plot triangulation and bathy
+% Plotting and writing 
+plot(m,'type','bmesh'); % plot bathy on the mesh
+plot(m,'type','bdnotri','holdon',1);  % plot the boundary conditions on top of the bathy mesh
 write(m,'HoustonShipChannel');

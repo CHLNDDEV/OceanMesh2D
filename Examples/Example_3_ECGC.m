@@ -59,6 +59,6 @@ mshopts = mshopts.build;
 m = mshopts.grd; % get out the msh object
 m = interp(m,{gdat1 gdat2},'mindepth',1); % interpolate bathy to the mesh with minimum depth of 1 m
 m = make_bc(m,'auto',gdat1);               % make the nodestring boundary conditions
-plot(m,'bd',1); % plot on native projection with nodestrings
-plot(m,'b',1); % plot bathy on native projection
+plot(m,'type','bd');  % plot mesh on native projection with boundary conditions
+plot(m,'type','b');   % plot bathy on native projection
 save('ECGC_w_NYHR.mat','m'); write(m,'ECGC_w_NYHR');

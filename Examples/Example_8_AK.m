@@ -41,6 +41,6 @@ mshopts = mshopts.build;
 %% STEP 5: Extract the msh class, make the boundary conditions and plot
 m = mshopts.grd; % Get out the msh class
 m = make_bc(m,'auto',gdat,'distance'); % make the boundary conditions
-plot(m,'bd');
+plot(m,'type','bd'); % plot the boundary conditions on the mesh
 
 m = interp(m,'GEBCO_2014_2D.nc','mindepth',5);
