@@ -59,7 +59,7 @@ m_min = m_min.build;
 m_min = m_min.grd;
 
 %% Plot the two meshes
-plot(m_nomin,'tri')
+plot(m_nomin)
 title('Without Enforcing Minimum of all Edgefunctions')
-plot(m_min,'tri')
+plot(m_min)
 title('Enforcing Minimum of all Edgefunctions')

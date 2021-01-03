@@ -1,8 +1,8 @@
-function obj = Make_f20(obj,File_Prefix,File_Suffixes,bathyfile,ETIMINC)
-% obj = Make_f20(obj,File_Prefix,File_Suffixes,bathyfile,ETIMINC)
+function obj = Make_f20(obj,filenames,bathyfile,ETIMINC)
+% obj = Make_f20(obj,filenames,bathyfile,ETIMINC)
 % Input a msh class object get the values of the elevations and normal
-% fluxes for times between ts and te based on the File_Suffixes of the 
-% input files (location is File_Prefix). Bathyfile is the file of 
+% fluxes for times between ts and te based on the input files
+% specified by a cell array of filenames. Bathyfile is the file of 
 % bathymetric values used to calculate fluxes from the velocities
 %
 %  Author:      William Pringle                                 
@@ -34,10 +34,10 @@ end
 % Do projection
 [b_x,b_y] = m_ll2xy(b_lon,b_lat);   
 
-BZ = zeros(length(b_x),length(File_Suffixes));
-BF = zeros(length(b_x),length(File_Suffixes));
-for t = 1:length(File_Suffixes)
-    filename = strcat(File_Prefix,File_Suffixes(t),".nc");
+BZ = zeros(length(b_x),length(filenames));
+BF = zeros(length(b_x),length(filenames));
+for t = 1:length(filenames)
+    filename = filenames{t};
     %% Read the grid and density data 
     if t == 1
         % read lon, lat and standard depths
@@ -111,9 +111,8 @@ for t = 1:length(File_Suffixes)
 end
 
 %% Make into f20 struct
-filename1 = strcat(File_Prefix,File_Suffixes(1),".nc");
-filename2 = strcat(File_Prefix,File_Suffixes(end),".nc");
-[~,n1] = fileparts(char(filename1)); [~,n2] = fileparts(char(filename2));
+n1 = filenames{1};
+n2 = filenames{end};
 obj.f20.DataTitle = [n1 ' -> ' n2];
 obj.f20.ETIMINC = ETIMINC;
 obj.f20.NumOfNodes = size(BZ,1);
