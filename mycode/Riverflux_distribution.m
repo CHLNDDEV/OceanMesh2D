@@ -1,0 +1,82 @@
+function [result_edgesize,result_pertg,nvell_num] = Riverflux_distribution(obj)     
+% [result_edgesize,result_pertg] = Riverflux_distribution(obj) 
+% 
+% Input a msh class object to get the representative edge width and flux 
+% percentage for each node on the riverine flow boundary.
+% 
+% This function is used to distribute a total flux on a cross-section of 
+% the river to each node on the riverine boundary.
+% 
+% result_edgesize and result_pertgis are the result of the edgesize and 
+% flux percentage for each node respectively.nvell_num represents the
+% number of nodes for each riverine boundary.
+% 
+% Each column represents the result of each riverine boundary.
+% 
+% User need to specify river flow boundaries (ibtype=22) before using it.
+%
+%  Author:      Jiangchao Qiu                                
+%  Created:     January 7 2021                                      
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+bd_dat = obj.bd;
+p_dat = obj.p;
+b_dat = obj.b;
+river_num = find(bd_dat.ibtype == 22);
+N = length(river_num);% total number of river boundarys
+nvell_num = bd_dat.nvell(river_num);% number of nodes for each river boundary
+
+result_edgesize = NaN(max(nvell_num),N);
+result_pertg = NaN(max(nvell_num),N);
+
+if isempty(river_num)
+    error('No riverine boundary information to distribute flow')
+end
+
+for i=1:N
+    node_num = bd_dat.nbvv(:,river_num(i));
+    node_num(node_num==0)=[];
+    bathy = b_dat(node_num);
+    location = p_dat(node_num,:); 
+    J = length(node_num);% total number of nodes for the current river boundary
+    flowarea = zeros(J,1);
+    edgesize = zeros(J,1);
+    %% calculate the projected distance for each edge on the boundary
+    proj = 'Mercator';
+    m_proj(proj,'lon',[ min(obj.p(:,1))-0.25 max(obj.p(:,1))+0.25 ],...
+                'lat',[ min(obj.p(:,2))-0.25 max(obj.p(:,2))+0.25])
+    proj_location = zeros(J,2);
+    for j=1:J
+        [proj_location(j,1),proj_location(j,2)] = m_ll2xy(location(j,1),location(j,2));
+    end
+    node_distance = 1000*m_xydist(proj_location(:,1),proj_location(:,2));     
+    %% calculate the respresentive width for each node 
+    for j=1:J
+        if j==1
+            edgesize(j) = 0.5*node_distance(j);
+        elseif j==J
+            edgesize(j) = 0.5*node_distance(j-1);
+        else 
+            edgesize(j) = 0.5*node_distance(j-1)+0.5*node_distance(j);
+        end
+        result_edgesize(1:J,i) = edgesize;
+    end
+    %% calculate flow area for each node on the boundary
+    for j=1:J
+        if j==1
+            local_z1 = (bathy(j)+bathy(j+1))*0.5;
+            flowarea(j) = 0.5*(bathy(j)+local_z1)*(0.5*node_distance(j));
+        elseif j==J
+            local_z1 = (bathy(j-1)+bathy(j))*0.5;
+            flowarea(j) = 0.5*(bathy(j)+local_z1)*(0.5*node_distance(j-1));
+        else
+            local_z1 = (bathy(j-1)+bathy(j))*0.5;
+            local_z2 = (bathy(j)+bathy(j+1))*0.5;
+            flowarea(j) = 0.5*(bathy(j)+local_z1)*(0.5*node_distance(j-1))+...
+                          0.5*(bathy(j)+local_z2)*(0.5*node_distance(j));
+        end
+        percent = flowarea/sum(flowarea);
+        result_pertg(1:J,i) =  percent;
+    end
+end
+
+
