@@ -1,4 +1,4 @@
-function [] = writefort20_mycode( fort20dat, finame )
+function [] = writefort20( fort20dat, finame )
 %
 %
 
@@ -12,7 +12,7 @@ fid = fopen(finputname,'w') ;
 
 fprintf( fid, '%d\n', fort20dat.FTIMINC ) ; 
 
-valpernode = size( fort20dat.Val,1 ) ;
+valpernode = size( fort20dat.Val,2 ) ;
 str = [];
 for ll = 1: valpernode
     str = [str '%.8f '] ;

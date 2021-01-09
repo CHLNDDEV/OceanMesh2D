@@ -258,7 +258,7 @@ classdef msh
                     writefort19( obj.f19, [fname '.19'] );
                 end
                 if any(contains(type,'20')) && ~isempty(obj.f20)
-                    writefort20_mycode( obj.f20, [fname '.20'] );
+                    writefort20( obj.f20, [fname '.20'] );
                 end
                 if any(contains(type,'2001')) && ~isempty(obj.f2001)
                     writefort19( obj.f2001, [fname '.2001'] );

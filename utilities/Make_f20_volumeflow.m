@@ -13,11 +13,14 @@ function obj = Make_f20_volumeflow(obj,filename,ts,te)
 
 [edgesize,pertg,nvell_num] = Riverflux_distribution(obj);
 
-data_riverflow = xlsread(filename);
-river_volumeflow = data_riverflow(:,7:11);
+total_node_num = sum(nvell_num);
+N = length(nvell_num);
+ 
+data_riverflow = csvread(filename);
+
+river_volumeflow = data_riverflow(:,7:7+N-1);
 time = data_riverflow(:,4);
 
-total_node_num = sum(nvell_num);
 T = length(time);
 DT = 3600; %[s] 
 F = zeros(total_node_num,T);
