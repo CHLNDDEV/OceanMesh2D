@@ -1,17 +1,18 @@
 function [result_edgesize,result_pertg,nvell_num] = Riverflux_distribution(obj)     
-% [result_edgesize,result_pertg] = Riverflux_distribution(obj) 
+% [result_edgesize,result_pertg，nvell_num] = Riverflux_distribution(obj) 
 % 
 % Input a msh class object to get the representative edge width and flux 
 % percentage for each node on the riverine flow boundary.
 % 
-% This function is used to distribute a total flux on a cross-section of 
+% This function is used to distribute a total flux of a cross-section of 
 % the river to each node on the riverine boundary.
 % 
 % result_edgesize and result_pertgis are the result of the edgesize and 
 % flux percentage for each node respectively.nvell_num represents the
 % number of nodes for each riverine boundary.
 % 
-% Each column represents the result of each riverine boundary.
+% Each column of result_edgesize and result_pertg represents the result 
+% of each riverine boundary.
 % 
 % User need to specify river flow boundaries (ibtype=22) before using it.
 %
@@ -25,8 +26,10 @@ river_num = find(bd_dat.ibtype == 22);
 N = length(river_num);% total number of river boundarys
 nvell_num = bd_dat.nvell(river_num);% number of nodes for each river boundary
 
-result_edgesize = NaN(max(nvell_num),N);
-result_pertg = NaN(max(nvell_num),N);
+% Consider the riverine boundaries may have differentthe number of nodes, the 
+% number of rows for result_edgesize and result_pertg is set to max(nvell_num)
+result_edgesize = NaN(max(nvell_num),N); % the final result of edgesize
+result_pertg = NaN(max(nvell_num),N);% the final result of percentage
 
 if isempty(river_num)
     error('No riverine boundary information to distribute flow')
@@ -49,23 +52,24 @@ for i=1:N
         [proj_location(j,1),proj_location(j,2)] = m_ll2xy(location(j,1),location(j,2));
     end
     node_distance = 1000*m_xydist(proj_location(:,1),proj_location(:,2));     
-    %% calculate the respresentive width for each node 
+    %% calculate the respresentive width for each node
+    % note: if the current boundary has J nodes, there are J-1 edges	
     for j=1:J
-        if j==1
+		if j==1      % the first edge (the number is J) 
             edgesize(j) = 0.5*node_distance(j);
-        elseif j==J
+        elseif j==J  % the last edge (the number is J-1)
             edgesize(j) = 0.5*node_distance(j-1);
-        else 
+        else         % the other edges 
             edgesize(j) = 0.5*node_distance(j-1)+0.5*node_distance(j);
         end
         result_edgesize(1:J,i) = edgesize;
     end
     %% calculate flow area for each node on the boundary
     for j=1:J
-        if j==1
+        if j==1      % the first node
             local_z1 = (bathy(j)+bathy(j+1))*0.5;
             flowarea(j) = 0.5*(bathy(j)+local_z1)*(0.5*node_distance(j));
-        elseif j==J
+        elseif j==J  % the last node 
             local_z1 = (bathy(j-1)+bathy(j))*0.5;
             flowarea(j) = 0.5*(bathy(j)+local_z1)*(0.5*node_distance(j-1));
         else
@@ -74,7 +78,7 @@ for i=1:N
             flowarea(j) = 0.5*(bathy(j)+local_z1)*(0.5*node_distance(j-1))+...
                           0.5*(bathy(j)+local_z2)*(0.5*node_distance(j));
         end
-        percent = flowarea/sum(flowarea);
+        percent = flowarea/sum(flowarea);  % the flux distribution percentage for each node
         result_pertg(1:J,i) =  percent;
     end
 end

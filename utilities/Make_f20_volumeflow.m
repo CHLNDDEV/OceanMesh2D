@@ -1,9 +1,20 @@
-function obj = Make_f20_mycode(obj,filename,ts,te)
+function obj = Make_f20_volumeflow(obj,filename,ts,te)
+% obj = Make_f20_volumeflow(obj,filename,ts,te)
+% Input a msh class object to get the values of the normal fluxes for times 
+% between ts and te based on the input files. filename is the name of a csv 
+% file that stores the volume flow (m3/s) data time series. the csv file should  
+% be ut into the datasets folder. The first six column record the Year, Month, 
+% Day, Hour, Minute, Second of the volume flow. The Station sequencing is assumed 
+% to match what is specified in the riverine boundary setting. 
+%
+%  Author:      Jiangchao Qiu                                
+%  Created:     January 7 2021                                      
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 [edgesize,pertg,nvell_num] = Riverflux_distribution(obj);
 
 data_riverflow = xlsread(filename);
-river_volumeflow = data_riverflow(:,5:9);
+river_volumeflow = data_riverflow(:,7:11);
 time = data_riverflow(:,4);
 
 total_node_num = sum(nvell_num);
