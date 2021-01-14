@@ -1,21 +1,24 @@
-% Example_12_Riverine_flow: Guiding for make a riverine flow input file f.20
+% Example_12_Riverine_flow: Guidance for creating a riverine flow input file 
+% otherwise referred to as a fort.20
 %
-% You should prepare a column delimited csv file that stores the total volume flow
-% (Q) (m^3/s) time series of a cross-section where the riverine boundaries located. 
+% You should prepare a column delimited file (csv) that stores the total volume flow
+% (Q) (m^3/s) time series of a cross-section where the riverine boundaries in the 
+% mesh are located. 
 %
-% The column of the csv file should be organized as followed:  
+% The columns of the csv file should be organized as follows:  
 % year,month,day,hour,minute,second,volume_flow_1,volume_flow_2... 
 % The column order of the total volume flow (volume_flow_1,volume_flow_2...) 
-% must be specified in which the riverine boundaries appear in the fort.14 file, or 
-% in which you make the riverine boundaries with the data cursor method. 
+% must be specified in the order in which the riverine boundaries appear in 
+% the fort.14 file, or in which you make the riverine boundaries with the data 
+% cursor method in msh.make_bc
 %
 % A 'test_make_f20.csv' file has been placed in the Tests folder for reference.
 % The volume flow of this file is an hourly average time series, code in lines 42-43 
-% in Make_f20_volume_flow is used defaultly. If your volume flow is a daily average 
+% in Make_f20_volume_flow uses this file. If your volume flow is a daily average 
 % time series, you should use the code in lines 46-47 rather than lines 42-43.
 %
-% More details can be found in the two functions of Make_f20_volume_flow and 
-% Riverflux_distribution.
+% More details can be found in the two functions of Make_f20_volume_flow.m and 
+% Riverflux_distribution.m.
 %
 % Author:      Jiangchao Qiu                                
 % Created:     January 7 2021                                      
