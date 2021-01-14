@@ -10,12 +10,12 @@
 % The column order of the total volume flow (volume_flow_1,volume_flow_2...) 
 % must be specified in the order in which the riverine boundaries appear in 
 % the fort.14 file, or in which you make the riverine boundaries with the data 
-% cursor method in msh.make_bc
+% cursor method in msh.make_bc.
 %
 % A 'test_make_f20.csv' file has been placed in the Tests folder for reference.
-% The volume flow of this file is an hourly average time series, code in lines 42-43 
-% in Make_f20_volume_flow uses this file. If your volume flow is a daily average 
-% time series, you should use the code in lines 46-47 rather than lines 42-43.
+% The volume flow of this file is an hourly average time series, thus DT equals 
+% to 3600 (s), if your volume flow is a daily average time series, DT should be  
+% set to 86400 (s) rather than 3600 (s).
 %
 % More details can be found in the two functions of Make_f20_volume_flow.m and 
 % Riverflux_distribution.m.
@@ -75,9 +75,11 @@ m = make_bc(m,'outer',1);% 1,763,704,1(flux),22(River)
 plot(m,'type','bd');  % plot mesh on native projection with boundary conditions
 plot(m,'type','b');   % plot bathy on native projection
 
-ts = '01-Jan-2005 00:00'; % start time of simulation
-te = '01-Jan-2005 23:00'; % end time of simulation
-m = Make_f20_volume_flow(m,'test_make_f20.csv',ts,te);
+ts = '01-Jan-2005 00:00'; % start time of the total volume flow time series
+te = '01-Jan-2005 23:00'; % end time of the total volume flow time series
+DT = 3600; % time step of the total volume flow time series,
+           % DT=3600 for hourly data series while DT=86400 for daily data series.
+m = Make_f20_volume_flow(m,'test_make_f20.csv',ts,te,DT);
 
 save('Riverine.mat','m'); write(m,'Riverine','20');
 

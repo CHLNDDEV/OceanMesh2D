@@ -1,19 +1,20 @@
-function obj = Make_f20_volume_flow(obj,filename,ts,te)
-% obj = Make_f20_volume_flow(obj,filename,ts,te)
+function obj = Make_f20_volume_flow(obj,filename,ts,te,DT)
+% obj = Make_f20_volume_flow(obj,filename,ts,te,DT)
 % Input a msh class object to get the values of the nodal fluxes (q) (m^2/s) for 
 % times between ts and te based on the input file. filename is the name of a column
-% delimited csv file that stores the total volume flow (Q) (m^3/s) time series of a 
-% cross-section where the riverine boundary located. 
+% delimited file (csv) that stores the total volume flow (Q) (m^3/s) time series of  
+% the cross-sections where the riverine boundaries in the mesh are located. 
 %
 % ts and te represent the start and end time of the total volume flow, respectively.
 %
-% The column of the csv file should be organized as followed:  
+% The columns of the csv file should be organized as follows:  
 % year,month,day,hour,minute,second,volume_flow_1,volume_flow_2... 
 % The column order of the total volume flow (volume_flow_1,volume_flow_2...) 
-% must be specified in which the riverine boundaries appear in the fort.14 file, or 
-% in which you make the riverine boundaries with the data cursor method.  
+% must be specified in the order in which the riverine boundaries appear in the 
+% fort.14 file, or in which you make the riverine boundaries with the data cursor 
+% method in msh.make_bc.
 %
-% A description lof transforming the volume flux (m^3/s) to areal flux (m^2/s):
+% A description of transforming the volume flux (m^3/s) to areal flux (m^2/s):
 %
 % The function of Riverflux_distribution (has been placed in the utilities folder)  
 % will be called first to calculate the representative edge width and flux percentage  
@@ -23,8 +24,8 @@ function obj = Make_f20_volume_flow(obj,filename,ts,te)
 % nodal flux by the nodal edge width.
 %
 % Note: the default total volume flow (Q) (m^3/s) is an hourly average time series, 
-% thus the DT equals to 3600. If your Q is an daily average time series, you should 
-% use a value of 86400(24*3600) for DT.
+% thus the DT equals to 3600 (s). If your Q is an daily average time series, you should 
+% use a value of 86400(24*3600) (s) for DT.
 %
 % Author:      Jiangchao Qiu                                
 % Created:     January 7 2021                                      
@@ -39,13 +40,13 @@ data_riverflow = csvread(filename);
 
 river_volumeflow = data_riverflow(:,7:7+N-1);
 
-% if the total volume flow is an hourly average time series:
-time = data_riverflow(:,4);
-DT = 3600; %[s] 
-
-% if the total volume flow is a daily average time series:
-% time = data_riverflow(:,3)
-% DT = 86400; %[s] 
+if DT==3600 % the total volume flow is an hourly average time series:
+    time = data_riverflow(:,4);
+elseif DT==86400 % the total volume flow is a daily average time series:
+    time = data_riverflow(:,3);
+else
+    error('The total volume flow should be an hourly or daily average time series')
+end
 
 T = length(time);
 F = zeros(total_node_num,T);
