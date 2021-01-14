@@ -13,7 +13,8 @@ function obj = Make_f20_volume_flow(obj,filename,ts,te)
 % must be specified in which the riverine boundaries appear in the fort.14 file, or 
 % in which you make the riverine boundaries with the data cursor method.  
 %
-% A discription for transforming the volume flux (m^3/s) to areal flux (m^2/s):
+% A description lof transforming the volume flux (m^3/s) to areal flux (m^2/s):
+%
 % The function of Riverflux_distribution (has been placed in the utilities folder)  
 % will be called first to calculate the representative edge width and flux percentage  
 % for each node on the riverine boundary. Nodal flux (m^3/s) can be calculated by
