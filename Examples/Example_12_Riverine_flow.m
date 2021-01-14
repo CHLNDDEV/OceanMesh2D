@@ -9,7 +9,7 @@
 % must be specified in which the riverine boundaries appear in the fort.14 file, or 
 % in which you make the riverine boundaries with the data cursor method. 
 %
-% A 'test_make_f20.csv' file has been placed in the datasets folder for reference.
+% A 'test_make_f20.csv' file has been placed in the Tests folder for reference.
 % The volume flow of this file is an hourly average time series, code in lines 42-43 
 % in Make_f20_volume_flow is used defaultly. If your volume flow is a daily average 
 % time series, you should use the code in lines 46-47 rather than lines 42-43.
