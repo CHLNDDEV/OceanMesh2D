@@ -1,4 +1,4 @@
-% Example_12_Riverineflow: Guiding for make a riverine flow input file f.20
+% Example_12_Riverineflow: Guidance for making a riverine flow input file otherwise known as a fort.20
 
 clearvars; clc;
 
