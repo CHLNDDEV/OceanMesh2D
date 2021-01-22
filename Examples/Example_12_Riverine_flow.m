@@ -23,10 +23,11 @@
 % Author:      Jiangchao Qiu                                
 % Created:     January 7 2021                                      
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-addpath(genpath('utilities/'));
-addpath(genpath('datasets/'));
-addpath(genpath('m_map/'));
+addpath('..')
+addpath(genpath('../utilities/'));
+addpath(genpath('../datasets/'));
+addpath(genpath('../m_map/'));
+addpath(genpath('../Tests/'));
 
 %% STEP 1: set mesh extents and set parameters for mesh. 
 %% The Pearl River Estuary region
@@ -67,10 +68,17 @@ m = BoundCr(m,dt);
 %% make the nodestring boundary conditions
 m = make_bc(m,'auto',gdat); 
 
-%% use data cursor to identify vstart and vend of each riverine boundary
+%% identify vstart and vend of each riverine boundary
+% use the data cursor method, manually (GUI),this method is recommended.
 m = make_bc(m,'outer',1);% 1,2206,2107,1(flux),22(River)
 m = make_bc(m,'outer',1);% 1,14784,14779,1(flux),22(River)
 m = make_bc(m,'outer',1);% 1,763,704,1(flux),22(River)
+
+% or, if you know the node number in the mesh for each riverine boundary,...
+% you can identify the vstart and vend use the comannd lines as follows:
+% m = make_bc(m,'outer',1,4111,3919,1,22);
+% m = make_bc(m,'outer',1,41147,41139,1,22);
+% m = make_bc(m,'outer',1,1270,1377,1,22);
 
 plot(m,'type','bd');  % plot mesh on native projection with boundary conditions
 plot(m,'type','b');   % plot bathy on native projection
