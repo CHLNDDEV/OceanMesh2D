@@ -3,6 +3,7 @@
 
 clearvars; clc;
 
+addpath('..')
 addpath(genpath('../utilities/'))
 addpath(genpath('../datasets/'))
 addpath(genpath('../m_map/'))
