@@ -1,6 +1,12 @@
 % Example_10_Multiscale_Smoother: 
 % An idealized test for multiscale nesting using boxes with a large min_el
 % ratio
+clearvars; clc;
+
+addpath('..')
+addpath(genpath('../utilities/'))
+addpath(genpath('../datasets/'))
+addpath(genpath('../m_map/'))
 
 bbox = [0, 1; 0,1]; 
 boubox = [0,0; 1,0; 1,1; 0,1; 0,0; NaN NaN ];

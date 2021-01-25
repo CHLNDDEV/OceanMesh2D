@@ -22,6 +22,11 @@
 %% Setup
 clearvars; clc; close all;
 
+addpath('..')
+addpath(genpath('../utilities/'))
+addpath(genpath('../datasets/'))
+addpath(genpath('../m_map/'))
+
 %% Define data sources
 % Shoreline
 shoreline = 'GSHHS_f_L1';

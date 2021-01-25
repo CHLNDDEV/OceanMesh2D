@@ -1,6 +1,7 @@
 % Example_1_NZ: Mesh the South Island of New Zealand
 clearvars; clc;
 
+addpath('..')
 addpath(genpath('../utilities/'))
 addpath(genpath('../datasets/'))
 addpath(genpath('../m_map/'))
