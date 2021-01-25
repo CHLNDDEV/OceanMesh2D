@@ -635,6 +635,7 @@ classdef msh
                     disp(['Trying to plot arbitrary f13 attribute: ' type])
                     if ~isempty(obj.f13)
                         ii = find(contains({obj.f13.defval.Atr(:).AttrName},type));
+                        jj = find(contains({obj.f13.userval.Atr(:).AttrName},type));
                         if isempty(ii)
                             error(['no f13 attribute of ' type ' found']);
                         elseif length(ii) > 1
@@ -642,7 +643,7 @@ classdef msh
                             error(['more than one f13 attribute matched ' type]);
                         end
                         defval  = obj.f13.defval.Atr(ii).Val;
-                        userval = obj.f13.userval.Atr(ii).Val;
+                        userval = obj.f13.userval.Atr(jj).Val;
                         defval = reshape(defval,1,[]);
                         values = obj.p(:,1)*0 + defval;
                         values(userval(1,:),:) = userval(2:end,:)';
