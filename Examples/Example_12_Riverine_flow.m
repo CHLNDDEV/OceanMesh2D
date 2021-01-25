@@ -1,16 +1,19 @@
 % Example_12_Riverine_flow: Guidance for creating a riverine flow input file 
 % otherwise referred to as a fort.20
 %
-% You should prepare a column delimited file (csv) that stores the total volume flow
-% (Q) (m^3/s) time series of a cross-section where the riverine boundaries in the 
-% mesh are located. 
+% You should prepare a column delimited file (csv) that stores the total volume 
+% flow (Q) (m^3/s) time series of a cross-section where the riverine boundaries 
+% in the mesh are located. 
+%
+% A command-line method or a data cursor method is available to identify the 
+% vstart and vend of each riverine boundary in msh.make_bc.
 %
 % The columns of the csv file should be organized as follows:  
 % year,month,day,hour,minute,second,volume_flow_1,volume_flow_2... 
 % The column order of the total volume flow (volume_flow_1,volume_flow_2...) 
 % must be specified in the order in which the riverine boundaries appear in 
 % the fort.14 file, or in which you make the riverine boundaries with the data 
-% cursor method in msh.make_bc.
+% cursor method or comannd-line method in msh.make_bc.
 %
 % A 'test_make_f20.csv' file has been placed in the Tests folder for reference.
 % The volume flow of this file is an hourly average time series, thus DT equals 
@@ -65,30 +68,39 @@ max(CFL)
 min(CFL)
 m = BoundCr(m,dt);
 
-%% make the nodestring boundary conditions
+%% STEP 6: Make the nodestring boundary conditions
 m = make_bc(m,'auto',gdat); 
 
-%% identify vstart and vend of each riverine boundary
-% use the data cursor method, manually (GUI),this method is recommended.
-m = make_bc(m,'outer',1);% 1,2206,2107,1(flux),22(River)
-m = make_bc(m,'outer',1);% 1,14784,14779,1(flux),22(River)
-m = make_bc(m,'outer',1);% 1,763,704,1(flux),22(River)
+%% STEP 7: Identify vstart and vend of each riverine boundary
+% use the comannd-line method to identify the vstart and vend for each...
+% riverine boundary based on the coordinates of river edge.
+river_points1 = [112.918 22.508;112.919 22.514]; % coordinates of river edge
+river_points2 = [113.283 22.365;113.287 22.367]; % coordinates of river edge
+river_points3 = [113.513 22.234;113.515 22.236]; % coordinates of river edge            
+bc_k1 = ourKNNsearch(m.p',river_points1',1);
+bc_k2 = ourKNNsearch(m.p',river_points2',1);
+bc_k3 = ourKNNsearch(m.p',river_points3',1);
+m = make_bc(m,'outer',0,bc_k1(1),bc_k1(2),1,22);
+m = make_bc(m,'outer',1,bc_k2(1),bc_k2(2),1,22);
+m = make_bc(m,'outer',1,bc_k3(1),bc_k3(2),1,22);
 
-% or, if you know the node number in the mesh for each riverine boundary,...
-% you can identify the vstart and vend use the comannd lines as follows:
-% m = make_bc(m,'outer',1,4111,3919,1,22);
-% m = make_bc(m,'outer',1,41147,41139,1,22);
-% m = make_bc(m,'outer',1,1270,1377,1,22);
+% use the data cursor method to identify the vstart and vend for each...
+% riverine boundary manually (GUI).
+% m = make_bc(m,'outer',1); % 1,2206,2107,1(flux),22(River)
+% m = make_bc(m,'outer',1); % 1,14784,14779,1(flux),22(River)
+% m = make_bc(m,'outer',1); % 1,763,704,1(flux),22(River)
 
 plot(m,'type','bd');  % plot mesh on native projection with boundary conditions
 plot(m,'type','b');   % plot bathy on native projection
 
+%% STEP 8: Make the riverine conditions
 ts = '01-Jan-2005 00:00'; % start time of the total volume flow time series
 te = '01-Jan-2005 23:00'; % end time of the total volume flow time series
 DT = 3600; % time step of the total volume flow time series,
            % DT=3600 for hourly data series while DT=86400 for daily data series.
 m = Make_f20_volume_flow(m,'test_make_f20.csv',ts,te,DT);
 
+%% STEP 9: Save data
 save('Riverine.mat','m'); write(m,'Riverine','20');
 
 
