@@ -3,6 +3,7 @@
 % high resolution with two 15-30 m wide weirs at the mouth of the estuary.
 clc; clearvars
 
+addpath('..')
 addpath(genpath('../utilities/'));
 addpath(genpath('../datasets/'));
 addpath(genpath('../m_map/'));

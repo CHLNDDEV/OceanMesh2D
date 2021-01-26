@@ -9,9 +9,11 @@
 %
 % By Keith Roberts, 2020, USP, Brazil.
 clearvars; clc;
+addpath('..')
 addpath(genpath('../utilities/'))
 addpath(genpath('../datasets/'))
 addpath(genpath('../m_map/'))
+
 %% STEP 1: Here we mimic the steps that occurred in Example_1_NZ.m
 bbox = [166 176;		% lon_min lon_max
     -48 -40]; 		% lat_min lat_max
