@@ -1,5 +1,5 @@
-function [obj,ind] = extract_subdomain(obj,bou,keep_inverse,centroid,nscreen)
-% [obj,ind] = extract_subdomain(obj,bou,keep_inverse,centroid,nscreen)
+function [obj,ind] = extract_subdomain(obj,bou,keep_inverse,centroid,threshold,nscreen)
+% [obj,ind] = extract_subdomain(obj,bou,keep_inverse,centroid,threshold,nscreen)
 % 
 % Inputs:
 % bou: a bbox, i.e.: [lon min, lon_max;
@@ -11,6 +11,8 @@ function [obj,ind] = extract_subdomain(obj,bou,keep_inverse,centroid,nscreen)
 %              of the element are inside (outside) the bou polygon
 %           = 1 inpolygon test is based on whether the element centroid
 %              is inside (outside) the bou polygon
+% threshold = bathymetry value to keep elements inside bou so that they have a
+%             sufficiently deep "threshold" at they're centroid
 % nscreen: = 1 [default] display the notice to screen
 %          = 0 do not display the notice to screen
 % 
@@ -19,7 +21,7 @@ function [obj,ind] = extract_subdomain(obj,bou,keep_inverse,centroid,nscreen)
 % ind: an array of indices that can be used to map the mesh properties to
 % the output mesh subset with a subsequent call to "map_mesh_properties". 
 %
-p = obj.p; t = obj.t; 
+p = obj.p; t = obj.t; b = obj.b;
 if nargin == 1 || (nargin == 3 && isempty(bou))
     plot(p(:,1),p(:,2),'k.');
     h = impoly;
@@ -31,7 +33,10 @@ end
 if nargin < 4 || isempty(centroid)
     centroid = 0;
 end
-if nargin < 5 || isempty(nscreen)
+if nargin < 5 || isempty(threshold)
+    threshold = -9999;
+end
+if nargin < 6 || isempty(nscreen)
     nscreen = 1;
 end
 % converting bbox to polygon
@@ -67,6 +72,11 @@ else
         in3 = inpoly(bxy3,bou,edges);
     end
     in = in1 & in2 & in3;
+end
+if threshold ~= -9999
+     bem = max(b(t),[],2);   % only trim when all vertices
+     overland = bem < -threshold; % of element are above the threshold.
+     in = logical(in .* overland);
 end
 if keep_inverse == 0
     t(~in,:) = [];
