@@ -2,6 +2,7 @@
 
 clearvars; clc;
 
+addpath('..')
 addpath(genpath('../utilities/'));
 addpath(genpath('../datasets/'));
 addpath(genpath('../m_map/'));
@@ -40,7 +41,7 @@ mshopts = mshopts.build;
 %% STEP 5: Match points and edges across boundary
 m = mshopts.grd; % get out the msh object 
 
-% Plotting the triangulation on Robinson
-plot(m,'tri',1,'Robinson');
+% Plotting the triangulation on Robinson projection
+plot(m,'type','tri','proj','Robinson');
 save([outname '.mat'],'m'); 
 %write(m,outname);

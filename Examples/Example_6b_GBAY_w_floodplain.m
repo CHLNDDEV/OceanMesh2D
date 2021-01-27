@@ -4,6 +4,7 @@
 
 clearvars; clc;
 
+addpath('..')
 addpath(genpath('../utilities/'))
 addpath(genpath('../datasets/'))
 addpath(genpath('../m_map/'))
@@ -65,10 +66,10 @@ mshopts = mshopts.build;
 
 m = mshopts.grd ;
 
-% plot resolution
-plot(m,'resomesh',1,[],[],[10 0 1e3])
+% plot resolution on the mesh
+plot(m,'type','resomesh','colormap',[10 0 1e3])
 
 %interpolate bathy using special constraining technique for overland and
 %underwater
 m = interpFP(m,gdat,muw,gdatuw);
-plot(m,'bmesh')
+plot(m,'type','bmesh') % plot the bathy on the mesh

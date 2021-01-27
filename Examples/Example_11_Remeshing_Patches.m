@@ -9,9 +9,11 @@
 %
 % By Keith Roberts, 2020, USP, Brazil.
 clearvars; clc;
+addpath('..')
 addpath(genpath('../utilities/'))
 addpath(genpath('../datasets/'))
 addpath(genpath('../m_map/'))
+
 %% STEP 1: Here we mimic the steps that occurred in Example_1_NZ.m
 bbox = [166 176;		% lon_min lon_max
     -48 -40]; 		% lat_min lat_max
@@ -69,4 +71,6 @@ m_new = plus(subdomain_new, m_w_hole, 'match');
 % the new mesh
 ind = nearest_neighbor_map(m, m_new);
 m_new.b = m.b(ind); 
-plot(m_new,'bmesh'); hold on; plot(poly{1}(1:end-1,1),poly{1}(1:end-1,2),'r-','linewi',3);
+% Plot the bathy on the mesh with hole polygon in red
+plot(m_new,'type','bmesh'); hold on; 
+plot(poly{1}(1:end-1,1),poly{1}(1:end-1,2),'r-','linewi',3);

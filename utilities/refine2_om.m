@@ -194,7 +194,7 @@ function [vert,conn,tria,tnum] = refine2_om(varargin)
     end
 
 %-------------------------------- prune any non-unique topo. 
-   [ivec,ivec,jvec] = ...
+   [~,ivec,jvec] = ...
         unique(sort(PSLG,+2),'rows') ;
         
     PSLG = PSLG(ivec,:) ;

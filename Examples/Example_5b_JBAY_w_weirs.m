@@ -3,6 +3,7 @@
 % high resolution with two 15-30 m wide weirs at the mouth of the estuary.
 clc; clearvars
 
+addpath('..')
 addpath(genpath('../utilities/'));
 addpath(genpath('../datasets/'));
 addpath(genpath('../m_map/'));
@@ -72,7 +73,7 @@ m = make_bc(m,'weirs',gdat,1,[weirs.crestheight]);  % add bcs for the weirs
 %% STEP 6: interpolate bathy and plot and save the mesh
 m = interp(m,gdat,'nan','fill','mindepth',1); % interpolate bathy to the
                 % mesh with fill nan option to make sure corners get values
-plot(m,'bd'); % visualize your boundaries
-plot(m,'bmesh'); % plot triangulation and bathy
-caxis([-10 0]) ;
+plot(m,'type','bd');   % plot triangulation with boundary conditions
+plot(m,'type','blog'); % plot bathy on log scale
+% saving mesh
 save('JBAY_HR.mat','m')

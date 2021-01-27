@@ -3,6 +3,7 @@
 
 clc; clearvars
 
+addpath('..')
 addpath(genpath('../utilities/'));
 addpath(genpath('../datasets/'));
 addpath(genpath('../m_map/')); 
@@ -41,5 +42,6 @@ m = interp(m,gdat,'nan','fill','mindepth',1); % interpolate bathy to the
                 % mesh with fill nan option to make sure corners get values
 m = make_bc(m,'auto',gdat,'depth',5); % make the nodestring boundary conditions
                            % with depth cutoff for open boundary set to 5 m
-plot(m,'bd'); plot(m,'blog'); % plot triangulation and bathy
+plot(m,'type','bd'); % plot triangulation with boundary conditions
+plot(m,'type','blog'); % plot bathy on log scale
 save('JBAY_HR.mat','m')

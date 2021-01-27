@@ -1,6 +1,7 @@
 % Example_1_NZ: Mesh the South Island of New Zealand
 clearvars; clc;
 
+addpath('..')
 addpath(genpath('../utilities/'))
 addpath(genpath('../datasets/'))
 addpath(genpath('../m_map/'))
@@ -30,11 +31,11 @@ mshopts = mshopts.build;
 % Get out the msh class and put on nodestrings
 m = mshopts.grd;
 m = make_bc(m,'auto',gdat,'distance'); % make the boundary conditions
-plot(m,'bd',1);
+plot(m,'type','bd');
 % if you want to write into fort.14...
 % write(m,'South_Island_NZ');
 
 %% STEP 6: Example of plotting a subdomain with bcs
 bbox_s =  [172   176;
            -42   -39];
-plot(m,'bd',1,[],bbox_s)
+plot(m,'type','bd','subset',bbox_s)

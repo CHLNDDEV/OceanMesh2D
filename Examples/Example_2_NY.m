@@ -1,6 +1,7 @@
 % Example_2_NY: Mesh the New York region in high resolution
 clearvars; clc;
 
+addpath('..')
 addpath(genpath('../utilities/'))
 addpath(genpath('../datasets/'))
 addpath(genpath('../m_map/'))
@@ -33,5 +34,6 @@ m = mshopts.grd;
 m = interp(m,gdat,'mindepth',1); % interpolate bathy to the mesh with minimum depth of 1 m
 m = make_bc(m,'auto',gdat,'depth',5);  % make the nodestring boundary conditions 
                                  % with min depth of 5 m on open boundary
-plot(m,'bd'); plot(m,'blog');    % plot triangulation, and bathy on log scale
+plot(m,'type','bd');      % plot triangulation with bcs  
+plot(m,'type','blog');    % plot bathy on log scale
 write(m,'NY_HR');                % write to ADCIRC compliant ascii file

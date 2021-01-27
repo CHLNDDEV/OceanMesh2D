@@ -1,6 +1,6 @@
 function [node,edge] = getnan2(varargin)
 %GETNAN2 parse a NaN delimited polygon into a PSLG.
-%   [NODE,EDGE] = GETNAN2(NANS,FILT) converts a set of NaN 
+%   [NODE,EDGE] = GETNAN2(NANS,FILT,PFILT) converts a set of NaN 
 %   delimited polygons to a PSLG representation. NANS is an 
 %   D-by-2 array of coordinates, with polygon vertices spec-
 %   ified in connsecutive order, and delimited by NaN values
@@ -13,6 +13,10 @@ function [node,edge] = getnan2(varargin)
 %   NODE(EDGE(JJ,1),:) and NODE(EDGE(JJ,2),:) are the coord-
 %   inates of the endpoints of the JJ-TH edge. 
 %   
+%   WP: Added PFILT option that specifies minimum allowable
+%   length of edges for a polyon (set to 3 by 
+%   default for triangle)
+
 %   See also FIXGEO2, BFSGEO2, REFINE2
 
 %-----------------------------------------------------------
@@ -21,10 +25,11 @@ function [node,edge] = getnan2(varargin)
 %   Last updated    : 06/10/2017
 %-----------------------------------------------------------
 
-    data = [] ; filt = +0. ;
+    data = [] ; filt = +0. ; pfilt = +3;
 
     if (nargin>=+1), data = varargin{1}; end
     if (nargin>=+2), filt = varargin{2}; end
+    if (nargin>=+3), pfilt = varargin{3}; end
     
 %---------------------------------------------- basic checks    
     if ( ~isnumeric(data) || ...
@@ -44,6 +49,12 @@ function [node,edge] = getnan2(varargin)
         error('getnan2:incorrectDimensions' , ...
             'Incorrect input dimensions.');
     end  
+    
+    if pfilt < +1
+       warning('getnan2:inputValue' , ...
+            'PFILT needs to be at least 1 (setting to 1)')
+       pfilt = +1;
+    end
     
 %---------------------------------- parse NaN delimited data
     nvec = find(isnan(data(:,1))) ;
@@ -72,7 +83,7 @@ function [node,edge] = getnan2(varargin)
         
         pdel = pmax-pmin;
         
-        if (~isempty(pnew))
+        if (size(pnew,1) > pfilt)
         if (any(pdel>filt))            
 %---------------------------------- push polygon onto output            
         nnew = size(pnew,1);

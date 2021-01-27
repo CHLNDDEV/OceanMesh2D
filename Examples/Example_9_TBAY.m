@@ -22,6 +22,11 @@
 %% Setup
 clearvars; clc; close all;
 
+addpath('..')
+addpath(genpath('../utilities/'))
+addpath(genpath('../datasets/'))
+addpath(genpath('../m_map/'))
+
 %% Define data sources
 % Shoreline
 shoreline = 'GSHHS_f_L1';
@@ -59,7 +64,7 @@ m_min = m_min.build;
 m_min = m_min.grd;
 
 %% Plot the two meshes
-plot(m_nomin,'tri')
+plot(m_nomin)
 title('Without Enforcing Minimum of all Edgefunctions')
-plot(m_min,'tri')
+plot(m_min)
 title('Enforcing Minimum of all Edgefunctions')
