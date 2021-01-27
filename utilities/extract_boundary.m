@@ -124,7 +124,7 @@ if ~isempty(boudat)
         nbvv = boudat.nbvv;
         ibtype = boudat.ibtype;
         if ~exist('type2','var') 
-           type2 = input('What kind of flux boundary is it, 20(island),22(River)?');
+           type2 = input('What kind of flux boundary is it, 20 (Mainland), 21 (Island), 22 (River)?');
         end
         for ii = 1 : length(poly)
             nbou = nbou + 1;
