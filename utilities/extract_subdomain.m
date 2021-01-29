@@ -38,9 +38,9 @@ for kk = 1:2:length(varargin)
     elseif strcmp(varargin{kk},'nscreen')
         nscreen = varargin{kk+1};
     elseif strcmp(varargin{kk},'min_depth')
-        nscreen = varargin{kk+1};
+        min_depth = varargin{kk+1};
     elseif strcmp(varargin{kk},'max_depth')
-        nscreen = varargin{kk+1};
+        max_depth = varargin{kk+1};
         
     end
 end
