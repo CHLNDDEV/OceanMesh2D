@@ -136,11 +136,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Unreleased
 
 ## Added
-- `mesh2d` interface improvements to filter small polygons. 
+- `mesh2d` interface improvements to filter small polygons.
 - Support for creation of `fort.20` files for forcing rivers by @Jiangchao3
 
 ## Changed
 - `msh.plot()` overhaul. All options specified via kwarg.
+- `utilities/extract_subdomain` now is called with kwargs.
 
 ## Fixed
 - Boundary labeling fix
