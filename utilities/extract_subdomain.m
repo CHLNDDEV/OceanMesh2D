@@ -11,8 +11,10 @@ function [obj,ind] = extract_subdomain(obj,bou,varargin)
 %              of the element are inside (outside) the bou polygon
 %           = 1 inpolygon test is based on whether the element centroid
 %              is inside (outside) the bou polygon
-% threshold = bathymetry value to keep elements inside bou so that they have a
-%             sufficiently deep "threshold" at they're centroid
+% min_depth = bathymetry value to keep elements inside bou so that they have a
+%             sufficiently shallow "threshold" at their centroid
+% max_depth = bathymetry value to keep elements inside bou so that they have a
+%             sufficiently deep "threshold" at their centroid.
 % nscreen: = 1 [default] display the notice to screen
 %          = 0 do not display the notice to screen
 % 
@@ -23,7 +25,8 @@ function [obj,ind] = extract_subdomain(obj,bou,varargin)
 %
 keep_inverse = 0 ; 
 centroid = 0 ;
-threshold = -9999; 
+min_depth = -99999; 
+max_depth = +99999;
 nscreen = 1; 
 % Otherwise, name value pairs specified.
 % Parse other varargin
@@ -32,10 +35,13 @@ for kk = 1:2:length(varargin)
         keep_inverse = varargin{kk+1};
     elseif strcmp(varargin{kk},'centroid')
         centroid = varargin{kk+1};
-    elseif strcmp(varargin{kk},'threshold')
-        threshold = varargin{kk+1};
     elseif strcmp(varargin{kk},'nscreen')
         nscreen = varargin{kk+1};
+    elseif strcmp(varargin{kk},'min_depth')
+        nscreen = varargin{kk+1};
+    elseif strcmp(varargin{kk},'max_depth')
+        nscreen = varargin{kk+1};
+        
     end
 end
                 
@@ -82,8 +88,8 @@ else
 end
 if threshold ~= -9999
      bem = max(b(t),[],2);   % only trim when all vertices
-     overland = bem < -threshold; % of element are above the threshold.
-     in = logical(in .* overland);
+     selected = bem > min_depth | bem < max_depth; 
+     in = logical(in .* selected);
 end
 if keep_inverse == 0
     t(~in,:) = [];
