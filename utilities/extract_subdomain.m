@@ -1,5 +1,5 @@
-function [obj,ind] = extract_subdomain(obj,bou,keep_inverse,centroid,threshold,nscreen)
-% [obj,ind] = extract_subdomain(obj,bou,keep_inverse,centroid,threshold,nscreen)
+function [obj,ind] = extract_subdomain(obj,bou,varargin) 
+% [obj,ind] = extract_subdomain(obj,bou)
 % 
 % Inputs:
 % bou: a bbox, i.e.: [lon min, lon_max;
@@ -19,26 +19,33 @@ function [obj,ind] = extract_subdomain(obj,bou,keep_inverse,centroid,threshold,n
 % Outputs:
 % obj: the subset mesh obj (only p and t, properties untouched)
 % ind: an array of indices that can be used to map the mesh properties to
-% the output mesh subset with a subsequent call to "map_mesh_properties". 
+% the output mesh subset with a subsequent call to "map_mesh_properties".
 %
+keep_inverse = 0 ; 
+centroid = 0 ;
+threshold = -9999; 
+nscreen = 1; 
+% Otherwise, name value pairs specified.
+% Parse other varargin
+for kk = 1:2:length(varargin)
+    if strcmp(varargin{kk},'keep_inverse')
+        keep_inverse = varargin{kk+1};
+    elseif strcmp(varargin{kk},'centroid')
+        centroid = varargin{kk+1};
+    elseif strcmp(varargin{kk},'threshold')
+        threshold = varargin{kk+1};
+    elseif strcmp(varargin{kk},'nscreen')
+        nscreen = varargin{kk+1};
+    end
+end
+                
 p = obj.p; t = obj.t; b = obj.b;
-if nargin == 1 || (nargin == 3 && isempty(bou))
+if nargin == 1 || (nargin == 2 && isempty(bou))
     plot(p(:,1),p(:,2),'k.');
     h = impoly;
     bou  = h.getPosition;
 end
-if nargin < 3 || isempty(keep_inverse)
-    keep_inverse = 0;
-end
-if nargin < 4 || isempty(centroid)
-    centroid = 0;
-end
-if nargin < 5 || isempty(threshold)
-    threshold = -9999;
-end
-if nargin < 6 || isempty(nscreen)
-    nscreen = 1;
-end
+
 % converting bbox to polygon
 if size(bou,1) == 2
      bou = [bou(1,1) bou(2,1);
