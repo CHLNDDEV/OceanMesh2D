@@ -86,7 +86,7 @@ else
     end
     in = in1 & in2 & in3;
 end
-if threshold ~= -9999
+if min_depth ~= -99999 | max_depth ~= -99999
      bem = max(b(t),[],2);   % only trim when all vertices
      selected = bem > min_depth | bem < max_depth; 
      in = logical(in .* selected);
