@@ -12,9 +12,9 @@ function [obj,ind] = extract_subdomain(obj,bou,varargin)
 %           = 1 inpolygon test is based on whether the element centroid
 %              is inside (outside) the bou polygon
 % min_depth = topobathymetry value to keep elements inside bou so that they have a
-%             sufficiently shallow value at their centroid
+%             sufficiently deep value at their centroid
 % max_depth = topobathymetry value to keep elements inside bou so that they have a
-%             sufficiently deep value at their centroid.
+%             sufficiently shallow value at their centroid.
 % nscreen: = 1 [default] display the notice to screen
 %          = 0 do not display the notice to screen
 %
