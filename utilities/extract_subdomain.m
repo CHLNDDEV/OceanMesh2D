@@ -1,9 +1,9 @@
-function [obj,ind] = extract_subdomain(obj,bou,varargin) 
+function [obj,ind] = extract_subdomain(obj,bou,varargin)
 % [obj,ind] = extract_subdomain(obj,bou)
-% 
+%
 % Inputs:
 % bou: a bbox, i.e.: [lon min, lon_max;
-%                     lat_min, lat_max], or    
+%                     lat_min, lat_max], or
 %      a NaN-delimited polygon of the domain to extract
 % keep_inverse: = 0 [default] to get the sub-domain inside the bou polygon
 %               = 1 to get the sub-domain outside the bou polygon
@@ -11,23 +11,23 @@ function [obj,ind] = extract_subdomain(obj,bou,varargin)
 %              of the element are inside (outside) the bou polygon
 %           = 1 inpolygon test is based on whether the element centroid
 %              is inside (outside) the bou polygon
-% min_depth = bathymetry value to keep elements inside bou so that they have a
-%             sufficiently shallow "threshold" at their centroid
-% max_depth = bathymetry value to keep elements inside bou so that they have a
-%             sufficiently deep "threshold" at their centroid.
+% min_depth = topobathymetry value to keep elements inside bou so that they have a
+%             sufficiently shallow value at their centroid
+% max_depth = topobathymetry value to keep elements inside bou so that they have a
+%             sufficiently deep value at their centroid.
 % nscreen: = 1 [default] display the notice to screen
 %          = 0 do not display the notice to screen
-% 
+%
 % Outputs:
 % obj: the subset mesh obj (only p and t, properties untouched)
 % ind: an array of indices that can be used to map the mesh properties to
 % the output mesh subset with a subsequent call to "map_mesh_properties".
 %
-keep_inverse = 0 ; 
+keep_inverse = 0 ;
 centroid = 0 ;
-min_depth = -99999; 
+min_depth = -99999;
 max_depth = +99999;
-nscreen = 1; 
+nscreen = 1;
 % Otherwise, name value pairs specified.
 % Parse other varargin
 for kk = 1:2:length(varargin)
@@ -41,10 +41,10 @@ for kk = 1:2:length(varargin)
         min_depth = varargin{kk+1};
     elseif strcmp(varargin{kk},'max_depth')
         max_depth = varargin{kk+1};
-        
+
     end
 end
-                
+
 p = obj.p; t = obj.t; b = obj.b;
 if nargin == 1 || (nargin == 2 && isempty(bou))
     plot(p(:,1),p(:,2),'k.');
@@ -55,9 +55,9 @@ end
 % converting bbox to polygon
 if size(bou,1) == 2
      bou = [bou(1,1) bou(2,1);
-            bou(1,1) bou(2,2); 
+            bou(1,1) bou(2,2);
             bou(1,2) bou(2,2);
-            bou(1,2) bou(2,1); 
+            bou(1,2) bou(2,1);
             bou(1,1) bou(2,1)];
 end
 nans = false;
@@ -74,21 +74,21 @@ if centroid
         in = inpoly(bxyc,bou,edges);
     end
 else
-    bxy1 = p(t(:,1),:); bxy2 = p(t(:,2),:); bxy3 = p(t(:,3),:); 
+    bxy1 = p(t(:,1),:); bxy2 = p(t(:,2),:); bxy3 = p(t(:,3),:);
     if ~nans
-        in1 = inpoly(bxy1,bou); 
-        in2 = inpoly(bxy2,bou); 
+        in1 = inpoly(bxy1,bou);
+        in2 = inpoly(bxy2,bou);
         in3 = inpoly(bxy3,bou);
     else
-        in1 = inpoly(bxy1,bou,edges); 
-        in2 = inpoly(bxy2,bou,edges); 
+        in1 = inpoly(bxy1,bou,edges);
+        in2 = inpoly(bxy2,bou,edges);
         in3 = inpoly(bxy3,bou,edges);
     end
     in = in1 & in2 & in3;
 end
-if min_depth ~= -99999 | max_depth ~= -99999
+if min_depth ~= -99999 | max_depth ~= +99999
      bem = max(b(t),[],2);   % only trim when all vertices
-     selected = bem > min_depth & bem < max_depth; 
+     selected = bem > min_depth & bem < max_depth;
      in = logical(in .* selected);
 end
 if keep_inverse == 0
@@ -99,7 +99,7 @@ end
 % Remove uncessary vertices and reorder triangulation
 [p1,t,ind] = fixmesh(p,t);
 % Put back into the msh obj
-obj.p = p1; obj.t = t;  
+obj.p = p1; obj.t = t;
 %
 if nscreen
     % Displaying notice for mapping mesh properties
