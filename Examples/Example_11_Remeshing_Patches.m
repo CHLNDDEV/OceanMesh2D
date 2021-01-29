@@ -1,5 +1,5 @@
 % Example_11_Remeshing_Patches.m
-% 
+%
 % This example highlights a workflow on how to re-mesh and insert patches
 % using user defined mesh sizing functions from OceanMesh2D preserving
 % the pathces subdomain boundaries exactly.
@@ -38,7 +38,7 @@ mshopts = mshopts.build;
 % Get out the msh class and put on nodestrings
 m = mshopts.grd;
 % Interpolate topobathy data onto the vertices of the mesh.
-m = interp(m,'SRTM15+V2.1.nc'); 
+m = interp(m,'SRTM15+V2.1.nc');
 %% Extract the region which you want to remesh
 % For the purpose of this example, we have drawn a random polygon on top
 % of the mesh for which we would like to remesh.
@@ -50,27 +50,27 @@ hole = [  172.7361  -44.0332
   173.5714  -43.6053
   173.0915  -44.1310];
 % This extracts the parent mesh but with the polygon removed.
-subdomain = extract_subdomain(m,hole); 
+subdomain = extract_subdomain(m,hole);
 % Visualize the subdomain
 plot(subdomain);
 %% Get the boundary of this hole in the mesh
-% Follow the instructions in the title of the plot and click on one of the 
+% Follow the instructions in the title of the plot and click on one of the
 % points on the hole's boundary and type the number into the screen.
 poly = get_poly(subdomain);
-%% Re-meshing 
-% Using the polygon we just extracted (poly) and the original mesh size 
-% function (fh), remesh this hole with Delaunay refinement mesh2d. 
+%% Re-meshing
+% Using the polygon we just extracted (poly) and the original mesh size
+% function (fh), remesh this hole with Delaunay refinement mesh2d.
 % Recall poly is a cell-array so pass it the hole you want to mesh!
-subdomain_new = mesh2dgen(poly{1},fh); 
+subdomain_new = mesh2dgen(poly{1},fh);
 %% Merge the patch in
 % Remove the subdomain from the parent mesh
-m_w_hole = extract_subdomain(m,hole,1);
+m_w_hole = extract_subdomain(m,hole,"keep_inverse",1);
 % Since the boundaries match identically, this is a trivial merge.
 m_new = plus(subdomain_new, m_w_hole, 'match');
-% Use a trivial nearest neighbor interpolation to put the bathy back on 
+% Use a trivial nearest neighbor interpolation to put the bathy back on
 % the new mesh
 ind = nearest_neighbor_map(m, m_new);
-m_new.b = m.b(ind); 
+m_new.b = m.b(ind);
 % Plot the bathy on the mesh with hole polygon in red
-plot(m_new,'type','bmesh'); hold on; 
+plot(m_new,'type','bmesh'); hold on;
 plot(poly{1}(1:end-1,1),poly{1}(1:end-1,2),'r-','linewi',3);
