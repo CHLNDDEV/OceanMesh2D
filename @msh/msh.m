@@ -984,7 +984,7 @@ classdef msh
             %process categorical cleaning options
             if any(strcmp(varargin,'passive'))
                 disp('Employing passive option')
-                opt.db = 0.1; opt.ds = 0; opt.con = 10; opt.djc = 0;
+                opt.db = 0.1; opt.ds = 0; opt.con = 0; opt.djc = 0;
                 opt.sc_maxit = 0; opt.mqa = 1e-4; opt.renum = 0;
                 varargin(strcmp(varargin,'passive')) = [];
             elseif any(strcmp(varargin,'aggressive'))
