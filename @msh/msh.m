@@ -279,10 +279,10 @@ classdef msh
             % 1) obj: msh object
             %
             % 2) varargin kwargs:
-            % 
+            %
             % 'type': plot type, choose from:
             %    a) 'tri'  - (default) plots the triangulation
-            %    b) 'bd'   - same as tri but with nodestrings/boundary conditions plotted 
+            %    b) 'bd'   - same as tri but with nodestrings/boundary conditions plotted
             %    c) 'ob'   - outer boundary of the mesh
             %    d) 'b'    - plots the bathymetry
             %    e) 'slp'  - plots the bathymetric gradients
@@ -293,25 +293,25 @@ classdef msh
             %    j) 'transect' - plot a bathy transect through GUI
             %    k) 'xx' -     plots an arbitrary f13 attribute 'xx' by
             %                  contains search
-            %   
-            % 'type' ADDITIONALS. 
+            %
+            % 'type' ADDITIONALS.
             %   Add the following words inside the type character string to implement desired behaviors:
             %    aa) 'notri': plot without the triangulation (used with 'bd' option)
             %    bb) 'earth': use with 'reso' option to plot resolution using element edgelengths on the Earth
             %    cc) 'log': use with options that use a colormap to plot the caxis in log space
-            %    dd) 'mesh': use with options that use a colormap to plot colors on the element 
+            %    dd) 'mesh': use with options that use a colormap to plot colors on the element
             %                edges (a mesh look) instead of on the element faces (a surface look)
             %
             % 'proj': what available m_map projection to plot in e.g.,: 'equi', 'lamb', 'stereo'
             %    Select 'none' to plot without the m_map projection.
-            %    Default is the projection of the msh object. 
+            %    Default is the projection of the msh object.
             %
             % 'subset': Plot a subset of the mesh bounded by the corner coordinates
             %           (a bounding box: [west east; south north])
             %
             % options to refine the look of the plot:
             %    i) 'colormap': number of colormap intervals and (optional) range:
-            %                    [num_intervals] or; 
+            %                    [num_intervals] or;
             %                    [num_intervals caxis_lower caxis_upper]
             %   ii) 'fontsize': figure fontsize
             %  iii) 'backcolor': figure background RGB color (where mesh
@@ -321,15 +321,15 @@ classdef msh
             %    v) 'pivot'   : value in meters for which to assume is datum when
             %                    plotting topo-bathymetry (default 0.0 m)
             %
-            
+
             fsz = 12; % default font size
             bgc = [1 1 1]; % default background color
             cmap_int = 10; % default num of colormap intervals
             holdon = 0;
             pivot = 0.0; % assume datum is 0.0 m
             proj = 1;
-            projtype = []; 
-            type = 'tri'; 
+            projtype = [];
+            type = 'tri';
             subset = [];
             for kk = 1:2:length(varargin)
                 if strcmp(varargin{kk},'fontsize')
@@ -343,14 +343,14 @@ classdef msh
                 elseif strcmp(varargin{kk}, 'pivot')
                     pivot = varargin{kk+1};
                 elseif strcmp(varargin{kk}, 'proj')
-                    projtype = varargin{kk+1}; 
+                    projtype = varargin{kk+1};
                 elseif strcmp(varargin{kk},'type')
-                    type = varargin{kk+1}; 
+                    type = varargin{kk+1};
                 elseif strcmp(varargin{kk},'subset')
-                    subset = varargin{kk+1}; 
+                    subset = varargin{kk+1};
                 end
             end
-            
+
             % kjr default behavior, just use what's in the .mat file
             if isempty(projtype)
                 global MAP_PROJECTION MAP_VAR_LIST MAP_COORDS
@@ -370,7 +370,7 @@ classdef msh
             if strcmp(projtype,'none')
                proj = 0;
             end
-            
+
             % Handle user specified subdomain
             if ~isempty(subset)
                 % i.e. is a bounding box
@@ -673,7 +673,7 @@ classdef msh
             end
 
             function plotter(cmap,round_dec,yylabel,apply_pivot)
-               % applies the plot for the quantiy 'q' and specific 
+               % applies the plot for the quantiy 'q' and specific
                % colormap/colorbar inputs
                if proj
                    if mesh
@@ -3366,8 +3366,8 @@ classdef msh
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
             % save object for mapping
-            obj_old = obj; 
-            
+            obj_old = obj;
+
             % convert msh obj to fem_struct
             bnde=extdom_edges2(obj.t,obj.p);
             fem_struct.x = obj.p(:,1);
@@ -3382,7 +3382,7 @@ classdef msh
             fem_struct.ar  = fem_struct.z*0.0;
             fem_struct.name= 'temp';
             if ~isempty(obj.f15) || ~isempty(obj.f13)
-                warning('Reduce nodal connectivity will migrate your nodal attributes using linear interpolation and earse your control file.');
+                warning('Reduce nodal connectivity will migrate your nodal attributes using nearest neighbor interpolation and earse your control file.');
             end
 
             %Ensure the appropriate number of input arguements is given, checks that the
@@ -3599,7 +3599,7 @@ classdef msh
             % kjr convert back to msh obj.
             obj.p = [fem_struct.x,fem_struct.y];
             obj.t = fem_struct.e;
-            obj = map_mesh_properties(obj,'msh_old',obj_old); 
+            obj = map_mesh_properties(obj,'msh_old',obj_old);
         end
 
         function obj = flipEdge(obj,j,k)
@@ -3901,23 +3901,32 @@ classdef msh
 
         function obj = map_mesh_properties(obj,varargin)
             % obj = map_mesh_properties(obj,varargin)
-            % Map properties of a msh obj given a subset of integers, 'ind'.
-            % Assumes that the p and t components of the mesh have already
-            % been changed
-            % -> Common usage would be after receiving the indices as
-            %    an output from the fixmesh function
+            % Map properties of a msh obj (e.g., bathymetry, f13) given a subset of integers, 'ind'.
+            % Assumes that the msh.p and msh.t components of the mesh have already
+            % been changed. A common usage would be after receiving the indices as
+            % an output from the `fixmesh` function. However, these mapping indices can also be derived
+            % from nearest neighbor interpolation
             %
-            % ocean depths/topography
-            
+            % Usage:
+            %   obj = map_mesh_properties(obj,'ind',index_mapping);
+            %   obj = map_mesh_properties(obj,'msh_old',old_msh_object);
+            %
+            % varargin options:
+            %   i)   'ind' - A mapping from an old mesh to a new mesh.
+            %                the old mesh and new mesh ideally
+            %                shouldn't have changed much
+            %   ii)  'msh_old' - an old mesh object from which `ind` are calculated to perform the mapping
+            %
+
             % Name value pairs specified.
             % Parse other varargin
-            ind = []; 
-            m_old = []; 
+            ind = [];
+            m_old = [];
             for kk = 1:2:length(varargin)
                 if strcmp(varargin{kk},'msh_old')
                     m_old = varargin{kk+1};
                 elseif strcmp(varargin{kk},'ind')
-                    ind = varargin{kk+1}; 
+                    ind = varargin{kk+1};
                 end
             end
             if isempty(ind)
@@ -4219,8 +4228,8 @@ classdef msh
                     ['Index: ',num2str(ind')]};
             end
         end
-        
-                
+
+
         function [smoothed] = mesh_patch_smoother(obj, poly)
             % obj = mesh_patch_smoother(obj, poly)
             % Smooth a patch of elements perserving the boundaries of the patch.
@@ -4234,7 +4243,7 @@ classdef msh
             % smoothed - original msh obj but patch smoothed.
             %
             % Author Keith R. USP, Brazil, 2020
-            
+
             if nargin < 2
                 h = impoly;
                 poly = h.getPosition;
@@ -4244,7 +4253,7 @@ classdef msh
             sub1 = clean(sub1, {'ds',2,'mqa',1e-4,'djc',0.0,'con',5,'db',0,'sc_maxit',0});
             smoothed = plus(sub1,sub2,'match',{'djc',0.0,'ds',0,'db',0,'con',5,'mqa',1e-4,'sc_maxit',0});
         end
-        
+
 
 
     end % end methods
