@@ -381,7 +381,7 @@ classdef msh
                     subset(1,1) subset(2,1)];
                 % Get a subset given by bou
                 [obj,kept] = extract_subdomain(obj,subset,[],[],0);
-                obj = map_mesh_properties(obj,kept);
+                obj = map_mesh_properties(obj,'ind',kept);
             end
 
             % Set up projected space
@@ -2465,7 +2465,7 @@ classdef msh
             % e.g., b, bx, by, f13, f24, f5354 dat
             [obj.p,obj.t,pix] = fixmesh(obj.p,obj.t);
             % carry over...
-            obj = map_mesh_properties(obj,pix);
+            obj = map_mesh_properties(obj,'ind',pix);
         end
 
 
@@ -3365,6 +3365,9 @@ classdef msh
             %             OceanMesh software
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+            % save object for mapping
+            obj_old = obj; 
+            
             % convert msh obj to fem_struct
             bnde=extdom_edges2(obj.t,obj.p);
             fem_struct.x = obj.p(:,1);
@@ -3379,8 +3382,7 @@ classdef msh
             fem_struct.ar  = fem_struct.z*0.0;
             fem_struct.name= 'temp';
             if ~isempty(obj.f15) || ~isempty(obj.f13)
-                warning('Reduce nodal connectivity will erase your nodal attributes and control file. Go on?');
-                pause
+                warning('Reduce nodal connectivity will migrate your nodal attributes using linear interpolation and earse your control file.');
             end
 
             %Ensure the appropriate number of input arguements is given, checks that the
@@ -3596,10 +3598,8 @@ classdef msh
 
             % kjr convert back to msh obj.
             obj.p = [fem_struct.x,fem_struct.y];
-            if ~isempty(obj.b)
-                obj.b = fem_struct.z;
-            end
             obj.t = fem_struct.e;
+            obj = map_mesh_properties(obj,'msh_old',obj_old); 
         end
 
         function obj = flipEdge(obj,j,k)
@@ -3899,8 +3899,8 @@ classdef msh
             boundary = cell2mat(boundary');
         end
 
-        function obj = map_mesh_properties(obj,ind)
-            % obj = map_mesh_properties(obj,ind)
+        function obj = map_mesh_properties(obj,varargin)
+            % obj = map_mesh_properties(obj,varargin)
             % Map properties of a msh obj given a subset of integers, 'ind'.
             % Assumes that the p and t components of the mesh have already
             % been changed
@@ -3908,6 +3908,21 @@ classdef msh
             %    an output from the fixmesh function
             %
             % ocean depths/topography
+            
+            % Name value pairs specified.
+            % Parse other varargin
+            ind = []; 
+            m_old = []; 
+            for kk = 1:2:length(varargin)
+                if strcmp(varargin{kk},'msh_old')
+                    m_old = varargin{kk+1};
+                elseif strcmp(varargin{kk},'ind')
+                    ind = varargin{kk+1}; 
+                end
+            end
+            if isempty(ind)
+                ind = nearest_neighbor_map(m_old, obj);
+            end
             if ~isempty(obj.b)
                 obj.b = obj.b(ind);
             end
