@@ -3921,7 +3921,7 @@ classdef msh
             % Name value pairs specified.
             % Parse other varargin
             ind = [];
-            m_old = [];
+            m_old = obj; 
             for kk = 1:2:length(varargin)
                 if strcmp(varargin{kk},'msh_old')
                     m_old = varargin{kk+1};
@@ -3932,15 +3932,15 @@ classdef msh
             if isempty(ind)
                 ind = nearest_neighbor_map(m_old, obj);
             end
-            if ~isempty(obj.b)
-                obj.b = obj.b(ind);
+            if ~isempty(m_old.b)
+                obj.b = m_old.b(ind);
             end
             % topographic gradients
             if ~isempty(obj.bx)
-                obj.bx = obj.bx(ind);
+                obj.bx = m_old.bx(ind);
             end
             if ~isempty(obj.by)
-                obj.by = obj.by(ind);
+                obj.by = m_old.by(ind);
             end
             % open boundary info
             if ~isempty(obj.op) && obj.op.nope > 0
@@ -4018,8 +4018,8 @@ classdef msh
                 obj.f13.NumOfNodes = length(ind);
                 for att = 1:obj.f13.nAttr
                     % Get the old index for this attribute
-                    idx_old = obj.f13.userval.Atr(att).Val(1,:);
-                    val_old = obj.f13.userval.Atr(att).Val(2:end,:);
+                    idx_old = m_old.f13.userval.Atr(att).Val(1,:);
+                    val_old = m_old.f13.userval.Atr(att).Val(2:end,:);
                     % Only keep idx and val that is common to ind and map to ind
                     [~,ind_new,idx_new] = intersect(idx_old,ind);
                     val_new = val_old(:,ind_new);
@@ -4030,11 +4030,11 @@ classdef msh
             end
             % f24
             if ~isempty(obj.f24)
-                obj.f24.Val = obj.f24.Val(:,:,ind);
+                obj.f24.Val = m_old.f24.Val(:,:,ind);
             end
             % f5354
             if ~isempty(obj.f5354)
-                idx_old = obj.f5354.nodes;
+                idx_old = m_old.f5354.nodes;
                 [~,idx_new] = intersect(idx_old,ind);
                 obj.f5354.nodes = idx_new;
             end
