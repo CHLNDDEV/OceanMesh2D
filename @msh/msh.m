@@ -69,6 +69,8 @@ classdef msh
     methods
         function obj = msh(varargin)
 
+            IS_OCTAVE = exist('OCTAVE_VERSION', 'builtin') ~= 0;
+                        
             % Check for m_map dir
             if exist('m_proj','file')~=2
                 error('The program m_map was not found. Please read the user guide')
@@ -123,10 +125,9 @@ classdef msh
                 help(msh)
                 error('See usage instructions above. Please specify the fname of the mesh as a name/value pair...');
             end
-
-            isOctave = exist('OCTAVE_VERSION', 'builtin') ~= 0;
             
-            if isOctave
+            if IS_OCTAVE
+                fname = {fname}; 
                 contains = @(str, pattern) ~cellfun('isempty', strfind(str, pattern));
             end
             if any(contains(fname,'.14')) || any(contains(fname,'.grd'))
@@ -135,7 +136,7 @@ classdef msh
                 if nob
                     bdflag = 0;
                 end
-                if isOctave
+                if IS_OCTAVE
                     fname = fname{1}; 
                 end
                 [t,p,b,op,bd,title] = readfort14(fname,bdflag);
@@ -329,6 +330,7 @@ classdef msh
             %    v) 'pivot'   : value in meters for which to assume is datum when
             %                    plotting topo-bathymetry (default 0.0 m)
             %
+            IS_OCTAVE = exist('OCTAVE_VERSION', 'builtin') ~= 0;
 
             fsz = 12; % default font size
             bgc = [1 1 1]; % default background color
@@ -673,23 +675,30 @@ classdef msh
                     end
             end
             ax = gca;
-            ax.FontSize = fsz;
-            ax.Color = bgc;
-            if proj == 1
-                % now add the box
-                m_grid('FontSize',fsz);
+            if ~IS_OCTAVE
+                ax.FontSize = fsz;
+                ax.Color = bgc;
+                if proj == 1
+                    % now add the box
+                    m_grid('FontSize',fsz);
+                end
+            else
+                if proj == 1
+                    m_grid();
+                end
             end
-
+            
             function plotter(cmap,round_dec,yylabel,apply_pivot)
-               % applies the plot for the quantiy 'q' and specific
-               % colormap/colorbar inputs
-               if proj
-                   if mesh
-                      m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
-                   else
-                      m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
-                   end
-               else
+                % applies the plot for the quantiy 'q' and specific
+                % colormap/colorbar inputs
+                IS_OCTAVE = exist('OCTAVE_VERSION', 'builtin') ~= 0;
+                if proj
+                    if mesh
+                        m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
+                    else
+                        m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
+                    end
+                else
                    if mesh
                       trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
                    else
@@ -711,8 +720,13 @@ classdef msh
                            log10(cmap_int(2)),...
                            log10(cmap_int(3)),numticks)),round_dec);
                    else
-                      desiredTicks = round(10.^(linspace(min(q),...
-                           max(q),numticks)),round_dec);
+                       if ~IS_OCTAVE
+                           desiredTicks = round(10.^(linspace(min(q),...
+                               max(q),numticks)),round_dec);
+                       else
+                           desiredTicks = round(10.^(linspace(min(q),...
+                               max(q),numticks)));
+                       end
                    end
                    caxis([log10(min(desiredTicks)) log10(max(desiredTicks))]);
                    cb.Ticks     = log10(desiredTicks);
@@ -720,17 +734,29 @@ classdef msh
                       cb.TickLabels{i} = num2str(desiredTicks(i));
                    end
                else
-                   if length(cmap_int) >= 3
-                      desiredTicks = round(linspace(cmap_int(2),...
-                           cmap_int(3),numticks),round_dec);
+                   if ~IS_OCTAVE
+                       if length(cmap_int) >= 3
+                           desiredTicks = round(linspace(cmap_int(2),...
+                               cmap_int(3),numticks),round_dec);
+                       else
+                           desiredTicks = round(linspace(min(q),...
+                               max(q),numticks),round_dec);
+                       end
                    else
-                      desiredTicks = round(linspace(min(q),...
-                           max(q),numticks),round_dec);
+                       if length(cmap_int) >= 3
+                           desiredTicks = round(linspace(cmap_int(2),...
+                               cmap_int(3),numticks));
+                       else
+                           desiredTicks = round(linspace(min(q),...
+                               max(q),numticks));
+                       end
                    end
                    caxis([min(desiredTicks) max(desiredTicks)]);
-                   cb.Ticks = desiredTicks;
-                   for i = 1 : length(desiredTicks)
-                      cb.TickLabels{i} = num2str(desiredTicks(i));
+                   if ~IS_OCTAVE
+                       cb.Ticks = desiredTicks;
+                       for i = 1 : length(desiredTicks)
+                           cb.TickLabels{i} = num2str(desiredTicks(i));
+                       end
                    end
                end
                ylabel(cb,yylabel,'fontsize',fsz);
