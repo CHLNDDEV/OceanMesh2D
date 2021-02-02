@@ -126,19 +126,19 @@ classdef msh
                 error('See usage instructions above. Please specify the fname of the mesh as a name/value pair...');
             end
             
-            if IS_OCTAVE
-                fname = {fname}; 
-                contains = @(str, pattern) ~cellfun('isempty', strfind(str, pattern));
-            end
+            fname = {fname};
+            contains = @(str, pattern) ~cellfun('isempty', strfind(str, pattern));
+           
             if any(contains(fname,'.14')) || any(contains(fname,'.grd'))
                 disp('INFO: An ADCIRC fort.14 file will be read...')
                 bdflag = 1;
                 if nob
                     bdflag = 0;
                 end
-                if IS_OCTAVE
-                    fname = fname{1}; 
-                end
+                
+                % for octave
+                fname = fname{1};
+                
                 [t,p,b,op,bd,title] = readfort14(fname,bdflag);
                 obj.p  = p; obj.t  = t; obj.b  = b;
                 obj.bd = bd; obj.op = op;
