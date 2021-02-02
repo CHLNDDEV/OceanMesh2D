@@ -306,7 +306,7 @@ classdef msh
             %    Select 'none' to plot without the m_map projection.
             %    Default is the projection of the msh object. 
             %
-            % 'subset': Plot a subset of the mesh bounded by the corner coordinates
+            % 'subdomain': Plot a subdomain of the mesh bounded by the corner coordinates
             %           (a bounding box: [west east; south north])
             %
             % options to refine the look of the plot:
@@ -330,7 +330,7 @@ classdef msh
             proj = 1;
             projtype = []; 
             type = 'tri'; 
-            subset = [];
+            subdomain = [];
             for kk = 1:2:length(varargin)
                 if strcmp(varargin{kk},'fontsize')
                     fsz = varargin{kk+1};
@@ -346,8 +346,8 @@ classdef msh
                     projtype = varargin{kk+1}; 
                 elseif strcmp(varargin{kk},'type')
                     type = varargin{kk+1}; 
-                elseif strcmp(varargin{kk},'subset')
-                    subset = varargin{kk+1}; 
+                elseif strcmp(varargin{kk},'subdomain')
+                    subdomain = varargin{kk+1}; 
                 end
             end
             
@@ -372,15 +372,15 @@ classdef msh
             end
             
             % Handle user specified subdomain
-            if ~isempty(subset)
+            if ~isempty(subdomain)
                 % i.e. is a bounding box
-                subset = [subset(1,1) subset(2,1);
-                    subset(1,1) subset(2,2); ...
-                    subset(1,2) subset(2,2);
-                    subset(1,2) subset(2,1); ...
-                    subset(1,1) subset(2,1)];
-                % Get a subset given by bou
-                [obj,kept] = extract_subdomain(obj,subset,[],[],0);
+                subdomain = [subdomain(1,1) subdomain(2,1);
+                    subdomain(1,1) subdomain(2,2); ...
+                    subdomain(1,2) subdomain(2,2);
+                    subdomain(1,2) subdomain(2,1); ...
+                    subdomain(1,1) subdomain(2,1)];
+                % Get a subdomain given by bou
+                [obj,kept] = extract_subdomain(obj,subdomain,[],[],0);
                 obj = map_mesh_properties(obj,kept);
             end
 
