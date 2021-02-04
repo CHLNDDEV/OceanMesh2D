@@ -143,10 +143,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## Changed
 - `msh.plot()` overhaul. All options specified via kwarg.
+- `msh.plot()` option `subset` option is now called `subdomain`
 - `utilities/extract_subdomain` now is called with kwargs.
 
 ## Fixed
 - Boundary labeling fix
+- Prompt when labeling bcs using `outer` kwarg in `make_bc`
 
 ### [3.3.0] - 2020-12-21
 ## Fixed

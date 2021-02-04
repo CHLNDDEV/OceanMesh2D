@@ -38,4 +38,4 @@ plot(m,'type','bd');
 %% STEP 6: Example of plotting a subdomain with bcs
 bbox_s =  [172   176;
            -42   -39];
-plot(m,'type','bd','subset',bbox_s)
+plot(m,'type','bd','subdomain',bbox_s)
