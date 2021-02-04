@@ -1093,11 +1093,11 @@ classdef msh
             % Reduce the mesh connectivity to maximum of con-1
             % May not always work without error
             if opt.con > 6
-                try
+                %try
                     obj = bound_con_int(obj,opt.con);
-                catch
-                    warning('Could not reduce connectivity mesh');
-                end
+                %catch
+                 %   warning('Could not reduce connectivity mesh');
+                %end
             end
 
             % Now do the smoothing if required
@@ -4023,6 +4023,22 @@ classdef msh
                     % Only keep idx and val that is common to ind and map to ind
                     [~,ind_new,idx_new] = intersect(idx_old,ind);
                     val_new = val_old(:,ind_new);
+                    
+                    % find indices of new nodes
+                    [~,ind_added] = setdiff(obj.p,m_old.p,'rows');
+                    if ~isempty(ind_added)
+                        defval  = m_old.f13.defval.Atr(att).Val;
+                        userval = m_old.f13.userval.Atr(att).Val;
+                        defval = reshape(defval,1,[]);
+                        values = obj.p(:,1)*0 + defval;
+                        values(userval(1,:),:) = userval(2:end,:)';
+                        % for the new indices give the closest value in m_old
+                        % for any given nodal attribute
+                        tmp = ourKNNsearch(m_old.p',obj.p(ind_added,:)',1);
+                        val_new2 = values(tmp,:); 
+                        idx_new = [idx_new; ind_added];
+                        val_new = [val_new'; val_new2]'; 
+                    end                    
                     % Put the uservalues back into f13 struct
                     obj.f13.userval.Atr(att).Val = [idx_new'; val_new];
                     obj.f13.userval.Atr(att).usernumnodes = length(idx_new);
