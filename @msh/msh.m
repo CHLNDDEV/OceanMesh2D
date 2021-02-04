@@ -46,7 +46,7 @@ classdef msh
         title % mesh title
         p  % vertices
         t  % triangles
-        b  % bathymetry
+        b  % bathy
         bd % land boundaries
         op % open boundaries
         bx % slope of bathy in x direction
@@ -1094,11 +1094,11 @@ classdef msh
             % Reduce the mesh connectivity to maximum of con-1
             % May not always work without error
             if opt.con > 6
-                %try
+                try
                     obj = bound_con_int(obj,opt.con);
-                %catch
-                 %   warning('Could not reduce connectivity mesh');
-                %end
+                catch
+                    warning('Could not reduce connectivity mesh');
+                end
             end
 
             % Now do the smoothing if required
