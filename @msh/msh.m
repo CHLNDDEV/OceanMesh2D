@@ -46,7 +46,7 @@ classdef msh
         title % mesh title
         p  % vertices
         t  % triangles
-        b  % bathymetry
+        b  % bathy
         bd % land boundaries
         op % open boundaries
         bx % slope of bathy in x direction
@@ -279,10 +279,10 @@ classdef msh
             % 1) obj: msh object
             %
             % 2) varargin kwargs:
-            % 
+            %
             % 'type': plot type, choose from:
             %    a) 'tri'  - (default) plots the triangulation
-            %    b) 'bd'   - same as tri but with nodestrings/boundary conditions plotted 
+            %    b) 'bd'   - same as tri but with nodestrings/boundary conditions plotted
             %    c) 'ob'   - outer boundary of the mesh
             %    d) 'b'    - plots the bathymetry
             %    e) 'slp'  - plots the bathymetric gradients
@@ -293,25 +293,25 @@ classdef msh
             %    j) 'transect' - plot a bathy transect through GUI
             %    k) 'xx' -     plots an arbitrary f13 attribute 'xx' by
             %                  contains search
-            %   
-            % 'type' ADDITIONALS. 
+            %
+            % 'type' ADDITIONALS.
             %   Add the following words inside the type character string to implement desired behaviors:
             %    aa) 'notri': plot without the triangulation (used with 'bd' option)
             %    bb) 'earth': use with 'reso' option to plot resolution using element edgelengths on the Earth
             %    cc) 'log': use with options that use a colormap to plot the caxis in log space
-            %    dd) 'mesh': use with options that use a colormap to plot colors on the element 
+            %    dd) 'mesh': use with options that use a colormap to plot colors on the element
             %                edges (a mesh look) instead of on the element faces (a surface look)
             %
             % 'proj': what available m_map projection to plot in e.g.,: 'equi', 'lamb', 'stereo'
             %    Select 'none' to plot without the m_map projection.
-            %    Default is the projection of the msh object. 
+            %    Default is the projection of the msh object.
             %
             % 'subdomain': Plot a subdomain of the mesh bounded by the corner coordinates
             %           (a bounding box: [west east; south north])
             %
             % options to refine the look of the plot:
             %    i) 'colormap': number of colormap intervals and (optional) range:
-            %                    [num_intervals] or; 
+            %                    [num_intervals] or;
             %                    [num_intervals caxis_lower caxis_upper]
             %   ii) 'fontsize': figure fontsize
             %  iii) 'backcolor': figure background RGB color (where mesh
@@ -321,13 +321,14 @@ classdef msh
             %    v) 'pivot'   : value in meters for which to assume is datum when
             %                    plotting topo-bathymetry (default 0.0 m)
             %
-            
+
             fsz = 12; % default font size
             bgc = [1 1 1]; % default background color
             cmap_int = 10; % default num of colormap intervals
             holdon = 0;
             pivot = 0.0; % assume datum is 0.0 m
             proj = 1;
+
             projtype = []; 
             type = 'tri'; 
             subdomain = [];
@@ -343,14 +344,14 @@ classdef msh
                 elseif strcmp(varargin{kk}, 'pivot')
                     pivot = varargin{kk+1};
                 elseif strcmp(varargin{kk}, 'proj')
-                    projtype = varargin{kk+1}; 
+                    projtype = varargin{kk+1};
                 elseif strcmp(varargin{kk},'type')
                     type = varargin{kk+1}; 
                 elseif strcmp(varargin{kk},'subdomain')
                     subdomain = varargin{kk+1}; 
                 end
             end
-            
+
             % kjr default behavior, just use what's in the .mat file
             if isempty(projtype)
                 global MAP_PROJECTION MAP_VAR_LIST MAP_COORDS
@@ -370,7 +371,7 @@ classdef msh
             if strcmp(projtype,'none')
                proj = 0;
             end
-            
+
             % Handle user specified subdomain
             if ~isempty(subdomain)
                 % i.e. is a bounding box
@@ -673,7 +674,7 @@ classdef msh
             end
 
             function plotter(cmap,round_dec,yylabel,apply_pivot)
-               % applies the plot for the quantiy 'q' and specific 
+               % applies the plot for the quantiy 'q' and specific
                % colormap/colorbar inputs
                if proj
                    if mesh
@@ -984,7 +985,7 @@ classdef msh
             %process categorical cleaning options
             if any(strcmp(varargin,'passive'))
                 disp('Employing passive option')
-                opt.db = 0.1; opt.ds = 0; opt.con = 10; opt.djc = 0;
+                opt.db = 0.1; opt.ds = 0; opt.con = 0; opt.djc = 0;
                 opt.sc_maxit = 0; opt.mqa = 1e-4; opt.renum = 0;
                 varargin(strcmp(varargin,'passive')) = [];
             elseif any(strcmp(varargin,'aggressive'))
@@ -2465,7 +2466,7 @@ classdef msh
             % e.g., b, bx, by, f13, f24, f5354 dat
             [obj.p,obj.t,pix] = fixmesh(obj.p,obj.t);
             % carry over...
-            obj = map_mesh_properties(obj,pix);
+            obj = map_mesh_properties(obj,'ind',pix);
         end
 
 
@@ -3365,6 +3366,9 @@ classdef msh
             %             OceanMesh software
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+            % save object for mapping
+            obj_old = obj;
+
             % convert msh obj to fem_struct
             bnde=extdom_edges2(obj.t,obj.p);
             fem_struct.x = obj.p(:,1);
@@ -3379,8 +3383,7 @@ classdef msh
             fem_struct.ar  = fem_struct.z*0.0;
             fem_struct.name= 'temp';
             if ~isempty(obj.f15) || ~isempty(obj.f13)
-                warning('Reduce nodal connectivity will erase your nodal attributes and control file. Go on?');
-                pause
+                warning('Reduce nodal connectivity will migrate your nodal attributes using nearest neighbor interpolation and earse your control file.');
             end
 
             %Ensure the appropriate number of input arguements is given, checks that the
@@ -3596,10 +3599,8 @@ classdef msh
 
             % kjr convert back to msh obj.
             obj.p = [fem_struct.x,fem_struct.y];
-            if ~isempty(obj.b)
-                obj.b = fem_struct.z;
-            end
             obj.t = fem_struct.e;
+            obj = map_mesh_properties(obj,'msh_old',obj_old);
         end
 
         function obj = flipEdge(obj,j,k)
@@ -3899,24 +3900,48 @@ classdef msh
             boundary = cell2mat(boundary');
         end
 
-        function obj = map_mesh_properties(obj,ind)
-            % obj = map_mesh_properties(obj,ind)
-            % Map properties of a msh obj given a subset of integers, 'ind'.
-            % Assumes that the p and t components of the mesh have already
-            % been changed
-            % -> Common usage would be after receiving the indices as
-            %    an output from the fixmesh function
+        function obj = map_mesh_properties(obj,varargin)
+            % obj = map_mesh_properties(obj,varargin)
+            % Map properties of a msh obj (e.g., bathymetry, f13) given a subset of integers, 'ind'.
+            % Assumes that the msh.p and msh.t components of the mesh have already
+            % been changed. A common usage would be after receiving the indices as
+            % an output from the `fixmesh` function. However, these mapping indices can also be derived
+            % from nearest neighbor interpolation
             %
-            % ocean depths/topography
-            if ~isempty(obj.b)
-                obj.b = obj.b(ind);
+            % Usage:
+            %   obj = map_mesh_properties(obj,'ind',index_mapping);
+            %   obj = map_mesh_properties(obj,'msh_old',old_msh_object);
+            %
+            % varargin options:
+            %   i)   'ind' - A mapping from an old mesh to a new mesh.
+            %                the old mesh and new mesh ideally
+            %                shouldn't have changed much
+            %   ii)  'msh_old' - an old mesh object from which `ind` are calculated to perform the mapping
+            %
+
+            % Name value pairs specified.
+            % Parse other varargin
+            ind = [];
+            m_old = obj; 
+            for kk = 1:2:length(varargin)
+                if strcmp(varargin{kk},'msh_old')
+                    m_old = varargin{kk+1};
+                elseif strcmp(varargin{kk},'ind')
+                    ind = varargin{kk+1};
+                end
+            end
+            if isempty(ind)
+                ind = nearest_neighbor_map(m_old, obj);
+            end
+            if ~isempty(m_old.b)
+                obj.b = m_old.b(ind);
             end
             % topographic gradients
             if ~isempty(obj.bx)
-                obj.bx = obj.bx(ind);
+                obj.bx = m_old.bx(ind);
             end
             if ~isempty(obj.by)
-                obj.by = obj.by(ind);
+                obj.by = m_old.by(ind);
             end
             % open boundary info
             if ~isempty(obj.op) && obj.op.nope > 0
@@ -3994,11 +4019,27 @@ classdef msh
                 obj.f13.NumOfNodes = length(ind);
                 for att = 1:obj.f13.nAttr
                     % Get the old index for this attribute
-                    idx_old = obj.f13.userval.Atr(att).Val(1,:);
-                    val_old = obj.f13.userval.Atr(att).Val(2:end,:);
+                    idx_old = m_old.f13.userval.Atr(att).Val(1,:);
+                    val_old = m_old.f13.userval.Atr(att).Val(2:end,:);
                     % Only keep idx and val that is common to ind and map to ind
                     [~,ind_new,idx_new] = intersect(idx_old,ind);
                     val_new = val_old(:,ind_new);
+                    
+                    % find indices of new nodes
+                    [~,ind_added] = setdiff(obj.p,m_old.p,'rows');
+                    if ~isempty(ind_added)
+                        defval  = m_old.f13.defval.Atr(att).Val;
+                        userval = m_old.f13.userval.Atr(att).Val;
+                        defval = reshape(defval,1,[]);
+                        values = obj.p(:,1)*0 + defval;
+                        values(userval(1,:),:) = userval(2:end,:)';
+                        % for the new indices give the closest value in m_old
+                        % for any given nodal attribute
+                        tmp = ourKNNsearch(m_old.p',obj.p(ind_added,:)',1);
+                        val_new2 = values(tmp,:); 
+                        idx_new = [idx_new; ind_added];
+                        val_new = [val_new'; val_new2]'; 
+                    end                    
                     % Put the uservalues back into f13 struct
                     obj.f13.userval.Atr(att).Val = [idx_new'; val_new];
                     obj.f13.userval.Atr(att).usernumnodes = length(idx_new);
@@ -4006,11 +4047,11 @@ classdef msh
             end
             % f24
             if ~isempty(obj.f24)
-                obj.f24.Val = obj.f24.Val(:,:,ind);
+                obj.f24.Val = m_old.f24.Val(:,:,ind);
             end
             % f5354
             if ~isempty(obj.f5354)
-                idx_old = obj.f5354.nodes;
+                idx_old = m_old.f5354.nodes;
                 [~,idx_new] = intersect(idx_old,ind);
                 obj.f5354.nodes = idx_new;
             end
@@ -4204,8 +4245,8 @@ classdef msh
                     ['Index: ',num2str(ind')]};
             end
         end
-        
-                
+
+
         function [smoothed] = mesh_patch_smoother(obj, poly)
             % obj = mesh_patch_smoother(obj, poly)
             % Smooth a patch of elements perserving the boundaries of the patch.
@@ -4219,7 +4260,7 @@ classdef msh
             % smoothed - original msh obj but patch smoothed.
             %
             % Author Keith R. USP, Brazil, 2020
-            
+
             if nargin < 2
                 h = impoly;
                 poly = h.getPosition;
@@ -4229,7 +4270,7 @@ classdef msh
             sub1 = clean(sub1, {'ds',2,'mqa',1e-4,'djc',0.0,'con',5,'db',0,'sc_maxit',0});
             smoothed = plus(sub1,sub2,'match',{'djc',0.0,'ds',0,'db',0,'con',5,'mqa',1e-4,'sc_maxit',0});
         end
-        
+
 
 
     end % end methods
