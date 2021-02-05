@@ -145,11 +145,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## Changed
 - `msh.plot()` overhaul. All options specified via kwarg.
 - `msh.plot()` option `subset` option is now called `subdomain`
+- `msh.plot()` arbitary f13 option now utilizes `colormap` kwarg
 - `utilities/extract_subdomain` now is called with kwargs.
+- Cleaning up `msh.BoundCr()` to use `msh.getBoundaryOfMesh()` for Delaunay-triangulation and allowing `msh.clean()` to do the transfer of attributes automatically.
 
 ## Fixed
 - Boundary labeling fix
 - Prompt when labeling bcs using `outer` kwarg in `make_bc`
+
+## Deleted
+- Deprecating `msh.CheckTimestep()` for `msh.BoundCr`. Added error message and instruction in the CheckTimestep help
 
 ### [3.3.0] - 2020-12-21
 ## Fixed
