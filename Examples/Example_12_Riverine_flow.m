@@ -66,7 +66,7 @@ m = lim_bathy_slope(m,0.1,0);
 CFL = CalcCFL(m,dt); 
 max(CFL)
 min(CFL)
-m = BoundCr(m,dt);
+m = bound_courant_number(m,dt);
 
 %% STEP 6: Make the nodestring boundary conditions
 m = make_bc(m,'auto',gdat); 

@@ -2659,8 +2659,8 @@ classdef msh
             end
         end
 
-        function obj = BoundCr(obj,dt,cr_max,cr_min,varargin)
-            % obj = BoundCr(obj,dt,cr_max,cr_min,varargin)
+        function obj = bound_courant_number(obj,dt,cr_max,cr_min,varargin)
+            % obj = bound_courant_number(obj,dt,cr_max,cr_min,varargin)
             % Decimate/refine a mesh to achieve Cr max/min bounds for
             % optimal numerical performance.
             %
@@ -2692,7 +2692,7 @@ classdef msh
 
             % Set up input args and catch errors.
             if nargin < 2
-                help BoundCr
+                help bound_courant_number
                 error('Please supply correct input args...See help printout above');
             end
 
@@ -2830,7 +2830,7 @@ classdef msh
                 % bound.
                 m_old = obj; % save original mesh object for mapping
                 % form outer polygon of mesh for cleaning up.
-                poly_cell = getBoundaryOfMesh(obj,1);
+                poly_cell = get_boundary_of_mesh(obj,1);
                 % Deleting any polylines less than three points (last point is NaN)
                 poly_cell(cellfun(@length,poly_cell) < 4) = [];
                 poly_vec1 = cell2mat(poly_cell');
@@ -2893,7 +2893,7 @@ classdef msh
 
 
         function obj = CheckTimestep(obj,dt,varargin)
-            % This function has been depracated. Use "BoundCr" instead.
+            % This function has been deprecated. Use "bound_courant_number" instead.
             % obj = CheckTimestep(obj,dt,varargin)
             % varargin(1) is desired CFL (< 1) or maximum iterations (> 1)
             % varargin(2) is desired dj_cutoff
@@ -2909,7 +2909,7 @@ classdef msh
             % wjp, chl, und, 2019 <--updates to carry over slopes and
             % using the msh clean, and CFL calc type option
 
-            error('This function has been depracated. Use "BoundCr" instead')
+            error('This function has been deprecated. Use "bound_courant_number" instead')
 
         end
 
@@ -3715,8 +3715,8 @@ classdef msh
             egfix = renumberEdges(egfix) ;
         end
 
-        function boundary = getBoundaryOfMesh(obj,ascell)
-            % boundary = getBoundaryOfMesh(obj,ascell)
+        function boundary = get_boundary_of_mesh(obj,ascell)
+            % boundary = get_boundary_of_mesh(obj,ascell)
             %
             % Returns the boundary of the mesh
             %
