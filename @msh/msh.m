@@ -381,8 +381,8 @@ classdef msh
                     subdomain(1,2) subdomain(2,1); ...
                     subdomain(1,1) subdomain(2,1)];
                 % Get a subdomain given by bou
-                [obj,kept] = extract_subdomain(obj,subdomain,[],[],0);
-                obj = map_mesh_properties(obj,kept);
+                [obj,kept] = extract_subdomain(obj,subdomain,'nscreen',0);
+                obj = map_mesh_properties(obj,'ind',kept);
             end
 
             % Set up projected space
