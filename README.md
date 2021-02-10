@@ -147,14 +147,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - `msh.plot()` option `subset` option is now called `subdomain`
 - `msh.plot()` arbitary f13 option now utilizes `colormap` kwarg
 - `utilities/extract_subdomain` now is called with kwargs.
-- Cleaning up `msh.BoundCr()` to use `msh.getBoundaryOfMesh()` for Delaunay-triangulation and allowing `msh.clean()` to do the transfer of attributes automatically.
+- Cleaning up `msh.bound_courant_number()` to use `msh.get_boundary_of_mesh()` for Delaunay-triangulation and allowing `msh.clean()` to do the transfer of attributes automatically.
 
 ## Fixed
 - Boundary labeling fix
 - Prompt when labeling bcs using `outer` kwarg in `make_bc`
 
 ## Deleted
-- Deprecating `msh.CheckTimestep()` for `msh.BoundCr`. Added error message and instruction in the CheckTimestep help
+- Deprecating `msh.CheckTimestep()` for `msh.bound_courant_number`. Added error message and instruction in the CheckTimestep help
 
 ### [3.3.0] - 2020-12-21
 ## Fixed
@@ -178,7 +178,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - improving help for make_bc msh method, Make_f15.m and Calc_Sponge.m
 - renamed "ExtractSubDomain.m" to "extract_subdomain.m"
 - improving "extract_subdomain.m" help and facilitating NaN-delimited polygons
-- ability to return boundary as a cell in "getBoundaryOfMesh" msh method
+- ability to return boundary as a cell in "get_boundary_of_mesh" msh method
 - "Example_1_NZ.m" includes example of plotting bcs of a msh subset
 - using "mapMeshproperties" method in "fixmeshandcarry"
 - using "fixmeshandcarry" in the "cat" msh method
