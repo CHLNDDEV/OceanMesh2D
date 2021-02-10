@@ -653,9 +653,9 @@ classdef msh
                         if length(cmap_int) >= 3 
                           rd = ceil(-log10((cmap_int(3)-cmap_int(2))/cmap_int(1)));
                         else
-                          rd = ceil(-log10(std(q)));
+                          rd = ceil(-log10((max(q) - min(q))/cmap_int(1)));
                         end  
-                        plotter(lansey(cmap_int(1)),rd,'',false);
+                        plotter(lansey(cmap_int(1)),rd+1,'',false);
                         ax = gca;
                         ax.Title.String = obj.f13.defval.Atr(ii).AttrName;
                         ax.Title.Interpreter = 'none';
