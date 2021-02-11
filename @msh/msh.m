@@ -2718,6 +2718,14 @@ classdef msh
             %% Deal with any projection information for accurate bar
             % length calculations.
             type  = 0;       %<-- 0 == Haversine, 1 == CPP with correction factor
+
+            % Conduct initial check of Courant number to return early is possible
+            Cr = real(CalcCFL(obj,dt,type));
+            if max(Cr) <= cr_max && min(Cr) >= cr_min 
+               disp('Courant number constraints are already satisfied')
+               return
+            end
+
             if ~isempty(obj.coord)
                 % kjr 2018,10,17; Set up projected space imported from msh class
                 global MAP_PROJECTION MAP_VAR_LIST MAP_COORDS
