@@ -3886,7 +3886,7 @@ classdef msh
                         defval  = m_old.f13.defval.Atr(att).Val;
                         userval = m_old.f13.userval.Atr(att).Val;
                         defval = reshape(defval,1,[]);
-                        values = obj.p(:,1)*0 + defval;
+                        values = m_old.p(:,1)*0 + defval;
                         values(userval(1,:),:) = userval(2:end,:)';
                         % for the new indices give the closest value in m_old
                         % for any given nodal attribute
