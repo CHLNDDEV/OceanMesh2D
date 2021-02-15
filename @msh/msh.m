@@ -2719,13 +2719,17 @@ classdef msh
             % length calculations.
             type  = 0;       %<-- 0 == Haversine, 1 == CPP with correction factor
 
-            % Conduct initial check of Courant number to return early is possible
+            % Conduct initial check of Courant number to return early if possible
             Cr = real(CalcCFL(obj,dt,type));
             if max(Cr) <= cr_max && min(Cr) >= cr_min 
                disp('Courant number constraints are already satisfied')
                return
             end
 
+            % deleting boundary conditions which are difficult to recompute when
+            % the triangulation changes
+            obj.bd = []; obj.op = [];
+         
             if ~isempty(obj.coord)
                 % kjr 2018,10,17; Set up projected space imported from msh class
                 global MAP_PROJECTION MAP_VAR_LIST MAP_COORDS
@@ -2818,8 +2822,9 @@ classdef msh
                 end
             end
 
-            disp(['All msh attributes have been carried over, but since ' ... 
-                  'the triangulation has changed it may pay to recompute these']);
+            disp(['All msh attributes have been carried over except for boundary ' ... 
+                  'conditions which need to be recomputed. Since the triangulation ' ...
+                  'has changed it may pay to recompute other attributes as well']);
 
             % find nans
             if ~isempty(find(isnan(obj.b), 1))
