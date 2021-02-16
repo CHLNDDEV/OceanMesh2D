@@ -1,4 +1,4 @@
-% Run example 3 to test multi-scale meshing, BoundCr, and interp
+% Run example 3 to test multi-scale meshing, bound_courant_number, and interp
 cd ..
 
 addpath(genpath('utilities/'))
@@ -36,7 +36,7 @@ m = mshopts.grd;
 
 m = interp(m,gdat1); 
 
-m = BoundCr(m,50,6.0,0.5,20);
+m = bound_courant_number(m,50,6.0,0.5,20);
 
 Crnew = CalcCFL(m,50); 
 

@@ -381,8 +381,8 @@ classdef msh
                     subdomain(1,2) subdomain(2,1); ...
                     subdomain(1,1) subdomain(2,1)];
                 % Get a subdomain given by bou
-                [obj,kept] = extract_subdomain(obj,subdomain,[],[],0);
-                obj = map_mesh_properties(obj,kept);
+                [obj,kept] = extract_subdomain(obj,subdomain,'nscreen',0);
+                obj = map_mesh_properties(obj,'ind',kept);
             end
 
             % Set up projected space
@@ -646,18 +646,16 @@ classdef msh
                         defval  = obj.f13.defval.Atr(ii).Val;
                         userval = obj.f13.userval.Atr(jj).Val;
                         defval = reshape(defval,1,[]);
-                        values = obj.p(:,1)*0 + defval;
-                        values(userval(1,:),:) = userval(2:end,:)';
+                        q = obj.p(:,1)*0 + defval;
+                        q(userval(1,:),:) = userval(2:end,:)';
                         % just take the inf norm
-                        values = max(values,[],2);
-                        if proj
-                            m_fastscatter(obj.p(:,1),obj.p(:,2),values);
+                        q = max(q,[],2);
+                        if length(cmap_int) >= 3 
+                          rd = ceil(-log10((cmap_int(3)-cmap_int(2))/cmap_int(1)));
                         else
-                            fastscatter(obj.p(:,1),obj.p(:,2),values);
-                        end
-                        nouq = length(unique(values));
-                        colormap(lansey(nouq));
-                        colorbar;
+                          rd = ceil(-log10((max(q) - min(q))/cmap_int(1)));
+                        end  
+                        plotter(lansey(cmap_int(1)),rd+1,'',false);
                         ax = gca;
                         ax.Title.String = obj.f13.defval.Atr(ii).AttrName;
                         ax.Title.Interpreter = 'none';
@@ -694,7 +692,11 @@ classdef msh
                if apply_pivot
                   cmocean(cmap,cmap_int(1),'pivot',pivot);
                else
-                  cmocean(cmap,cmap_int(1));
+                  try 
+                     cmocean(cmap,cmap_int(1));
+                  catch
+                     colormap(cmap)
+                  end
                end
                cb = colorbar;
                numticks = cmap_int(1)+1;
@@ -2657,8 +2659,8 @@ classdef msh
             end
         end
 
-        function obj = BoundCr(obj,dt,cr_max,cr_min,varargin)
-            % obj = BoundCr(obj,dt,cr_max,cr_min,varargin)
+        function obj = bound_courant_number(obj,dt,cr_max,cr_min,varargin)
+            % obj = bound_courant_number(obj,dt,cr_max,cr_min,varargin)
             % Decimate/refine a mesh to achieve Cr max/min bounds for
             % optimal numerical performance.
             %
@@ -2690,7 +2692,7 @@ classdef msh
 
             % Set up input args and catch errors.
             if nargin < 2
-                help BoundCr
+                help bound_courant_number
                 error('Please supply correct input args...See help printout above');
             end
 
@@ -2716,6 +2718,18 @@ classdef msh
             %% Deal with any projection information for accurate bar
             % length calculations.
             type  = 0;       %<-- 0 == Haversine, 1 == CPP with correction factor
+
+            % Conduct initial check of Courant number to return early if possible
+            Cr = real(CalcCFL(obj,dt,type));
+            if max(Cr) <= cr_max && min(Cr) >= cr_min 
+               disp('Courant number constraints are already satisfied')
+               return
+            end
+
+            % deleting boundary conditions which are difficult to recompute when
+            % the triangulation changes
+            obj.bd = []; obj.op = [];
+         
             if ~isempty(obj.coord)
                 % kjr 2018,10,17; Set up projected space imported from msh class
                 global MAP_PROJECTION MAP_VAR_LIST MAP_COORDS
@@ -2734,16 +2748,6 @@ classdef msh
             %% Make bathy interpolant for reprojection later on.
             F = scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.b,...
                 'linear','nearest');
-            if ~isempty(obj.bx)
-                Fx = scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.bx,...
-                    'linear','nearest');
-                Fy = scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.by,...
-                    'linear','nearest');
-            end
-
-            % clear some things which cause error in renum
-            obj.bx = []; obj.by = []; obj.f13 = [];
-            obj.bd = []; obj.op = [];
 
             % OPTIONALLY BOUND THE MAXIMUM COURANT NUMBER BY DELETING
             if cr_max > eps % if cr_max is set to 0 this is skipped
@@ -2760,27 +2764,27 @@ classdef msh
                 tic
                 while 1
                     [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
-                    Cr = CalcCFL(obj,dt,type);
+                    Cr = real(CalcCFL(obj,dt,type));
                     [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2));
-                    bad = real(Cr) > cr_max;
-
-                    display(['Number of maximum Cr bound violations ',num2str(sum(bad))]);
-                    disp(['Max Cr is : ',num2str(max(real(Cr)))]);
-                    if it == maxIT,   break; end
+                    bad = Cr > cr_max;
                     badnum = sum(bad);
+
+                    display(['Number of maximum Cr bound violations ',num2str(badnum)]);
+                    disp(['Max Cr is : ',num2str(max(Cr))]);
+                    if it == maxIT; break; end
                     if badnum == 0; break; end
                     if badnump - badnum <= 0; con = con + 1; end
                     it = it + 1;
                     obj = DecimateTria(obj,bad);
                     % Clean up the new mesh (already projected) without direct
                     % smoothing (we have used local smooting in DecmimateTria
-                    obj.b = []; % (the bathy will cause error in renum)
                     obj = clean(obj,'passive','proj',0,'pfix',pf,'con',con);
+                    % Overwrite the nearest-neighbour interp of b in clean with linear interp
                     obj.b = F(obj.p(:,1),obj.p(:,2));
                     badnump = badnum;
                 end
                 toc
-                disp(['Achieved max Cr of ',num2str(max(real(Cr))),...
+                disp(['Achieved max Cr of ',num2str(max(Cr)),...
                     ' after ',num2str(it),' iterations.']);
             end
 
@@ -2798,35 +2802,29 @@ classdef msh
                 tic
                 while 1
                     [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
-                    Cr = CalcCFL(obj,dt,type);
+                    Cr = real(CalcCFL(obj,dt,type));
                     [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2));
-                    bad = real(Cr) < cr_min;
-
-                    display(['Number of minimum Cr bound violations ',num2str(sum(bad))]);
-                    disp(['Min. Cr is : ',num2str(min(real(Cr)))]);
-                    if it == maxIT,   break; end
+                    bad = Cr < cr_min;
                     badnum = sum(bad);
+                    
+                    display(['Number of minimum Cr bound violations ',num2str(badnum)]);
+                    disp(['Min. Cr is : ',num2str(min(Cr))]);
+                    if it == maxIT; break; end
                     if badnum == 0; break; end
                     it = it + 1;
 
                     % refine select elements using an octree approach
                     obj = RefineTrias(obj,bad);
 
-                    % put bathy back on
+                    % put bathy back on with linear interp
                     obj.b = F(obj.p(:,1),obj.p(:,2));
 
                 end
             end
 
-            % add bathy back on
-            obj.b = F(obj.p(:,1),obj.p(:,2));
-            if exist('Fx','var')
-                obj.bx = Fx(obj.p(:,1),obj.p(:,2));
-                obj.by = Fy(obj.p(:,1),obj.p(:,2));
-            end
-
-            disp('Boundary and f13 info has been deleted...');
-            disp('bathy and slope info is carried over');
+            disp(['All msh attributes have been carried over except for boundary ' ... 
+                  'conditions which need to be recomputed. Since the triangulation ' ...
+                  'has changed it may pay to recompute other attributes as well']);
 
             % find nans
             if ~isempty(find(isnan(obj.b), 1))
@@ -2843,11 +2841,13 @@ classdef msh
             function obj = DecimateTria(obj,bad)
                 % helper function to delete triangles to achieve max. Cr
                 % bound.
-
+                m_old = obj; % save original mesh object for mapping
                 % form outer polygon of mesh for cleaning up.
-                bnde = extdom_edges2(obj.t,obj.p);
-                poly1 = extdom_polygon(bnde,obj.p,-1);
-                poly_vec1 = cell2mat(poly1');
+                poly_cell = get_boundary_of_mesh(obj,1);
+                % Deleting any polylines less than three points (last point is NaN)
+                poly_cell(cellfun(@length,poly_cell) < 4) = [];
+                poly_vec1 = cell2mat(poly_cell');
+                clear poly_cell
                 [edges1]  = Get_poly_edges(poly_vec1);
                 % delete the points that violate the cfl, locally retriangulate, and then locally smooth
                 DTbase = delaunayTriangulation(obj.p(:,1),obj.p(:,2));
@@ -2882,8 +2882,8 @@ classdef msh
                     warning('Adapation would result in potentially catastrophic lose of connectivity, try adapting to a smaller timestep');
                 end
                 obj.p = pm; obj.t = tm;
+                obj = map_mesh_properties(obj,'msh_old',m_old);
             end
-            return;
 
             function obj = RefineTrias(obj,bad)
                 % helper function to refine triangles to achieve min.
@@ -2902,11 +2902,11 @@ classdef msh
                 obj.p = pnew; obj.t = tnew;
             end
 
-
         end
 
 
         function obj = CheckTimestep(obj,dt,varargin)
+            % This function has been deprecated. Use "bound_courant_number" instead.
             % obj = CheckTimestep(obj,dt,varargin)
             % varargin(1) is desired CFL (< 1) or maximum iterations (> 1)
             % varargin(2) is desired dj_cutoff
@@ -2922,153 +2922,8 @@ classdef msh
             % wjp, chl, und, 2019 <--updates to carry over slopes and
             % using the msh clean, and CFL calc type option
 
-            warning('This function is not recommended. Use "BoundCr" instead')
+            error('This function has been deprecated. Use "bound_courant_number" instead')
 
-            type       = 0;       %<-- 0 == Haversine, 1 == CPP with correction factor
-            desCFL     = 0.50;    %<-- set desired cfl (generally less than 0.80 for stable).
-            desIt = inf;          %<-- desired number of iterations
-            djc   = 0.25;
-            if nargin > 2
-                if varargin{1} > 1
-                    desIt = varargin{1};
-                else
-                    desCFL = varargin{1};
-                end
-                if nargin == 4
-                    djc = varargin{2};
-                    %type = varargin{2};
-                end
-            end
-            %%
-            if ~isempty(obj.coord)
-                % kjr 2018,10,17; Set up projected space imported from msh class
-                global MAP_PROJECTION MAP_VAR_LIST MAP_COORDS
-                MAP_PROJECTION = obj.proj ;
-                MAP_VAR_LIST   = obj.mapvar ;
-                MAP_COORDS     = obj.coord ;
-            else
-                lon_mi = min(obj.p(:,1)); lon_ma = max(obj.p(:,1));
-                lat_mi = min(obj.p(:,2)); lat_ma = max(obj.p(:,2));
-                m_proj('Trans','lon',[lon_mi lon_ma],'lat',[lat_mi lat_ma]) ;
-            end
-
-            %% Project..
-            [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2));
-
-            %% Make bathy interpolant
-            F = scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.b,...
-                'linear','nearest');
-            if ~isempty(obj.bx)
-                Fx = scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.bx,...
-                    'linear','nearest');
-                Fy = scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.by,...
-                    'linear','nearest');
-            end
-
-            % clear some things which cause error in renum
-            obj.bx = []; obj.by = []; obj.f13 = [];
-            obj.bd = []; obj.op = [];
-
-            %% Delete CFL violations
-            it  = 0;
-            CFL = 999;
-            if ~isempty(obj.pfix)
-                [pf(:,1),pf(:,2)] = m_ll2xy(obj.pfix(:,1),obj.pfix(:,2));
-            else
-                pf = [];
-            end
-            con = 9;
-            badnump = 1e10;
-            tic
-            while 1
-                [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
-                CFL = CalcCFL(obj,dt,type);
-                [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2));
-                bad = real(CFL) > desCFL;
-                %if ~isempty(obj.pfix)
-                %    fix = ismembertol(obj.p,pf,1e-6,'ByRows',true);
-                %    bad = bad & fix;
-                %end
-                display(['Number of CFL violations ',num2str(sum(bad))]);
-                disp(['Max CFL is : ',num2str(max(real(CFL)))]);
-                if it == desIt,   break; end
-                badnum = sum(bad);
-                if badnum == 0; break; end
-                if badnump - badnum <= 0; con = con + 1; end
-                it = it + 1;
-                obj = DecimateTria(obj,bad);
-                % Clean up the new mesh (already projected) without direct
-                % smoothing (we have used local smooting in DecmimateTria
-                obj.b = []; % (the bathy will cause error in renum)
-                obj = clean(obj,'passive','proj',0,'pfix',pf,'con',con);
-                obj.b = F(obj.p(:,1),obj.p(:,2));
-            end
-            toc
-            disp(['Achieved max CFL of ',num2str(max(real(CFL))),...
-                ' after ',num2str(it),' iterations.']);
-
-            % add bathy back on
-            obj.b = F(obj.p(:,1),obj.p(:,2));
-            if exist('Fx','var')
-                obj.bx = Fx(obj.p(:,1),obj.p(:,2));
-                obj.by = Fy(obj.p(:,1),obj.p(:,2));
-            end
-
-            disp('Boundary and f13 info has been deleted...');
-            disp('bathy and slope info is carried over');
-
-            % find nans
-            if ~isempty(find(isnan(obj.b), 1))
-                warning('NaNs in bathy found')
-            end
-
-            % convert back to lat-lon wgs84
-            [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
-
-            % Check Element order
-            obj = CheckElementOrder(obj);
-            return;
-
-            function obj = DecimateTria(obj,bad)
-                % form outer polygon of mesh for cleaning up.
-                bnde = extdom_edges2(obj.t,obj.p);
-                poly1 = extdom_polygon(bnde,obj.p,-1);
-                poly_vec1 = cell2mat(poly1');
-                [edges1]  = Get_poly_edges(poly_vec1);
-                % delete the points that violate the cfl, locally retriangulate, and then locally smooth
-                DTbase = delaunayTriangulation(obj.p(:,1),obj.p(:,2));
-                DTbase.Points(find(bad),:) = [];
-                pm   = DTbase.Points; tm = DTbase.ConnectivityList;
-                pmid = (pm(tm(:,1),:)+pm(tm(:,2),:)+pm(tm(:,3),:))/3;
-                in1  = inpoly(pmid,poly_vec1,edges1);
-                tm(~in1,:) = []; [pm,tm] = fixmesh(pm,tm);
-                % Delete shitty boundary elements iteratively
-                badbound = 1;
-                while ~isempty(find(badbound, 1))
-                    tq1 = gettrimeshquan(pm,tm);
-                    % Get the elements that have a boundary bar
-                    bnde = extdom_edges2(tm,pm);
-                    bdnodes = unique(bnde(:));
-                    vtoe = VertToEle(tm);
-                    bele = unique(vtoe(:,bdnodes)); bele(bele == 0) = [];
-                    tqbou = tq1.qm(bele);
-                    badbound = bele(tqbou < 0.1);
-                    % Delete those boundary elements with quality < 0.1
-                    tm(badbound,:) = [];
-                end
-                [pm,tm] = fixmesh(pm,tm);
-                if sum(bad) < size(pm,1)*0.1
-                    % find all the points nearby each "bad" point.
-                    idx = ourKNNsearch(pm',obj.p(find(bad),:)',12);
-                    idx = idx(:);
-                    idx = unique(idx);
-                    constr = setdiff((1:length(pm))',idx);
-                    [pm,tm] = smoothmesh(pm,tm,constr,50,0.01);
-                else
-                    warning('Adapation would result in potentially catastrophic lose of connectivity, try adapting to a smaller timestep');
-                end
-                obj.p = pm; obj.t = tm;
-            end
         end
 
 
@@ -3873,8 +3728,8 @@ classdef msh
             egfix = renumberEdges(egfix) ;
         end
 
-        function boundary = getBoundaryOfMesh(obj,ascell)
-            % boundary = getBoundaryOfMesh(obj,ascell)
+        function boundary = get_boundary_of_mesh(obj,ascell)
+            % boundary = get_boundary_of_mesh(obj,ascell)
             %
             % Returns the boundary of the mesh
             %
@@ -4031,7 +3886,7 @@ classdef msh
                         defval  = m_old.f13.defval.Atr(att).Val;
                         userval = m_old.f13.userval.Atr(att).Val;
                         defval = reshape(defval,1,[]);
-                        values = obj.p(:,1)*0 + defval;
+                        values = m_old.p(:,1)*0 + defval;
                         values(userval(1,:),:) = userval(2:end,:)';
                         % for the new indices give the closest value in m_old
                         % for any given nodal attribute

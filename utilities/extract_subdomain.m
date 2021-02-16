@@ -105,7 +105,7 @@ if nscreen
     % Displaying notice for mapping mesh properties
     disp('NOTICE: Only p and t have been subset.')
     disp('  To map mesh properties to the subset output the ind array and call: ')
-    disp('  mesh_obj = map_mesh_properties(mesh_obj,ind)')
+    disp('  mesh_obj = map_mesh_properties(mesh_obj,''ind'',ind)')
 end
 % EOF
 end
