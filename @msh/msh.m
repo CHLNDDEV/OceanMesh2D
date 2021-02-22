@@ -1789,7 +1789,7 @@ classdef msh
 
                 case('delete')
                     % have the user select the nodestring '
-                    plot(obj,'bd') ;
+                    plot(obj,'type','bd','proj','none') ;
                     temp = obj.bd.nbvv;
                     bounodes=obj.bd.nbvv ;
                     idx=sum(bounodes~=0);
