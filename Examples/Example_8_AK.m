@@ -25,6 +25,7 @@ grade     = 0.25; 		% mesh grade in decimal percent.
 
 %% STEP 2: specify geographical datasets and process the geographical data 
 %%         to be used later with other OceanMesh classes...
+dem       = 'SRTM15+V2.1.nc';
 coastline = 'GSHHS_f_L1';
 gdat = geodata('shp',coastline,'bbox',bbox,'h0',min_el);
 % plotting the gdat to show it crosses the 180/-180 and 
@@ -44,4 +45,4 @@ m = mshopts.grd; % Get out the msh class
 m = make_bc(m,'auto',gdat,'distance'); % make the boundary conditions
 plot(m,'type','bd'); % plot the boundary conditions on the mesh
 
-m = interp(m,'GEBCO_2014_2D.nc','mindepth',5);
+m = interp(m,dem,'mindepth',5);
