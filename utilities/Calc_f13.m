@@ -89,24 +89,28 @@ else
     for NA = 1:obj.f13.nAttr
         if strcmp(attrname,obj.f13.defval.Atr(NA).AttrName)
             broken = 1;
-            % overwrite existing tau0
+            % overwrite existing f13
             break
         end
     end
     if ~broken
-        % add internal_tide to list
+        % add new attr to list
         obj.f13.nAttr = obj.f13.nAttr + 1;
         NA = obj.f13.nAttr;
     end
 end
 
 % Default Values
-obj.f13.defval.Atr(NA).AttrName = attrname;
-% We can just put in the options here
-obj.f13.defval.Atr(NA).Unit = 'unitless';
-valpernode = 1;
-obj.f13.defval.Atr(NA).ValuesPerNode = valpernode ;
-obj.f13.defval.Atr(NA).Val = default_val ;
+if ~broken
+   obj.f13.defval.Atr(NA).AttrName = attrname;
+  % We can just put in the options here
+  obj.f13.defval.Atr(NA).Unit = 'unitless';
+  valpernode = 1;
+  obj.f13.defval.Atr(NA).ValuesPerNode = valpernode ;
+  obj.f13.defval.Atr(NA).Val = default_val;
+else
+  default_val = obj.f13.defval.Atr(NA).Val;
+end
 
 % User Values
 obj.f13.userval.Atr(NA).AttrName = attrname ;

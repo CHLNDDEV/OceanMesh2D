@@ -2158,7 +2158,7 @@ classdef msh
             global MAP_PROJECTION MAP_COORDS MAP_VAR_LIST
             if ~isempty(obj2.coord)
                 if any(min(obj1.p) < min(obj2.p)) || ...
-                        any(max(obj1.p) > max(obj2.p))
+                   any(max(obj1.p) > max(obj2.p))
                     objt = obj2; objt.p = [objt.p; obj1.p];
                     objt.p(1,:) = min(objt.p) - 1e-3;
                     objt.p(2,:) = max(objt.p) + 1e-3;
@@ -2431,7 +2431,7 @@ classdef msh
             % cat two non-overlapping meshes
             pin = obj1.p; tin = obj1.t;
             [~,d] = ourKNNsearch(pin',pin',2);
-            d = d(:,2); mind = min(d);
+            d = max(d,[],2); mind = min(d);
             [idx,d] = ourKNNsearch(obj.p',pin',1);
             ind = 1:size(pin,1);
             LIA = ismember(tin(:),ind(d < mind));
@@ -3830,23 +3830,23 @@ classdef msh
                     nvell_old = obj.bd.nvell(ib);
                     idx_old = obj.bd.nbvv(1:nvell_old,ib);
                     % Only keep idx_old that is common to ind and map to ind
-                    [~,~,idx_new] = intersect(idx_old,ind,'stable');
-                    % if a polygon
-                    if ~isempty(idx_new) && ...
-                            length(idx_new) == length(idx_old)-1 && idx_old(end) == idx_old(1)
-                        idx_new(end+1) = idx_new(1);
-                    end
+                    [~,idx_new] = ismember(idx_old,ind); % allows for repeats
                     % Get the new length of this boundary
                     obj.bd.nvell(ib) = length(idx_new);
                     % Reset and reload the nbdv for this boundary
                     obj.bd.nbvv(:,ib) = 0;
                     obj.bd.nbvv(1:obj.bd.nvell(ib),ib) = idx_new;
                     %
-                    % Proceed only if the ibconn field exists
+                    % Proceed only if the ibconn field exists and if ibtype
+                    % is one of 4, 5, 24, 25
                     if ~isfield(obj.bd,'ibconn'); continue; end
+                    if obj.bd.ibtype(ib) ~= 4 && obj.bd.ibtype(ib) ~= 5 && ...
+                       obj.bd.ibtype(ib) ~= 24 && obj.bd.ibtype(ib) ~= 25
+                       continue; 
+                    end
                     idx_old = obj.bd.ibconn(1:nvell_old,ib);
                     % Only keep idx_old that is common to ind and map to ind
-                    [~,~,idx_new] = intersect(idx_old,ind,'stable');
+                    [~,idx_new] = ismember(idx_old,ind);
                     % Check the new length of this boundary
                     if length(idx_new) ~=  obj.bd.nvell(ib)
                         disp(['boundary number = ' num2str(ib)])

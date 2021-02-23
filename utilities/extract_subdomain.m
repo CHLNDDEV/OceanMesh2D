@@ -41,7 +41,6 @@ for kk = 1:2:length(varargin)
         min_depth = varargin{kk+1};
     elseif strcmp(varargin{kk},'max_depth')
         max_depth = varargin{kk+1};
-
     end
 end
 
@@ -86,7 +85,7 @@ else
     end
     in = in1 & in2 & in3;
 end
-if min_depth ~= -99999 | max_depth ~= +99999
+if min_depth ~= -99999 || max_depth ~= +99999
      bem = max(b(t),[],2);   % only trim when all vertices
      selected = bem > min_depth & bem < max_depth;
      in = logical(in .* selected);
