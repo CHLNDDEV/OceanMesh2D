@@ -2568,7 +2568,12 @@ classdef msh
 
                 obj.bd.nbvv(1:obj.bd.nvell(ii),ii)   = idx1(nodes);
                 obj.bd.ibconn(1:obj.bd.nvell(ii),ii) = idx1(nodes2);
-
+                obj.bd.barinht(1:obj.bd.nvell(ii),ii) = ...
+                                  obj1.bd.barinht(1:obj.bd.nvell(idx),idx);
+                obj.bd.barincfsb(1:obj.bd.nvell(ii),ii) = ...
+                                obj1.bd.barincfsb(1:obj.bd.nvell(idx),idx);
+                obj.bd.barincfsp(1:obj.bd.nvell(ii),ii) = ...
+                                obj1.bd.barincfsp(1:obj.bd.nvell(idx),idx);
             end
         end
 
