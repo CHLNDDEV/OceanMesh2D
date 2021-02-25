@@ -13,6 +13,7 @@ Table of contents
    * [Contributing](#contributing)
    * [Code framework](#code-framework)
    * [Starting out](#starting-out)
+   * [Testing](#testing)
    * [References](#references)
    * [Gallery](#gallery)
    * [Changelog](#changelog)
@@ -83,12 +84,14 @@ Development paper[1]└── Examples/Example_6_GBAY.m %<- An example of the po
 
 ```
 
+See #testing to test OceanMesh2D on your system.
+
 Testing
 ==========
 
-All pull requests are tested with Jenkins on a local host. However, to ensure the software is fully functional on your system it's encouraged to run the tests in Tests/ yourself.
+To ensure the software is fully functional on your system before building some crazy meshes it is strongly recommended to run the tests (RunTests.m) in the Tests/ directory.
 
-
+We test all pull requests using this test suite on a local host before accepting. For subtantial pull requests we will also test the Examples from the Examples/ directory. 
 
 References!
 ==============

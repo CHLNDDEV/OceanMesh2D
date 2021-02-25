@@ -22,7 +22,7 @@ else
 
    else
    
-      warning('Need to download SRTM15+V2.1.nc to run TestECGC') 
+      warning('Need to download SRTM15+V2.1.nc to run TestECGC. Run setup.sh') 
 
    end
 
@@ -32,7 +32,7 @@ else
 
    else
 
-      warning('Need to download PostSandyNCEI data to run TestJBAY') 
+      warning('Need to download PostSandyNCEI data to run TestJBAY. Available from the google drive referenced on the README page') 
 
    end
 
