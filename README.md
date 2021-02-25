@@ -84,14 +84,14 @@ Development paper[1]└── Examples/Example_6_GBAY.m %<- An example of the po
 
 ```
 
-See #testing to test OceanMesh2D on your system.
+See [Testing](#testing) to test OceanMesh2D on your system.
 
 Testing
 ==========
 
 To ensure the software is fully functional on your system before building some crazy meshes it is strongly recommended to run the tests (RunTests.m) in the Tests/ directory.
 
-We test all pull requests using this test suite on a local host before accepting. For subtantial pull requests we will also test the Examples from the Examples/ directory. 
+We test all pull requests using this test suite on a local host before accepting. For substantial pull requests we will also test the Examples from the Examples/ directory. 
 
 References!
 ==============
