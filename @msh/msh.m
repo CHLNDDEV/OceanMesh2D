@@ -2813,19 +2813,21 @@ classdef msh
                     if badnum == 0; break; end
                     it = it + 1;
 
+                    % save old msh object for mapping
+                    obj_old = obj;
+                    
                     % refine select elements using an octree approach
-                    obj = RefineTrias(obj,bad);
+                    obj = RefineTrias(obj_old,bad);
 
+                    % map back properties
+                    obj = map_mesh_properties(obj,'msh_old',obj_old);
+                    
                     % put bathy back on with linear interp
                     obj.b = F(obj.p(:,1),obj.p(:,2));
 
                 end
             end
-
-            disp(['All msh attributes have been carried over except for boundary ' ... 
-                  'conditions which need to be recomputed. Since the triangulation ' ...
-                  'has changed it may pay to recompute other attributes as well']);
-
+                       
             % find nans
             if ~isempty(find(isnan(obj.b), 1))
                 warning('NaNs in bathy found')
@@ -2836,6 +2838,14 @@ classdef msh
 
             % Check Element order
             obj = CheckElementOrder(obj);
+           
+            % Call itself recursively to make sure both criteria are satisifed
+            obj = bound_courant_number(obj,dt,cr_max,cr_min,maxIT);
+      
+            % Last display message 
+            disp(['All msh attributes have been carried over except for boundary ' ... 
+                  'conditions which need to be recomputed. Since the triangulation ' ...
+                  'has changed it may pay to recompute other attributes as well']);
             return;
 
             function obj = DecimateTria(obj,bad)
