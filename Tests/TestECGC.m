@@ -19,7 +19,7 @@ grade     = 0.15;               % mesh grade in decimal percent.
 R         = 3; 			        % Number of elements to resolve feature.
   
 
-dem       = 'SRTM15+V2.nc';
+dem       = 'SRTM15+V2.1.nc';
 coastline = 'GSHHS_f_L1';
 gdat1 = geodata('shp',coastline,'dem',dem,'h0',min_el,...
                 'bbox',bbox);
@@ -36,26 +36,28 @@ m = mshopts.grd;
 
 m = interp(m,gdat1); 
 
-m = bound_courant_number(m,50,6.0,0.5,20);
+%  Set desired courant criteria and time step parameter
+dt     = 50; %[s]
+max_cr = 4.0; 
+min_cr = 0.25;
+max_it = 20;
+m = bound_courant_number(m,dt,max_cr,min_cr,max_it);
 
-Crnew = CalcCFL(m,50); 
+Crnew = CalcCFL(m,dt);
 
-if(sum(Crnew < 6) < 50)
+if sum(Crnew > max_cr) > 0
     error(['Unable to bound maximum Courant number. Got ',...
-        num2str(max(Crnew)),' expecting < 6.0']);
-    exit(1)
-else
-    disp(['Unable to bound maximum Courant number. Got ',...
-        num2str(max(Crnew)),' expecting < 6.0']);
-end
-if(sum(Crnew > 0.5) < 50)
-    error(['Bounded minimum Courant number. Got ',...
-        num2str(min(Crnew))]);
-    exit(1)
+        num2str(max(Crnew)),' expecting < ' num2str(max_cr)]);
 else
     disp(['Bounded maximum Courant number. Got ',...
-        num2str(max(Crnew))]);
+        num2str(max(Crnew)),' expecting < ' num2str(max_cr)]);
 end
-
+if sum(Crnew < min_cr) > 0
+    error(['Unable to bound minimum Courant number. Got ',...
+        num2str(min(Crnew)), ' expecting > ' num2str(min_cr)]);
+else
+    disp(['Bounded minimum Courant number. Got ',...
+        num2str(min(Crnew)), ' expecting > ' num2str(min_cr)]);
+end
 
 disp('Passed: ECGC');
