@@ -3880,7 +3880,8 @@ classdef msh
                 end
             end
             % f13
-            if ~isempty(obj.f13)
+            if ~isempty(m_old.f13)
+                obj.f13 = m_old.f13; 
                 obj.f13.NumOfNodes = length(ind);
                 for att = 1:obj.f13.nAttr
                     % Get the old index for this attribute
@@ -3906,6 +3907,7 @@ classdef msh
                         val_new = [val_new'; val_new2]'; 
                     end                    
                     % Put the uservalues back into f13 struct
+                    obj.f13.userval.Atr(att).AttrName = m_old.f13.userval.Atr(att).AttrName;
                     obj.f13.userval.Atr(att).Val = [idx_new'; val_new];
                     obj.f13.userval.Atr(att).usernumnodes = length(idx_new);
                 end
