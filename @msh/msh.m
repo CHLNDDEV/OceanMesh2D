@@ -3836,6 +3836,7 @@ classdef msh
                     idx_old = obj.bd.nbvv(1:nvell_old,ib);
                     % Only keep idx_old that is common to ind and map to ind
                     [~,idx_new] = ismember(idx_old,ind); % allows for repeats
+                    idx_new(idx_new == 0) = [];
                     % Get the new length of this boundary
                     obj.bd.nvell(ib) = length(idx_new);
                     % Reset and reload the nbdv for this boundary
@@ -3852,6 +3853,7 @@ classdef msh
                     idx_old = obj.bd.ibconn(1:nvell_old,ib);
                     % Only keep idx_old that is common to ind and map to ind
                     [~,idx_new] = ismember(idx_old,ind);
+                    idx_new(idx_new == 0) = [];
                     % Check the new length of this boundary
                     if length(idx_new) ~=  obj.bd.nvell(ib)
                         disp(['boundary number = ' num2str(ib)])
@@ -3868,10 +3870,21 @@ classdef msh
                     obj.bd = [];
                 else
                     % Remove unnessary part from the nbdv
-                    obj.bd.nbvv = obj.bd.nbvv(1:max(obj.bd.nvell),:);
+                    obj.bd.nbvv = obj.bd.nbvv(1:max(obj.bd.nvell),:);            
+                    obj.bd.nbvv(:,obj.bd.nvell == 0) = [];
                     if isfield(obj.bd,'ibconn')
                         obj.bd.ibconn = obj.bd.ibconn(1:max(obj.bd.nvell),:);
+                        obj.bd.barinht = obj.bd.barinht(1:max(obj.bd.nvell),:);
+                        obj.bd.barincfsb = obj.bd.barincfsb(1:max(obj.bd.nvell),:);
+                        obj.bd.barincfsp = obj.bd.barincfsp(1:max(obj.bd.nvell),:);
+                        obj.bd.ibconn(:,obj.bd.nvell == 0) = [];
+                        obj.bd.barinht(:,obj.bd.nvell == 0) = []; 
+                        obj.bd.barincfsb(:,obj.bd.nvell == 0) = []; 
+                        obj.bd.barincfsp(:,obj.bd.nvell == 0) = []; 
                     end
+                    obj.bd.ibtype(obj.bd.nvell == 0) = [];
+                    obj.bd.nvell(obj.bd.nvell == 0) = [];
+                    obj.bd.nbou = length(obj.bd.nvell);
                 end
             end
             % f13
