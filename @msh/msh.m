@@ -1367,7 +1367,7 @@ classdef msh
                             eb_class = ldst > dist_lim;
                             if strcmp(classifier,'both')
                                 % ii) based on depth
-                                if ~isempty(obj.b) && sum(obj.b) > 0
+                                if ~isempty(obj.b) && sum(abs(obj.b)) > 0
                                     eb_depth = -mean(obj.b(etbv),2);
                                 elseif ~isempty(gdat)
                                     eb_depth = gdat.Fb(eb_mid);
@@ -1376,7 +1376,7 @@ classdef msh
                             end
                         case('depth')
                             % ii) based on depth
-                            if ~isempty(obj.b) && sum(obj.b) > 0
+                            if ~isempty(obj.b) && sum(abs(obj.b)) > 0
                                 eb_depth = -mean(obj.b(etbv),2);
                             elseif ~isempty(gdat)
                                 eb_depth = gdat.Fb(eb_mid);
