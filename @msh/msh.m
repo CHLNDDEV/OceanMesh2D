@@ -69,6 +69,8 @@ classdef msh
     methods
         function obj = msh(varargin)
 
+            IS_OCTAVE = exist('OCTAVE_VERSION', 'builtin') ~= 0;
+
             % Check for m_map dir
             if exist('m_proj','file')~=2
                 error('The program m_map was not found. Please read the user guide')
@@ -124,12 +126,19 @@ classdef msh
                 error('See usage instructions above. Please specify the fname of the mesh as a name/value pair...');
             end
 
+            fname = {fname};
+            contains = @(str, pattern) ~cellfun('isempty', strfind(str, pattern));
+
             if any(contains(fname,'.14')) || any(contains(fname,'.grd'))
                 disp('INFO: An ADCIRC fort.14 file will be read...')
                 bdflag = 1;
                 if nob
                     bdflag = 0;
                 end
+
+                % for octave
+                fname = fname{1};
+
                 [t,p,b,op,bd,title] = readfort14(fname,bdflag);
                 obj.p  = p; obj.t  = t; obj.b  = b;
                 obj.bd = bd; obj.op = op;
@@ -321,6 +330,7 @@ classdef msh
             %    v) 'pivot'   : value in meters for which to assume is datum when
             %                    plotting topo-bathymetry (default 0.0 m)
             %
+            IS_OCTAVE = exist('OCTAVE_VERSION', 'builtin') ~= 0;
 
             fsz = 12; % default font size
             bgc = [1 1 1]; % default background color
@@ -329,8 +339,8 @@ classdef msh
             pivot = 0.0; % assume datum is 0.0 m
             proj = 1;
 
-            projtype = []; 
-            type = 'tri'; 
+            projtype = [];
+            type = 'tri';
             subdomain = [];
             for kk = 1:2:length(varargin)
                 if strcmp(varargin{kk},'fontsize')
@@ -346,9 +356,9 @@ classdef msh
                 elseif strcmp(varargin{kk}, 'proj')
                     projtype = varargin{kk+1};
                 elseif strcmp(varargin{kk},'type')
-                    type = varargin{kk+1}; 
+                    type = varargin{kk+1};
                 elseif strcmp(varargin{kk},'subdomain')
-                    subdomain = varargin{kk+1}; 
+                    subdomain = varargin{kk+1};
                 end
             end
 
@@ -375,7 +385,7 @@ classdef msh
             % Handle user specified subdomain
             if ~isempty(subdomain)
                 % i.e. is a bounding box
-                subdomain = [subdomain(1,1) subdomain(2,1);
+                 subdomain = [subdomain(1,1) subdomain(2,1);
                     subdomain(1,1) subdomain(2,2); ...
                     subdomain(1,2) subdomain(2,2);
                     subdomain(1,2) subdomain(2,1); ...
@@ -664,23 +674,30 @@ classdef msh
                     end
             end
             ax = gca;
-            ax.FontSize = fsz;
-            ax.Color = bgc;
-            if proj == 1
-                % now add the box
-                m_grid('FontSize',fsz);
+            if ~IS_OCTAVE
+                ax.FontSize = fsz;
+                ax.Color = bgc;
+                if proj == 1
+                    % now add the box
+                    m_grid('FontSize',fsz);
+                end
+            else
+                if proj == 1
+                    m_grid();
+                end
             end
 
             function plotter(cmap,round_dec,yylabel,apply_pivot)
-               % applies the plot for the quantiy 'q' and specific
-               % colormap/colorbar inputs
-               if proj
-                   if mesh
-                      m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
-                   else
-                      m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
-                   end
-               else
+                % applies the plot for the quantiy 'q' and specific
+                % colormap/colorbar inputs
+                IS_OCTAVE = exist('OCTAVE_VERSION', 'builtin') ~= 0;
+                if proj
+                    if mesh
+                        m_trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
+                    else
+                        m_trisurf(obj.t,obj.p(:,1),obj.p(:,2),q);
+                    end
+                else
                    if mesh
                       trimesh(obj.t,obj.p(:,1),obj.p(:,2),q);
                    else
@@ -706,8 +723,13 @@ classdef msh
                            log10(cmap_int(2)),...
                            log10(cmap_int(3)),numticks)),round_dec);
                    else
-                      desiredTicks = round(10.^(linspace(min(q),...
-                           max(q),numticks)),round_dec);
+                       if ~IS_OCTAVE
+                           desiredTicks = round(10.^(linspace(min(q),...
+                               max(q),numticks)),round_dec);
+                       else
+                           desiredTicks = round(10.^(linspace(min(q),...
+                               max(q),numticks)));
+                       end
                    end
                    caxis([log10(min(desiredTicks)) log10(max(desiredTicks))]);
                    cb.Ticks     = log10(desiredTicks);
@@ -715,17 +737,29 @@ classdef msh
                       cb.TickLabels{i} = num2str(desiredTicks(i));
                    end
                else
-                   if length(cmap_int) >= 3
-                      desiredTicks = round(linspace(cmap_int(2),...
-                           cmap_int(3),numticks),round_dec);
+                   if ~IS_OCTAVE
+                       if length(cmap_int) >= 3
+                           desiredTicks = round(linspace(cmap_int(2),...
+                               cmap_int(3),numticks),round_dec);
+                       else
+                           desiredTicks = round(linspace(min(q),...
+                               max(q),numticks),round_dec);
+                       end
                    else
-                      desiredTicks = round(linspace(min(q),...
-                           max(q),numticks),round_dec);
+                       if length(cmap_int) >= 3
+                           desiredTicks = round(linspace(cmap_int(2),...
+                               cmap_int(3),numticks));
+                       else
+                           desiredTicks = round(linspace(min(q),...
+                               max(q),numticks));
+                       end
                    end
                    caxis([min(desiredTicks) max(desiredTicks)]);
-                   cb.Ticks = desiredTicks;
-                   for i = 1 : length(desiredTicks)
-                      cb.TickLabels{i} = num2str(desiredTicks(i));
+                   if ~IS_OCTAVE
+                       cb.Ticks = desiredTicks;
+                       for i = 1 : length(desiredTicks)
+                           cb.TickLabels{i} = num2str(desiredTicks(i));
+                       end
                    end
                end
                ylabel(cb,yylabel,'fontsize',fsz);
@@ -3787,7 +3821,7 @@ classdef msh
             % Name value pairs specified.
             % Parse other varargin
             ind = [];
-            m_old = obj; 
+            m_old = obj;
             for kk = 1:2:length(varargin)
                 if strcmp(varargin{kk},'msh_old')
                     m_old = varargin{kk+1};
@@ -3890,7 +3924,7 @@ classdef msh
                     % Only keep idx and val that is common to ind and map to ind
                     [~,ind_new,idx_new] = intersect(idx_old,ind);
                     val_new = val_old(:,ind_new);
-                    
+
                     % find indices of new nodes
                     [~,ind_added] = setdiff(obj.p,m_old.p,'rows');
                     if ~isempty(ind_added)
@@ -3902,10 +3936,10 @@ classdef msh
                         % for the new indices give the closest value in m_old
                         % for any given nodal attribute
                         tmp = ourKNNsearch(m_old.p',obj.p(ind_added,:)',1);
-                        val_new2 = values(tmp,:); 
+                        val_new2 = values(tmp,:);
                         idx_new = [idx_new; ind_added];
-                        val_new = [val_new'; val_new2]'; 
-                    end                    
+                        val_new = [val_new'; val_new2]';
+                    end
                     % Put the uservalues back into f13 struct
                     obj.f13.userval.Atr(att).AttrName = m_old.f13.userval.Atr(att).AttrName;
                     obj.f13.userval.Atr(att).Val = [idx_new'; val_new];
