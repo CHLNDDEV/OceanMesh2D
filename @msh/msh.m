@@ -4148,6 +4148,31 @@ classdef msh
             sub1 = clean(sub1, {'ds',2,'mqa',1e-4,'djc',0.0,'con',5,'db',0,'sc_maxit',0});
             smoothed = plus(sub1,sub2,'match',{'djc',0.0,'ds',0,'db',0,'con',5,'mqa',1e-4,'sc_maxit',0});
         end
+          
+        function obj= remove_attribute(obj, attrname)
+            % obj = remove_attribute(obj, attrname)
+            % Remove thr attribute 'attrname' from the f13 field.
+            %
+            % Inputs
+            % obj - msh object.
+            % attrname - character string of the attribute name (or part of it).
+            %        Warning: All 'contains' string matches will be removed
+            % Outputs
+            % obj - msh object with f13 attribute removed.
+            %
+            % Author WJP, Mar, 2021
+       
+            def_cell = {obj.f13.defval.Atr.AttrName};
+            ii = find(contains(def_cell,attrname));
+            disp(['Removing attribute(s): ' def_cell{ii}]) 
+            obj.f13.defval.Atr(ii) = [];
+            %
+            user_cell = {obj.f13.userval.Atr.AttrName};
+            ii = find(contains(user_cell,attrname));
+            obj.f13.userval.Atr(ii) = [];
+            %
+            obj.f13.nAttr = length(obj.f13.defval.Atr);
+        end
 
 
 
