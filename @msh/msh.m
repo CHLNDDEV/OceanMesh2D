@@ -2569,11 +2569,11 @@ classdef msh
                 obj.bd.nbvv(1:obj.bd.nvell(ii),ii)   = idx1(nodes);
                 obj.bd.ibconn(1:obj.bd.nvell(ii),ii) = idx1(nodes2);
                 obj.bd.barinht(1:obj.bd.nvell(ii),ii) = ...
-                                  obj1.bd.barinht(1:obj.bd.nvell(idx),idx);
+                               obj1.bd.barinht(1:obj1.bd.nvell(idx),idx);
                 obj.bd.barincfsb(1:obj.bd.nvell(ii),ii) = ...
-                                obj1.bd.barincfsb(1:obj.bd.nvell(idx),idx);
+                               obj1.bd.barincfsb(1:obj1.bd.nvell(idx),idx);
                 obj.bd.barincfsp(1:obj.bd.nvell(ii),ii) = ...
-                                obj1.bd.barincfsp(1:obj.bd.nvell(idx),idx);
+                               obj1.bd.barincfsp(1:obj1.bd.nvell(idx),idx);
             end
         end
 
@@ -3854,15 +3854,20 @@ classdef msh
                     % Only keep idx_old that is common to ind and map to ind
                     [~,idx_new] = ismember(idx_old,ind);
                     idx_new(idx_new == 0) = [];
+                    nconn = length(idx_new);
                     % Check the new length of this boundary
-                    if length(idx_new) ~=  obj.bd.nvell(ib)
+                    if nconn ~=  obj.bd.nvell(ib)
+                        warning(['ibconn of subset has a different length to nbvv. ' ...
+                                 'Setting boundary length to smallest of the two. ' ...
+                                 'To avoid this message make sure the weir is fully within the subset.'])
                         disp(['boundary number = ' num2str(ib)])
-                        error(['ibconn of subset is different length to nbvv. ' ...
-                            'Make sure the weir is fully within the subset'])
+                        disp(['length of nbvv = ', num2str(obj.bd.nvell(ib))])
+                        disp(['length of ibconn = ' num2str(nconn)])
+                        obj.bd.nvell(ib) = min(nconn,obj.bd.nvell(ib));
                     end
                     % Reset and reload the ibconn for this boundary
                     obj.bd.ibconn(:,ib) = 0;
-                    obj.bd.ibconn(1:obj.bd.nvell(ib),ib) = idx_new;
+                    obj.bd.ibconn(1:obj.bd.nvell(ib),ib) = idx_new(1:obj.bd.nvell(ib));
                 end
                 obj.bd.nvel = sum(obj.bd.nvell);
                 if obj.bd.nvel == 0
