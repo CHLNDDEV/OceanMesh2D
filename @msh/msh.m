@@ -1789,7 +1789,7 @@ classdef msh
 
                 case('delete')
                     % have the user select the nodestring '
-                    plot(obj,'bd') ;
+                    plot(obj,'type','bd','proj','none') ;
                     temp = obj.bd.nbvv;
                     bounodes=obj.bd.nbvv ;
                     idx=sum(bounodes~=0);
@@ -2813,19 +2813,21 @@ classdef msh
                     if badnum == 0; break; end
                     it = it + 1;
 
+                    % save old msh object for mapping
+                    obj_old = obj;
+                    
                     % refine select elements using an octree approach
-                    obj = RefineTrias(obj,bad);
+                    obj = RefineTrias(obj_old,bad);
 
+                    % map back properties
+                    obj = map_mesh_properties(obj,'msh_old',obj_old);
+                    
                     % put bathy back on with linear interp
                     obj.b = F(obj.p(:,1),obj.p(:,2));
 
                 end
             end
-
-            disp(['All msh attributes have been carried over except for boundary ' ... 
-                  'conditions which need to be recomputed. Since the triangulation ' ...
-                  'has changed it may pay to recompute other attributes as well']);
-
+                       
             % find nans
             if ~isempty(find(isnan(obj.b), 1))
                 warning('NaNs in bathy found')
@@ -2836,6 +2838,14 @@ classdef msh
 
             % Check Element order
             obj = CheckElementOrder(obj);
+           
+            % Call itself recursively to make sure both criteria are satisifed
+            obj = bound_courant_number(obj,dt,cr_max,cr_min,maxIT);
+      
+            % Last display message 
+            disp(['All msh attributes have been carried over except for boundary ' ... 
+                  'conditions which need to be recomputed. Since the triangulation ' ...
+                  'has changed it may pay to recompute other attributes as well']);
             return;
 
             function obj = DecimateTria(obj,bad)
@@ -3870,7 +3880,8 @@ classdef msh
                 end
             end
             % f13
-            if ~isempty(obj.f13)
+            if ~isempty(m_old.f13)
+                obj.f13 = m_old.f13; 
                 obj.f13.NumOfNodes = length(ind);
                 for att = 1:obj.f13.nAttr
                     % Get the old index for this attribute
@@ -3896,6 +3907,7 @@ classdef msh
                         val_new = [val_new'; val_new2]'; 
                     end                    
                     % Put the uservalues back into f13 struct
+                    obj.f13.userval.Atr(att).AttrName = m_old.f13.userval.Atr(att).AttrName;
                     obj.f13.userval.Atr(att).Val = [idx_new'; val_new];
                     obj.f13.userval.Atr(att).usernumnodes = length(idx_new);
                 end
@@ -4120,8 +4132,8 @@ classdef msh
                 h = impoly;
                 poly = h.getPosition;
             end
-            sub1  = extract_subdomain(obj, poly,0);
-            sub2  = extract_subdomain(obj, poly,1);
+            sub1  = extract_subdomain(obj, poly,'keep_inverse',0);
+            sub2  = extract_subdomain(obj, poly,'keep_inverse',1);
             sub1 = clean(sub1, {'ds',2,'mqa',1e-4,'djc',0.0,'con',5,'db',0,'sc_maxit',0});
             smoothed = plus(sub1,sub2,'match',{'djc',0.0,'ds',0,'db',0,'con',5,'mqa',1e-4,'sc_maxit',0});
         end
