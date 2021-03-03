@@ -40,6 +40,10 @@ classdef meshgen
     %         enforceWeirs  % whether or not to enforce weirs in meshgen 
     %         enforceMin    % whether or not to enfore minimum edgelength for all edgefxs
     %         big_mesh      % set to 1 to remove the bou data from memory
+    % improve_boundary      % set to 1 to run an final boundary impr. step
+    
+    
+    %       
     properties
         fd            % handle to distance function
         fh            % handle to edge function
@@ -73,6 +77,7 @@ classdef meshgen
         Fb            % bathymetry data interpolant 
         enforceWeirs  % whether or not to enforce weirs in meshgen 
         enforceMin    % whether or not to enfore minimum edgelength for all edgefxs
+        improve_boundary % run a multi-newton opt. to imprv. boundary.
     end
     
     
@@ -126,7 +131,8 @@ classdef meshgen
             addOptional(p,'qual_tol',defval);
             addOptional(p,'enforceWeirs',1);
             addOptional(p,'enforceMin',1);
-            
+            addOptional(p,'improve_boundary',1);
+
             % parse the inputs
             parse(p,varargin{:});
             
@@ -144,7 +150,7 @@ classdef meshgen
                                    'plot_on','nscreen','itmax',...
                                    'memory_gb','qual_tol','cleanup',...
                                    'direc_smooth','dj_cutoff',...
-                                   'big_mesh','proj'});             
+                                   'big_mesh','proj','improve_boundary'});             
             % get the fieldnames of the edge functions
             fields = fieldnames(inp);
             % loop through and determine which args were passed.
@@ -409,6 +415,8 @@ classdef meshgen
                         obj.enforceWeirs = inp.(fields{i}); 
                     case('enforceMin')
                         obj.enforceMin = inp.(fields{i}); 
+                    case('improve_boundary')
+                        obj.improve_boundary = inp.(fields{i}); 
                 end
             end
             
@@ -476,8 +484,9 @@ classdef meshgen
             it = 1 ;
             Re = 6378.137e3;
             geps = 1e-3*min(obj.h0)/Re; 
+            %geps = 1e-16;
             deps = sqrt(eps);
-            ttol=0.1; Fscale = 1.2; deltat = 0.1;
+            ttol=0.1; Fscale = 1.20; deltat = 0.1;
             delIT = 0 ; delImp = 2;
             imp = 10; % number of iterations to do mesh improvements (delete/add)
 
@@ -838,6 +847,7 @@ classdef meshgen
                 %7. Bring outside points back to the boundary
                 d = feval(obj.fd,p,obj,[],1); ix = d > 0;                  % Find points outside (d>0)
                 ix(1:nfix) = 0;
+                alpha = 1;
                 if sum(ix) > 0                   
                     pn = p(ix,:) + deps;
                     dgradx = (feval(obj.fd,[pn(:,1),p(ix,2)],obj,[])...%,1)...
@@ -845,9 +855,10 @@ classdef meshgen
                     dgrady = (feval(obj.fd,[p(ix,1),pn(:,2)],obj,[])...%,1)...
                               -d(ix))/deps; % gradient
                     dgrad2 = dgradx.^+2 + dgrady.^+2;
-                    p(ix,:) = p(ix,:) - [d(ix).*dgradx./dgrad2,...
+                    p(ix,:) = p(ix,:) - alpha.*[d(ix).*dgradx./dgrad2,...
                                          d(ix).*dgrady./dgrad2];
-                end  
+                end
+               
                 
                 % 8. Termination criterion: Exceed itmax
                 it = it + 1 ;
@@ -867,6 +878,25 @@ classdef meshgen
             disp('Finished iterating...');
             fprintf(1,' ------------------------------------------------------->\n') ;
             
+            if obj.improve_boundary
+                disp('Improving the boundary representation...');
+                alpha  = 1.0;
+                for iter = 1 : 20
+                    % Improve boundary conformity
+                    [bnde,~] = extdom_edges2(t,p);
+                    bid = unique(bnde(:));
+                    d = feval(obj.fd,p(bid,:),obj,[],1);
+                    pn = p(bid,:) + deps;
+                    dgradx = (feval(obj.fd,[pn(:,1),p(bid,2)],obj,[])...%,1)...
+                        -d)/deps; % Numerical
+                    dgrady = (feval(obj.fd,[p(bid,1),pn(:,2)],obj,[])...%,1)...
+                        -d)/deps; % gradient
+                    dgrad2 = dgradx.^+2 + dgrady.^+2;
+                    p(bid,:) = p(bid,:) - alpha*[d.*dgradx./dgrad2,...
+                        d.*dgrady./dgrad2];
+                    alpha = alpha / iter;
+                end
+            end
             %% Doing the final cleaning and fixing to the mesh...
             % Clean up the mesh if specified
             if ~strcmp(obj.cleanup,'none') 
@@ -888,6 +918,7 @@ classdef meshgen
                 obj.grd.pfix = obj.pfix ;
                 obj.grd.egfix= obj.egfix ;
             end
+           
             
             % Check element order, important for the global meshes crossing
             % -180/180 boundary
