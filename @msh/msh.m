@@ -635,8 +635,8 @@ classdef msh
                 otherwise
                     disp(['Trying to plot arbitrary f13 attribute: ' type])
                     if ~isempty(obj.f13)
-                        ii = find(contains({obj.f13.defval.Atr(:).AttrName},type));
-                        jj = find(contains({obj.f13.userval.Atr(:).AttrName},type));
+                        ii = find(contains({obj.f13.defval.Atr.AttrName},type));
+                        jj = find(contains({obj.f13.userval.Atr.AttrName},type));
                         if isempty(ii)
                             error(['no f13 attribute of ' type ' found']);
                         elseif length(ii) > 1
@@ -649,12 +649,21 @@ classdef msh
                         q = obj.p(:,1)*0 + defval;
                         q(userval(1,:),:) = userval(2:end,:)';
                         % just take the inf norm
-                        q = max(q,[],2);
-                        if length(cmap_int) >= 3 
-                          rd = ceil(-log10((cmap_int(3)-cmap_int(2))/cmap_int(1)));
+                        q = max(q,[],2); 
+                        if logaxis
+                            q = log10(q);
+                            if length(cmap_int) >= 3
+                               rd = ceil(-log10(cmap_int(2)));
+                            else
+                               rd = ceil(-log10(min(q))); 
+                            end
                         else
-                          rd = ceil(-log10((max(q) - min(q))/cmap_int(1)));
-                        end  
+                           if length(cmap_int) >= 3 
+                              rd = ceil(-log10((cmap_int(3)-cmap_int(2))/cmap_int(1)));
+                           else
+                              rd = ceil(-log10((max(q) - min(q))/cmap_int(1)));
+                           end                             
+                        end
                         plotter(lansey(cmap_int(1)),rd+1,'',false);
                         ax = gca;
                         ax.Title.String = obj.f13.defval.Atr(ii).AttrName;
@@ -711,8 +720,8 @@ classdef msh
                    end
                    caxis([log10(min(desiredTicks)) log10(max(desiredTicks))]);
                    cb.Ticks     = log10(desiredTicks);
-                   for i = 1 : length(desiredTicks)
-                      cb.TickLabels{i} = num2str(desiredTicks(i));
+                   for tck = 1 : length(desiredTicks)
+                      cb.TickLabels{tck} = num2str(desiredTicks(tck));
                    end
                else
                    if length(cmap_int) >= 3
@@ -724,8 +733,8 @@ classdef msh
                    end
                    caxis([min(desiredTicks) max(desiredTicks)]);
                    cb.Ticks = desiredTicks;
-                   for i = 1 : length(desiredTicks)
-                      cb.TickLabels{i} = num2str(desiredTicks(i));
+                   for tck = 1 : length(desiredTicks)
+                      cb.TickLabels{tck} = num2str(desiredTicks(tck));
                    end
                end
                ylabel(cb,yylabel,'fontsize',fsz);
