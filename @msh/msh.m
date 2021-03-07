@@ -651,12 +651,14 @@ classdef msh
                         % just take the inf norm
                         q = max(q,[],2); 
                         if logaxis
-                            q = log10(q);
+                            q = abs(q); 
+                            q(q == 0) = min(q(q > 0));
                             if length(cmap_int) >= 3
                                rd = ceil(-log10(cmap_int(2)));
                             else
                                rd = ceil(-log10(min(q))); 
                             end
+                            q = log10(q);
                         else
                            if length(cmap_int) >= 3 
                               rd = ceil(-log10((cmap_int(3)-cmap_int(2))/cmap_int(1)));
@@ -2210,22 +2212,26 @@ classdef msh
                 case {'match','matche'}
                     %% Matching meshes - may be overlapping but there are
                     %% vertices that uniquely match so that the overlapping
-                    %% can be extracted and then obj1,obj2 concentated together
+                    %% can be extracted and then obj1, obj2 concentated together
                     % extract the inner region of obj1 (inset) from obj2 (base)
                     % assuming that the inset fits perfectly in the base
+                    obj1o = obj1; obj2o = obj2; 
                     if extract
                         [p1(:,1),p1(:,2)] = m_ll2xy(p1(:,1),p1(:,2)) ;
                         [p2(:,1),p2(:,2)] = m_ll2xy(p2(:,1),p2(:,2)) ;
-                        cell2 = extdom_polygon(extdom_edges2(t1,p1),p1,-1,0);
-                        bou = cell2{1}(1:end-1,:);
-                        obj2o = obj2; obj2.p = p2;
-                        obj2 = extract_subdomain(obj2,bou,1,1);
+                        obj1.p = p1; obj2.p = p2;
+                        bou = get_boundary_of_mesh(obj1,1);
+                        [~,outer] = max(cellfun(@length,bou));
+                        obj2 = extract_subdomain(obj2,bou{outer},...
+                                           'centroid',1,'keep_inverse',1);
                         [obj2.p(:,1),obj2.p(:,2)] = m_xy2ll(obj2.p(:,1),obj2.p(:,2));
+                        obj2 = obj2.clean(cleanargin);
                     end
                     % concatenate
-                    m1 = cat(obj1,obj2);
-                    merge = msh(); merge.p = m1.p; merge.t = m1.t; clear m1
-
+                    m1 = cat(obj1o,obj2);
+                    merge = msh(); merge.p = m1.p; merge.t = m1.t;
+                    obj1 = obj1o; obj2 = obj2o;
+                    clear m1 obj1o obj2o
                 otherwise
                     %% Abitrary non-matching overlapping meshes
                     % Project both meshes into the space of the global mesh
@@ -2407,16 +2413,34 @@ classdef msh
             end
 
             if ~isempty(obj1.f13)
-                disp('Carrying over obj1 f13 data.')
+                disp('Carrying over obj1 f13 data + any corresponding obj2 f13 data')
+                if ~isempty(obj2.f13) 
+                   ob2name = {obj2.f13.userval.Atr.AttrName};
+                else
+                   ob2name = {};
+                end
                 merge.f13 = obj1.f13;
                 merge.f13.NumOfNodes = size(merge.p,1);
                 for ii = 1:merge.f13.nAttr
-                    idx = merge.f13.userval.Atr(ii).Val(1,:)';
-                    idx1 = ourKNNsearch(merge.p',obj1.p(idx,:)',1);
-                    [idx1,I] = sort(idx1,'ascend');
-                    merge.f13.userval.Atr(ii).Val(1,:) = idx1';
-                    merge.f13.userval.Atr(ii).Val(2:end,:) = ...
-                        merge.f13.userval.Atr(ii).Val(2:end,I);
+                    attname = merge.f13.userval.Atr(ii).AttrName;
+                    idx1 = obj1.f13.userval.Atr(ii).Val(1,:)';
+                    val1 = obj1.f13.userval.Atr(ii).Val(2:end,:)';
+                    idx1 = ourKNNsearch(merge.p',obj1.p(idx1,:)',1);
+                    jj = find(contains(ob2name,attname));
+                    if ~isempty(jj)
+                       disp(['Carrying over obj1 and obj2 ' attname]) 
+                       idx2 = obj2.f13.userval.Atr(jj).Val(1,:)';
+                       val2 = obj2.f13.userval.Atr(jj).Val(2:end,:)';
+                       idx2 = ourKNNsearch(merge.p',obj2.p(idx2,:)',1);
+                       idx = [idx1; idx2];
+                       val = [val1; val2];
+                    else
+                       disp(['Carrying over obj1 ' attname]) 
+                       idx = idx1; val = val1;
+                    end
+                    [idx,I] = sort(idx,'ascend');
+                    userval = [double(idx) val(I,:)];
+                    merge.f13.userval.Atr(ii).Val = userval';
                 end
             end
 
@@ -2431,7 +2455,7 @@ classdef msh
                 merge = carryoverweirs(merge,obj2);
             end
 
-            disp('NB: f15, obj2 f13 data, non-weir nodestrings etc. are not carried over.')
+            disp('NB: f15, obj2 f13 data not in obj1, non-weir nodestrings etc. are not carried over.')
 
         end
 
