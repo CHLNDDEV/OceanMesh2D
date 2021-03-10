@@ -13,6 +13,7 @@ Table of contents
    * [Contributing](#contributing)
    * [Code framework](#code-framework)
    * [Starting out](#starting-out)
+   * [Testing](#testing)
    * [References](#references)
    * [Gallery](#gallery)
    * [Changelog](#changelog)
@@ -26,7 +27,9 @@ OceanMesh2D is a set of user-friendly MATLAB functions to generate two-dimension
 Getting help
 ==============
 
-Besides posting [issues](https://github.com/CHLNDDEV/OceanMesh2D/issues) with the code on Github, you can also ask questions via our Slack channel [here](https://join.slack.com/t/oceanmesh2d/shared_invite/zt-igvr8rvo-OctG9t0QEYNyyvVr55ynUQ).
+Besides posting [issues](https://github.com/CHLNDDEV/OceanMesh2D/issues) with the code on Github, you can also ask questions via our Slack channel [here](https://join.slack.com/t/oceanmesh2d/shared_invite/zt-ldexcc7m-LkkxsUTUekHbJNxwlyrMYQ).
+
+Note: If the slack link invite isn't working, please send either one of us and an email and we'll fix it. By default, the invite link expires every 30 days. 
 
 Otherwise please reach out to either Dr. William Pringle (wpringle@anl.gov) or Dr. Keith Roberts (krober@usp.br) with questions or concerns or feel free to start an Issue in the issues tab above.
 
@@ -66,9 +69,11 @@ Clone or download and unzip the current [repository](https://github.com/CHLNDDEV
 PLEASE READ THE USER GUIDE!
 A recent pdf of the user guide is located in this branch. For a continually updated version click [here](https://www.overleaf.com/read/hsqjhvtbkgvj#/54715995/) (wait for compilation and then click download PDF)
 
-Download the data for the following examples [here](https://drive.google.com/open?id=1LeQJFKaVCM2K59pKO9jDcB02yjTmJPmL)
+Run the "setup.sh" bash script to download the required m_map package and the base datasets:
+- GSHHG global shoreline 
+- SRTM15_PLUS global topobathy DEM
 
-in addition to [here](http://www.soest.hawaii.edu/pwessel/gshhg/gshhg-shp-2.3.7.zip) for the GSHHG ESRI shapefile and here: "ftp://topex.ucsd.edu/pub/srtm15_plus/SRTM15+V2.1.nc" for the latest SRTM15_PLUS global topobathy DEM.
+Additional data required for some of the following examples must be downloaded manually from [here](https://drive.google.com/open?id=1LeQJFKaVCM2K59pKO9jDcB02yjTmJPmL). Specifically, Examples 2, 3, 4, 5 and 5b require additional datasets from the google drive folder while base datasets are sufficient for the other examples. 
 ```
 Featured in  ┌╼ Examples/Example_1_NZ.m   %<- A simple mesh around South Island New Zealand that uses GSHHS shoreline.
 user guide   ├── Examples/Example_2_NY.m   %<- A high-resolution mesh around the New York/Manhattan area that uses a DEM created from LiDAR data.
@@ -79,12 +84,14 @@ Development paper[1]└── Examples/Example_6_GBAY.m %<- An example of the po
 
 ```
 
+See [Testing](#testing) to test OceanMesh2D on your system.
+
 Testing
 ==========
 
-All pull requests are tested with Jenkins on a local host. However, to ensure the software is fully functional on your system it's encouraged to run the tests in Tests/ yourself.
+To ensure the software is fully functional on your system before building some crazy meshes it is strongly recommended to run the tests (RunTests.m) in the Tests/ directory.
 
-
+We test all pull requests using this test suite on a local host before accepting. For substantial pull requests we will also test the Examples from the Examples/ directory. 
 
 References!
 ==============
@@ -136,14 +143,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Unreleased
 
 ## Added
-- `mesh2d` interface improvements to filter small polygons. 
+- `mesh2d` interface improvements to filter small polygons.
 - Support for creation of `fort.20` files for forcing rivers by @Jiangchao3
+- Mesh "cleaning" modes moderate and aggressive transfer nodal attributes via improvements to `msh.map_mesh_properties`
 
 ## Changed
 - `msh.plot()` overhaul. All options specified via kwarg.
+- `msh.plot()` option `subset` option is now called `subdomain`
+- `msh.plot()` arbitary f13 option now utilizes `colormap` kwarg
+- `utilities/extract_subdomain` now is called with kwargs.
+- Cleaning up `msh.bound_courant_number()` to use `msh.get_boundary_of_mesh()` for Delaunay-triangulation and allowing `msh.clean()` to do the transfer of attributes automatically.
 
 ## Fixed
 - Boundary labeling fix
+- Prompt when labeling bcs using `outer` kwarg in `make_bc`
+
+## Deleted
+- Deprecating `msh.CheckTimestep()` for `msh.bound_courant_number`. Added error message and instruction in the CheckTimestep help
 
 ### [3.3.0] - 2020-12-21
 ## Fixed
@@ -167,7 +183,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - improving help for make_bc msh method, Make_f15.m and Calc_Sponge.m
 - renamed "ExtractSubDomain.m" to "extract_subdomain.m"
 - improving "extract_subdomain.m" help and facilitating NaN-delimited polygons
-- ability to return boundary as a cell in "getBoundaryOfMesh" msh method
+- ability to return boundary as a cell in "get_boundary_of_mesh" msh method
 - "Example_1_NZ.m" includes example of plotting bcs of a msh subset
 - using "mapMeshproperties" method in "fixmeshandcarry"
 - using "fixmeshandcarry" in the "cat" msh method

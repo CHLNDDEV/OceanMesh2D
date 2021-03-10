@@ -46,7 +46,7 @@ classdef msh
         title % mesh title
         p  % vertices
         t  % triangles
-        b  % bathymetry
+        b  % bathy
         bd % land boundaries
         op % open boundaries
         bx % slope of bathy in x direction
@@ -279,10 +279,10 @@ classdef msh
             % 1) obj: msh object
             %
             % 2) varargin kwargs:
-            % 
+            %
             % 'type': plot type, choose from:
             %    a) 'tri'  - (default) plots the triangulation
-            %    b) 'bd'   - same as tri but with nodestrings/boundary conditions plotted 
+            %    b) 'bd'   - same as tri but with nodestrings/boundary conditions plotted
             %    c) 'ob'   - outer boundary of the mesh
             %    d) 'b'    - plots the bathymetry
             %    e) 'slp'  - plots the bathymetric gradients
@@ -293,25 +293,25 @@ classdef msh
             %    j) 'transect' - plot a bathy transect through GUI
             %    k) 'xx' -     plots an arbitrary f13 attribute 'xx' by
             %                  contains search
-            %   
-            % 'type' ADDITIONALS. 
+            %
+            % 'type' ADDITIONALS.
             %   Add the following words inside the type character string to implement desired behaviors:
             %    aa) 'notri': plot without the triangulation (used with 'bd' option)
             %    bb) 'earth': use with 'reso' option to plot resolution using element edgelengths on the Earth
             %    cc) 'log': use with options that use a colormap to plot the caxis in log space
-            %    dd) 'mesh': use with options that use a colormap to plot colors on the element 
+            %    dd) 'mesh': use with options that use a colormap to plot colors on the element
             %                edges (a mesh look) instead of on the element faces (a surface look)
             %
             % 'proj': what available m_map projection to plot in e.g.,: 'equi', 'lamb', 'stereo'
             %    Select 'none' to plot without the m_map projection.
-            %    Default is the projection of the msh object. 
+            %    Default is the projection of the msh object.
             %
-            % 'subset': Plot a subset of the mesh bounded by the corner coordinates
+            % 'subdomain': Plot a subdomain of the mesh bounded by the corner coordinates
             %           (a bounding box: [west east; south north])
             %
             % options to refine the look of the plot:
             %    i) 'colormap': number of colormap intervals and (optional) range:
-            %                    [num_intervals] or; 
+            %                    [num_intervals] or;
             %                    [num_intervals caxis_lower caxis_upper]
             %   ii) 'fontsize': figure fontsize
             %  iii) 'backcolor': figure background RGB color (where mesh
@@ -321,16 +321,17 @@ classdef msh
             %    v) 'pivot'   : value in meters for which to assume is datum when
             %                    plotting topo-bathymetry (default 0.0 m)
             %
-            
+
             fsz = 12; % default font size
             bgc = [1 1 1]; % default background color
             cmap_int = 10; % default num of colormap intervals
             holdon = 0;
             pivot = 0.0; % assume datum is 0.0 m
             proj = 1;
+
             projtype = []; 
             type = 'tri'; 
-            subset = [];
+            subdomain = [];
             for kk = 1:2:length(varargin)
                 if strcmp(varargin{kk},'fontsize')
                     fsz = varargin{kk+1};
@@ -343,14 +344,14 @@ classdef msh
                 elseif strcmp(varargin{kk}, 'pivot')
                     pivot = varargin{kk+1};
                 elseif strcmp(varargin{kk}, 'proj')
-                    projtype = varargin{kk+1}; 
+                    projtype = varargin{kk+1};
                 elseif strcmp(varargin{kk},'type')
                     type = varargin{kk+1}; 
-                elseif strcmp(varargin{kk},'subset')
-                    subset = varargin{kk+1}; 
+                elseif strcmp(varargin{kk},'subdomain')
+                    subdomain = varargin{kk+1}; 
                 end
             end
-            
+
             % kjr default behavior, just use what's in the .mat file
             if isempty(projtype)
                 global MAP_PROJECTION MAP_VAR_LIST MAP_COORDS
@@ -370,18 +371,18 @@ classdef msh
             if strcmp(projtype,'none')
                proj = 0;
             end
-            
+
             % Handle user specified subdomain
-            if ~isempty(subset)
+            if ~isempty(subdomain)
                 % i.e. is a bounding box
-                subset = [subset(1,1) subset(2,1);
-                    subset(1,1) subset(2,2); ...
-                    subset(1,2) subset(2,2);
-                    subset(1,2) subset(2,1); ...
-                    subset(1,1) subset(2,1)];
-                % Get a subset given by bou
-                [obj,kept] = extract_subdomain(obj,subset,[],[],0);
-                obj = map_mesh_properties(obj,kept);
+                subdomain = [subdomain(1,1) subdomain(2,1);
+                    subdomain(1,1) subdomain(2,2); ...
+                    subdomain(1,2) subdomain(2,2);
+                    subdomain(1,2) subdomain(2,1); ...
+                    subdomain(1,1) subdomain(2,1)];
+                % Get a subdomain given by bou
+                [obj,kept] = extract_subdomain(obj,subdomain,'nscreen',0);
+                obj = map_mesh_properties(obj,'ind',kept);
             end
 
             % Set up projected space
@@ -645,18 +646,16 @@ classdef msh
                         defval  = obj.f13.defval.Atr(ii).Val;
                         userval = obj.f13.userval.Atr(jj).Val;
                         defval = reshape(defval,1,[]);
-                        values = obj.p(:,1)*0 + defval;
-                        values(userval(1,:),:) = userval(2:end,:)';
+                        q = obj.p(:,1)*0 + defval;
+                        q(userval(1,:),:) = userval(2:end,:)';
                         % just take the inf norm
-                        values = max(values,[],2);
-                        if proj
-                            m_fastscatter(obj.p(:,1),obj.p(:,2),values);
+                        q = max(q,[],2);
+                        if length(cmap_int) >= 3 
+                          rd = ceil(-log10((cmap_int(3)-cmap_int(2))/cmap_int(1)));
                         else
-                            fastscatter(obj.p(:,1),obj.p(:,2),values);
-                        end
-                        nouq = length(unique(values));
-                        colormap(lansey(nouq));
-                        colorbar;
+                          rd = ceil(-log10((max(q) - min(q))/cmap_int(1)));
+                        end  
+                        plotter(lansey(cmap_int(1)),rd+1,'',false);
                         ax = gca;
                         ax.Title.String = obj.f13.defval.Atr(ii).AttrName;
                         ax.Title.Interpreter = 'none';
@@ -673,7 +672,7 @@ classdef msh
             end
 
             function plotter(cmap,round_dec,yylabel,apply_pivot)
-               % applies the plot for the quantiy 'q' and specific 
+               % applies the plot for the quantiy 'q' and specific
                % colormap/colorbar inputs
                if proj
                    if mesh
@@ -693,7 +692,11 @@ classdef msh
                if apply_pivot
                   cmocean(cmap,cmap_int(1),'pivot',pivot);
                else
-                  cmocean(cmap,cmap_int(1));
+                  try 
+                     cmocean(cmap,cmap_int(1));
+                  catch
+                     colormap(cmap)
+                  end
                end
                cb = colorbar;
                numticks = cmap_int(1)+1;
@@ -984,7 +987,7 @@ classdef msh
             %process categorical cleaning options
             if any(strcmp(varargin,'passive'))
                 disp('Employing passive option')
-                opt.db = 0.1; opt.ds = 0; opt.con = 10; opt.djc = 0;
+                opt.db = 0.1; opt.ds = 0; opt.con = 0; opt.djc = 0;
                 opt.sc_maxit = 0; opt.mqa = 1e-4; opt.renum = 0;
                 varargin(strcmp(varargin,'passive')) = [];
             elseif any(strcmp(varargin,'aggressive'))
@@ -1786,7 +1789,7 @@ classdef msh
 
                 case('delete')
                     % have the user select the nodestring '
-                    plot(obj,'bd') ;
+                    plot(obj,'type','bd','proj','none') ;
                     temp = obj.bd.nbvv;
                     bounodes=obj.bd.nbvv ;
                     idx=sum(bounodes~=0);
@@ -2465,7 +2468,7 @@ classdef msh
             % e.g., b, bx, by, f13, f24, f5354 dat
             [obj.p,obj.t,pix] = fixmesh(obj.p,obj.t);
             % carry over...
-            obj = map_mesh_properties(obj,pix);
+            obj = map_mesh_properties(obj,'ind',pix);
         end
 
 
@@ -2656,8 +2659,8 @@ classdef msh
             end
         end
 
-        function obj = BoundCr(obj,dt,cr_max,cr_min,varargin)
-            % obj = BoundCr(obj,dt,cr_max,cr_min,varargin)
+        function obj = bound_courant_number(obj,dt,cr_max,cr_min,varargin)
+            % obj = bound_courant_number(obj,dt,cr_max,cr_min,varargin)
             % Decimate/refine a mesh to achieve Cr max/min bounds for
             % optimal numerical performance.
             %
@@ -2689,7 +2692,7 @@ classdef msh
 
             % Set up input args and catch errors.
             if nargin < 2
-                help BoundCr
+                help bound_courant_number
                 error('Please supply correct input args...See help printout above');
             end
 
@@ -2715,6 +2718,18 @@ classdef msh
             %% Deal with any projection information for accurate bar
             % length calculations.
             type  = 0;       %<-- 0 == Haversine, 1 == CPP with correction factor
+
+            % Conduct initial check of Courant number to return early if possible
+            Cr = real(CalcCFL(obj,dt,type));
+            if max(Cr) <= cr_max && min(Cr) >= cr_min 
+               disp('Courant number constraints are already satisfied')
+               return
+            end
+
+            % deleting boundary conditions which are difficult to recompute when
+            % the triangulation changes
+            obj.bd = []; obj.op = [];
+         
             if ~isempty(obj.coord)
                 % kjr 2018,10,17; Set up projected space imported from msh class
                 global MAP_PROJECTION MAP_VAR_LIST MAP_COORDS
@@ -2733,16 +2748,6 @@ classdef msh
             %% Make bathy interpolant for reprojection later on.
             F = scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.b,...
                 'linear','nearest');
-            if ~isempty(obj.bx)
-                Fx = scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.bx,...
-                    'linear','nearest');
-                Fy = scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.by,...
-                    'linear','nearest');
-            end
-
-            % clear some things which cause error in renum
-            obj.bx = []; obj.by = []; obj.f13 = [];
-            obj.bd = []; obj.op = [];
 
             % OPTIONALLY BOUND THE MAXIMUM COURANT NUMBER BY DELETING
             if cr_max > eps % if cr_max is set to 0 this is skipped
@@ -2759,27 +2764,27 @@ classdef msh
                 tic
                 while 1
                     [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
-                    Cr = CalcCFL(obj,dt,type);
+                    Cr = real(CalcCFL(obj,dt,type));
                     [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2));
-                    bad = real(Cr) > cr_max;
-
-                    display(['Number of maximum Cr bound violations ',num2str(sum(bad))]);
-                    disp(['Max Cr is : ',num2str(max(real(Cr)))]);
-                    if it == maxIT,   break; end
+                    bad = Cr > cr_max;
                     badnum = sum(bad);
+
+                    display(['Number of maximum Cr bound violations ',num2str(badnum)]);
+                    disp(['Max Cr is : ',num2str(max(Cr))]);
+                    if it == maxIT; break; end
                     if badnum == 0; break; end
                     if badnump - badnum <= 0; con = con + 1; end
                     it = it + 1;
                     obj = DecimateTria(obj,bad);
                     % Clean up the new mesh (already projected) without direct
                     % smoothing (we have used local smooting in DecmimateTria
-                    obj.b = []; % (the bathy will cause error in renum)
                     obj = clean(obj,'passive','proj',0,'pfix',pf,'con',con);
+                    % Overwrite the nearest-neighbour interp of b in clean with linear interp
                     obj.b = F(obj.p(:,1),obj.p(:,2));
                     badnump = badnum;
                 end
                 toc
-                disp(['Achieved max Cr of ',num2str(max(real(Cr))),...
+                disp(['Achieved max Cr of ',num2str(max(Cr)),...
                     ' after ',num2str(it),' iterations.']);
             end
 
@@ -2797,36 +2802,32 @@ classdef msh
                 tic
                 while 1
                     [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
-                    Cr = CalcCFL(obj,dt,type);
+                    Cr = real(CalcCFL(obj,dt,type));
                     [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2));
-                    bad = real(Cr) < cr_min;
-
-                    display(['Number of minimum Cr bound violations ',num2str(sum(bad))]);
-                    disp(['Min. Cr is : ',num2str(min(real(Cr)))]);
-                    if it == maxIT,   break; end
+                    bad = Cr < cr_min;
                     badnum = sum(bad);
+                    
+                    display(['Number of minimum Cr bound violations ',num2str(badnum)]);
+                    disp(['Min. Cr is : ',num2str(min(Cr))]);
+                    if it == maxIT; break; end
                     if badnum == 0; break; end
                     it = it + 1;
 
+                    % save old msh object for mapping
+                    obj_old = obj;
+                    
                     % refine select elements using an octree approach
-                    obj = RefineTrias(obj,bad);
+                    obj = RefineTrias(obj_old,bad);
 
-                    % put bathy back on
+                    % map back properties
+                    obj = map_mesh_properties(obj,'msh_old',obj_old);
+                    
+                    % put bathy back on with linear interp
                     obj.b = F(obj.p(:,1),obj.p(:,2));
 
                 end
             end
-
-            % add bathy back on
-            obj.b = F(obj.p(:,1),obj.p(:,2));
-            if exist('Fx','var')
-                obj.bx = Fx(obj.p(:,1),obj.p(:,2));
-                obj.by = Fy(obj.p(:,1),obj.p(:,2));
-            end
-
-            disp('Boundary and f13 info has been deleted...');
-            disp('bathy and slope info is carried over');
-
+                       
             % find nans
             if ~isempty(find(isnan(obj.b), 1))
                 warning('NaNs in bathy found')
@@ -2837,16 +2838,26 @@ classdef msh
 
             % Check Element order
             obj = CheckElementOrder(obj);
+           
+            % Call itself recursively to make sure both criteria are satisifed
+            obj = bound_courant_number(obj,dt,cr_max,cr_min,maxIT);
+      
+            % Last display message 
+            disp(['All msh attributes have been carried over except for boundary ' ... 
+                  'conditions which need to be recomputed. Since the triangulation ' ...
+                  'has changed it may pay to recompute other attributes as well']);
             return;
 
             function obj = DecimateTria(obj,bad)
                 % helper function to delete triangles to achieve max. Cr
                 % bound.
-
+                m_old = obj; % save original mesh object for mapping
                 % form outer polygon of mesh for cleaning up.
-                bnde = extdom_edges2(obj.t,obj.p);
-                poly1 = extdom_polygon(bnde,obj.p,-1);
-                poly_vec1 = cell2mat(poly1');
+                poly_cell = get_boundary_of_mesh(obj,1);
+                % Deleting any polylines less than three points (last point is NaN)
+                poly_cell(cellfun(@length,poly_cell) < 4) = [];
+                poly_vec1 = cell2mat(poly_cell');
+                clear poly_cell
                 [edges1]  = Get_poly_edges(poly_vec1);
                 % delete the points that violate the cfl, locally retriangulate, and then locally smooth
                 DTbase = delaunayTriangulation(obj.p(:,1),obj.p(:,2));
@@ -2881,8 +2892,8 @@ classdef msh
                     warning('Adapation would result in potentially catastrophic lose of connectivity, try adapting to a smaller timestep');
                 end
                 obj.p = pm; obj.t = tm;
+                obj = map_mesh_properties(obj,'msh_old',m_old);
             end
-            return;
 
             function obj = RefineTrias(obj,bad)
                 % helper function to refine triangles to achieve min.
@@ -2901,11 +2912,11 @@ classdef msh
                 obj.p = pnew; obj.t = tnew;
             end
 
-
         end
 
 
         function obj = CheckTimestep(obj,dt,varargin)
+            % This function has been deprecated. Use "bound_courant_number" instead.
             % obj = CheckTimestep(obj,dt,varargin)
             % varargin(1) is desired CFL (< 1) or maximum iterations (> 1)
             % varargin(2) is desired dj_cutoff
@@ -2921,153 +2932,8 @@ classdef msh
             % wjp, chl, und, 2019 <--updates to carry over slopes and
             % using the msh clean, and CFL calc type option
 
-            warning('This function is not recommended. Use "BoundCr" instead')
+            error('This function has been deprecated. Use "bound_courant_number" instead')
 
-            type       = 0;       %<-- 0 == Haversine, 1 == CPP with correction factor
-            desCFL     = 0.50;    %<-- set desired cfl (generally less than 0.80 for stable).
-            desIt = inf;          %<-- desired number of iterations
-            djc   = 0.25;
-            if nargin > 2
-                if varargin{1} > 1
-                    desIt = varargin{1};
-                else
-                    desCFL = varargin{1};
-                end
-                if nargin == 4
-                    djc = varargin{2};
-                    %type = varargin{2};
-                end
-            end
-            %%
-            if ~isempty(obj.coord)
-                % kjr 2018,10,17; Set up projected space imported from msh class
-                global MAP_PROJECTION MAP_VAR_LIST MAP_COORDS
-                MAP_PROJECTION = obj.proj ;
-                MAP_VAR_LIST   = obj.mapvar ;
-                MAP_COORDS     = obj.coord ;
-            else
-                lon_mi = min(obj.p(:,1)); lon_ma = max(obj.p(:,1));
-                lat_mi = min(obj.p(:,2)); lat_ma = max(obj.p(:,2));
-                m_proj('Trans','lon',[lon_mi lon_ma],'lat',[lat_mi lat_ma]) ;
-            end
-
-            %% Project..
-            [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2));
-
-            %% Make bathy interpolant
-            F = scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.b,...
-                'linear','nearest');
-            if ~isempty(obj.bx)
-                Fx = scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.bx,...
-                    'linear','nearest');
-                Fy = scatteredInterpolant(obj.p(:,1),obj.p(:,2),obj.by,...
-                    'linear','nearest');
-            end
-
-            % clear some things which cause error in renum
-            obj.bx = []; obj.by = []; obj.f13 = [];
-            obj.bd = []; obj.op = [];
-
-            %% Delete CFL violations
-            it  = 0;
-            CFL = 999;
-            if ~isempty(obj.pfix)
-                [pf(:,1),pf(:,2)] = m_ll2xy(obj.pfix(:,1),obj.pfix(:,2));
-            else
-                pf = [];
-            end
-            con = 9;
-            badnump = 1e10;
-            tic
-            while 1
-                [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
-                CFL = CalcCFL(obj,dt,type);
-                [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2));
-                bad = real(CFL) > desCFL;
-                %if ~isempty(obj.pfix)
-                %    fix = ismembertol(obj.p,pf,1e-6,'ByRows',true);
-                %    bad = bad & fix;
-                %end
-                display(['Number of CFL violations ',num2str(sum(bad))]);
-                disp(['Max CFL is : ',num2str(max(real(CFL)))]);
-                if it == desIt,   break; end
-                badnum = sum(bad);
-                if badnum == 0; break; end
-                if badnump - badnum <= 0; con = con + 1; end
-                it = it + 1;
-                obj = DecimateTria(obj,bad);
-                % Clean up the new mesh (already projected) without direct
-                % smoothing (we have used local smooting in DecmimateTria
-                obj.b = []; % (the bathy will cause error in renum)
-                obj = clean(obj,'passive','proj',0,'pfix',pf,'con',con);
-                obj.b = F(obj.p(:,1),obj.p(:,2));
-            end
-            toc
-            disp(['Achieved max CFL of ',num2str(max(real(CFL))),...
-                ' after ',num2str(it),' iterations.']);
-
-            % add bathy back on
-            obj.b = F(obj.p(:,1),obj.p(:,2));
-            if exist('Fx','var')
-                obj.bx = Fx(obj.p(:,1),obj.p(:,2));
-                obj.by = Fy(obj.p(:,1),obj.p(:,2));
-            end
-
-            disp('Boundary and f13 info has been deleted...');
-            disp('bathy and slope info is carried over');
-
-            % find nans
-            if ~isempty(find(isnan(obj.b), 1))
-                warning('NaNs in bathy found')
-            end
-
-            % convert back to lat-lon wgs84
-            [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
-
-            % Check Element order
-            obj = CheckElementOrder(obj);
-            return;
-
-            function obj = DecimateTria(obj,bad)
-                % form outer polygon of mesh for cleaning up.
-                bnde = extdom_edges2(obj.t,obj.p);
-                poly1 = extdom_polygon(bnde,obj.p,-1);
-                poly_vec1 = cell2mat(poly1');
-                [edges1]  = Get_poly_edges(poly_vec1);
-                % delete the points that violate the cfl, locally retriangulate, and then locally smooth
-                DTbase = delaunayTriangulation(obj.p(:,1),obj.p(:,2));
-                DTbase.Points(find(bad),:) = [];
-                pm   = DTbase.Points; tm = DTbase.ConnectivityList;
-                pmid = (pm(tm(:,1),:)+pm(tm(:,2),:)+pm(tm(:,3),:))/3;
-                in1  = inpoly(pmid,poly_vec1,edges1);
-                tm(~in1,:) = []; [pm,tm] = fixmesh(pm,tm);
-                % Delete shitty boundary elements iteratively
-                badbound = 1;
-                while ~isempty(find(badbound, 1))
-                    tq1 = gettrimeshquan(pm,tm);
-                    % Get the elements that have a boundary bar
-                    bnde = extdom_edges2(tm,pm);
-                    bdnodes = unique(bnde(:));
-                    vtoe = VertToEle(tm);
-                    bele = unique(vtoe(:,bdnodes)); bele(bele == 0) = [];
-                    tqbou = tq1.qm(bele);
-                    badbound = bele(tqbou < 0.1);
-                    % Delete those boundary elements with quality < 0.1
-                    tm(badbound,:) = [];
-                end
-                [pm,tm] = fixmesh(pm,tm);
-                if sum(bad) < size(pm,1)*0.1
-                    % find all the points nearby each "bad" point.
-                    idx = ourKNNsearch(pm',obj.p(find(bad),:)',12);
-                    idx = idx(:);
-                    idx = unique(idx);
-                    constr = setdiff((1:length(pm))',idx);
-                    [pm,tm] = smoothmesh(pm,tm,constr,50,0.01);
-                else
-                    warning('Adapation would result in potentially catastrophic lose of connectivity, try adapting to a smaller timestep');
-                end
-                obj.p = pm; obj.t = tm;
-            end
         end
 
 
@@ -3365,6 +3231,9 @@ classdef msh
             %             OceanMesh software
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+            % save object for mapping
+            obj_old = obj;
+
             % convert msh obj to fem_struct
             bnde=extdom_edges2(obj.t,obj.p);
             fem_struct.x = obj.p(:,1);
@@ -3379,8 +3248,7 @@ classdef msh
             fem_struct.ar  = fem_struct.z*0.0;
             fem_struct.name= 'temp';
             if ~isempty(obj.f15) || ~isempty(obj.f13)
-                warning('Reduce nodal connectivity will erase your nodal attributes and control file. Go on?');
-                pause
+                warning('Reduce nodal connectivity will migrate your nodal attributes using nearest neighbor interpolation and earse your control file.');
             end
 
             %Ensure the appropriate number of input arguements is given, checks that the
@@ -3596,10 +3464,8 @@ classdef msh
 
             % kjr convert back to msh obj.
             obj.p = [fem_struct.x,fem_struct.y];
-            if ~isempty(obj.b)
-                obj.b = fem_struct.z;
-            end
             obj.t = fem_struct.e;
+            obj = map_mesh_properties(obj,'msh_old',obj_old);
         end
 
         function obj = flipEdge(obj,j,k)
@@ -3872,8 +3738,8 @@ classdef msh
             egfix = renumberEdges(egfix) ;
         end
 
-        function boundary = getBoundaryOfMesh(obj,ascell)
-            % boundary = getBoundaryOfMesh(obj,ascell)
+        function boundary = get_boundary_of_mesh(obj,ascell)
+            % boundary = get_boundary_of_mesh(obj,ascell)
             %
             % Returns the boundary of the mesh
             %
@@ -3899,24 +3765,48 @@ classdef msh
             boundary = cell2mat(boundary');
         end
 
-        function obj = map_mesh_properties(obj,ind)
-            % obj = map_mesh_properties(obj,ind)
-            % Map properties of a msh obj given a subset of integers, 'ind'.
-            % Assumes that the p and t components of the mesh have already
-            % been changed
-            % -> Common usage would be after receiving the indices as
-            %    an output from the fixmesh function
+        function obj = map_mesh_properties(obj,varargin)
+            % obj = map_mesh_properties(obj,varargin)
+            % Map properties of a msh obj (e.g., bathymetry, f13) given a subset of integers, 'ind'.
+            % Assumes that the msh.p and msh.t components of the mesh have already
+            % been changed. A common usage would be after receiving the indices as
+            % an output from the `fixmesh` function. However, these mapping indices can also be derived
+            % from nearest neighbor interpolation
             %
-            % ocean depths/topography
-            if ~isempty(obj.b)
-                obj.b = obj.b(ind);
+            % Usage:
+            %   obj = map_mesh_properties(obj,'ind',index_mapping);
+            %   obj = map_mesh_properties(obj,'msh_old',old_msh_object);
+            %
+            % varargin options:
+            %   i)   'ind' - A mapping from an old mesh to a new mesh.
+            %                the old mesh and new mesh ideally
+            %                shouldn't have changed much
+            %   ii)  'msh_old' - an old mesh object from which `ind` are calculated to perform the mapping
+            %
+
+            % Name value pairs specified.
+            % Parse other varargin
+            ind = [];
+            m_old = obj; 
+            for kk = 1:2:length(varargin)
+                if strcmp(varargin{kk},'msh_old')
+                    m_old = varargin{kk+1};
+                elseif strcmp(varargin{kk},'ind')
+                    ind = varargin{kk+1};
+                end
+            end
+            if isempty(ind)
+                ind = nearest_neighbor_map(m_old, obj);
+            end
+            if ~isempty(m_old.b)
+                obj.b = m_old.b(ind);
             end
             % topographic gradients
             if ~isempty(obj.bx)
-                obj.bx = obj.bx(ind);
+                obj.bx = m_old.bx(ind);
             end
             if ~isempty(obj.by)
-                obj.by = obj.by(ind);
+                obj.by = m_old.by(ind);
             end
             % open boundary info
             if ~isempty(obj.op) && obj.op.nope > 0
@@ -3990,27 +3880,45 @@ classdef msh
                 end
             end
             % f13
-            if ~isempty(obj.f13)
+            if ~isempty(m_old.f13)
+                obj.f13 = m_old.f13; 
                 obj.f13.NumOfNodes = length(ind);
                 for att = 1:obj.f13.nAttr
                     % Get the old index for this attribute
-                    idx_old = obj.f13.userval.Atr(att).Val(1,:);
-                    val_old = obj.f13.userval.Atr(att).Val(2:end,:);
+                    idx_old = m_old.f13.userval.Atr(att).Val(1,:);
+                    val_old = m_old.f13.userval.Atr(att).Val(2:end,:);
                     % Only keep idx and val that is common to ind and map to ind
                     [~,ind_new,idx_new] = intersect(idx_old,ind);
                     val_new = val_old(:,ind_new);
+                    
+                    % find indices of new nodes
+                    [~,ind_added] = setdiff(obj.p,m_old.p,'rows');
+                    if ~isempty(ind_added)
+                        defval  = m_old.f13.defval.Atr(att).Val;
+                        userval = m_old.f13.userval.Atr(att).Val;
+                        defval = reshape(defval,1,[]);
+                        values = m_old.p(:,1)*0 + defval;
+                        values(userval(1,:),:) = userval(2:end,:)';
+                        % for the new indices give the closest value in m_old
+                        % for any given nodal attribute
+                        tmp = ourKNNsearch(m_old.p',obj.p(ind_added,:)',1);
+                        val_new2 = values(tmp,:); 
+                        idx_new = [idx_new; ind_added];
+                        val_new = [val_new'; val_new2]'; 
+                    end                    
                     % Put the uservalues back into f13 struct
+                    obj.f13.userval.Atr(att).AttrName = m_old.f13.userval.Atr(att).AttrName;
                     obj.f13.userval.Atr(att).Val = [idx_new'; val_new];
                     obj.f13.userval.Atr(att).usernumnodes = length(idx_new);
                 end
             end
             % f24
             if ~isempty(obj.f24)
-                obj.f24.Val = obj.f24.Val(:,:,ind);
+                obj.f24.Val = m_old.f24.Val(:,:,ind);
             end
             % f5354
             if ~isempty(obj.f5354)
-                idx_old = obj.f5354.nodes;
+                idx_old = m_old.f5354.nodes;
                 [~,idx_new] = intersect(idx_old,ind);
                 obj.f5354.nodes = idx_new;
             end
@@ -4204,8 +4112,8 @@ classdef msh
                     ['Index: ',num2str(ind')]};
             end
         end
-        
-                
+
+
         function [smoothed] = mesh_patch_smoother(obj, poly)
             % obj = mesh_patch_smoother(obj, poly)
             % Smooth a patch of elements perserving the boundaries of the patch.
@@ -4219,17 +4127,17 @@ classdef msh
             % smoothed - original msh obj but patch smoothed.
             %
             % Author Keith R. USP, Brazil, 2020
-            
+
             if nargin < 2
                 h = impoly;
                 poly = h.getPosition;
             end
-            sub1  = extract_subdomain(obj, poly,0);
-            sub2  = extract_subdomain(obj, poly,1);
+            sub1  = extract_subdomain(obj, poly,'keep_inverse',0);
+            sub2  = extract_subdomain(obj, poly,'keep_inverse',1);
             sub1 = clean(sub1, {'ds',2,'mqa',1e-4,'djc',0.0,'con',5,'db',0,'sc_maxit',0});
             smoothed = plus(sub1,sub2,'match',{'djc',0.0,'ds',0,'db',0,'con',5,'mqa',1e-4,'sc_maxit',0});
         end
-        
+
 
 
     end % end methods
