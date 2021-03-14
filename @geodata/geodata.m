@@ -270,11 +270,7 @@ classdef geodata
             elseif size(obj.bbox,1) == 2
                 % Typical square bbox type
                 % Make the bounding box 5 x 2 matrix in clockwise order
-                obj.boubox = [obj.bbox(1,1) obj.bbox(2,1);
-                    obj.bbox(1,1) obj.bbox(2,2); ...
-                    obj.bbox(1,2) obj.bbox(2,2);
-                    obj.bbox(1,2) obj.bbox(2,1); ...
-                    obj.bbox(1,1) obj.bbox(2,1); NaN NaN];
+                obj.boubox = bbox_to_bou(obj.bbox);
             else
                 % Handle non-square bbox type regions
                 obj.boubox = obj.bbox;
@@ -413,11 +409,7 @@ classdef geodata
             
             % KJR: Coarsen portions of outer, mainland
             % and inner outside bbox.
-            iboubox = [obj.bbox(1,1) obj.bbox(2,1);
-                obj.bbox(1,1) obj.bbox(2,2); ...
-                obj.bbox(1,2) obj.bbox(2,2);
-                obj.bbox(1,2) obj.bbox(2,1); ...
-                obj.bbox(1,1) obj.bbox(2,1); NaN NaN];
+            iboubox = bbox_to_bou(obj.bbox);
             iboubox(:,1) = 1.10*iboubox(:,1)+(1-1.10)*mean(iboubox(1:end-1,1));
             iboubox(:,2) = 1.10*iboubox(:,2)+(1-1.10)*mean(iboubox(1:end-1,2));
             

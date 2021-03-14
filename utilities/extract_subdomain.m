@@ -1,12 +1,16 @@
 function [obj,ind] = extract_subdomain(obj,bou,varargin)
-% [obj,ind] = extract_subdomain(obj,bou)
+% [obj,ind] = extract_subdomain(obj,bou,varargin)
 %
 % Inputs:
 % bou: a bbox, i.e.: [lon min, lon_max;
 %                     lat_min, lat_max], or
 %      a NaN-delimited polygon of the domain to extract
+%
+% Varargins...
 % keep_inverse: = 0 [default] to get the sub-domain inside the bou polygon
 %               = 1 to get the sub-domain outside the bou polygon
+% keep_numbering: = 0 [default] to renumber and "fix" the mesh
+%               = 1 to keep the original triangulation numbering without mesh "fix"
 % centroid: = 0 [default] inpolygon test is based on whether all vertices
 %              of the element are inside (outside) the bou polygon
 %           = 1 inpolygon test is based on whether the element centroid
@@ -24,6 +28,7 @@ function [obj,ind] = extract_subdomain(obj,bou,varargin)
 % the output mesh subset with a subsequent call to "map_mesh_properties".
 %
 keep_inverse = 0 ;
+keep_numbering = 0 ;
 centroid = 0 ;
 min_depth = -99999;
 max_depth = +99999;
@@ -33,6 +38,8 @@ nscreen = 1;
 for kk = 1:2:length(varargin)
     if strcmp(varargin{kk},'keep_inverse')
         keep_inverse = varargin{kk+1};
+    elseif strcmp(varargin{kk},'keep_numbering')
+        keep_numbering = varargin{kk+1};
     elseif strcmp(varargin{kk},'centroid')
         centroid = varargin{kk+1};
     elseif strcmp(varargin{kk},'nscreen')
@@ -41,7 +48,6 @@ for kk = 1:2:length(varargin)
         min_depth = varargin{kk+1};
     elseif strcmp(varargin{kk},'max_depth')
         max_depth = varargin{kk+1};
-
     end
 end
 
@@ -86,7 +92,7 @@ else
     end
     in = in1 & in2 & in3;
 end
-if min_depth ~= -99999 | max_depth ~= +99999
+if min_depth ~= -99999 || max_depth ~= +99999
      bem = max(b(t),[],2);   % only trim when all vertices
      selected = bem > min_depth & bem < max_depth;
      in = logical(in .* selected);
@@ -96,10 +102,16 @@ if keep_inverse == 0
 else
     t(in,:) = [];
 end
-% Remove uncessary vertices and reorder triangulation
-[p1,t,ind] = fixmesh(p,t);
-% Put back into the msh obj
-obj.p = p1; obj.t = t;
+
+if keep_numbering
+   ind = unique(t(:));
+   obj.p = p(ind,:); obj.t = t;
+else
+   % Remove uncessary vertices and reorder triangulation
+   [p1,t1,ind] = fixmesh(p,t);
+   % Put back into the msh obj
+   obj.p = p1; obj.t = t1;
+end
 %
 if nscreen
     % Displaying notice for mapping mesh properties
