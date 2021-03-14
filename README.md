@@ -141,7 +141,9 @@ Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Unreleased
+- None
 
+### [4.0.0] - 2021-03-14
 ## Added
 - `mesh2d` interface improvements to filter small polygons.
 - Support for creation of `fort.20` files for forcing rivers by @Jiangchao3
