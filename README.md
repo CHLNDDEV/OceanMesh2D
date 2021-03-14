@@ -154,14 +154,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - `utilities/extract_subdomain` now is called with kwargs.
 - Cleaning up `msh.bound_courant_number()` to use `msh.get_boundary_of_mesh()` for Delaunay-triangulation and allowing `msh.clean()` to do the transfer of attributes automatically.
 - `msh.plus(obj1,obj2)` can now carry over obj2 f13 attributes if also exist in obj1 
-- `msh()` more efficient storing of boundary conditions read in from fort.xx files, and `msh.write()` can write out arbitrary vertex indices (istead of just 1 to NP).  
+- `msh()` more efficient storing of boundary conditions read in from fort.xx files, and `msh.write()` can write out arbitrary vertex indices (instead of just 1 to NP).
 
 ## Fixed
 - Boundary labeling fix
 - Prompt when labeling bcs using `outer` kwarg in `make_bc`
 - fix for boundary condition mapping in `msh.map_mesh_properties()` especially for weirs/barriers
 - fix for barrier mapping in `msh.plus()` routine
-- fix for `msh.make_bc()` with empty gdat
+- fix for `msh.make_bc(m,auto,gdat)` where gdat is empty. In this case it uses the depths on the mesh to determine the open boundaries. 
 - check for `poly2ccw` mapping toolbox function in `kml2struct`
 - fix for `msh.plot()` on log colormap when plotting f13 attributes
 

@@ -897,6 +897,8 @@ classdef msh
             %
             %   ignoreOL - = 0 [default]: interpolate data without masking overland
             %              = 1          : Mask overland data which may help for seabed-only interpolation
+            % slope_calc - = 'rms' [default]: Compute cell-averaged slope based on root-mean-square
+            %              = 'abs'          : Compute cell-averaged slope based on mean of absolute value
             %     invert - = 0          : does not invert values of the dem
             %                             (i.e., keeps the sign of the topography the same as the dem)
             %              = 1 [default]: inverts the values of the dem
@@ -4184,7 +4186,7 @@ classdef msh
           
         function obj= remove_attribute(obj, attrname)
             % obj = remove_attribute(obj, attrname)
-            % Remove thr attribute 'attrname' from the f13 field.
+            % Remove the attribute 'attrname' from the f13 field.
             %
             % Inputs
             % obj - msh object.
