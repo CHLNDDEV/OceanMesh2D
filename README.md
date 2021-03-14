@@ -143,6 +143,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - `mesh2d` interface improvements to filter small polygons.
 - Support for creation of `fort.20` files for forcing rivers by @Jiangchao3
 - Mesh "cleaning" modes moderate and aggressive transfer nodal attributes via improvements to `msh.map_mesh_properties`
+- `msh.remove_attribute()` method to remove f13 attribute(s)
+- new `msh.interp()` `slope_calc` kwarg option to set the method of computing the topographic gradients (slopes), either `rms` [default] or `abs`
+- new `extract_subdomain()` `keep_numbering` kwarg option to keep the full mesh triangulation numbering on the subdomain [off by default]. 
 
 ## Changed
 - `msh.plot()` overhaul. All options specified via kwarg.
@@ -150,10 +153,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - `msh.plot()` arbitary f13 option now utilizes `colormap` kwarg
 - `utilities/extract_subdomain` now is called with kwargs.
 - Cleaning up `msh.bound_courant_number()` to use `msh.get_boundary_of_mesh()` for Delaunay-triangulation and allowing `msh.clean()` to do the transfer of attributes automatically.
+- `msh.plus(obj1,obj2)` can now carry over obj2 f13 attributes if also exist in obj1 
+- `msh()` more efficient storing of boundary conditions read in from fort.xx files, and `msh.write()` can write out arbitrary vertex indices (istead of just 1 to NP).  
 
 ## Fixed
 - Boundary labeling fix
 - Prompt when labeling bcs using `outer` kwarg in `make_bc`
+- fix for boundary condition mapping in `msh.map_mesh_properties()` especially for weirs/barriers
+- fix for barrier mapping in `msh.plus()` routine
+- fix for `msh.make_bc()` with empty gdat
+- check for `poly2ccw` mapping toolbox function in `kml2struct`
+- fix for `msh.plot()` on log colormap when plotting f13 attributes
 
 ## Deleted
 - Deprecating `msh.CheckTimestep()` for `msh.bound_courant_number`. Added error message and instruction in the CheckTimestep help
