@@ -1057,6 +1057,7 @@ classdef msh
                 varargin(strcmp(varargin,'default')) = [];
                 varargin(strcmp(varargin,'medium')) = [];
             end
+ 
             % set defaults
             opt.nscreen = 1; opt.projL = 1; pfixV = [];
             % process user-defined individual cleaning options
@@ -1088,7 +1089,12 @@ classdef msh
                     obj.renum = varargin{ii + 1};
                 end
             end
-
+            
+            % for logging
+            log = {'db',opt.db,'ds',opt.ds,'con',opt.djc,'sc_maxit',...
+                opt.sc_maxit,'mqa',opt.mqa,'renum',opt.renum};
+            
+            
             % display options
             disp('INFO: The following cleaning options have been enabled..')
             disp(opt)
@@ -1202,6 +1208,9 @@ classdef msh
             if opt.projL
                 [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
             end
+            
+            
+            obj = logger(obj,'msh.clean()',log); 
         end
 
         function obj = lim_bathy_slope(obj,dfdx,overland)
