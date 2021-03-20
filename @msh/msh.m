@@ -65,6 +65,7 @@ classdef msh
         pfix   % fixed points that were constrained in msh
         egfix  % fixed eges that were constraind in msh
         history % a cell-array of plain text messages
+        version % information regarding the version of OM used 
     end
 
     methods
@@ -102,7 +103,6 @@ classdef msh
         end
         
         function obj = msh(varargin)
-
             % Check for m_map dir
             if exist('m_proj','file')~=2
                 error('The program m_map was not found. Please read the user guide')
@@ -115,6 +115,9 @@ classdef msh
             if exist('datasets','dir')~=7
                 warning('We suggest you to place your files in a folder called datasets. Please read the user guide')
             end
+            
+            % Store version!
+            obj.version = '4.0.0 HEAD eed66'; 
 
             % just want a blank mesh object
             if nargin == 0
