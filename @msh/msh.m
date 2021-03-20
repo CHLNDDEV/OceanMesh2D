@@ -94,9 +94,9 @@ classdef msh
             end
             formatSpec = '%s method was performed on %s with the following input options: %s';
             if isempty(obj.history)
-                obj.history = {sprintf(formatSpec,method,datetime,strjoin(foptions))};
+                obj.history = {sprintf(formatSpec,method,datetime('now','TimeZone','UTC'),strjoin(foptions))};
             else
-                obj.history{end+1} = sprintf(formatSpec,method,datetime,strjoin(foptions));
+                obj.history{end+1} = sprintf(formatSpec,method,datetime('now','TimeZone','UTC'),strjoin(foptions));
                 
             end
         end
