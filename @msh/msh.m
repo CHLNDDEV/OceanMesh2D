@@ -887,6 +887,8 @@ classdef msh
                 idx = perm_inv(obj.f5354.nodes);
                 obj.f5354.nodes = idx;
             end
+            
+            obj = logger(obj, 'msh.renum()',{'None'});
         end
 
         % interp bathy/slope
@@ -1004,7 +1006,7 @@ classdef msh
             % make sure we know the data which was used!
             varargin{end+1} = 'topobathy DEM(s)'; 
             varargin{end+1} = geodata; 
-            obj = obj.logger('msh.interp()',varargin);
+            obj = logger(obj, 'msh.interp()',varargin);
         end
 
         function [obj,qual] = clean(obj,varargin)
