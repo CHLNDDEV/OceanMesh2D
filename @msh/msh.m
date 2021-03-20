@@ -64,9 +64,43 @@ classdef msh
         mapvar % Description of projected space (m_mapv1.4)
         pfix   % fixed points that were constrained in msh
         egfix  % fixed eges that were constraind in msh
+        history % a cell-array of plain text messages
     end
 
     methods
+        function obj = logger(obj,method,options)
+            % Appends to the obj's history field with the method and relevant
+            % options written out in English and UTC time that were used to 
+            % perform the method
+            %
+            % Example
+            % -------
+            % m = interp(m,'SRTM15+V2.1.nc','CA',5); 
+            % disp(m.history{end})
+            % 
+            % e.g., msh.interp() method was performed on 2030/12/12 12:00 UTC
+            % with the following input options: filename = GEBCO, CA = 5, ...
+            
+            % make sure all otpiosn are strings
+            foptions = {}; 
+            k= 1; 
+            for i = 1:2:length(options)-1
+                if isnumeric(options{i+1})
+                    options{i+1} = num2str(options{i+1});
+                end
+                tmp = sprintf(' %s',[options{i},' = ',options{i+1},' ']);
+                foptions{k} = tmp; 
+                k = k+1; 
+            end
+            formatSpec = '%s method was performed on %s with the following input options: %s';
+            if isempty(obj.history)
+                obj.history = {sprintf(formatSpec,method,datetime,strjoin(foptions))};
+            else
+                obj.history{end+1} = sprintf(formatSpec,method,datetime,strjoin(foptions));
+                
+            end
+        end
+        
         function obj = msh(varargin)
 
             % Check for m_map dir
@@ -85,6 +119,7 @@ classdef msh
             % just want a blank mesh object
             if nargin == 0
                 obj.title = 'OceanMesh2D';
+                obj.history = {}; 
                 return
             end
 
@@ -965,6 +1000,11 @@ classdef msh
                         'Consider using the "lim_bathy_slope" msh class method']);
                 end
             end
+            
+            % make sure we know the data which was used!
+            varargin{end+1} = 'topobathy DEM(s)'; 
+            varargin{end+1} = geodata; 
+            obj = obj.logger('msh.interp()',varargin);
         end
 
         function [obj,qual] = clean(obj,varargin)
