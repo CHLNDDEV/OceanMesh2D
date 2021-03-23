@@ -1,5 +1,5 @@
-function [obj,ind] = extract_subdomain(obj,bou,varargin)
-% [obj,ind] = extract_subdomain(obj,bou,varargin)
+function [obj,ind,in] = extract_subdomain(obj,bou,varargin)
+% [obj,ind,in] = extract_subdomain(obj,bou,varargin)
 %
 % Inputs:
 % bou: a bbox, i.e.: [lon min, lon_max;
@@ -25,7 +25,9 @@ function [obj,ind] = extract_subdomain(obj,bou,varargin)
 % Outputs:
 % obj: the subset mesh obj (only p and t, properties untouched)
 % ind: an array of indices that can be used to map the mesh properties to
-% the output mesh subset with a subsequent call to "map_mesh_properties".
+%      the output mesh subset with a subsequent call to "map_mesh_properties".
+%  in: the logical array of elements within the given boundary
+%      used to perform the subsetting 
 %
 keep_inverse = 0 ;
 keep_numbering = 0 ;

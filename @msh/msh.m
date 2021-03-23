@@ -2217,23 +2217,25 @@ classdef msh
                     %% can be extracted and then obj1, obj2 concentated together
                     % extract the inner region of obj1 (inset) from obj2 (base)
                     % assuming that the inset fits perfectly in the base
-                    obj1o = obj1; obj2o = obj2; 
+                    obj1o = obj1; 
                     if extract
                         [p1(:,1),p1(:,2)] = m_ll2xy(p1(:,1),p1(:,2)) ;
                         [p2(:,1),p2(:,2)] = m_ll2xy(p2(:,1),p2(:,2)) ;
                         obj1.p = p1; obj2.p = p2;
                         bou = get_boundary_of_mesh(obj1,1);
                         [~,outer] = max(cellfun(@length,bou));
-                        obj2 = extract_subdomain(obj2,bou{outer},...
+                        [obj2,ind] = extract_subdomain(obj2,bou{outer},...
                                            'centroid',1,'keep_inverse',1);
+                        obj2 = map_mesh_properties(obj2,'ind',ind);
                         [obj2.p(:,1),obj2.p(:,2)] = m_xy2ll(obj2.p(:,1),obj2.p(:,2));
                         obj2 = obj2.clean(cleanargin);
+                        clear ind
                     end
                     % concatenate
                     m1 = cat(obj1o,obj2);
                     merge = msh(); merge.p = m1.p; merge.t = m1.t;
-                    obj1 = obj1o; obj2 = obj2o;
-                    clear m1 obj1o obj2o
+                    obj1 = obj1o;
+                    clear m1 obj1o
                 otherwise
                     %% Abitrary non-matching overlapping meshes
                     % Project both meshes into the space of the global mesh
