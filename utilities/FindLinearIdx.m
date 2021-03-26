@@ -18,7 +18,7 @@ y = y(:);
 dx  = diff(lon(:,1));
 dy  = diff(lat(1,:));
 
-if max(dx) ~= min(dx)
+if max(dx) ~= min(dx) || max(dy) ~= min(dy)
     % % IRREGULAR GRID (SLOWER)
     
     % convert ndgrid to vector
