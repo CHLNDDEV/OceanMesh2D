@@ -7,9 +7,13 @@ function [p,t,pix] = fixmesh(p,t,ptol)
 if nargin<3, ptol=1024*eps; end
 if nargin>=2 && (isempty(p) || isempty(t)), pix=1:size(p,1); return; end
 
-snap      = max(max(p,[],1)-min(p,[],1),[],2)*ptol;
-[~,ix,jx] = unique(round(p/snap)*snap,'rows','stable');
-p = p(ix,:);
+if ptol > 0
+    snap      = max(max(p,[],1)-min(p,[],1),[],2)*ptol;
+    [~,ix,jx] = unique(round(p/snap)*snap,'rows','stable');
+    p = p(ix,:);
+else
+    ix = [1:length(p)]'; jx = ix;
+end
 
 if nargin>=2
     t=reshape(jx(t),size(t));

@@ -46,7 +46,7 @@ if read_bou
     
     nvdll = zeros(nope,1) ;
     ibtypee = zeros(nope,1) ;
-    nbdv = zeros(neta,nope) ;
+    nbdv = sparse(neta,nope) ;
     % tic
     for i = 1: nope
         msgline = fgetl(fid) ;
@@ -75,7 +75,7 @@ if read_bou
     opedat.neta = neta ;
     opedat.nvdll = nvdll ;
     opedat.ibtypee = ibtypee ;
-    opedat.nbdv = nbdv ;
+    opedat.nbdv = nbdv(1:max(nvdll),:);
     
     % land boundary
     msgline = fgetl(fid) ;
@@ -134,13 +134,13 @@ if read_bou
     boudat.nvel = nvel ;
     boudat.nvell = nvell ;
     boudat.ibtype = ibtype ;
-    boudat.nbvv = nbvv ;
+    boudat.nbvv = nbvv(1:max(nvell),:);
     
     if ( sum(ibtype == 24) > 0 ||  sum(ibtype == 4) > 0 )
-        boudat.ibconn = ibconn ;
-        boudat.barinht = barinht ;
-        boudat.barincfsb = barincfsb ;
-        boudat.barincfsp = barincfsp ;
+        boudat.ibconn = ibconn(1:max(nvell),:);
+        boudat.barinht = barinht(1:max(nvell),:);
+        boudat.barincfsb = barincfsb(1:max(nvell),:);
+        boudat.barincfsp = barincfsp(1:max(nvell),:);
     end
 else
     opedat = []; 
