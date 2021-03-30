@@ -1264,9 +1264,9 @@ classdef msh
             % varargin{1}: geodata class that had crestlines passed.
             %
             % ---------
-            % 'delete' - deletes a user-clicked boundary condition from msh.
+            % 'delete' - deletes a user-clicked land/mainland boundary condition from a msh.
             % varargins:
-            % index of boundary to delete 
+            % index of land/mainland boundary to delete 
 
             if nargin < 2
                 error('Needs type: one of "auto", "outer", "inner", "delete", or "weirs"')
@@ -1836,7 +1836,7 @@ classdef msh
                     disp(['Deleting boundary with index ',num2str(del)]) ;
                     
                     obj.bd.nbvv(:,del)=[];
-                    if ~isempty(obj.bd.ibconn)
+                    if isfield(obj.bd,'ibconn')
                         obj.bd.ibconn(:,del)=[];
                         obj.bd.barinht(:,del)=[]; 
                         obj.bd.barincfsb(:,del)=[];
