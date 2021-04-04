@@ -87,7 +87,7 @@ classdef msh
             k= 1; 
             for i = 1:2:length(options)-1
                 if isnumeric(options{i+1})
-                    options{i+1} = num2str(options{i+1});
+                    options{i+1} = num2str(reshape(options{i+1}',1,[]));
                 end
                 tmp = sprintf(' %s',[options{i},' = ',options{i+1},' ']);
                 foptions{k} = tmp; 
@@ -1007,13 +1007,26 @@ classdef msh
             end
             
             % make sure we know the data which was used!
-            varargin{end+1} = 'topobathy DEM(s)';
-            if isa(geodata,'geodata')
-                varargin{end+1} = geodata.demfile; 
+            if isa(geodata,'cell')
+                for i = 1 : length(geodata)
+                    gdat = geodata{i};
+                    varargin{end+1} = 'topobathy DEM(s)';
+                    if isa(gdat,'geodata')
+                        varargin{end+1} = gdat.demfile;
+                    else
+                        varargin{end+1} = gdat;
+                    end
+                    obj = logger(obj, 'msh.interp()',varargin);
+                end
             else
-                varargin{end+1} = geodata; 
+                varargin{end+1} = 'topobathy DEM(s)';
+                if isa(geodata,'geodata')
+                    varargin{end+1} = geodata.demfile;
+                else
+                    varargin{end+1} = geodata;
+                end
+                obj = logger(obj, 'msh.interp()',varargin);
             end
-            obj = logger(obj, 'msh.interp()',varargin);
         end
 
         function [obj,qual] = clean(obj,varargin)
@@ -1216,7 +1229,6 @@ classdef msh
                 [obj.p(:,1),obj.p(:,2)] = m_xy2ll(obj.p(:,1),obj.p(:,2));
             end
             
-            
             obj = logger(obj,'msh.clean()',log); 
         end
 
@@ -1366,6 +1378,7 @@ classdef msh
                             if length(varargin) > 3 && ~isempty(varargin{4})
                                 cut_lim = varargin{4};
                             end
+                            
                         case('depth')
                             if (isempty(obj.b) || sum(obj.b) == 0) && ...
                                     (isempty(gdat) || isempty(gdat.Fb))
@@ -1567,7 +1580,7 @@ classdef msh
                         obj.bd.ibtype = ibtype ;
                         obj.bd.nbvv = nbvv ;
                     end
-
+                    
                 case('auto_old')
                     % % keeping the old auto for regression
                     if isempty(varargin)
@@ -1894,7 +1907,7 @@ classdef msh
                     disp(['Deleting boundary with index ',num2str(del)]) ;
                     
                     obj.bd.nbvv(:,del)=[];
-                    if ~isempty(obj.bd.ibconn)
+                    if isfield(obj.bd,'ibconn')
                         obj.bd.ibconn(:,del)=[];
                         obj.bd.barinht(:,del)=[]; 
                         obj.bd.barincfsb(:,del)=[];
@@ -2058,6 +2071,8 @@ classdef msh
                     ['Y: ',num2str(pos(2))],...
                     ['Index: ',num2str(ind')]};
             end
+            
+             
         end
 
 
@@ -2639,9 +2654,9 @@ classdef msh
             jj = obj1.bd.ibtype == 24;
             obj.bd.nbou =  obj.bd.nbou + sum(jj);
             % types of boundaries
-            obj.bd.ibtype = [obj.bd.ibtype ; obj1.bd.ibtype(jj)'];
+            obj.bd.ibtype = [obj.bd.ibtype ; obj1.bd.ibtype(jj)];
             % new boundaries come after what's already on
-            obj.bd.nvell = [obj.bd.nvell; obj1.bd.nvell(jj)'];
+            obj.bd.nvell = [obj.bd.nvell; obj1.bd.nvell(jj)];
             % nvel is twice the number of nodes on each boundary
             obj.bd.nvel = 2*sum(obj.bd.nvell);
             % nbvv is a matrix of boundary nodes
@@ -2898,6 +2913,12 @@ classdef msh
                 toc
                 disp(['Achieved max Cr of ',num2str(max(Cr)),...
                     ' after ',num2str(it),' iterations.']);
+                
+                varargin{1} = 'max_courant_number'; varargin{2} = max(Cr);
+                varargin{3} = 'bounding_iterations'; varargin{4} = it; 
+                
+                obj = logger(obj, 'maximum msh.bound_courant_number()',varargin);
+                
             end
 
             % OPTIONALLY BOUND THE MINIMUM COURANT NUMBER BY REFINING
@@ -2936,8 +2957,12 @@ classdef msh
                     
                     % put bathy back on with linear interp
                     obj.b = F(obj.p(:,1),obj.p(:,2));
-
+                    
                 end
+                varargin{1} = 'min_courant_number'; varargin{2} = min(Cr);
+                varargin{3} = 'bounding_iterations'; varargin{4} = it;
+                
+                obj = logger(obj, 'minimum msh.bound_courant_number()',varargin);
             end
                        
             % find nans
