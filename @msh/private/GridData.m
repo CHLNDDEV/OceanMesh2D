@@ -75,6 +75,7 @@ N    = 1 ;
 mindepth = -inf ; 
 maxdepth = +inf ; 
 rms_slope_calc = true;
+slope_calc = 'rms';
 if ~isempty(varargin)
     varargin=varargin{1} ; 
     names = {'K','type','interp','nan','N','mindepth','maxdepth','ignoreOL','slope_calc'};
