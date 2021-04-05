@@ -2584,9 +2584,9 @@ classdef msh
             jj = obj1.bd.ibtype == 24;
             obj.bd.nbou =  obj.bd.nbou + sum(jj);
             % types of boundaries
-            obj.bd.ibtype = [obj.bd.ibtype ; obj1.bd.ibtype(jj)'];
+            obj.bd.ibtype = [obj.bd.ibtype obj1.bd.ibtype(jj)];
             % new boundaries come after what's already on
-            obj.bd.nvell = [obj.bd.nvell; obj1.bd.nvell(jj)'];
+            obj.bd.nvell = [obj.bd.nvell obj1.bd.nvell(jj)];
             % nvel is twice the number of nodes on each boundary
             obj.bd.nvel = 2*sum(obj.bd.nvell);
             % nbvv is a matrix of boundary nodes
