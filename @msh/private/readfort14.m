@@ -44,8 +44,8 @@ if read_bou
     msgline = fgetl(fid) ;
     neta = sscanf(msgline,'%d %*s') ;
     
-    nvdll = zeros(nope,1) ;
-    ibtypee = zeros(nope,1) ;
+    nvdll = zeros(1,nope) ;
+    ibtypee = zeros(1,nope) ;
     nbdv = sparse(neta,nope) ;
     % tic
     for i = 1: nope
@@ -84,8 +84,8 @@ if read_bou
     msgline = fgetl(fid) ;
     nvel = sscanf(msgline,'%d %*s') ;
     
-    nvell = zeros(nbou,1) ;
-    ibtype = zeros(nbou,1) ;
+    nvell = zeros(1,nbou) ;
+    ibtype = zeros(1,nbou) ;
     nbvv = sparse(nvel,nbou) ;
     ibconn = sparse(nvel,nbou) ;
     barinht = sparse(nvel,nbou) ;

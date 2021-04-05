@@ -1264,9 +1264,9 @@ classdef msh
             % varargin{1}: geodata class that had crestlines passed.
             %
             % ---------
-            % 'delete' - deletes a user-clicked boundary condition from msh.
+            % 'delete' - deletes a user-clicked land/mainland boundary condition from a msh.
             % varargins:
-            % index of boundary to delete 
+            % index of land/mainland boundary to delete 
 
             if nargin < 2
                 error('Needs type: one of "auto", "outer", "inner", "delete", or "weirs"')
@@ -1836,7 +1836,7 @@ classdef msh
                     disp(['Deleting boundary with index ',num2str(del)]) ;
                     
                     obj.bd.nbvv(:,del)=[];
-                    if ~isempty(obj.bd.ibconn)
+                    if isfield(obj.bd,'ibconn')
                         obj.bd.ibconn(:,del)=[];
                         obj.bd.barinht(:,del)=[]; 
                         obj.bd.barincfsb(:,del)=[];
@@ -2584,9 +2584,9 @@ classdef msh
             jj = obj1.bd.ibtype == 24;
             obj.bd.nbou =  obj.bd.nbou + sum(jj);
             % types of boundaries
-            obj.bd.ibtype = [obj.bd.ibtype ; obj1.bd.ibtype(jj)];
+            obj.bd.ibtype = [obj.bd.ibtype obj1.bd.ibtype(jj)];
             % new boundaries come after what's already on
-            obj.bd.nvell = [obj.bd.nvell; obj1.bd.nvell(jj)];
+            obj.bd.nvell = [obj.bd.nvell obj1.bd.nvell(jj)];
             % nvel is twice the number of nodes on each boundary
             obj.bd.nvel = 2*sum(obj.bd.nvell);
             % nbvv is a matrix of boundary nodes
