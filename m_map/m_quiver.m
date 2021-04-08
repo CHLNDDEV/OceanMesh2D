@@ -25,6 +25,7 @@ function h=m_quiver(long,lat,u,v,varargin)
 %
 %    M_QUIVER(...,'radius',rad) only plots vectors at randomly selected points 
 %    while ensuring that no other point is within a radius of 'rad'.
+%    Note that rad has units of the original unmapped coordinates.
 %
 %    M_QUIVER(...,'filled') fills any markers specified.
 % 
@@ -54,7 +55,29 @@ if isempty(MAP_PROJECTION)
   return;
 end
 
-
+% Apply radius option is specified
+radii = find(strcmp(varargin,'radius'));
+if ~isempty(radii)
+   rad = varargin{radii+1}; % radius 
+   % computing rangesearch
+   K = rangesearch([long lat],[long lat],rad);
+   KL = cellfun(@length,K);
+   rr = find(KL > 1);
+   % loop until all points have closest point that is only itself
+   del = [];
+   while ~isempty(rr)
+      rI = randi(length(rr),1);
+      kk = K{rr(rI)};
+      % save the locations to delete
+      del = [del kk(2:end)];
+      KL(kk) = 1; % change the KL of kk to 1
+      rr = find(KL > 1);
+   end
+   del = unique(del);
+   % deleting unique del points from the input arrays 
+   long(del) = []; lat(del) = []; u(del) = []; v(del) = [];
+   varargin(radii:radii+1) = []; % delete from the varargin for quiver call
+end 
 
 [X,Y]=m_ll2xy(long,lat,'clip','point');
 
