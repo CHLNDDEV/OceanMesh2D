@@ -7,7 +7,7 @@
 ####################################################
 # Can toggle parameters if desired but the script
 # checks for their existance too
-m_map=true  # m_map mapping toolbox (reqd)
+m_map=false  # m_map mapping toolbox (distributed in this version)
 gshhs=true  # global shoreline
 srtm=true   # SRTM15+V2.1 global bathymetry -> {user can select
 gebco=false # GEBCO_2020 global bathymetry  -> {desired source
