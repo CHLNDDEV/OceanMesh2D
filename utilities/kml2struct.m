@@ -113,7 +113,11 @@ for ii = 1:Nos
     end
     
     % define polygon in clockwise direction, and terminate
-    [Lat, Lon] = poly2ccw(coordMat(:,2),coordMat(:,1));
+    if exist('poly2ccw')
+        [Lat, Lon] = poly2ccw(coordMat(:,2),coordMat(:,1));
+    else
+        Lat = coordMat(:,2); Lon = coordMat(:,1);
+    end
     if geom==3
         Lon = [Lon;NaN];
         Lat = [Lat;NaN];

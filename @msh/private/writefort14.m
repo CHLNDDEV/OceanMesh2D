@@ -33,7 +33,8 @@ fprintf(fid, '%d %d \n', NE, NP ) ;
 
 % Improve write efficiency
 % Vertices
-pval = [ [1:1:NP]' VX B] ;
+IND = unique(EToV(:));
+pval = [ IND VX B] ;
 fprintf( fid, '%10d %16.10f %16.10f %18.10e \n', pval' ) ;
 
 

@@ -133,6 +133,7 @@ classdef meshgen
             addOptional(p,'enforceMin',1);
             addOptional(p,'improve_boundary', 0);
 
+
             % parse the inputs
             parse(p,varargin{:});
 
@@ -151,6 +152,8 @@ classdef meshgen
                                    'memory_gb','qual_tol','cleanup',...
                                    'direc_smooth','dj_cutoff',...
                                    'big_mesh','proj','improve_boundary'});
+                                   'big_mesh','proj'});
+
             % get the fieldnames of the edge functions
             fields = fieldnames(inp);
             % loop through and determine which args were passed.
@@ -578,7 +581,7 @@ classdef meshgen
                         h0_rat = ceil(h0_l/obj.h0(box_num+1));
                         nsplits = floor(log(h0_rat)/log(2));
                         for add = 1:nsplits
-                            new_points = split(p,fh_l);
+                            new_points = split_bars(p,fh_l);
                             p = [p; new_points];
                         end
                     end
@@ -848,6 +851,7 @@ classdef meshgen
                 d = feval(obj.fd,p,obj,[],1); ix = d > 0;                  % Find points outside (d>0)
                 ix(1:nfix) = 0;
                 alpha = 1;
+
                 if sum(ix) > 0
                     pn = p(ix,:) + deps;
                     dgradx = (feval(obj.fd,[pn(:,1),p(ix,2)],obj,[])...%,1)...
@@ -858,7 +862,6 @@ classdef meshgen
                     p(ix,:) = p(ix,:) - alpha.*[d(ix).*dgradx./dgrad2,...
                                          d(ix).*dgrady./dgrad2];
                 end
-
 
                 % 8. Termination criterion: Exceed itmax
                 it = it + 1 ;
@@ -906,7 +909,7 @@ classdef meshgen
                                        'nscreen',obj.nscreen,'djc',obj.dj_cutoff,...
 									    'pfix',obj.pfix);
                 obj.grd.pfix = obj.pfix ;
-				obj.grd.egfix= obj.egfix ;
+				        obj.grd.egfix= obj.egfix ;
                 obj.qual(end+1,:) = qout;
             else
                 % Fix mesh on the projected space
@@ -918,7 +921,6 @@ classdef meshgen
                 obj.grd.pfix = obj.pfix ;
                 obj.grd.egfix= obj.egfix ;
             end
-
 
             % Check element order, important for the global meshes crossing
             % -180/180 boundary

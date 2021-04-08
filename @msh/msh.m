@@ -635,8 +635,8 @@ classdef msh
                 otherwise
                     disp(['Trying to plot arbitrary f13 attribute: ' type])
                     if ~isempty(obj.f13)
-                        ii = find(contains({obj.f13.defval.Atr(:).AttrName},type));
-                        jj = find(contains({obj.f13.userval.Atr(:).AttrName},type));
+                        ii = find(contains({obj.f13.defval.Atr.AttrName},type));
+                        jj = find(contains({obj.f13.userval.Atr.AttrName},type));
                         if isempty(ii)
                             error(['no f13 attribute of ' type ' found']);
                         elseif length(ii) > 1
@@ -649,12 +649,23 @@ classdef msh
                         q = obj.p(:,1)*0 + defval;
                         q(userval(1,:),:) = userval(2:end,:)';
                         % just take the inf norm
-                        q = max(q,[],2);
-                        if length(cmap_int) >= 3 
-                          rd = ceil(-log10((cmap_int(3)-cmap_int(2))/cmap_int(1)));
+                        q = max(q,[],2); 
+                        if logaxis
+                            q = abs(q); 
+                            q(q == 0) = min(q(q > 0));
+                            if length(cmap_int) >= 3
+                               rd = ceil(-log10(cmap_int(2)));
+                            else
+                               rd = ceil(-log10(min(q))); 
+                            end
+                            q = log10(q);
                         else
-                          rd = ceil(-log10((max(q) - min(q))/cmap_int(1)));
-                        end  
+                           if length(cmap_int) >= 3 
+                              rd = ceil(-log10((cmap_int(3)-cmap_int(2))/cmap_int(1)));
+                           else
+                              rd = ceil(-log10((max(q) - min(q))/cmap_int(1)));
+                           end                             
+                        end
                         plotter(lansey(cmap_int(1)),rd+1,'',false);
                         ax = gca;
                         ax.Title.String = obj.f13.defval.Atr(ii).AttrName;
@@ -711,8 +722,8 @@ classdef msh
                    end
                    caxis([log10(min(desiredTicks)) log10(max(desiredTicks))]);
                    cb.Ticks     = log10(desiredTicks);
-                   for i = 1 : length(desiredTicks)
-                      cb.TickLabels{i} = num2str(desiredTicks(i));
+                   for tck = 1 : length(desiredTicks)
+                      cb.TickLabels{tck} = num2str(desiredTicks(tck));
                    end
                else
                    if length(cmap_int) >= 3
@@ -724,8 +735,8 @@ classdef msh
                    end
                    caxis([min(desiredTicks) max(desiredTicks)]);
                    cb.Ticks = desiredTicks;
-                   for i = 1 : length(desiredTicks)
-                      cb.TickLabels{i} = num2str(desiredTicks(i));
+                   for tck = 1 : length(desiredTicks)
+                      cb.TickLabels{tck} = num2str(desiredTicks(tck));
                    end
                end
                ylabel(cb,yylabel,'fontsize',fsz);
@@ -886,6 +897,8 @@ classdef msh
             %
             %   ignoreOL - = 0 [default]: interpolate data without masking overland
             %              = 1          : Mask overland data which may help for seabed-only interpolation
+            % slope_calc - = 'rms' [default]: Compute cell-averaged slope based on root-mean-square
+            %              = 'abs'          : Compute cell-averaged slope based on mean of absolute value
             %     invert - = 0          : does not invert values of the dem
             %                             (i.e., keeps the sign of the topography the same as the dem)
             %              = 1 [default]: inverts the values of the dem
@@ -1251,9 +1264,10 @@ classdef msh
             % varargin{1}: geodata class that had crestlines passed.
             %
             % ---------
-            % 'delete' - deletes a user-clicked boundary condition from msh.
+            % 'delete' - deletes a user-clicked land/mainland boundary condition from a msh.
             % varargins:
-            % none
+            % index of land/mainland boundary to delete 
+
             if nargin < 2
                 error('Needs type: one of "auto", "outer", "inner", "delete", or "weirs"')
             end
@@ -1367,7 +1381,7 @@ classdef msh
                             eb_class = ldst > dist_lim;
                             if strcmp(classifier,'both')
                                 % ii) based on depth
-                                if ~isempty(obj.b) && sum(obj.b) > 0
+                                if ~isempty(obj.b) && sum(abs(obj.b)) > 0
                                     eb_depth = -mean(obj.b(etbv),2);
                                 elseif ~isempty(gdat)
                                     eb_depth = gdat.Fb(eb_mid);
@@ -1376,7 +1390,7 @@ classdef msh
                             end
                         case('depth')
                             % ii) based on depth
-                            if ~isempty(obj.b) && sum(obj.b) > 0
+                            if ~isempty(obj.b) && sum(abs(obj.b)) > 0
                                 eb_depth = -mean(obj.b(etbv),2);
                             elseif ~isempty(gdat)
                                 eb_depth = gdat.Fb(eb_mid);
@@ -1788,8 +1802,7 @@ classdef msh
                         dir,obj.op,obj.bd); %<--updates op and bd.
 
                 case('delete')
-                    % have the user select the nodestring '
-                    plot(obj,'type','bd','proj','none') ;
+                    
                     temp = obj.bd.nbvv;
                     bounodes=obj.bd.nbvv ;
                     idx=sum(bounodes~=0);
@@ -1802,24 +1815,39 @@ classdef msh
                         k = k + 1 ;
                         bounodes(idx2(i):idx2(i+1)-1,2) = k ;
                     end
-
-                    dcm_obj = datacursormode(gcf);
-                    title('use data cursor to select nodestring to be deleted');
-                    pause
-                    c_info = getCursorInfo(dcm_obj);
-                    [tmp(:,1),tmp(:,2)]=m_ll2xy(boupts(:,1),boupts(:,2));
-                    idx3 = ourKNNsearch(boupts',c_info.Position',1)  ;
-                    del = bounodes(idx3,2) ;  %<- get the nodestring index
-                    pltid = temp(:,del) ; pltid(pltid==0)=[] ;
-                    hold on; m_plot(obj.p(pltid,1),obj.p(pltid,2),'r-','linewi',2) ;
-                    disp(['Delete boundary with index ',num2str(del),'?']) ;
-                    pause
+                    
+                    if isempty(varargin)
+                        % have the user select the nodestring '
+                        plot(obj,'type','bd','proj','none') ;
+              
+                        
+                        dcm_obj = datacursormode(gcf);
+                        title('use data cursor to select nodestring to be deleted');
+                        pause
+                        c_info = getCursorInfo(dcm_obj);
+                        [tmp(:,1),tmp(:,2)]=m_ll2xy(boupts(:,1),boupts(:,2));
+                        idx3 = ourKNNsearch(boupts',c_info.Position',1)  ;
+                        del = bounodes(idx3,2) ;  %<- get the nodestring index
+                        pltid = temp(:,del) ; pltid(pltid==0)=[] ;
+                        hold on; m_plot(obj.p(pltid,1),obj.p(pltid,2),'r-','linewi',2) ;
+                    else
+                        del = varargin{1}; 
+                    end
+                    disp(['Deleting boundary with index ',num2str(del)]) ;
+                    
                     obj.bd.nbvv(:,del)=[];
+                    if isfield(obj.bd,'ibconn')
+                        obj.bd.ibconn(:,del)=[];
+                        obj.bd.barinht(:,del)=[]; 
+                        obj.bd.barincfsb(:,del)=[];
+                        obj.bd.barincfsp(:,del)=[];
+                    end
                     num_delnodes = idx(del) ;
                     obj.bd.nbou = obj.bd.nbou - 1 ;
                     obj.bd.nvell(del)=[] ;
                     obj.bd.ibtype(del)=[] ;
                     obj.bd.nvel = obj.bd.nvel - num_delnodes ;
+
 
                 case('weirs')
                     if isempty(varargin)
@@ -2158,7 +2186,7 @@ classdef msh
             global MAP_PROJECTION MAP_COORDS MAP_VAR_LIST
             if ~isempty(obj2.coord)
                 if any(min(obj1.p) < min(obj2.p)) || ...
-                        any(max(obj1.p) > max(obj2.p))
+                   any(max(obj1.p) > max(obj2.p))
                     objt = obj2; objt.p = [objt.p; obj1.p];
                     objt.p(1,:) = min(objt.p) - 1e-3;
                     objt.p(2,:) = max(objt.p) + 1e-3;
@@ -2201,22 +2229,28 @@ classdef msh
                 case {'match','matche'}
                     %% Matching meshes - may be overlapping but there are
                     %% vertices that uniquely match so that the overlapping
-                    %% can be extracted and then obj1,obj2 concentated together
+                    %% can be extracted and then obj1, obj2 concentated together
                     % extract the inner region of obj1 (inset) from obj2 (base)
                     % assuming that the inset fits perfectly in the base
+                    obj1o = obj1; 
                     if extract
                         [p1(:,1),p1(:,2)] = m_ll2xy(p1(:,1),p1(:,2)) ;
                         [p2(:,1),p2(:,2)] = m_ll2xy(p2(:,1),p2(:,2)) ;
-                        cell2 = extdom_polygon(extdom_edges2(t1,p1),p1,-1,0);
-                        bou = cell2{1}(1:end-1,:);
-                        obj2o = obj2; obj2.p = p2;
-                        obj2 = extract_subdomain(obj2,bou,1,1);
+                        obj1.p = p1; obj2.p = p2;
+                        bou = get_boundary_of_mesh(obj1,1);
+                        [~,outer] = max(cellfun(@length,bou));
+                        [obj2,ind] = extract_subdomain(obj2,bou{outer},...
+                                           'centroid',1,'keep_inverse',1);
+                        obj2 = map_mesh_properties(obj2,'ind',ind);
                         [obj2.p(:,1),obj2.p(:,2)] = m_xy2ll(obj2.p(:,1),obj2.p(:,2));
+                        obj2 = obj2.clean(cleanargin);
+                        clear ind
                     end
                     % concatenate
-                    m1 = cat(obj1,obj2);
-                    merge = msh(); merge.p = m1.p; merge.t = m1.t; clear m1
-
+                    m1 = cat(obj1o,obj2);
+                    merge = msh(); merge.p = m1.p; merge.t = m1.t;
+                    obj1 = obj1o;
+                    clear m1 obj1o
                 otherwise
                     %% Abitrary non-matching overlapping meshes
                     % Project both meshes into the space of the global mesh
@@ -2398,16 +2432,34 @@ classdef msh
             end
 
             if ~isempty(obj1.f13)
-                disp('Carrying over obj1 f13 data.')
+                disp('Carrying over obj1 f13 data + any corresponding obj2 f13 data')
+                if ~isempty(obj2.f13) 
+                   ob2name = {obj2.f13.userval.Atr.AttrName};
+                else
+                   ob2name = {};
+                end
                 merge.f13 = obj1.f13;
                 merge.f13.NumOfNodes = size(merge.p,1);
                 for ii = 1:merge.f13.nAttr
-                    idx = merge.f13.userval.Atr(ii).Val(1,:)';
-                    idx1 = ourKNNsearch(merge.p',obj1.p(idx,:)',1);
-                    [idx1,I] = sort(idx1,'ascend');
-                    merge.f13.userval.Atr(ii).Val(1,:) = idx1';
-                    merge.f13.userval.Atr(ii).Val(2:end,:) = ...
-                        merge.f13.userval.Atr(ii).Val(2:end,I);
+                    attname = merge.f13.userval.Atr(ii).AttrName;
+                    idx1 = obj1.f13.userval.Atr(ii).Val(1,:)';
+                    val1 = obj1.f13.userval.Atr(ii).Val(2:end,:)';
+                    idx1 = ourKNNsearch(merge.p',obj1.p(idx1,:)',1);
+                    jj = find(contains(ob2name,attname));
+                    if ~isempty(jj)
+                       disp(['Carrying over obj1 and obj2 ' attname]) 
+                       idx2 = obj2.f13.userval.Atr(jj).Val(1,:)';
+                       val2 = obj2.f13.userval.Atr(jj).Val(2:end,:)';
+                       idx2 = ourKNNsearch(merge.p',obj2.p(idx2,:)',1);
+                       idx = [idx1; idx2];
+                       val = [val1; val2];
+                    else
+                       disp(['Carrying over obj1 ' attname]) 
+                       idx = idx1; val = val1;
+                    end
+                    [idx,I] = sort(idx,'ascend');
+                    userval = [double(idx) val(I,:)];
+                    merge.f13.userval.Atr(ii).Val = userval';
                 end
             end
 
@@ -2422,7 +2474,7 @@ classdef msh
                 merge = carryoverweirs(merge,obj2);
             end
 
-            disp('NB: f15, obj2 f13 data, non-weir nodestrings etc. are not carried over.')
+            disp('NB: f15, obj2 f13 data not in obj1, non-weir nodestrings etc. are not carried over.')
 
         end
 
@@ -2431,7 +2483,7 @@ classdef msh
             % cat two non-overlapping meshes
             pin = obj1.p; tin = obj1.t;
             [~,d] = ourKNNsearch(pin',pin',2);
-            d = d(:,2); mind = min(d);
+            d = max(d,[],2); mind = min(d);
             [idx,d] = ourKNNsearch(obj.p',pin',1);
             ind = 1:size(pin,1);
             LIA = ismember(tin(:),ind(d < mind));
@@ -2532,9 +2584,9 @@ classdef msh
             jj = obj1.bd.ibtype == 24;
             obj.bd.nbou =  obj.bd.nbou + sum(jj);
             % types of boundaries
-            obj.bd.ibtype = [obj.bd.ibtype ; obj1.bd.ibtype(jj)];
+            obj.bd.ibtype = [obj.bd.ibtype obj1.bd.ibtype(jj)];
             % new boundaries come after what's already on
-            obj.bd.nvell = [obj.bd.nvell; obj1.bd.nvell(jj)];
+            obj.bd.nvell = [obj.bd.nvell obj1.bd.nvell(jj)];
             % nvel is twice the number of nodes on each boundary
             obj.bd.nvel = 2*sum(obj.bd.nvell);
             % nbvv is a matrix of boundary nodes
@@ -2568,7 +2620,12 @@ classdef msh
 
                 obj.bd.nbvv(1:obj.bd.nvell(ii),ii)   = idx1(nodes);
                 obj.bd.ibconn(1:obj.bd.nvell(ii),ii) = idx1(nodes2);
-
+                obj.bd.barinht(1:obj.bd.nvell(ii),ii) = ...
+                               obj1.bd.barinht(1:obj1.bd.nvell(idx),idx);
+                obj.bd.barincfsb(1:obj.bd.nvell(ii),ii) = ...
+                               obj1.bd.barincfsb(1:obj1.bd.nvell(idx),idx);
+                obj.bd.barincfsp(1:obj.bd.nvell(ii),ii) = ...
+                               obj1.bd.barincfsp(1:obj1.bd.nvell(idx),idx);
             end
         end
 
@@ -3840,32 +3897,39 @@ classdef msh
                     nvell_old = obj.bd.nvell(ib);
                     idx_old = obj.bd.nbvv(1:nvell_old,ib);
                     % Only keep idx_old that is common to ind and map to ind
-                    [~,~,idx_new] = intersect(idx_old,ind,'stable');
-                    % if a polygon
-                    if ~isempty(idx_new) && ...
-                            length(idx_new) == length(idx_old)-1 && idx_old(end) == idx_old(1)
-                        idx_new(end+1) = idx_new(1);
-                    end
+                    [~,idx_new] = ismember(idx_old,ind); % allows for repeats
+                    idx_new(idx_new == 0) = [];
                     % Get the new length of this boundary
                     obj.bd.nvell(ib) = length(idx_new);
                     % Reset and reload the nbdv for this boundary
                     obj.bd.nbvv(:,ib) = 0;
                     obj.bd.nbvv(1:obj.bd.nvell(ib),ib) = idx_new;
                     %
-                    % Proceed only if the ibconn field exists
+                    % Proceed only if the ibconn field exists and if ibtype
+                    % is one of 4, 5, 24, 25
                     if ~isfield(obj.bd,'ibconn'); continue; end
+                    if obj.bd.ibtype(ib) ~= 4 && obj.bd.ibtype(ib) ~= 5 && ...
+                       obj.bd.ibtype(ib) ~= 24 && obj.bd.ibtype(ib) ~= 25
+                       continue; 
+                    end
                     idx_old = obj.bd.ibconn(1:nvell_old,ib);
                     % Only keep idx_old that is common to ind and map to ind
-                    [~,~,idx_new] = intersect(idx_old,ind,'stable');
+                    [~,idx_new] = ismember(idx_old,ind);
+                    idx_new(idx_new == 0) = [];
+                    nconn = length(idx_new);
                     % Check the new length of this boundary
-                    if length(idx_new) ~=  obj.bd.nvell(ib)
+                    if nconn ~=  obj.bd.nvell(ib)
+                        warning(['ibconn of subset has a different length to nbvv. ' ...
+                                 'Setting boundary length to smallest of the two. ' ...
+                                 'To avoid this message make sure the weir is fully within the subset.'])
                         disp(['boundary number = ' num2str(ib)])
-                        error(['ibconn of subset is different length to nbvv. ' ...
-                            'Make sure the weir is fully within the subset'])
+                        disp(['length of nbvv = ', num2str(obj.bd.nvell(ib))])
+                        disp(['length of ibconn = ' num2str(nconn)])
+                        obj.bd.nvell(ib) = min(nconn,obj.bd.nvell(ib));
                     end
                     % Reset and reload the ibconn for this boundary
                     obj.bd.ibconn(:,ib) = 0;
-                    obj.bd.ibconn(1:obj.bd.nvell(ib),ib) = idx_new;
+                    obj.bd.ibconn(1:obj.bd.nvell(ib),ib) = idx_new(1:obj.bd.nvell(ib));
                 end
                 obj.bd.nvel = sum(obj.bd.nvell);
                 if obj.bd.nvel == 0
@@ -3873,10 +3937,21 @@ classdef msh
                     obj.bd = [];
                 else
                     % Remove unnessary part from the nbdv
-                    obj.bd.nbvv = obj.bd.nbvv(1:max(obj.bd.nvell),:);
+                    obj.bd.nbvv = obj.bd.nbvv(1:max(obj.bd.nvell),:);            
+                    obj.bd.nbvv(:,obj.bd.nvell == 0) = [];
                     if isfield(obj.bd,'ibconn')
                         obj.bd.ibconn = obj.bd.ibconn(1:max(obj.bd.nvell),:);
+                        obj.bd.barinht = obj.bd.barinht(1:max(obj.bd.nvell),:);
+                        obj.bd.barincfsb = obj.bd.barincfsb(1:max(obj.bd.nvell),:);
+                        obj.bd.barincfsp = obj.bd.barincfsp(1:max(obj.bd.nvell),:);
+                        obj.bd.ibconn(:,obj.bd.nvell == 0) = [];
+                        obj.bd.barinht(:,obj.bd.nvell == 0) = []; 
+                        obj.bd.barincfsb(:,obj.bd.nvell == 0) = []; 
+                        obj.bd.barincfsp(:,obj.bd.nvell == 0) = []; 
                     end
+                    obj.bd.ibtype(obj.bd.nvell == 0) = [];
+                    obj.bd.nvell(obj.bd.nvell == 0) = [];
+                    obj.bd.nbou = length(obj.bd.nvell);
                 end
             end
             % f13
@@ -4136,6 +4211,31 @@ classdef msh
             sub2  = extract_subdomain(obj, poly,'keep_inverse',1);
             sub1 = clean(sub1, {'ds',2,'mqa',1e-4,'djc',0.0,'con',5,'db',0,'sc_maxit',0});
             smoothed = plus(sub1,sub2,'match',{'djc',0.0,'ds',0,'db',0,'con',5,'mqa',1e-4,'sc_maxit',0});
+        end
+          
+        function obj= remove_attribute(obj, attrname)
+            % obj = remove_attribute(obj, attrname)
+            % Remove the attribute 'attrname' from the f13 field.
+            %
+            % Inputs
+            % obj - msh object.
+            % attrname - character string of the attribute name (or part of it).
+            %        Warning: All 'contains' string matches will be removed
+            % Outputs
+            % obj - msh object with f13 attribute removed.
+            %
+            % Author WJP, Mar, 2021
+       
+            def_cell = {obj.f13.defval.Atr.AttrName};
+            ii = find(contains(def_cell,attrname));
+            disp(['Removing attribute(s): ' def_cell{ii}]) 
+            obj.f13.defval.Atr(ii) = [];
+            %
+            user_cell = {obj.f13.userval.Atr.AttrName};
+            ii = find(contains(user_cell,attrname));
+            obj.f13.userval.Atr(ii) = [];
+            %
+            obj.f13.nAttr = length(obj.f13.defval.Atr);
         end
 
 

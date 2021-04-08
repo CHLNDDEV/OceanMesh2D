@@ -44,9 +44,9 @@ if read_bou
     msgline = fgetl(fid) ;
     neta = sscanf(msgline,'%d %*s') ;
     
-    nvdll = zeros(nope,1) ;
-    ibtypee = zeros(nope,1) ;
-    nbdv = zeros(neta,nope) ;
+    nvdll = zeros(1,nope) ;
+    ibtypee = zeros(1,nope) ;
+    nbdv = sparse(neta,nope) ;
     % tic
     for i = 1: nope
         msgline = fgetl(fid) ;
@@ -75,7 +75,7 @@ if read_bou
     opedat.neta = neta ;
     opedat.nvdll = nvdll ;
     opedat.ibtypee = ibtypee ;
-    opedat.nbdv = nbdv ;
+    opedat.nbdv = nbdv(1:max(nvdll),:);
     
     % land boundary
     msgline = fgetl(fid) ;
@@ -84,8 +84,8 @@ if read_bou
     msgline = fgetl(fid) ;
     nvel = sscanf(msgline,'%d %*s') ;
     
-    nvell = zeros(nbou,1) ;
-    ibtype = zeros(nbou,1) ;
+    nvell = zeros(1,nbou) ;
+    ibtype = zeros(1,nbou) ;
     nbvv = sparse(nvel,nbou) ;
     ibconn = sparse(nvel,nbou) ;
     barinht = sparse(nvel,nbou) ;
@@ -134,13 +134,13 @@ if read_bou
     boudat.nvel = nvel ;
     boudat.nvell = nvell ;
     boudat.ibtype = ibtype ;
-    boudat.nbvv = nbvv ;
+    boudat.nbvv = nbvv(1:max(nvell),:);
     
     if ( sum(ibtype == 24) > 0 ||  sum(ibtype == 4) > 0 )
-        boudat.ibconn = ibconn ;
-        boudat.barinht = barinht ;
-        boudat.barincfsb = barincfsb ;
-        boudat.barincfsp = barincfsp ;
+        boudat.ibconn = ibconn(1:max(nvell),:);
+        boudat.barinht = barinht(1:max(nvell),:);
+        boudat.barincfsb = barincfsb(1:max(nvell),:);
+        boudat.barincfsp = barincfsp(1:max(nvell),:);
     end
 else
     opedat = []; 

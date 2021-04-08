@@ -31,7 +31,7 @@ function obj = GridData(geodata,obj,varargin)
 %                         default value N=1. 
 %
 %        nan (optional) - 'fill' to fill in any NaNs everywhere
-%                        -'fillinside' to fill NaNs only in DEM extents
+%                       - 'fillinside' to fill NaNs only in DEM extents
 %
 %   mindepth (optional) - ensure the minimum depth is bounded in the 
 %                         interpolated region 
@@ -40,6 +40,9 @@ function obj = GridData(geodata,obj,varargin)
 %                         interpolated region 
 %
 %   ignoreOL (optional) - NaN overland data for more accurate seabed interpolation
+%
+% slope_calc (optional) - 'rms' [default]: Compute cell-averaged slope based on root-mean-square
+%                       - 'abs'          : Compute cell-averaged slope based on mean of absolute value
 %
 %      Output : obj     - A mesh class object with the following updated:
 %               b       - The depth or vertical difference from the datum
@@ -71,9 +74,10 @@ ignoreOL = 0 ;
 N    = 1 ; 
 mindepth = -inf ; 
 maxdepth = +inf ; 
+rms_slope_calc = true;
 if ~isempty(varargin)
     varargin=varargin{1} ; 
-    names = {'K','type','interp','nan','N','mindepth','maxdepth','ignoreOL'};
+    names = {'K','type','interp','nan','N','mindepth','maxdepth','ignoreOL','slope_calc'};
     for ii = 1:length(names)
         ind = find(~cellfun(@isempty,strfind(varargin(1:2:end),names{ii})));
         if ~isempty(ind)
@@ -97,6 +101,15 @@ if ~isempty(varargin)
                 maxdepth = varargin{ind*2}  ; 
             elseif ii ==8
                 ignoreOL = varargin{ind*2} ; 
+            elseif ii ==9
+                slope_calc = varargin{ind*2};
+                if strcmp(slope_calc,'rms')
+                   rms_slope_calc = true;
+                elseif strcmp(slope_calc,'abs')
+                   rms_slope_calc = false;
+                else
+                   error(['Invalid entry, ' temp ', for slope_calc'])
+                end
             end
         end    
     end
@@ -116,6 +129,7 @@ if maxdepth < inf
 end
 
 if strcmp(type,'slope')
+    disp(['Computing cell-averaged slope using the ' slope_calc ' method'])
     if isempty(obj.b) || all(obj.b == 0) 
         error(['You must have the bathymetry on the mesh before ' ...
                'calculating the slopes'])
@@ -295,16 +309,11 @@ if strcmp(type,'slope') || strcmp(type,'all')
     DELTA_X1 = DELTA_X*111e3;
     DELTA_X1 = DELTA_X1*cosd(DEM_Y(1,:)); % for gradient function   
     DELTA_Y1 = DELTA_Y*111e3;
-    %m_idist(mean(obj.p(K,1)),mean(obj.p(K,2)),...
-    %        mean(obj.p(K,1)),mean(obj.p(K,2))+DELTA_Y)
-    %m_idist(mean(obj.p(K,1)),mean(obj.p(K,2)),...
-    %        mean(obj.p(K,1))+DELTA_X,mean(obj.p(K,2)))
     if exist('DEM_ZY','var')
         clear DEM_ZY DEM_ZX
     end
     % Calculate the gradient of the distance function.
     [DEM_ZY,DEM_ZX] = EarthGradient(DEM_Z,DELTA_Y1,DELTA_X1);
-    %[DEM_ZY,DEM_ZX] = gradient(DEM_Z,DELTA_Y1,mean(DELTA_X1));
     % New method of averaging the absolute values 
     DEM_ZY = abs(DEM_ZY); DEM_ZX = abs(DEM_ZX);
 end
@@ -368,10 +377,18 @@ if strcmp(interp,'CA')
         for ii = 1:length(K)
             pts = reshape(DEM_ZX(IDXL(ii):IDXR(ii),...
                                  IDXB(ii):IDXT(ii)),[],1);
-            bx(ii) = sqrt(mean(pts.^2,'omitnan'));
+            if rms_slope_calc 
+               bx(ii) = sqrt(mean(pts.^2,'omitnan'));
+            else
+               bx(ii) = mean(abs(pts),'omitnan');
+            end
             pts = reshape(DEM_ZY(IDXL(ii):IDXR(ii),...
                                  IDXB(ii):IDXT(ii)),[],1);
-            by(ii) = sqrt(mean(pts.^2,'omitnan'));
+            if rms_slope_calc 
+               by(ii) = sqrt(mean(pts.^2,'omitnan'));
+            else
+               by(ii) = mean(abs(pts),'omitnan');
+            end
         end
         if nanfill
             % Try and fill in the NaNs
