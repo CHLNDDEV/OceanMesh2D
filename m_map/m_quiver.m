@@ -1,4 +1,4 @@
-function h=m_quiver(long,lat,u,v,varargin)
+function [h,pts]=m_quiver(long,lat,u,v,varargin)
 % M_QUIVER Makes a quiverplot on a map (QUIVER-style)
 %    M_QUIVER(LONG,LAT,U,V) plots velocity vectors as arrows with components 
 %    (U,V) at the points (LONG,LAT) on the currently defined map.  The 
@@ -30,6 +30,7 @@ function h=m_quiver(long,lat,u,v,varargin)
 %    M_QUIVER(...,'filled') fills any markers specified.
 % 
 %    H = M_QUIVER(...) returns a vector of line handles.
+%    [~,pts] = M_QUIVER(...) returns the points plotted with the radius option
 % 
 %    See also QUIVER, M_VEC
 
@@ -74,6 +75,7 @@ if ~isempty(radii)
       rr = find(KL > 1);
    end
    del = unique(del);
+   pts = setdiff(1:length(long),del);
    % deleting unique del points from the input arrays 
    long(del) = []; lat(del) = []; u(del) = []; v(del) = [];
    varargin(radii:radii+1) = []; % delete from the varargin for quiver call
