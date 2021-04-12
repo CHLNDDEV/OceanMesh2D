@@ -1264,9 +1264,10 @@ classdef msh
             % varargin{1}: geodata class that had crestlines passed.
             %
             % ---------
-            % 'delete' - deletes a user-clicked boundary condition from msh.
+            % 'delete' - deletes a user-clicked land/mainland boundary condition from a msh.
             % varargins:
-            % none
+            % index of land/mainland boundary to delete 
+
             if nargin < 2
                 error('Needs type: one of "auto", "outer", "inner", "delete", or "weirs"')
             end
@@ -1801,8 +1802,7 @@ classdef msh
                         dir,obj.op,obj.bd); %<--updates op and bd.
 
                 case('delete')
-                    % have the user select the nodestring '
-                    plot(obj,'type','bd','proj','none') ;
+                    
                     temp = obj.bd.nbvv;
                     bounodes=obj.bd.nbvv ;
                     idx=sum(bounodes~=0);
@@ -1815,24 +1815,39 @@ classdef msh
                         k = k + 1 ;
                         bounodes(idx2(i):idx2(i+1)-1,2) = k ;
                     end
-
-                    dcm_obj = datacursormode(gcf);
-                    title('use data cursor to select nodestring to be deleted');
-                    pause
-                    c_info = getCursorInfo(dcm_obj);
-                    [tmp(:,1),tmp(:,2)]=m_ll2xy(boupts(:,1),boupts(:,2));
-                    idx3 = ourKNNsearch(boupts',c_info.Position',1)  ;
-                    del = bounodes(idx3,2) ;  %<- get the nodestring index
-                    pltid = temp(:,del) ; pltid(pltid==0)=[] ;
-                    hold on; m_plot(obj.p(pltid,1),obj.p(pltid,2),'r-','linewi',2) ;
-                    disp(['Delete boundary with index ',num2str(del),'?']) ;
-                    pause
+                    
+                    if isempty(varargin)
+                        % have the user select the nodestring '
+                        plot(obj,'type','bd','proj','none') ;
+              
+                        
+                        dcm_obj = datacursormode(gcf);
+                        title('use data cursor to select nodestring to be deleted');
+                        pause
+                        c_info = getCursorInfo(dcm_obj);
+                        [tmp(:,1),tmp(:,2)]=m_ll2xy(boupts(:,1),boupts(:,2));
+                        idx3 = ourKNNsearch(boupts',c_info.Position',1)  ;
+                        del = bounodes(idx3,2) ;  %<- get the nodestring index
+                        pltid = temp(:,del) ; pltid(pltid==0)=[] ;
+                        hold on; m_plot(obj.p(pltid,1),obj.p(pltid,2),'r-','linewi',2) ;
+                    else
+                        del = varargin{1}; 
+                    end
+                    disp(['Deleting boundary with index ',num2str(del)]) ;
+                    
                     obj.bd.nbvv(:,del)=[];
+                    if isfield(obj.bd,'ibconn')
+                        obj.bd.ibconn(:,del)=[];
+                        obj.bd.barinht(:,del)=[]; 
+                        obj.bd.barincfsb(:,del)=[];
+                        obj.bd.barincfsp(:,del)=[];
+                    end
                     num_delnodes = idx(del) ;
                     obj.bd.nbou = obj.bd.nbou - 1 ;
                     obj.bd.nvell(del)=[] ;
                     obj.bd.ibtype(del)=[] ;
                     obj.bd.nvel = obj.bd.nvel - num_delnodes ;
+
 
                 case('weirs')
                     if isempty(varargin)
@@ -2551,7 +2566,7 @@ classdef msh
         end
 
         function obj = carryoverweirs(obj,obj1)
-            idx1 = ourKNNsearch(obj.p',obj1.p',1);
+            idx1 = nearest_neighbor_map(obj, obj1,'precise');
             if isempty(obj.bd)
                 obj.bd.nbou=0;
                 obj.bd.nvell=[];
@@ -2569,9 +2584,9 @@ classdef msh
             jj = obj1.bd.ibtype == 24;
             obj.bd.nbou =  obj.bd.nbou + sum(jj);
             % types of boundaries
-            obj.bd.ibtype = [obj.bd.ibtype ; obj1.bd.ibtype(jj)];
+            obj.bd.ibtype = [obj.bd.ibtype obj1.bd.ibtype(jj)];
             % new boundaries come after what's already on
-            obj.bd.nvell = [obj.bd.nvell; obj1.bd.nvell(jj)];
+            obj.bd.nvell = [obj.bd.nvell obj1.bd.nvell(jj)];
             % nvel is twice the number of nodes on each boundary
             obj.bd.nvel = 2*sum(obj.bd.nvell);
             % nbvv is a matrix of boundary nodes
