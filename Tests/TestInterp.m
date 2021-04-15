@@ -55,13 +55,17 @@ for dem = DEMS
 end
 
 % Check the different mesh volumes
-disp('Mesh Volumes:')
+disp('Mesh volumes:')
 disp(volumes)
 
-if max(volumes)-min(volumes)/mean(volumes) > 0.01
-    error('Mesh volumes are too disparate with different dems')
-else
-    disp('Mesh volumes are within 1% of each other')
-end
+volume_diff = (max(volumes)-min(volumes))/mean(volumes);
+disp('Maximum relative volume difference:')
+disp(volume_diff)
 
-disp('Passed: Interp');
+if volume_diff > 0.001
+    error('Mesh volumes are too disparate with different dems')
+    disp('Not Passed: Interp');
+else
+    disp('Mesh volumes are within 0.1% of each other')
+    disp('Passed: Interp');
+end
