@@ -2566,7 +2566,7 @@ classdef msh
         end
 
         function obj = carryoverweirs(obj,obj1)
-            idx1 = ourKNNsearch(obj.p',obj1.p',1);
+            idx1 = nearest_neighbor_map(obj, obj1,'precise');
             if isempty(obj.bd)
                 obj.bd.nbou=0;
                 obj.bd.nvell=[];

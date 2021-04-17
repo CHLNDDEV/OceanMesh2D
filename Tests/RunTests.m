@@ -15,6 +15,8 @@ else
    TestSanity 
 
    TestEleSizes
+   
+   TestInterp
 
    if exist('SRTM15+V2.1.nc')
    
