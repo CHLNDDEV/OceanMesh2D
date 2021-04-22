@@ -121,7 +121,7 @@ Authors (202X). CHLNDDEV/OceanMesh2D: OceanMesh2D VX.X. Zenodo. https://doi.org/
 ```
 Please fill in the version (VX.X), author list and year corresponding to the version used.
 
-We would also like to acknowledge various scrips and algorithms from [`mesh2d`](https://github.com/dengwirda/mesh2d) included in OceanMesh2D that have been developed by @dengwirda. Please also see [`jigsaw`](https://github.com/dengwirda/jigsaw-matlab):
+We would also like to acknowledge various scripts and algorithms from [`mesh2d`](https://github.com/dengwirda/mesh2d) included in OceanMesh2D that have been developed by @dengwirda. Please also see [`JIGSAW-GEO`](https://github.com/dengwirda/jigsaw-geo-matlab):
 ```
 [i] - Engwirda, D., 2017. 
       JIGSAW-GEO (1.0): Locally orthogonal staggered unstructured grid generation for general circulation modelling on the sphere. 
