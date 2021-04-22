@@ -110,9 +110,9 @@ If you make use of `OceanMesh2D` please include a reference to [1], and to any o
 [4] - Roberts, Keith J., Pringle W.J., Westerink J. J. Contreras, M.T., Wirasaet, D., 2019.
       On the automatic and a priori design of unstructured mesh resolution for coastal ocean circulation models,
       Ocean Modelling, 144, 101509. https://doi.org/10.1016/j.ocemod.2019.101509.
-[5] - Pringle, W. J., Wirasaet, D., Roberts, K. J., and Westerink, J. J., 2020.
+[5] - Pringle, W. J., Wirasaet, D., Roberts, K. J., and Westerink, J. J., 2021.
       Global Storm Tide Modeling with ADCIRC v55: Unstructured Mesh Design and Performance,
-      Geoscientific Model Development Discussions. https://doi.org/10.5194/gmd-2020-123.
+      Geoscientific Model Development, 14(2), 1125-1145. https://doi.org/10.5194/gmd-14-1125-2021.
 
 ```
 In addition, best practice when using software in a scientific publication is to cite the permanent doi corresponding to the version used (e.g., for reproducibility). All our releases are archived at the following `Zenodo` repository doi [link](https://doi.org/10.5281/zenodo.1341384).
@@ -120,6 +120,13 @@ In addition, best practice when using software in a scientific publication is to
 Authors (202X). CHLNDDEV/OceanMesh2D: OceanMesh2D VX.X. Zenodo. https://doi.org/10.5281/zenodo.1341384
 ```
 Please fill in the version (VX.X), author list and year corresponding to the version used.
+
+We would also like to acknowledge various scrips and algorithms from [`mesh2d`](https://github.com/dengwirda/mesh2d) included in OceanMesh2D that have been developed by @dengwirda. Please also see [`jigsaw`](https://github.com/dengwirda/jigsaw-matlab):
+```
+[i] - Engwirda, D., 2017. 
+      JIGSAW-GEO (1.0): Locally orthogonal staggered unstructured grid generation for general circulation modelling on the sphere. 
+      Geoscientific Model Development, 10(6), 2117–2140. https://doi.org/10.5194/gmd-10-2117-2017.
+```
 
 ## `DISCLAIMER: `
 The boundary of the meshing domain must be a polygon (first point equals the last and non-self intersecting) but it does not need to be simplified. Read the user guide for more information about the inputs.
