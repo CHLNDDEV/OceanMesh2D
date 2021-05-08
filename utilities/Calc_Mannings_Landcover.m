@@ -1,5 +1,5 @@
 function obj = Calc_Mannings_Landcover(obj,data,type,varargin)
-% obj = Calc_Mannings_Landcover(obj,data,varargin)
+% obj = Calc_Mannings_Landcover(obj,data,type,varargin)
 % Input a msh class object and interpolates a land-cover database file
 % (netcdf format) onto the msh while converting to mannings values through
 % a look-up table
@@ -27,27 +27,27 @@ if strcmp(type,'nlcd')
     disp('Info: Using NLCD table')
     % NLCD table
     load nlcd
-    nlcd_class(end+1)=11; % <--default value to NaN 
+    nlcd_mannings(end+1)=nlcd_mannings(11); % <--make NaN = default value
     varargin{end+1}='lut';
-    varargin{end+1}=nlcd_class;
+    varargin{end+1}=nlcd_mannings;
 elseif strcmp(type,'ccap')
     disp('Info: Using CCAP table')
     % CCAP table
     load ccap 
-    ccap(end+1)=21; % <--default value to NaN 
+    ccap_mannings(end+1)=ccap_mannings(21); % <-- make NaN = default value
     varargin{end+1}='lut';
-    varargin{end+1}=ccap;
+    varargin{end+1}=ccap_mannings;
 else
     error('Land-cover database not supported')
 end
 % The mannings name and default value
 attrname = 'mannings_n_at_sea_floor';
-default_val = 0.02;
+default_val = varargin{end}(end); %end of the lut is default
 dmy = msh();  dmy.p = obj.p; dmy.t = obj.t; 
 % Convert to Mannings and interpolate how the user wants
 dmy = interp(dmy,data,varargin{:});
 Man = dmy.b';
-Man(Man==0) = default_val; 
+Man( isnan(Man) | Man==0 ) = default_val; %points outside of lut can still be NaN
 %% Make into f13 struct
 if isempty(obj.f13)
     % Add add mannings as first entry in f13 struct

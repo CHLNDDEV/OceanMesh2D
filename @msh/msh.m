@@ -887,13 +887,13 @@ classdef msh
             %                         default value N=1.
             %
             %        nan - 'fill' to fill in any NaNs everywhere
-            %            -'fillinside' to fill NaNs only in DEM extents
+            %            - 'fillinside' to fill NaNs only in DEM extents
             %
             %   mindepth - ensure the minimum depth is bounded in the
-            %                         interpolated region
+            %              interpolated region
             %
             %   maxdepth - ensure the maximum depth is bounded in the
-            %                         interpolated region
+            %              interpolated region
             %
             %   ignoreOL - = 0 [default]: interpolate data without masking overland
             %              = 1          : Mask overland data which may help for seabed-only interpolation
@@ -903,8 +903,8 @@ classdef msh
             %                             (i.e., keeps the sign of the topography the same as the dem)
             %              = 1 [default]: inverts the values of the dem
             %                             (underwater is positive depth)
-            %   lut (optional)      - A look up table (lut). See nlcd and ccap in
-            %                         datasets/ for examples
+            %   lut      - A look up table (lut). See nlcd and ccap in
+            %              datasets/ for examples
             
             % if give cell of geodata or dems then interpolate all
             if iscell(geodata) || isstring(geodata)
