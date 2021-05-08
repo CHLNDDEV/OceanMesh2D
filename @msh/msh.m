@@ -903,7 +903,9 @@ classdef msh
             %                             (i.e., keeps the sign of the topography the same as the dem)
             %              = 1 [default]: inverts the values of the dem
             %                             (underwater is positive depth)
-
+            %   lut (optional)      - A look up table (lut). See nlcd and ccap in
+            %                         datasets/ for examples
+            
             % if give cell of geodata or dems then interpolate all
             if iscell(geodata) || isstring(geodata)
                 for i = 1:length(geodata)
