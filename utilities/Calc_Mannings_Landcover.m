@@ -27,12 +27,14 @@ if strcmp(type,'nlcd')
     disp('Info: Using NLCD table')
     % NLCD table
     load nlcd
+    nlcd_class(end+1)=11; % <--default value to NaN 
     varargin{end+1}='lut';
-    varargin{end+1}=nlcd;
+    varargin{end+1}=nlcd_class;
 elseif strcmp(type,'ccap')
     disp('Info: Using CCAP table')
     % CCAP table
     load ccap 
+    ccap(end+1)=21; % <--default value to NaN 
     varargin{end+1}='lut';
     varargin{end+1}=ccap;
 else
@@ -43,7 +45,9 @@ attrname = 'mannings_n_at_sea_floor';
 default_val = 0.02;
 dmy = msh();  dmy.p = obj.p; dmy.t = obj.t; 
 % Convert to Mannings and interpolate how the user wants
-obj = GridData(data,obj,varargin);
+dmy = interp(dmy,data,varargin{:});
+Man = dmy.b';
+Man(Man==0) = default_val; 
 %% Make into f13 struct
 if isempty(obj.f13)
     % Add add mannings as first entry in f13 struct

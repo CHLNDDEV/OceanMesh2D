@@ -312,9 +312,11 @@ DEM_Z(DEM_Z < mindepth) = mindepth ;
 % bound all depths above maxdepth 
 DEM_Z(DEM_Z > maxdepth) = maxdepth ; 
 
-% if look up table is passed 
+% if look up table is passed
 if ~isempty(lut)
-    DEM_Z = lut(DEM_Z); 
+    DEM_Z(isnan(DEM_Z) | DEM_Z == 0)=length(lut); % <--default value to NaN
+    % Convert to Mannings
+    DEM_Z = lut(abs(round(DEM_Z)));
 end
 %% Make the new bx, by, b and calculate gradients if necessary
 if strcmp(type,'slope') || strcmp(type,'all')
