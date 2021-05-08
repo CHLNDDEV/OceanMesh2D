@@ -154,9 +154,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Correctly deleting weirs from boundary object through `make_bc` delete method. See https://github.com/CHLNDDEV/OceanMesh2D/pull/205
 - Array format fix for reading in ibtype and nvell from fort.14 file and when executing carry_over_weirs. See https://github.com/CHLNDDEV/OceanMesh2D/pull/206
 - Fix for irregular grid spacings in DEMs. See https://github.com/CHLNDDEV/OceanMesh2D/pull/204
-- tidal constituents for `Make_f15` can now contain "major8" in addition to other constituents in the string/cell array
+- tidal constituents for `Make_f15` can now contain "major8" in addition to other constituents in the string/cell array https://github.com/CHLNDDEV/OceanMesh2D/pull/221
 ## Changed
-- Renamed `Calc_NLCD_Mannings` to `Calc_Mannings_Landcover` and making option for 'ccap' landcover type in addition to 'nlcd' (default)
+- Renamed `Calc_NLCD_Mannings` to `Calc_Mannings_Landcover` and making option for 'ccap' landcover type in addition to 'nlcd' (default) and added the ability to using user specified inteprolation (e.g., nearest, linear, cell-averaging, etc.) of the landcover data to the mesh vertices. https://github.com/CHLNDDEV/OceanMesh2D/pull/221
 
 ### [4.0.0] - 2021-03-14
 ## Added
