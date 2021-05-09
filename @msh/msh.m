@@ -321,7 +321,7 @@ classdef msh
             %    v) 'pivot'   : value in meters for which to assume is datum when
             %                    plotting topo-bathymetry (default 0.0 m)
             %
-            %   axis_limits   : Force the axes limits to be bounded by what
+            %   'axis_limits' : Force the axes limits to be bounded by what
             %                   is passed in bbox.  
 
             fsz = 12; % default font size
