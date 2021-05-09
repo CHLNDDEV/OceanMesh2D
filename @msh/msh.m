@@ -321,6 +321,8 @@ classdef msh
             %    v) 'pivot'   : value in meters for which to assume is datum when
             %                    plotting topo-bathymetry (default 0.0 m)
             %
+            %   axes_limits   : Force the axes limits to be bounded by what
+            %                   is passed in bbox.  
 
             fsz = 12; % default font size
             bgc = [1 1 1]; % default background color
@@ -328,6 +330,7 @@ classdef msh
             holdon = 0;
             pivot = 0.0; % assume datum is 0.0 m
             proj = 1;
+            axis_limits = []; % use mesh extents to determine plot extents
 
             projtype = []; 
             type = 'tri'; 
@@ -349,6 +352,8 @@ classdef msh
                     type = varargin{kk+1}; 
                 elseif strcmp(varargin{kk},'subdomain')
                     subdomain = varargin{kk+1}; 
+                elseif strcmp(varargin{kk},'axis_limits')
+                    axis_limits = varargin{kk+1}; 
                 end
             end
 
@@ -386,7 +391,7 @@ classdef msh
             end
 
             % Set up projected space
-            del = setProj(obj,proj,projtype) ;
+            del = setProj(obj,proj,projtype,0,axis_limits) ;
 
             if del
                 % This deletes any elements straddling the -180/180
