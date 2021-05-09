@@ -50,6 +50,7 @@ muw = makens(muw,'auto',gdatuw) ; % apply so that extractFixedConstraints only g
 % 10-m contour extracted from the Coastal Relief Model.
 coastline = 'us_coastalreliefmodel_10mLMSL';
 demfile   = 'galveston_13_mhw_2007.nc';
+landuse   = 'galveston_2016_CCAP.nc'; 
 
 gdat = geodata('shp',coastline,...
                'dem',demfile,...
@@ -69,7 +70,12 @@ m = mshopts.grd ;
 % plot resolution on the mesh
 plot(m,'type','resomesh','colormap',[10 0 1e3])
 
-%interpolate bathy using special constraining technique for overland and
-%underwater
+% interpolate bathy using special constraining technique
+% for overland and underwater
 m = interpFP(m,gdat,muw,gdatuw);
 plot(m,'type','bmesh') % plot the bathy on the mesh
+
+% computing mannings based on CCAP landcover data using 
+% cell-averaged interpolation with stencil 4*grid_size for stability
+m = Calc_Mannings_Landcover(m,landuse,'ccap','N',4);
+plot(m,'type','mann') % plot the mannings on the mesh
