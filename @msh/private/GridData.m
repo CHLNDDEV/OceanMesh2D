@@ -40,6 +40,9 @@ function obj = GridData(geodata,obj,varargin)
 %                         interpolated region 
 %
 %   ignoreOL (optional) - NaN overland data for more accurate seabed interpolation
+%   
+%   lut (optional)      - A look up table (lut). See nlcd and ccap in
+%                         datasets/ for examples
 %
 % slope_calc (optional) - 'rms' [default]: Compute cell-averaged slope based on root-mean-square
 %                       - 'abs'          : Compute cell-averaged slope based on mean of absolute value
@@ -62,7 +65,7 @@ function obj = GridData(geodata,obj,varargin)
 %   regions
 %
 %   Edits by Keith Roberts, 2019-4-4 to interpolate the floodplain
-
+%
 %% Test optional arguments
 % default
 nn = length(obj.p);
@@ -76,9 +79,10 @@ mindepth = -inf ;
 maxdepth = +inf ; 
 rms_slope_calc = true;
 slope_calc = 'rms';
+lut = [] ; 
 if ~isempty(varargin)
     varargin=varargin{1} ; 
-    names = {'K','type','interp','nan','N','mindepth','maxdepth','ignoreOL','slope_calc'};
+    names = {'K','type','interp','nan','N','mindepth','maxdepth','ignoreOL','slope_calc','lut'};
     for ii = 1:length(names)
         ind = find(~cellfun(@isempty,strfind(varargin(1:2:end),names{ii})));
         if ~isempty(ind)
@@ -111,6 +115,8 @@ if ~isempty(varargin)
                 else
                    error(['Invalid entry, ' temp ', for slope_calc'])
                 end
+            elseif ii == 10
+                lut = varargin{ind*2};
             end
         end    
     end
@@ -148,6 +154,10 @@ if strcmp(NaNs,'fill')
    warning(['Note that nan "fill" option will try and put values everywhere ' ...
             'on mesh even outside of gdat/dem extents unless K logical is ' ...
             'set. Change nan to "fillinside" to avoid this.'])
+end
+
+if ~isempty(lut)
+    disp('Using look up table...'); 
 end
 
 %% Let's read the LON LAT of DEM if not already geodata
@@ -302,6 +312,12 @@ DEM_Z(DEM_Z < mindepth) = mindepth ;
 % bound all depths above maxdepth 
 DEM_Z(DEM_Z > maxdepth) = maxdepth ; 
 
+% if look up table is passed
+if ~isempty(lut)
+    DEM_Z(isnan(DEM_Z) | DEM_Z == 0)=length(lut); % <--default value to NaN
+    % Convert to Mannings
+    DEM_Z = lut(abs(round(DEM_Z)));
+end
 %% Make the new bx, by, b and calculate gradients if necessary
 if strcmp(type,'slope') || strcmp(type,'all')
     bx = NaN(length(K),1); 
