@@ -29,7 +29,7 @@ Getting help
 
 Besides posting [issues](https://github.com/CHLNDDEV/OceanMesh2D/issues) with the code on Github, you can also ask questions via our Slack channel [here](https://join.slack.com/t/oceanmesh2d/shared_invite/zt-ldexcc7m-LkkxsUTUekHbJNxwlyrMYQ).
 
-Note: If the slack link invite isn't working, please send either one of us and an email and we'll fix it. By default, the invite link expires every 30 days. 
+Note: If the slack link invite isn't working, please send either one of us and an email and we'll fix it. By default, the invite link expires every 30 days.
 
 Otherwise please reach out to either Dr. William Pringle (wpringle@anl.gov) or Dr. Keith Roberts (krober@usp.br) with questions or concerns or feel free to start an Issue in the issues tab above.
 
@@ -70,10 +70,10 @@ PLEASE READ THE USER GUIDE!
 A recent pdf of the user guide is located in this branch. For a continually updated version click [here](https://www.overleaf.com/read/hsqjhvtbkgvj#/54715995/) (wait for compilation and then click download PDF)
 
 Run the "setup.sh" bash script to download the required m_map package and the base datasets:
-- GSHHG global shoreline 
+- GSHHG global shoreline
 - SRTM15_PLUS global topobathy DEM
 
-Additional data required for some of the following examples must be downloaded manually from [here](https://drive.google.com/open?id=1LeQJFKaVCM2K59pKO9jDcB02yjTmJPmL). Specifically, Examples 2, 3, 4, 5 and 5b require additional datasets from the google drive folder while base datasets are sufficient for the other examples. 
+Additional data required for some of the following examples must be downloaded manually from [here](https://drive.google.com/open?id=1LeQJFKaVCM2K59pKO9jDcB02yjTmJPmL). Specifically, Examples 2, 3, 4, 5 and 5b require additional datasets from the google drive folder while base datasets are sufficient for the other examples.
 ```
 Featured in  ┌╼ Examples/Example_1_NZ.m   %<- A simple mesh around South Island New Zealand that uses GSHHS shoreline.
 user guide   ├── Examples/Example_2_NY.m   %<- A high-resolution mesh around the New York/Manhattan area that uses a DEM created from LiDAR data.
@@ -91,7 +91,7 @@ Testing
 
 To ensure the software is fully functional on your system before building some crazy meshes it is strongly recommended to run the tests (RunTests.m) in the Tests/ directory.
 
-We test all pull requests using this test suite on a local host before accepting. For substantial pull requests we will also test the Examples from the Examples/ directory. 
+We test all pull requests using this test suite on a local host before accepting. For substantial pull requests we will also test the Examples from the Examples/ directory.
 
 References!
 ==============
@@ -110,9 +110,9 @@ If you make use of `OceanMesh2D` please include a reference to [1], and to any o
 [4] - Roberts, Keith J., Pringle W.J., Westerink J. J. Contreras, M.T., Wirasaet, D., 2019.
       On the automatic and a priori design of unstructured mesh resolution for coastal ocean circulation models,
       Ocean Modelling, 144, 101509. https://doi.org/10.1016/j.ocemod.2019.101509.
-[5] - Pringle, W. J., Wirasaet, D., Roberts, K. J., and Westerink, J. J., 2020.
+[5] - Pringle, W. J., Wirasaet, D., Roberts, K. J., and Westerink, J. J., 2021.
       Global Storm Tide Modeling with ADCIRC v55: Unstructured Mesh Design and Performance,
-      Geoscientific Model Development Discussions. https://doi.org/10.5194/gmd-2020-123.
+      Geoscientific Model Development, 14(2), 1125-1145. https://doi.org/10.5194/gmd-14-1125-2021.
 
 ```
 In addition, best practice when using software in a scientific publication is to cite the permanent doi corresponding to the version used (e.g., for reproducibility). All our releases are archived at the following `Zenodo` repository doi [link](https://doi.org/10.5281/zenodo.1341384).
@@ -120,6 +120,13 @@ In addition, best practice when using software in a scientific publication is to
 Authors (202X). CHLNDDEV/OceanMesh2D: OceanMesh2D VX.X. Zenodo. https://doi.org/10.5281/zenodo.1341384
 ```
 Please fill in the version (VX.X), author list and year corresponding to the version used.
+
+We would also like to acknowledge various scripts and algorithms from [`mesh2d`](https://github.com/dengwirda/mesh2d) included in OceanMesh2D that have been developed by @dengwirda. Please also see [`JIGSAW-GEO`](https://github.com/dengwirda/jigsaw-geo-matlab):
+```
+[i] - Engwirda, D., 2017. 
+      JIGSAW-GEO (1.0): Locally orthogonal staggered unstructured grid generation for general circulation modelling on the sphere. 
+      Geoscientific Model Development, 10(6), 2117–2140. https://doi.org/10.5194/gmd-10-2117-2017.
+```
 
 ## `DISCLAIMER: `
 The boundary of the meshing domain must be a polygon (first point equals the last and non-self intersecting) but it does not need to be simplified. Read the user guide for more information about the inputs.
@@ -141,10 +148,15 @@ Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Unreleased
-## Added 
+## Added
 - Deleting boundary conditions by specifyng their indices in `msh.object.bd` field. See https://github.com/CHLNDDEV/OceanMesh2D/pull/205
 ## Fixed
 - Correctly deleting weirs from boundary object through `make_bc` delete method. See https://github.com/CHLNDDEV/OceanMesh2D/pull/205
+- Array format fix for reading in ibtype and nvell from fort.14 file and when executing carry_over_weirs. See https://github.com/CHLNDDEV/OceanMesh2D/pull/206
+- Fix for irregular grid spacings in DEMs. See https://github.com/CHLNDDEV/OceanMesh2D/pull/204
+- tidal constituents for `Make_f15` can now contain "major8" in addition to other constituents in the string/cell array https://github.com/CHLNDDEV/OceanMesh2D/pull/221
+## Changed
+- Renamed `Calc_NLCD_Mannings` to `Calc_Mannings_Landcover` and making option for 'ccap' landcover type in addition to 'nlcd' (default) and added the ability to using user specified inteprolation (e.g., nearest, linear, cell-averaging, etc.) of the landcover data to the mesh vertices. https://github.com/CHLNDDEV/OceanMesh2D/pull/221
 
 ### [4.0.0] - 2021-03-14
 ## Added
@@ -153,7 +165,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Mesh "cleaning" modes moderate and aggressive transfer nodal attributes via improvements to `msh.map_mesh_properties`
 - `msh.remove_attribute()` method to remove f13 attribute(s)
 - new `msh.interp()` `slope_calc` kwarg option to set the method of computing the topographic gradients (slopes), either `rms` [default] or `abs`
-- new `extract_subdomain()` `keep_numbering` kwarg option to keep the full mesh triangulation numbering on the subdomain [off by default]. 
+- new `extract_subdomain()` `keep_numbering` kwarg option to keep the full mesh triangulation numbering on the subdomain [off by default].
 
 ## Changed
 - `msh.plot()` overhaul. All options specified via kwarg.
@@ -161,7 +173,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - `msh.plot()` arbitary f13 option now utilizes `colormap` kwarg
 - `utilities/extract_subdomain` now is called with kwargs.
 - Cleaning up `msh.bound_courant_number()` to use `msh.get_boundary_of_mesh()` for Delaunay-triangulation and allowing `msh.clean()` to do the transfer of attributes automatically.
-- `msh.plus(obj1,obj2)` can now carry over obj2 f13 attributes if also exist in obj1 
+- `msh.plus(obj1,obj2)` can now carry over obj2 f13 attributes if also exist in obj1
 - `msh()` more efficient storing of boundary conditions read in from fort.xx files, and `msh.write()` can write out arbitrary vertex indices (instead of just 1 to NP).
 
 ## Fixed
@@ -169,7 +181,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Prompt when labeling bcs using `outer` kwarg in `make_bc`
 - fix for boundary condition mapping in `msh.map_mesh_properties()` especially for weirs/barriers
 - fix for barrier mapping in `msh.plus()` routine
-- fix for `msh.make_bc(m,auto,gdat)` where gdat is empty. In this case it uses the depths on the mesh to determine the open boundaries. 
+- fix for `msh.make_bc(m,auto,gdat)` where gdat is empty. In this case it uses the depths on the mesh to determine the open boundaries.
 - check for `poly2ccw` mapping toolbox function in `kml2struct`
 - fix for `msh.plot()` on log colormap when plotting f13 attributes
 

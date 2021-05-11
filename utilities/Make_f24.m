@@ -1,16 +1,19 @@
-function obj = Make_f24( obj, avisoloc, saldata )
-% obj = Make_f24( obj, avisoloc, saldata )
+function obj = Make_f24( obj, saldata, plot_on )
+% obj = Make_f24( obj, saldata, plot_on )
 % Takes a msh object and interpolates the global SAL term into the f24
 % struct
-% avisoloc is the directory where the saldata is located (netcdf files). 
+% Assumes that saldata is in the MATLAB path
 % The saldata required can be downloaded from:                                                          
 % saldata = 'FES2004' : Source at: ftp://ftp.legos.obs-mip.fr/pub/soa/...  
 %                                 maree/tide_model/global_solution/fes2004/           
 %                                                                         
 % saldata = 'FES2014' : Source at: ftp://ftp.legos.obs-mip.fr/pub/...
 %                                  FES2012-project/data/LSA/FES2014/             
-% 
-% by default saldata = 'FES2014' and avisoloc is the current directory
+% by default saldata = 'FES2014' 
+%
+% plot_on -  1/true: to plot and print F24 values for checking
+%            0/false: no plotting by default
+%
 % Created by William Pringle. July 11 2018 updated to Make_f## style             
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -19,11 +22,11 @@ if isempty(obj.f15)
           'with tidal potential information']) 
 end
 
-if nargin < 2
-   avisoloc = '';
-end
-if nargin < 3
+if nargin < 2 || isempty(saldata)
    saldata = 'FES2014'; 
+end
+if nargin < 3 || isempty(plot_on)
+   plot_on = false; 
 end
 
 ll0 = obj.f15.slam(1) ;
@@ -41,7 +44,7 @@ ntip = length(obj.f24.tiponame) ;
 
 % choose tidal database file names and directories
 database = strtrim(upper(saldata)) ;
-direc    = strtrim(avisoloc) ;
+direc    = '';
 
 % % Load tide grid data 
 if strcmp(database,'FES2004')
@@ -115,11 +118,14 @@ for icon = 1: ntip
     phs(phs < 0) = phs(phs < 0) + 360;
     
     % Plot interpolated results
-    figure(1); fastscatter(VX(:,1),VX(:,2),amp); 
-    title(obj.f24.tiponame{icon})
-    colorbar;
-    pause(2)
-    
+    if plot_on
+       figure(1); fastscatter(VX(:,1),VX(:,2),amp); 
+       colorbar;
+       constituent = obj.f24.tiponame{icon};
+       title(constituent)
+       print(['F24_' constituent '_check'],'-dpng')
+    end    
+
     % Put into the struct
     obj.f24.Val(icon,:,:) = [kvec'; amp'; phs']; 
 end

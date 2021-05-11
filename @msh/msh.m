@@ -887,13 +887,13 @@ classdef msh
             %                         default value N=1.
             %
             %        nan - 'fill' to fill in any NaNs everywhere
-            %            -'fillinside' to fill NaNs only in DEM extents
+            %            - 'fillinside' to fill NaNs only in DEM extents
             %
             %   mindepth - ensure the minimum depth is bounded in the
-            %                         interpolated region
+            %              interpolated region
             %
             %   maxdepth - ensure the maximum depth is bounded in the
-            %                         interpolated region
+            %              interpolated region
             %
             %   ignoreOL - = 0 [default]: interpolate data without masking overland
             %              = 1          : Mask overland data which may help for seabed-only interpolation
@@ -903,7 +903,9 @@ classdef msh
             %                             (i.e., keeps the sign of the topography the same as the dem)
             %              = 1 [default]: inverts the values of the dem
             %                             (underwater is positive depth)
-
+            %   lut      - A look up table (lut). See nlcd and ccap in
+            %              datasets/ for examples
+            
             % if give cell of geodata or dems then interpolate all
             if iscell(geodata) || isstring(geodata)
                 for i = 1:length(geodata)
@@ -1264,9 +1266,9 @@ classdef msh
             % varargin{1}: geodata class that had crestlines passed.
             %
             % ---------
-            % 'delete' - deletes a user-clicked boundary condition from msh.
+            % 'delete' - deletes a user-clicked land/mainland boundary condition from a msh.
             % varargins:
-            % index of boundary to delete 
+            % index of land/mainland boundary to delete 
 
             if nargin < 2
                 error('Needs type: one of "auto", "outer", "inner", "delete", or "weirs"')
@@ -1836,7 +1838,7 @@ classdef msh
                     disp(['Deleting boundary with index ',num2str(del)]) ;
                     
                     obj.bd.nbvv(:,del)=[];
-                    if ~isempty(obj.bd.ibconn)
+                    if isfield(obj.bd,'ibconn')
                         obj.bd.ibconn(:,del)=[];
                         obj.bd.barinht(:,del)=[]; 
                         obj.bd.barincfsb(:,del)=[];
@@ -2566,7 +2568,7 @@ classdef msh
         end
 
         function obj = carryoverweirs(obj,obj1)
-            idx1 = ourKNNsearch(obj.p',obj1.p',1);
+            idx1 = nearest_neighbor_map(obj, obj1,'precise');
             if isempty(obj.bd)
                 obj.bd.nbou=0;
                 obj.bd.nvell=[];
@@ -2584,9 +2586,9 @@ classdef msh
             jj = obj1.bd.ibtype == 24;
             obj.bd.nbou =  obj.bd.nbou + sum(jj);
             % types of boundaries
-            obj.bd.ibtype = [obj.bd.ibtype ; obj1.bd.ibtype(jj)];
+            obj.bd.ibtype = [obj.bd.ibtype obj1.bd.ibtype(jj)];
             % new boundaries come after what's already on
-            obj.bd.nvell = [obj.bd.nvell; obj1.bd.nvell(jj)];
+            obj.bd.nvell = [obj.bd.nvell obj1.bd.nvell(jj)];
             % nvel is twice the number of nodes on each boundary
             obj.bd.nvel = 2*sum(obj.bd.nvell);
             % nbvv is a matrix of boundary nodes
