@@ -679,7 +679,7 @@ classdef msh
             ax.Color = bgc;
             if proj == 1
                 % now add the box
-                m_grid('FontSize',fsz);
+                m_grid('FontSize',fsz,'bac',bgc);
             end
 
             function plotter(cmap,round_dec,yylabel,apply_pivot)
@@ -700,17 +700,8 @@ classdef msh
                    end
                    view(2);
                end
-               if apply_pivot
-                  cmocean(cmap,cmap_int(1),'pivot',pivot);
-               else
-                  try 
-                     cmocean(cmap,cmap_int(1));
-                  catch
-                     colormap(cmap)
-                  end
-               end
-               cb = colorbar;
                numticks = cmap_int(1)+1;
+               cb = colorbar;
                if logaxis
                    if length(cmap_int) >= 3
                       desiredTicks = round(10.^(linspace(...
@@ -738,6 +729,15 @@ classdef msh
                    for tck = 1 : length(desiredTicks)
                       cb.TickLabels{tck} = num2str(desiredTicks(tck));
                    end
+               end
+               if apply_pivot
+                  cmocean(cmap,cmap_int(1),'pivot',pivot);
+               else
+                  try 
+                     cmocean(cmap,cmap_int(1));
+                  catch
+                     colormap(cmap)
+                  end
                end
                ylabel(cb,yylabel,'fontsize',fsz);
             end
