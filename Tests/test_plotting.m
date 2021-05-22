@@ -29,6 +29,9 @@ bbox_s =  [172   176;
        
 close all; 
 %%
+m.b = rand(length(m.p(:,1)),1); 
+m.bx = rand(length(m.p(:,1)),1); 
+m.by = rand(length(m.p(:,1)),1); 
 
 % start testing all types
 types = {'tri','bd','ob','b','slp','reso','resodx','qual'}; 
