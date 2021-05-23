@@ -1,4 +1,4 @@
-function [del,obj] = setProj(obj,proj,projtype,insert)
+function [del,obj] = setProj(obj,proj,projtype,insert,bbox)
     % [del,obj] = setProj(obj,proj,projtype,insert)
     % kjr generic function to parse projected space options
     % returns del flag to delete overlapping elements when plotting
@@ -10,10 +10,20 @@ function [del,obj] = setProj(obj,proj,projtype,insert)
         insert = 0;
     end
     
-    % process bounds of mesh
-    lon_mi = min(obj.p(:,1)); lon_ma = max(obj.p(:,1));
-    lat_mi = min(obj.p(:,2)); lat_ma = max(obj.p(:,2));
+    if nargin < 5
+        bbox = [];
+    end
+    
+    % process bounds of mesh (or supply your own)
+    if isempty(bbox)
+        lon_mi = min(obj.p(:,1)); lon_ma = max(obj.p(:,1));
+        lat_mi = min(obj.p(:,2)); lat_ma = max(obj.p(:,2));
+    else
+        lon_mi = bbox(1,1); lon_ma = bbox(1,2);
+        lat_mi = bbox(2,1); lat_ma = bbox(2,2);
+    end
     lat_mea = mean(obj.p(:,2)); lon_mea = mean(obj.p(:,1));
+    
     % some defaults
     rad = 100; rot = 15;
     del = 0 ;

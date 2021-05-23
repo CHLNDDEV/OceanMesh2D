@@ -1,11 +1,12 @@
 % Test size bounds with varying mesh gradation rates.
-cd ..
+clearvars; clc;
 
-addpath(genpath('utilities/'))
-addpath(genpath('datasets/'))
-addpath(genpath('m_map/'))
+addpath('..')
+addpath(genpath('../utilities/'))
+addpath(genpath('../datasets/'))
+addpath(genpath('../m_map/'))
 
-MIN_RESO_TOL = 100 ;
+RESO_TOL = 95; %percentage of resolution in bounds
 
 bbox = [166 176;		% lon_min lon_max
     -48 -40]; 		% lat_min lat_max
@@ -26,7 +27,7 @@ for i = 1 : 3 % for each grade
     m1 = mshopts.grd;
     
     [bars,barlen] = GetBarLengths(m1,0);
-    % sort bar lengths in ascending order
+    % sort bar lengths in descending order
     [barlen,IA] = sort(barlen,'descend');
     bars = bars(IA,:);
     % get the minimum bar length for each node
@@ -35,13 +36,13 @@ for i = 1 : 3 % for each grade
     d1 = NaN*m1.p(:,1); d2 = NaN*m1.p(:,1);
     d1(B1) = barlen(IB); d2(B2) = barlen(IC);
     reso = min(d1,d2);
-    
-    if abs(prctile(reso,5) - min_el) > MIN_RESO_TOL
-        error(['Minimum resolution does not match for grade ',num2str(grade(i)),'. Got ',...
-            num2str(prctile(reso,5)),' expecting 1e3 +- 100 m']);
+   
+    reso_in_bounds = 100*sum(reso > min_el & reso < max_el)/length(reso); 
+    if reso_in_bounds < RESO_TOL
+        error(['Resolution bounds does not match for grade ' num2str(grade(i)) ...
+               '. Got ' num2str(reso_in_bounds) '% of vertices with resolution in bounds']); 
         exit(1)
     end
-    disp(['Passed for ',num2str(grade(i)),'. Min. element size is ',num2str(prctile(reso,5))]); 
+    disp(['Passed for ' num2str(grade(i)) '. ' ...
+          num2str(reso_in_bounds) '% of vertices have resolution in bounds']); 
 end
-
-cd Tests/

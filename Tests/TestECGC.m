@@ -1,9 +1,10 @@
 % Run example 3 to test multi-scale meshing, bound_courant_number, and interp
-cd ..
+clearvars; clc
 
-addpath(genpath('utilities/'))
-addpath(genpath('datasets/'))
-addpath(genpath('m_map/'))
+addpath('..')
+addpath(genpath('../utilities/'))
+addpath(genpath('../datasets/'))
+addpath(genpath('../m_map/'))
 
 ERR_TOL = 0.05;
 ERR2_TOL = 0.01;
