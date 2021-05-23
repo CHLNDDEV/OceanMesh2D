@@ -1,4 +1,3 @@
-clearvars; 
 % Test plotting 
 clearvars; clc;
 
@@ -6,6 +5,7 @@ addpath('..')
 addpath(genpath('../utilities/'))
 addpath(genpath('../datasets/'))
 addpath(genpath('../m_map/'))
+
 bbox = [166 176;		% lon_min lon_max
         -48 -40]; 		% lat_min lat_max
 min_el    = 1e3;  		% minimum resolution in meters.
