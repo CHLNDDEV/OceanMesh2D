@@ -92,9 +92,10 @@ for j = 1:obj.f15.nbfr
     end
     k = find(startsWith(string(const_t'),lower(const{j})));
     if isempty(k)
-       disp(['No tidal data in file for constituent ' const{j}])
-       keep(j) = false;  
-       continue
+        disp(['No tidal data in file for constituent ' const{j}])
+        obj.f15.opealpha(j).name = const{j};
+        obj.f15.opealpha(j).val = 0*[b_x b_x];            
+        continue
     end
         % For real part
     if min(size(const_t)) > 1
