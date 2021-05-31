@@ -4,8 +4,12 @@ function ind = radius_separated_points(long,lat,radius)
 %  so that they are at least separated by a distance of
 %  user-defined 'radius'
 
-% computing rangesearch
-K = rangesearch([long lat],[long lat],radius);
+% computing rangesearch (ourRangeSearch significantly slower due to for loop)
+if ~exist('rangesearch')
+    K = ourRangeSearch([long lat]',[long lat]',radius);
+else
+    K = rangesearch([long lat],[long lat],radius);
+end
 KL = cellfun(@length,K);
 rr = find(KL > 1);
 % loop until all points have closest point that is only itself
