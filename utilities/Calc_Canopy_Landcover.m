@@ -14,6 +14,10 @@ function obj = Calc_Canopy_Landcover(obj,data,type,varargin)
 %
 % varargin: Accepts the same options as for msh.interp to control how 
 %           data is interpolated; see 'help msh.interp'
+%
+% Usage:
+%   m = Calc_Canopy_Landcover(m,landuse_data,'ccap','interp','nearest');
+%   m = Calc_Canopy_Landcover(m,landuse_data,'nlcd','interp','CA','N',2);
 % 
 %  Author:            WP Jun, 2021
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
