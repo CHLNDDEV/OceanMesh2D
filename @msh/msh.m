@@ -736,7 +736,11 @@ classdef msh
                    end
                end
                if apply_pivot
-                  cmocean(cmap,cmap_int(1),'pivot',pivot);
+                  try
+                     cmocean(cmap,cmap_int(1),'pivot',pivot);
+                  catch
+                     cmocean(cmap,cmap_int(1));
+                  end
                else
                   try 
                      cmocean(cmap,cmap_int(1));
@@ -3840,40 +3844,47 @@ classdef msh
             % Usage:
             %   obj = map_mesh_properties(obj,'ind',index_mapping);
             %   obj = map_mesh_properties(obj,'msh_old',old_msh_object);
+            %   obj = map_mesh_properties(obj,'msh_old',old_msh_object,...
+            %                             'property',{'op'});
             %
             % varargin options:
             %   i)   'ind' - A mapping from an old mesh to a new mesh.
             %                the old mesh and new mesh ideally
             %                shouldn't have changed much
             %   ii)  'msh_old' - an old mesh object from which `ind` are calculated to perform the mapping
-            %
+            %   iii) 'property' - cell array of select properties to map from:
+            %                 {'b','bx','by','op','bd','f13','f24','f5354'}
+            %         (if this option not present all properties are mapped)
 
             % Name value pairs specified.
             % Parse other varargin
             ind = [];
             m_old = obj; 
+            property = {'b','bx','by','op','bd','f13','f24','f5354'};
             for kk = 1:2:length(varargin)
                 if strcmp(varargin{kk},'msh_old')
                     m_old = varargin{kk+1};
                 elseif strcmp(varargin{kk},'ind')
                     ind = varargin{kk+1};
+                elseif strcmp(varargin{kk},'property')
+                    property = varargin{kk+1};
                 end
             end
             if isempty(ind)
                 ind = nearest_neighbor_map(m_old, obj);
             end
-            if ~isempty(m_old.b)
+            if any(strcmp(property,'b')) && ~isempty(m_old.b)
                 obj.b = m_old.b(ind);
             end
             % topographic gradients
-            if ~isempty(obj.bx)
+            if any(strcmp(property,'bx')) && ~isempty(obj.bx)
                 obj.bx = m_old.bx(ind);
             end
-            if ~isempty(obj.by)
+            if any(strcmp(property,'by')) && ~isempty(obj.by)
                 obj.by = m_old.by(ind);
             end
             % open boundary info
-            if ~isempty(obj.op) && obj.op.nope > 0
+            if any(strcmp(property,'op')) && ~isempty(obj.op) && obj.op.nope > 0
                 for ib = 1 : obj.op.nope
                     idx_old = obj.op.nbdv(1:obj.op.nvdll(ib),ib);
                     % Only keep idx_old that is common to ind and map to ind
@@ -3899,7 +3910,7 @@ classdef msh
                 end
             end
             % land boundary info
-            if ~isempty(obj.bd) && obj.bd.nbou > 0
+            if any(strcmp(property,'bd')) && ~isempty(obj.bd) && obj.bd.nbou > 0
                 for ib = 1 : obj.bd.nbou
                     nvell_old = obj.bd.nvell(ib);
                     idx_old = obj.bd.nbvv(1:nvell_old,ib);
@@ -3962,7 +3973,7 @@ classdef msh
                 end
             end
             % f13
-            if ~isempty(m_old.f13)
+            if any(strcmp(property,'f13')) && ~isempty(m_old.f13)
                 obj.f13 = m_old.f13; 
                 obj.f13.NumOfNodes = length(ind);
                 for att = 1:obj.f13.nAttr
@@ -3995,11 +4006,11 @@ classdef msh
                 end
             end
             % f24
-            if ~isempty(obj.f24)
+            if any(strcmp(property,'f24')) && ~isempty(obj.f24)
                 obj.f24.Val = m_old.f24.Val(:,:,ind);
             end
             % f5354
-            if ~isempty(obj.f5354)
+            if any(strcmp(property,'f5354')) && ~isempty(obj.f5354)
                 idx_old = m_old.f5354.nodes;
                 [~,idx_new] = intersect(idx_old,ind);
                 obj.f5354.nodes = idx_new;

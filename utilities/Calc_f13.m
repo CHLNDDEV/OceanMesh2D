@@ -31,10 +31,15 @@ function obj = Calc_f13(obj,attribute,varargin)
 %
 %  Outputs: 1) msh class obj with attribute values populating the f13 struct
 %
+%    Notes: 1) For 'Re' option with 'inpoly' user supplies the desired 
+%              initial river depth and the initial_river_elevation is 
+%              computed based on the difference from the depth (obj.b)
+%
 %  Author:      Keith Roberts, WP to make it for general attribute
 %  Created:     April 5 2018, July 5 2018, June 6 2019 (cleaning up)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+Reflag = false;
 if strcmpi(attribute,'Cf')
     attrname = 'quadratic_friction_coefficient_at_sea_floor';
     default_val = 0.0025; % Default Cf
@@ -50,6 +55,7 @@ elseif strcmpi(attribute,'Ss')
 elseif strcmpi(attribute,'Re')
     attrname = 'initial_river_elevation';
     default_val = 0;
+    Reflag = true;
 elseif strcmpi(attribute,'Ad')
     attrname = 'advection_state';
     default_val = -999;
@@ -119,9 +125,9 @@ if strcmpi(varargin{1},'inpoly')
     for i = 1 : length(polys)
         in = inpoly([obj.p(:,1),obj.p(:,2)],polys{i});
         if inverse(i)
-            cf(~in) = cfvals(i);
+            cf(~in) = cfvals(i) - Reflag*min(cfvals(i),obj.b(~in));
         else
-            cf(in) = cfvals(i);
+            cf(in) = cfvals(i) - Reflag*min(cfvals(i),obj.b(in));
         end
     end
 else

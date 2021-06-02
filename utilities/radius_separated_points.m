@@ -8,7 +8,11 @@ function ind = radius_separated_points(long,lat,radius)
 if ~exist('rangesearch')
     K = ourRangeSearch([long lat]',[long lat]',radius);
 else
-    K = rangesearch([long lat],[long lat],radius);
+    try
+       K = rangesearch([long lat],[long lat],radius);
+    catch
+       K = ourRangeSearch([long lat]',[long lat]',radius);
+    end
 end
 KL = cellfun(@length,K);
 rr = find(KL > 1);

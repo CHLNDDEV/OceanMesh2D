@@ -1,8 +1,8 @@
-function obj = Calc_Mannings_Landcover(obj,data,type,varargin)
-% obj = Calc_Mannings_Landcover(obj,data,type,varargin)
+function obj = Calc_Canopy_Landcover(obj,data,type,varargin)
+% obj = Calc_Canopy_Landcover(obj,data,type,varargin)
 % Input a msh class object and interpolates a land-cover database file
-% (netcdf format) onto the msh while converting to mannings values through
-% a look-up table
+% (netcdf format) onto the msh while converting to surface canopy
+% coefficient through a look-up table
 % 
 % type:
 %  - 'nlcd': 
@@ -15,8 +15,7 @@ function obj = Calc_Mannings_Landcover(obj,data,type,varargin)
 % varargin: Accepts the same options as for msh.interp to control how 
 %           data is interpolated; see 'help msh.interp'
 % 
-%  Author:            WP July 19, 2018
-%  Update for CCAP:   WP May 5, 2021
+%  Author:            WP Jun, 2021
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if nargin < 3 || isempty(type)
@@ -27,30 +26,30 @@ if strcmp(type,'nlcd')
     disp('Info: Using NLCD table')
     % NLCD table
     load nlcd
-    nlcd_mannings(end+1)=nlcd_mannings(11); % <--make NaN = default value
+    nlcd_canopy(end+1)=nlcd_canopy(11); % <--make NaN = default value
     varargin{end+1}='lut';
-    varargin{end+1}=nlcd_mannings;
+    varargin{end+1}=nlcd_canopy;
 elseif strcmp(type,'ccap')
     disp('Info: Using CCAP table')
     % CCAP table
     load ccap 
-    ccap_mannings(end+1)=ccap_mannings(21); % <-- make NaN = default value
+    ccap_canopy(end+1)=ccap_canopy(21); % <-- make NaN = default value
     varargin{end+1}='lut';
-    varargin{end+1}=ccap_mannings;
+    varargin{end+1}=ccap_canopy;
 else
     error('Land-cover database not supported')
 end
-% The mannings name and default value
-attrname = 'mannings_n_at_sea_floor';
-default_val = varargin{end}(end); %end of the lut is default
+% The canopy name and default value
+attrname = 'surface_canopy_coefficient';
+default_val = 1; % (no canopy)
 dmy = msh();  dmy.p = obj.p; dmy.t = obj.t; 
-% Convert to Mannings and interpolate how the user wants
+% Convert to surface canopy and interpolate how the user wants
 dmy = interp(dmy,data,varargin{:});
-Man = dmy.b';
-Man( isnan(Man) | Man==0 ) = default_val; %points outside of lut can still be NaN
+Can = dmy.b';
+Can( isnan(Can) | Can==0 ) = default_val; %points outside of lut can still be NaN
 %% Make into f13 struct
 if isempty(obj.f13)
-    % Add add mannings as first entry in f13 struct
+    % Add add canopy as first entry in f13 struct
     obj.f13.AGRID = obj.title;
     obj.f13.NumOfNodes = length(obj.p);
     obj.f13.nAttr = 1;
@@ -60,12 +59,12 @@ else
     for NA = 1:obj.f13.nAttr
         if strcmp(attrname,obj.f13.defval.Atr(NA).AttrName)
             broken = 1;
-            % overwrite existing mannings
+            % overwrite existing canopy
             break
         end
     end
     if ~broken
-        % add mannings to list
+        % add canopy to list
         obj.f13.nAttr = obj.f13.nAttr + 1;
         NA = obj.f13.nAttr;
     end
@@ -81,10 +80,10 @@ obj.f13.defval.Atr(NA).Val = default_val ;
 
 % User Values
 obj.f13.userval.Atr(NA).AttrName = attrname ;
-numnodes = length(find(Man ~= default_val));
+numnodes = length(find(Can ~= default_val));
 obj.f13.userval.Atr(NA).usernumnodes = numnodes ;
 % Print out list of nodes for each
-K = find(Man ~= default_val);
-obj.f13.userval.Atr(NA).Val = [K ; Man(K)];
+K = find(Can ~= default_val);
+obj.f13.userval.Atr(NA).Val = [K ; Can(K)];
 %EOF
 end
