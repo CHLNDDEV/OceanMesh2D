@@ -414,8 +414,8 @@ classdef edgefx
                     % no bounds specified.
                     wlp = param(1);
                     % set cuttof at 10 m by default
-                    dp1 = -10;
-                    dp2 = -inf;
+                    dp1 = inf;
+                    dp2 = -10;
                 else
                     wlp = param(1);
                     dp1 = param(2);
