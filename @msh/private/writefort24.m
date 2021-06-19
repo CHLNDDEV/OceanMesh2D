@@ -11,6 +11,7 @@ if nargin < 3
     ascii = 0;
 end
 
+%ascii = 1; 
 
 if ascii % LEGACY
     fid = fopen(finputname,'w') ;
@@ -45,7 +46,7 @@ else
         ncwrite(file, var1, f24dat.omega(icon)) ;
         
         var2= [tipname,'_vals'];
-        nccreate(file, var2,'Dimensions',{'valspernode',3,'nnodes',nnodes}) ;
+        nccreate(file, var2,'Dimensions',{'valspernode',3,'nnodes',nnodes},'DeflateLevel',7) ;
         ncwrite(file, var2, squeeze(f24dat.Val(icon,:,:)),[1, 1]) ;
     end
     
