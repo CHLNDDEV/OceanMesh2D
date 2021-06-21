@@ -37,7 +37,11 @@ elseif strcmp(format,'netcdf') % NETCDF
     if exist(file)
         delete(file)
     end
-    nnodes = length(f24dat.Val(1,:,:));
+    indices = squeeze(f24dat.Val(1,1,:)); 
+    nnodes = length(indices);
+    nccreate(file,'mesh_indices','Dimensions',{'nnodes',nnodes},'DataType','int32','DeflateLevel',7) ;
+    ncwrite(file, 'mesh_indices', indices) ;
+
     tipnames = f24dat.tiponame; ntip = length(tipnames) ;
     for icon = 1: ntip
         tipname = tipnames{icon};
@@ -47,8 +51,8 @@ elseif strcmp(format,'netcdf') % NETCDF
         ncwrite(file, var1, f24dat.omega(icon)) ;
         
         var2= [tipname,'_vals'];
-        nccreate(file, var2,'Dimensions',{'valspernode',3,'nnodes',nnodes},'DeflateLevel',7) ;
-        ncwrite(file, var2, squeeze(f24dat.Val(icon,:,:)),[1, 1]) ;
+        nccreate(file, var2,'Dimensions',{'valspernode',2,'nnodes',nnodes},'DeflateLevel',7) ;
+        ncwrite(file, var2, squeeze(f24dat.Val(icon,2:3,:)),[1,1]) ;
     end
 
 else
