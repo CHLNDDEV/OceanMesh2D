@@ -3,7 +3,8 @@ datasets/
 fort.*
 Examples/*
 !Examples/Example_*
-/*.mat
+*/*.mat
+*.mat
 *.15
 *.14
 *.13

@@ -74,7 +74,7 @@ end
 % Default Values
 obj.f13.defval.Atr(NA).AttrName = attrname;
 % We can just put in the options here
-obj.f13.defval.Atr(NA).Unit = 'unitless';
+obj.f13.defval.Atr(NA).Unit = '[s/m^(1/3)]';
 valpernode = 1;
 obj.f13.defval.Atr(NA).ValuesPerNode = valpernode ;
 obj.f13.defval.Atr(NA).Val = default_val ;

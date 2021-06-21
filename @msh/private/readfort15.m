@@ -44,7 +44,7 @@ line = fgetl(fid) ;
 f15dat.im = str2num(token) ;
 
 % IDEN
-if ( f15dat.im == 20 || f15dat.im == 30 || f15dat.im == 511113 ) 
+if ( f15dat.im == 20 || f15dat.im == 30 ) 
     line = fgetl(fid) ;
     [token,res] = strtok(line) ; 
     
@@ -312,9 +312,9 @@ if ( f15dat.im == 10 )
     f15dat.outgc = readlinevec( fid ) ; 
 end
 
-% NOUTGW
+% NOUTGM
 if ( f15dat.nws ~= 0 ) 
-    f15dat.outgw = readlinevec( fid ) ;
+    f15dat.outgm = readlinevec( fid ) ;
 end
 
 
