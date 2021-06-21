@@ -52,7 +52,7 @@ if strcmp(database,'FES2004')
     lon = ncread(tide_grid,'lon');
     lat = ncread(tide_grid,'lat');
     % -180/180 degree format for 2004
-    if (lon0 > 180); lon0 = lon0 - 360 ;
+    if (lon0 > 180); lon0 = lon0 - 360 ; end
 elseif strcmp(database,'FES2014')
     tide_grid     = [direc  'K1_sal.nc'];
     tide_prefix   = direc;
@@ -61,7 +61,10 @@ elseif strcmp(database,'FES2014')
     lat = ncread(tide_grid,'latitude');
     [lon,lat] = ndgrid(lon,flipud(lat));
     % 0-360 degree format for 2014
-    if (lon0 < 0); lon0 = lon0 + 360 ;
+    if (lon0 < 0); lon0 = lon0 + 360 ; end
+else
+    error(['database = ' database ' is invalid.'...
+          ' Choose from FES2004 or FES2014'])
 end
 % Convert CPP origin parameters to radians
 lon0 = lon0*pi/180 ; lat0 = lat0*pi/180 ;
