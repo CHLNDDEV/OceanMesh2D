@@ -1,4 +1,4 @@
-function fid = writefort24( f24dat, finame, ascii )
+function fid = writefort24( f24dat, finame, format )
 %
 %
 if ( nargin == 1 )
@@ -7,13 +7,14 @@ else
     finputname = finame ;
 end
 
-if nargin < 3
-    ascii = 0;
+if nargin < 3 || isempty(format) 
+   format = 'ascii';
+end
+if iscell(format)
+   format = format{1};
 end
 
-%ascii = 1; 
-
-if ascii % LEGACY
+if strcmp(format,'ascii') % LEGACY
     fid = fopen(finputname,'w') ;
     
     tipnames = f24dat.tiponame; ntip = length(tipnames) ;
@@ -30,7 +31,7 @@ if ascii % LEGACY
     
     fclose(fid) ;
     
-else
+elseif strcmp(format,'netcdf') % NETCDF
     % create nc file or overwrite it
     file = [finputname,'.nc'];
     if exist(file)
@@ -49,7 +50,9 @@ else
         nccreate(file, var2,'Dimensions',{'valspernode',3,'nnodes',nnodes},'DeflateLevel',7) ;
         ncwrite(file, var2, squeeze(f24dat.Val(icon,:,:)),[1, 1]) ;
     end
-    
+
+else
+    error(['format = ' format ' is invalid. Choose from ascii or netcdf'])
 end
 %EOF
 end

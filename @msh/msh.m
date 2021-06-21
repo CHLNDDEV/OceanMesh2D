@@ -175,9 +175,9 @@ classdef msh
         end
 
         % write mesh to disk
-        function write(obj,fname,type)
+        function write(obj,fname,type,varargin)
             % Usage:
-            % write(obj,fname,type)
+            % write(obj,fname,type,varargin)
             %
             % Examples:
             % write(obj);       % writes all available data to fort_1.xx (ADCIRC) files
@@ -186,6 +186,7 @@ classdef msh
             % write(obj,fname,'gr3'); % writes mesh data to fname.gr3 (SCHISM) file
             % write(obj,fname,'ww3'); % writes mesh data to fname.ww3 (WaveWatchIII) file
             % write(obj,fname,{'13','14'}); % writes mesh data and f13 attribute data to fname.14 and fname.13 (ADCIRC) files
+            % write(obj,fname,'24','netcdf'); % writes fort.24 SAL data to fname.24.nc netcdf file
             if nargin == 1
                 fname = 'fort_1';
             end
@@ -211,7 +212,7 @@ classdef msh
                     writefort15( obj.f15, [fname '.15'], obj.bd );
                 end
                 if ~isempty(obj.f24)
-                    writefort24( obj.f24, [fname '.24'] );
+                    writefort24( obj.f24, [fname '.24'], varargin);
                 end
                 if ~isempty(obj.f5354)
                     writefort5354( obj.f5354, fname );
@@ -264,7 +265,7 @@ classdef msh
                     writefort19( obj.f2001, [fname '.2001'] );
                 end
                 if any(contains(type,'24')) && ~isempty(obj.f24)
-                    writefort24( obj.f24, [fname '.24'] );
+                    writefort24( obj.f24, [fname '.24'], varargin);
                 end
                 if any(contains(type,'5354')) && ~isempty(obj.f5354)
                     writefort5354( obj.f5354, fname );
