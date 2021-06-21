@@ -1,11 +1,11 @@
-function obj = Make_f24( obj, saldata, plot_on, format )
+function obj = Make_f24( obj, saldata, plot_on )
 % obj = Make_f24( obj, saldata, plot_on )
 % Takes a msh object and interpolates the global SAL term into the f24
 % struct
 % Assumes that saldata is in the MATLAB path
 % The saldata required can be downloaded from:
 % saldata = 'FES2004' : Source at: ftp://ftp.legos.obs-mip.fr/pub/soa/...
-%                                 maree/tide_model/global_solution/fes2004/
+%                                 maree/tide_model/global_solution/fes2004/load/
 %
 % saldata = 'FES2014' : Source at: ftp://ftp.legos.obs-mip.fr/pub/...
 %                                  FES2012-project/data/LSA/FES2014/
@@ -13,9 +13,6 @@ function obj = Make_f24( obj, saldata, plot_on, format )
 %
 % plot_on -  1/true: to plot and print F24 values for checking
 %            0/false: no plotting by default
-%
-% format - 1/true (default): indicates FES file is in -180 to +180 degree format
-%          0/false: indicates FES file is in 0 to +360 degree format
 %
 % Created by William Pringle. July 11 2018 updated to Make_f## style
 % Modified by Keith Roberts Jun 19, 2021 to specify degree format for FES
@@ -33,18 +30,11 @@ end
 if nargin < 3 || isempty(plot_on)
     plot_on = false;
 end
-if nargin < 4
-    format = 1;
-end
 
-ll0 = obj.f15.slam(1) ;
-if ( ll0 < 0 )
-    ll0 = ll0 + 360 ;
-end
-lon0 = ll0*pi/180 ; lat0 = obj.f15.slam(2)*pi/180 ;
-
+% parameter for cpp conversion
 R = 6378206.4; % earth radius
-
+lon0 = obj.f15.slam(1) ; % central longitude
+lat0 = obj.f15.slam(2) ; % central latitude
 % Put in the tidal potential names
 obj.f24.tiponame = {obj.f15.tipotag.name};
 
@@ -61,27 +51,33 @@ if strcmp(database,'FES2004')
     tide_suffix   = '.nc';
     lon = ncread(tide_grid,'lon');
     lat = ncread(tide_grid,'lat');
-elseif  strcmp(database,'FES2014')
+    % -180/180 degree format for 2004
+    if (lon0 > 180); lon0 = lon0 - 360 ;
+elseif strcmp(database,'FES2014')
     tide_grid     = [direc  'K1_sal.nc'];
     tide_prefix   = direc;
     tide_suffix   = '_sal.nc';
     lon = ncread(tide_grid,'longitude');
     lat = ncread(tide_grid,'latitude');
     [lon,lat] = ndgrid(lon,flipud(lat));
+    % 0-360 degree format for 2014
+    if (lon0 < 0); lon0 = lon0 + 360 ;
 end
+% Convert CPP origin parameters to radians
+lon0 = lon0*pi/180 ; lat0 = lat0*pi/180 ;
 
-% CPP Conversion of lat/lon
+% CPP Conversion of FES lat/lon
 lon = lon * pi/180; lat = lat * pi/180;
 x = R * (lon - lon0) * cos(lat0);
 y = R * lat;
 
-% Get mesh vertices and change to FES 0 to 360 deg style
+% Doing the CPP conversion of the mesh
 VX = obj.p;
-if ~format
-    VX(VX(:,1)<0,1) = VX(VX(:,1)<0,1) + 360;
+if strcmp(database,'FES2004')
+   VX(VX(:,1)>180,1) = VX(VX(:,1)>180,1) - 360;
+elseif strcmp(database,'FES2014')
+   VX(VX(:,1)<0,1) = VX(VX(:,1)<0,1) + 360;
 end
-
-% Doing the CPP conversion
 xx = VX(:,1) * pi/180; yy = VX(:,2) * pi/180;
 xx = R * (xx - lon0) * cos(lat0);
 yy = R * yy;
