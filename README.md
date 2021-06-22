@@ -123,8 +123,8 @@ Please fill in the version (VX.X), author list and year corresponding to the ver
 
 We would also like to acknowledge various scripts and algorithms from [`mesh2d`](https://github.com/dengwirda/mesh2d) included in OceanMesh2D that have been developed by @dengwirda. Please also see [`JIGSAW-GEO`](https://github.com/dengwirda/jigsaw-geo-matlab):
 ```
-[i] - Engwirda, D., 2017. 
-      JIGSAW-GEO (1.0): Locally orthogonal staggered unstructured grid generation for general circulation modelling on the sphere. 
+[i] - Engwirda, D., 2017.
+      JIGSAW-GEO (1.0): Locally orthogonal staggered unstructured grid generation for general circulation modelling on the sphere.
       Geoscientific Model Development, 10(6), 2117–2140. https://doi.org/10.5194/gmd-10-2117-2017.
 ```
 
@@ -147,11 +147,12 @@ Changelog
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
-### Unreleased
+### Unreleased (on current HEAD of the Projection branch)
 ## Added
+-  `msh.plot()` now has a `cmap` in which the user can specify their any `cmocean` colormap
 - `radius_separated_points` function that trims the points in the mesh to have a specified resolution that can be used before `m_quiver` so that vectors are evenly plotted. https://github.com/CHLNDDEV/OceanMesh2D/pull/225
 - Deleting boundary conditions by specifyng their indices in `msh.object.bd` field. See https://github.com/CHLNDDEV/OceanMesh2D/pull/205
-- Ability for user to set their own axis limits when plotting with `msh.plot()`. https://github.com/CHLNDDEV/OceanMesh2D/pull/224 
+- Ability for user to set their own axis limits when plotting with `msh.plot()`. https://github.com/CHLNDDEV/OceanMesh2D/pull/224
 ## Fixed
 - correction in setting stereographic projection bounds in `setProj` to make sure points are not pushed outside and become NaNs (was limited to radius of 178 deg but made sure can go up to full 180 deg). https://github.com/CHLNDDEV/OceanMesh2D/pull/225
 - Correctly deleting weirs from boundary object through `make_bc` delete method. See https://github.com/CHLNDDEV/OceanMesh2D/pull/205
