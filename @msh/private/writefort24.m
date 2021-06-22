@@ -37,23 +37,34 @@ elseif strcmp(format,'netcdf') % NETCDF
     if exist(file)
         delete(file)
     end
+    % deflate level (set zero for no deflation if necessary.. using single precision so not very different in size)
+    dl = 5;
+    % SAL indices
     indices = squeeze(f24dat.Val(1,1,:)); 
-    nnodes = length(indices);
-    nccreate(file,'mesh_indices','Dimensions',{'nnodes',nnodes},'DataType','int32','DeflateLevel',7) ;
+    sal_nodes = length(indices);
+    nccreate(file,'mesh_indices','Dimensions',{'sal_nodes',sal_nodes},'DataType','int32','DeflateLevel',dl) ;
+    ncwriteatt(file,'mesh_indices','long_name','index of SAL values into mesh coordinates')
     ncwrite(file, 'mesh_indices', indices) ;
-
-    tipnames = f24dat.tiponame; ntip = length(tipnames) ;
-    for icon = 1: ntip
-        tipname = tipnames{icon};
-        var1= [tipname,'_omega'];
-        fprintf('Writing SAL %s data \n', char(tipname)) ;
-        nccreate(file,var1) ;
-        ncwrite(file, var1, f24dat.omega(icon)) ;
-        
-        var2= [tipname,'_vals'];
-        nccreate(file, var2,'Dimensions',{'valspernode',2,'nnodes',nnodes},'DeflateLevel',7) ;
-        ncwrite(file, var2, squeeze(f24dat.Val(icon,2:3,:)),[1,1]) ;
-    end
+    % SAL name
+    tipnames = char(f24dat.tiponame); ntip = size(tipnames) ;
+    nccreate(file,'const','dimensions',{'num_const',ntip(1),'char_len',ntip(2)},'DataType','char') ;
+    ncwriteatt(file,'const','long_name','names of the tidal harmonic constituents')
+    ncwrite(file, 'const', tipnames) ;
+    % SAL frequencies
+    nccreate(file,'frequency','dimensions',{'num_const',ntip(1)});
+    ncwriteatt(file,'frequency','long_name','frequency of harmonic constituents')
+    ncwriteatt(file,'frequency','units','rad/s')
+    ncwrite(file, 'frequency', f24dat.omega) ;
+    % SAL amplitudes
+    nccreate(file, 'salamp','Dimensions',{'num_const',ntip(1),'sal_nodes',sal_nodes},'DataType','single','DeflateLevel',dl) ;
+    ncwriteatt(file,'salamp','long_name','amplitude of self-attraction and loading tide elevation')
+    ncwriteatt(file,'salamp','units','m')
+    ncwrite(file, 'salamp', squeeze(f24dat.Val(:,2,:))) ;
+    % SAL phase lags
+    nccreate(file, 'salphs','Dimensions',{'num_const',ntip(1),'sal_nodes',sal_nodes},'DataType','single','DeflateLevel',dl) ;
+    ncwriteatt(file,'salphs','long_name','phase-lag of self-attraction and loading tide elevation')
+    ncwriteatt(file,'salphs','units','degrees with respect to GMT/UTC')
+    ncwrite(file, 'salphs', squeeze(f24dat.Val(:,3,:))) ;
 
 else
     error(['format = ' format ' is invalid. Choose from ascii or netcdf'])
