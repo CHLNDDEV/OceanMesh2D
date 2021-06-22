@@ -414,18 +414,18 @@ classdef edgefx
                     % no bounds specified.
                     wlp = param(1);
                     % set cuttof at 10 m by default
-                    dp1 = +inf;
+                    dp1 = -10;
                     dp2 = -inf;
                 else
                     wlp = param(1);
-                    dp1 = param(3);
-                    dp2 = param(2);
+                    dp1 = param(2);
+                    dp2 = param(3);
                 end
                 % limit to 1 m
                 twld = period*sqrt(grav*max(abs(tmpz),1))/wlp;
                 % Set wld with mask applied
-                obj.wld(tmpz > dp2 & tmpz < dp1  ) = ...
-                    twld(tmpz > dp2 & tmpz < dp1 );
+                obj.wld(tmpz < dp1 & tmpz > dp2 ) = ...
+                    twld(tmpz < dp1 & tmpz > dp2);
                 clearvars twld
             end
             clearvars tmpz xg yg;
@@ -614,18 +614,18 @@ classdef edgefx
                     % no bounds specified. valid in this range.
                     slpp = param(1);
                     % default cutoff is 10 m
-                    dp1 = +inf;
+                    dp1 = -10;
                     dp2 = -inf;
                 else
                     slpp = param(1);
-                    dp1 = param(3);
-                    dp2 = param(2);
+                    dp1 = param(2);
+                    dp2 = param(3);
                 end
                 % Calculating the slope function
                 dp = max(1,-tmpz);
                 tslpd = (2*pi/slpp)*dp./(bs+eps);
-                obj.slpd(tmpz > dp2 & tmpz < dp1 ) = ...
-                    tslpd(tmpz > dp2 & tmpz < dp1 );
+                obj.slpd(tmpz < dp1 & tmpz > dp2 ) = ...
+                    tslpd(tmpz < dp1 & tmpz > dp2);
                 clearvars tslpd
             end
             clearvars tmpz xg yg

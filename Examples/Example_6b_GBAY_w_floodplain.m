@@ -2,13 +2,6 @@
 % Continue on from Example_6_GBAY.m by building on
 % a floodplain onto the mesh.
 
-% Most mesh sizing functions can be enforced in a depth range such as: 
-%
-% sizing_parameter = [size_value1, min_depth1,max_depth1;
-%                     size_value2, min_depth2, max_depth2
-%                    ]; 
-% Note: multiple depth ranges must be delineated with semi-colons ;
-
 clearvars; clc;
 
 addpath('..')
@@ -17,11 +10,11 @@ addpath(genpath('../datasets/'))
 addpath(genpath('../m_map/'))
 
 %% STEP 1: set mesh extents and set parameters for mesh.
-min_el    = 60;  		     % Minimum mesh resolution in meters.
-max_el    = [1e3,-inf,0 ;    % Globally, maximum mesh resolution in meters. 
-             1e3,0,+inf];    % Overland, maximum mesh resolution in meters.
-grade     = [0.25,-inf,0;    % Use a spatially variable gradation rate overland.
-             0.05,0,+inf] ;
+min_el    = 60;  		    % Minimum mesh resolution in meters.
+max_el    = [1e3 0 -inf     % Globally, maximum mesh resolution in meters.
+             1e3 inf 0];    % Overland, maximum mesh resolution in meters.
+grade     = [0.25 0 -inf    % Use a spatially variable gradation rate overland.
+             0.05 inf 0] ;
 angleOfReslope = 60 ;       % Control width of channel by changing angle of reslope.
 ch = 0.1 ;                  % Scale resolution propotional to depth nearby thalweg.
 fs = 3 ;                    % Place 3 vertices per width of shoreline feature. 
