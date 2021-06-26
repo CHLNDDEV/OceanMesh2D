@@ -9,6 +9,7 @@ end
 
 if nargin < 3 || isempty(format) 
    format = 'ascii';
+   warning('Using ASCII file format. Pass ''netcdf'' to write in NetCDF')
 end
 if iscell(format)
    format = format{1};
@@ -65,6 +66,11 @@ elseif strcmp(format,'netcdf') % NETCDF
     ncwriteatt(file,'salphs','long_name','phase-lag of self-attraction and loading tide elevation')
     ncwriteatt(file,'salphs','units','degrees with respect to GMT/UTC')
     ncwrite(file, 'salphs', squeeze(f24dat.Val(:,3,:))) ;
+    % Add some meta data/attribution
+    ncwriteatt(file,'/','title','The self-attraction and loading terms for an ADCIRC simulation');
+    ncwriteatt(file,'/','creation_date',datestr(now));
+    ncwriteatt(file,'/','source',"Made by OceanMesh2D writefort24");
+    ncwriteatt(file,'/','references',"https://github.com/CHLNDDEV/OceanMesh2D/" );
 
 else
     error(['format = ' format ' is invalid. Choose from ascii or netcdf'])
