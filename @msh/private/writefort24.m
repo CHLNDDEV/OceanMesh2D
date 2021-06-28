@@ -57,15 +57,15 @@ elseif strcmp(format,'netcdf') % NETCDF
     ncwriteatt(file,'frequency','units','rad/s')
     ncwrite(file, 'frequency', f24dat.omega) ;
     % SAL amplitudes
-    nccreate(file, 'salamp','Dimensions',{'num_const',ntip(1),'sal_nodes',sal_nodes},'DataType','single','DeflateLevel',dl) ;
-    ncwriteatt(file,'salamp','long_name','amplitude of self-attraction and loading tide elevation')
-    ncwriteatt(file,'salamp','units','m')
-    ncwrite(file, 'salamp', squeeze(f24dat.Val(:,2,:))) ;
+    nccreate(file, 'SAL_amp','Dimensions',{'num_const',ntip(1),'sal_nodes',sal_nodes},'DataType','single','DeflateLevel',dl) ;
+    ncwriteatt(file,'SAL_amp','long_name','amplitude of self-attraction and loading tide elevation')
+    ncwriteatt(file,'SAL_amp','units','m')
+    ncwrite(file, 'SAL_amp', squeeze(f24dat.Val(:,2,:))) ;
     % SAL phase lags
-    nccreate(file, 'salphs','Dimensions',{'num_const',ntip(1),'sal_nodes',sal_nodes},'DataType','single','DeflateLevel',dl) ;
-    ncwriteatt(file,'salphs','long_name','phase-lag of self-attraction and loading tide elevation')
-    ncwriteatt(file,'salphs','units','degrees with respect to GMT/UTC')
-    ncwrite(file, 'salphs', squeeze(f24dat.Val(:,3,:))) ;
+    nccreate(file, 'SAL_phs','Dimensions',{'num_const',ntip(1),'sal_nodes',sal_nodes},'DataType','single','DeflateLevel',dl) ;
+    ncwriteatt(file,'SAL_phs','long_name','phase-lag of self-attraction and loading tide elevation')
+    ncwriteatt(file,'SAL_phs','units','degrees with respect to GMT/UTC')
+    ncwrite(file, 'SAL_phs', squeeze(f24dat.Val(:,3,:))) ;
     % Add some meta data/attribution
     ncwriteatt(file,'/','title','The self-attraction and loading terms for an ADCIRC simulation');
     ncwriteatt(file,'/','creation_date',datestr(now));
