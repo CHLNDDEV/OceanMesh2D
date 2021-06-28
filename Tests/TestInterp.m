@@ -3,11 +3,13 @@
 % i)   constant dx = constant dy 
 % ii)  constant dx ~= constant dy 
 % iii) varying dx ~= varying dy
-cd ..
 
-addpath(genpath('utilities/'))
-addpath(genpath('datasets/'))
-addpath(genpath('m_map/'))
+clearvars; clc;
+
+addpath('..')
+addpath(genpath('../utilities/'))
+addpath(genpath('../datasets/'))
+addpath(genpath('../m_map/'))
 
 % add the geospatial data filenames
 coastline = 'GSHHS_f_L1';

@@ -320,7 +320,12 @@ classdef msh
             %                    will use new figure)
             %    v) 'pivot'   : value in meters for which to assume is datum when
             %                    plotting topo-bathymetry (default 0.0 m)
-            %
+            %   'axis_limits' : Force the axes limits to be bounded by what
+            %                   is passed in bbox.  
+            %   'cmap':         The name of the cmocean colormap 
+            %                    (each option has different default)     
+            %                    type 'help cmocean' to see all the colormaps
+            %                    available
 
             fsz = 12; % default font size
             bgc = [1 1 1]; % default background color
@@ -328,7 +333,9 @@ classdef msh
             holdon = 0;
             pivot = 0.0; % assume datum is 0.0 m
             proj = 1;
-
+            axis_limits = []; % use mesh extents to determine plot extents
+            cmap = 1; % default value is specified in plot method 
+            
             projtype = []; 
             type = 'tri'; 
             subdomain = [];
@@ -349,6 +356,10 @@ classdef msh
                     type = varargin{kk+1}; 
                 elseif strcmp(varargin{kk},'subdomain')
                     subdomain = varargin{kk+1}; 
+                elseif strcmp(varargin{kk},'axis_limits')
+                    axis_limits = varargin{kk+1}; 
+                elseif strcmp(varargin{kk}, 'cmap')
+                    cmap = varargin{kk+1}; 
                 end
             end
 
@@ -386,7 +397,7 @@ classdef msh
             end
 
             % Set up projected space
-            del = setProj(obj,proj,projtype) ;
+            del = setProj(obj,proj,projtype,0,axis_limits) ;
 
             if del
                 % This deletes any elements straddling the -180/180
@@ -505,7 +516,10 @@ classdef msh
                     else
                        q = obj.b;
                     end
-                    plotter('-topo',1,'depth below datum [m]',true);
+                    if cmap == 1
+                        cmap = '-topo';                        
+                    end
+                    plotter(cmap,1,'depth below datum [m]',true);
                     title('mesh topo-bathy');
                 case('slp')
                     slp = hypot(obj.bx,obj.by);
@@ -514,7 +528,10 @@ classdef msh
                     else
                         q = slp;
                     end
-                    plotter('thermal',3,'topographic gradient',false);
+                    if cmap == 1
+                        cmap = 'thermal';
+                    end
+                    plotter(cmap,3,'topographic gradient',false);
                 case('reso')
                     % Get bar lengths
                     if earthres
@@ -552,7 +569,10 @@ classdef msh
                     else
                         q = z;
                     end
-                    plotter('thermal',0,yylabel,false);
+                    if cmap == 1
+                        cmap = 'thermal';
+                    end
+                    plotter(cmap,0,yylabel,false);
                     title('mesh resolution');
                 case('resodx')
                     TR = triangulation(obj.t,obj.p(:,1),obj.p(:,2));
@@ -570,7 +590,10 @@ classdef msh
                     else
                         q = HH;
                     end
-                    plotter('balance',3,'change in resolution',true);
+                    if cmap == 1
+                        cmap = 'balance';
+                    end
+                    plotter(cmap,3,'change in resolution',true);
                     title('Relaxation rate of topology');
                 case('qual')
                     q = gettrimeshquan(obj.p, obj.t);
@@ -586,7 +609,10 @@ classdef msh
                     else
                         q = nq;
                     end
-                    plotter('matter',3,'area-length ratio',false);
+                    if cmap == 1
+                       cmap = 'matter'; 
+                    end
+                    plotter(cmap,3,'area-length ratio',false);
                     title('Mesh quality metric');
                 case('sponge')
                     ii = find(contains({obj.f13.defval.Atr(:).AttrName},'sponge'));
@@ -600,7 +626,10 @@ classdef msh
                         fastscatter(obj.p(:,1),obj.p(:,2),defval(1)*ones(length(obj.p),1));
                         fastscatter(obj.p(userval(1,:),1),obj.p(userval(1,:),2),values');
                     end
-                    colormap(cmocean('deep'));
+                    if cmap == 1 
+                       cmap = 'deep';  
+                    end
+                    colormap(cmocean(cmap));
                     colorbar;
                 case('transect')
                     if proj
@@ -666,7 +695,10 @@ classdef msh
                               rd = ceil(-log10((max(q) - min(q))/cmap_int(1)));
                            end                             
                         end
-                        plotter(lansey(cmap_int(1)),rd+1,'',false);
+                        if cmap == 1
+                            cmap = lansey(cmap_int(1)); 
+                        end
+                        plotter(cmap,rd+1,'',false);
                         ax = gca;
                         ax.Title.String = obj.f13.defval.Atr(ii).AttrName;
                         ax.Title.Interpreter = 'none';
@@ -679,7 +711,7 @@ classdef msh
             ax.Color = bgc;
             if proj == 1
                 % now add the box
-                m_grid('FontSize',fsz);
+                m_grid('FontSize',fsz,'bac',bgc);
             end
 
             function plotter(cmap,round_dec,yylabel,apply_pivot)
@@ -700,17 +732,8 @@ classdef msh
                    end
                    view(2);
                end
-               if apply_pivot
-                  cmocean(cmap,cmap_int(1),'pivot',pivot);
-               else
-                  try 
-                     cmocean(cmap,cmap_int(1));
-                  catch
-                     colormap(cmap)
-                  end
-               end
-               cb = colorbar;
                numticks = cmap_int(1)+1;
+               cb = colorbar;
                if logaxis
                    if length(cmap_int) >= 3
                       desiredTicks = round(10.^(linspace(...
@@ -738,6 +761,15 @@ classdef msh
                    for tck = 1 : length(desiredTicks)
                       cb.TickLabels{tck} = num2str(desiredTicks(tck));
                    end
+               end
+               if apply_pivot
+                  cmocean(cmap,cmap_int(1),'pivot',pivot);
+               else
+                  try 
+                     cmocean(cmap,cmap_int(1));
+                  catch
+                     colormap(cmap)
+                  end
                end
                ylabel(cb,yylabel,'fontsize',fsz);
             end

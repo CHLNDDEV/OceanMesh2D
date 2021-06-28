@@ -1,4 +1,4 @@
-function [del,obj] = setProj(obj,proj,projtype,insert)
+function [del,obj] = setProj(obj,proj,projtype,insert,bbox)
     % [del,obj] = setProj(obj,proj,projtype,insert)
     % kjr generic function to parse projected space options
     % returns del flag to delete overlapping elements when plotting
@@ -10,10 +10,20 @@ function [del,obj] = setProj(obj,proj,projtype,insert)
         insert = 0;
     end
     
-    % process bounds of mesh
-    lon_mi = min(obj.p(:,1)); lon_ma = max(obj.p(:,1));
-    lat_mi = min(obj.p(:,2)); lat_ma = max(obj.p(:,2));
+    if nargin < 5
+        bbox = [];
+    end
+    
+    % process bounds of mesh (or supply your own)
+    if isempty(bbox)
+        lon_mi = min(obj.p(:,1)); lon_ma = max(obj.p(:,1));
+        lat_mi = min(obj.p(:,2)); lat_ma = max(obj.p(:,2));
+    else
+        lon_mi = bbox(1,1); lon_ma = bbox(1,2);
+        lat_mi = bbox(2,1); lat_ma = bbox(2,2);
+    end
     lat_mea = mean(obj.p(:,2)); lon_mea = mean(obj.p(:,1));
+    
     % some defaults
     rad = 100; rot = 15;
     del = 0 ;
@@ -58,13 +68,12 @@ function [del,obj] = setProj(obj,proj,projtype,insert)
                 % center Antarctica
                 m_proj(projtype,'lat',-90,...
                       'long',0.5*(lon_mi+lon_ma),...
-                      'radius',lat_ma+90,'rot',rot);
+                      'radius',min(lat_ma+90,180),'rot',rot);
             else
                 % center Arctic
-                lat_mi = max(-88.0001,lat_mi);
                 m_proj(projtype,'lat',90,...
                       'long',0.5*(lon_mi+lon_ma),...
-                      'radius',90-lat_mi,'rot',rot);
+                      'radius',min(90-lat_mi,180),'rot',rot);
             end
             m_proj('get') ;
         elseif  ~isempty(regexp(projtype,'ort')) || ...

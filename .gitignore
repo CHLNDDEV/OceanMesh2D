@@ -1,7 +1,8 @@
 m_map/
 datasets/
 fort.*
-Examples/*.mat
+Examples/*
+!Examples/Example_*
 /*.mat
 *.15
 *.14
