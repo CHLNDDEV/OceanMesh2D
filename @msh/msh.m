@@ -212,7 +212,7 @@ classdef msh
                     writefort15( obj.f15, [fname '.15'], obj.bd );
                 end
                 if ~isempty(obj.f24)
-                    writefort24( obj.f24, [fname '.24'], varargin);
+                    writefort24( obj.f24, [fname '.24'], obj.p, varargin);
                 end
                 if ~isempty(obj.f5354)
                     writefort5354( obj.f5354, fname );
@@ -265,7 +265,7 @@ classdef msh
                     writefort19( obj.f2001, [fname '.2001'] );
                 end
                 if any(contains(type,'24')) && ~isempty(obj.f24)
-                    writefort24( obj.f24, [fname '.24'], varargin);
+                    writefort24( obj.f24, [fname '.24'], obj.p, varargin);
                 end
                 if any(contains(type,'5354')) && ~isempty(obj.f5354)
                     writefort5354( obj.f5354, fname );
