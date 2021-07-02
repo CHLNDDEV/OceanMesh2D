@@ -1,34 +1,39 @@
 classdef msh
-    % MSH: Mesh class
+    % **MSH: The mesh class**
     % Contains, handles, and builds properties of a mesh such as vertices,
     % an element table, bathymetry and ADCIRC style boundary types
     % Copyright (C) 2018  Keith Roberts & William Pringle
-    %
+    % 
     % Class constructor/read a mesh into a msh class.
     %
     % Options are specified as name/value pairs for this class.
     % NB: The file type is determined by suffix extension (e.g., 'fname.14')
     %
-    % Usage:
-    %   obj = msh(varargin)
+    % **Usage:**
     %
-    % Examples:
-    %   m = msh(); % returns a blank mesh object.
-    %   m = msh('fname.14'); % reads in from a fort.14 file
-    %   m = msh('fname','fname.14','aux',{'blah.13','otherfile.15'}); % reads in a fort.14 along with a fort.13 and fort.15
-    %   m = msh('points', point_array, 'elements', triangle_table); % reads in from points and elements format.
+    %   *obj = msh(varargin)*
     %
-    % varargin options:
-    %   i)   'fname' - The filename of the msh file.
-    %   ii)  'points' - a num_points x 2 array of points
-    %   iii) 'elements' - a num_elements x 3 array of triangles
-    %         indexing into points array.
-    %   iv)  'aux' - a cell-array with filenames of additional
-    %         files that pair with the mesh
-    %    v)  'nob' - 0/1 enable/disable the reading of
-    %         boundary conditions (nodestrings).
-    %         Default  = 0 [i.e., will read in boundary conditions]
+    %   1)   *fname*: The filename of the msh file.
     %
+    %   2)  *points*: a num_points x 2 array of points
+    %
+    %   3) *elements*: a num_elements x 3 array of triangles indexing into points array.
+    %
+    %   4)  *aux*: a cell-array with filenames of additional files that pair with the mesh
+    %
+    %   5)  *nob*: 0/1 enable/disable the reading of boundary conditions (nodestrings). Default  = 0 [i.e., will read in boundary conditions]
+    %
+    % **Examples**:
+    %
+    %   *m = msh();* % returns a blank mesh object.
+    %
+    %   *m = msh('fname.14');* % reads in from a fort.14 file
+    %
+    %   *m = msh('fname','fname.14','aux',{'blah.13','otherfile.15'});* % reads in a fort.14 along with a fort.13 and fort.15
+    %
+    %   *m = msh('points', point_array, 'elements', triangle_table);* % reads in from points and elements format.
+    %
+    % **LICENSE**
     %
     %   This program is free software: you can redistribute it and/or modify
     %   it under the terms of the GNU General Public License as published by
@@ -174,18 +179,34 @@ classdef msh
 
         end
 
-        % write mesh to disk
-        function write(obj,fname,type)
-            % Usage:
-            % write(obj,fname,type)
+        function write(obj, fname, type)
+            % Write a mesh to disk in a couple of formats. 
             %
-            % Examples:
-            % write(obj);       % writes all available data to fort_1.xx (ADCIRC) files
-            % write(obj,fname); % writes all available data to fname.xx (ADCIRC) files
-            % write(obj,fname,'14');  % writes mesh data to fname.14 (ADCIRC) file
-            % write(obj,fname,'gr3'); % writes mesh data to fname.gr3 (SCHISM) file
-            % write(obj,fname,'ww3'); % writes mesh data to fname.ww3 (WaveWatchIII) file
-            % write(obj,fname,{'13','14'}); % writes mesh data and f13 attribute data to fname.14 and fname.13 (ADCIRC) files
+            % **Usage**:
+            % 
+            %   *write(obj,fname,type)*
+            % 
+            %   1) *fname*: The name of the file to write to disk. Defaults
+            %             to 'fort_1.xx'
+            %
+            %   2) *type*: The format to write the file to disk in
+            %            ADCIRC file format 11, 13, 15, 19, 20, 24 
+            %            SCHISM '.gr3', WaveWatch3 'ww3'
+            %
+            % **Examples**:
+            %
+            %    *write(obj)*;       % writes all available data to fort_1.xx (ADCIRC) files
+            %
+            %    *write(obj,fname)*; % writes all available data to fname.xx (ADCIRC) files
+            %
+            %    *write(obj,fname,'14')*;  % writes mesh data to fname.14 (ADCIRC) file
+            %
+            %    *write(obj,fname,'gr3')*; % writes mesh data to fname.gr3 (SCHISM) file
+            %
+            %    *write(obj,fname,'ww3')*; % writes mesh data to fname.ww3 (WaveWatchIII) file
+            %
+            %    *write(obj,fname,{'13','14'})*; % writes mesh data and f13 attribute data to fname.14 and fname.13 (ADCIRC) files
+            
             if nargin == 1
                 fname = 'fort_1';
             end
@@ -272,60 +293,64 @@ classdef msh
             end
         end
 
-        % general plot function
-        function h = plot(obj,varargin)
-            % h = plot(obj,varargin)
+        function h = plot(obj, varargin)
+            % Plot a msh object and associated nodal attribute values. 
+            % 
+            % **Usage:**
+            % 
+            %   *h = plot(obj,varargin)*
             %
-            % 1) obj: msh object
+            %   1)  *obj*: msh object
             %
-            % 2) varargin kwargs:
+            %   2)  *varargin kwargs*:
             %
-            % 'type': plot type, choose from:
-            %    a) 'tri'  - (default) plots the triangulation
-            %    b) 'bd'   - same as tri but with nodestrings/boundary conditions plotted
-            %    c) 'ob'   - outer boundary of the mesh
-            %    d) 'b'    - plots the bathymetry
-            %    e) 'slp'  - plots the bathymetric gradients
-            %    f) 'reso' - plots the element circumradius (resolution) based on the projection
-            %    g) 'resodx' - plots the gradient in 'reso'
-            %    h) 'qual'   - plots the element quality
-            %    i) 'sponge' - plots the sponge zone/strength coefficients
-            %    j) 'transect' - plot a bathy transect through GUI
-            %    k) 'xx' -     plots an arbitrary f13 attribute 'xx' by
-            %                  contains search
+            %       'type': plot type, choose from...
             %
-            % 'type' ADDITIONALS.
-            %   Add the following words inside the type character string to implement desired behaviors:
-            %    aa) 'notri': plot without the triangulation (used with 'bd' option)
-            %    bb) 'earth': use with 'reso' option to plot resolution using element edgelengths on the Earth
-            %    cc) 'log': use with options that use a colormap to plot the caxis in log space
-            %    dd) 'mesh': use with options that use a colormap to plot colors on the element
-            %                edges (a mesh look) instead of on the element faces (a surface look)
+            %        a)  'tri'  - (default) plots the triangulation
+            %        b)  'bd'   - same as tri but with nodestrings/boundary conditions plotted
+            %        c)  'ob'   - outer boundary of the mesh
+            %        d)  'b'    - plots the bathymetry
+            %        e)  'slp'  - plots the bathymetric gradients
+            %        f)  'reso' - plots the element circumradius (resolution) based on the projection
+            %        g)  'resodx' - plots the gradient in 'reso'
+            %        h)  'qual'   - plots the element quality
+            %        i)  'sponge' - plots the sponge zone/strength coefficients
+            %        j)  'transect' - plot a bathy transect through GUI
+            %        k)  'xx' -     plots an arbitrary f13 attribute 'xx' by contains search
             %
-            % 'proj': what available m_map projection to plot in e.g.,: 'equi', 'lamb', 'stereo'
-            %    Select 'none' to plot without the m_map projection.
-            %    Default is the projection of the msh object.
+            %          **ADDITIONALS for 'type'**
             %
-            % 'subdomain': Plot a subdomain of the mesh bounded by the corner coordinates
-            %           (a bounding box: [west east; south north])
+            %          Add the following words inside the type character string to implement desired behaviors:
+            % 
+            %          a1)  'notri' plot without the triangulation (used with 'bd' option)
             %
-            % options to refine the look of the plot:
-            %    i) 'colormap': number of colormap intervals and (optional) range:
-            %                    [num_intervals] or;
-            %                    [num_intervals caxis_lower caxis_upper]
-            %   ii) 'fontsize': figure fontsize
-            %  iii) 'backcolor': figure background RGB color (where mesh
-            %                    doesn't exist), default is [1 1 1] => white
-            %   iv) 'holdon'  : =1 to plot on existing figure (otherwise
-            %                    will use new figure)
-            %    v) 'pivot'   : value in meters for which to assume is datum when
-            %                    plotting topo-bathymetry (default 0.0 m)
-            %   'axis_limits' : Force the axes limits to be bounded by what
-            %                   is passed in bbox.  
-            %   'cmap':         The name of the cmocean colormap 
-            %                    (each option has different default)     
-            %                    type 'help cmocean' to see all the colormaps
-            %                    available
+            %          b2)  'earth' use with 'reso' option to plot resolution using element edgelengths on the Earth
+            %
+            %          c3)  'log' use with options that use a colormap to plot the caxis in log space
+            %
+            %          d4)  'mesh' use with options that use a colormap to plot colors on the element
+            %          
+            %          e5) 'edges' (a mesh look) instead of on the element faces (a surface look)
+            %
+            %       'proj': Available m_map projection to plot in e.g.,: 'equi', 'lamb', 'stereo'. Select 'none' to plot without the m_map projection. Default is the projection of the *msh* object.
+            %
+            %       'subdomain': Plot a subdomain of the mesh bounded by the corner coordinates (a bounding box: [west east; south north])
+            %
+            %       **More options to refine the look of the plot:**
+            %
+            %       i)  'colormap': number of colormap intervals and (optional) range: [num_intervals] or [num_intervals caxis_lower caxis_upper]
+            %
+            %       ii)  'fontsize': figure fontsize
+            %
+            %       iii) 'backcolor': figure background RGB color (where mesh doesn't exist), default is [1 1 1] => white
+            %
+            %       iv) 'holdon'  : =1 to plot on existing figure (otherwise will use new figure)
+            %
+            %       v)  'pivot'   : value in meters for which to assume is datum when plotting topo-bathymetry (default 0.0 m)
+            %
+            %       vi) 'axis_limits': Force the axes limits to be bounded by what is passed in bbox.
+            %
+            %       vii) 'cmap': The name of the cmocean colormap (each option has different default) type 'help cmocean' to see all the colormaps available
 
             fsz = 12; % default font size
             bgc = [1 1 1]; % default background color
@@ -334,10 +359,10 @@ classdef msh
             pivot = 0.0; % assume datum is 0.0 m
             proj = 1;
             axis_limits = []; % use mesh extents to determine plot extents
-            cmap = 1; % default value is specified in plot method 
-            
-            projtype = []; 
-            type = 'tri'; 
+            cmap = 1; % default value is specified in plot method
+
+            projtype = [];
+            type = 'tri';
             subdomain = [];
             for kk = 1:2:length(varargin)
                 if strcmp(varargin{kk},'fontsize')
@@ -353,13 +378,13 @@ classdef msh
                 elseif strcmp(varargin{kk}, 'proj')
                     projtype = varargin{kk+1};
                 elseif strcmp(varargin{kk},'type')
-                    type = varargin{kk+1}; 
+                    type = varargin{kk+1};
                 elseif strcmp(varargin{kk},'subdomain')
-                    subdomain = varargin{kk+1}; 
+                    subdomain = varargin{kk+1};
                 elseif strcmp(varargin{kk},'axis_limits')
-                    axis_limits = varargin{kk+1}; 
+                    axis_limits = varargin{kk+1};
                 elseif strcmp(varargin{kk}, 'cmap')
-                    cmap = varargin{kk+1}; 
+                    cmap = varargin{kk+1};
                 end
             end
 
@@ -517,7 +542,7 @@ classdef msh
                        q = obj.b;
                     end
                     if cmap == 1
-                        cmap = '-topo';                        
+                        cmap = '-topo';
                     end
                     plotter(cmap,1,'depth below datum [m]',true);
                     title('mesh topo-bathy');
@@ -610,7 +635,7 @@ classdef msh
                         q = nq;
                     end
                     if cmap == 1
-                       cmap = 'matter'; 
+                       cmap = 'matter';
                     end
                     plotter(cmap,3,'area-length ratio',false);
                     title('Mesh quality metric');
@@ -626,8 +651,8 @@ classdef msh
                         fastscatter(obj.p(:,1),obj.p(:,2),defval(1)*ones(length(obj.p),1));
                         fastscatter(obj.p(userval(1,:),1),obj.p(userval(1,:),2),values');
                     end
-                    if cmap == 1 
-                       cmap = 'deep';  
+                    if cmap == 1
+                       cmap = 'deep';
                     end
                     colormap(cmocean(cmap));
                     colorbar;
@@ -678,25 +703,25 @@ classdef msh
                         q = obj.p(:,1)*0 + defval;
                         q(userval(1,:),:) = userval(2:end,:)';
                         % just take the inf norm
-                        q = max(q,[],2); 
+                        q = max(q,[],2);
                         if logaxis
-                            q = abs(q); 
+                            q = abs(q);
                             q(q == 0) = min(q(q > 0));
                             if length(cmap_int) >= 3
                                rd = ceil(-log10(cmap_int(2)));
                             else
-                               rd = ceil(-log10(min(q))); 
+                               rd = ceil(-log10(min(q)));
                             end
                             q = log10(q);
                         else
-                           if length(cmap_int) >= 3 
+                           if length(cmap_int) >= 3
                               rd = ceil(-log10((cmap_int(3)-cmap_int(2))/cmap_int(1)));
                            else
                               rd = ceil(-log10((max(q) - min(q))/cmap_int(1)));
-                           end                             
+                           end
                         end
                         if cmap == 1
-                            cmap = lansey(cmap_int(1)); 
+                            cmap = lansey(cmap_int(1));
                         end
                         plotter(cmap,rd+1,'',false);
                         ax = gca;
@@ -765,7 +790,7 @@ classdef msh
                if apply_pivot
                   cmocean(cmap,cmap_int(1),'pivot',pivot);
                else
-                  try 
+                  try
                      cmocean(cmap,cmap_int(1));
                   catch
                      colormap(cmap)
@@ -776,8 +801,13 @@ classdef msh
         % EOF PLOT
         end
 
-        % renumber mesh min. bw
         function obj=renum(obj)
+            % Renumber the node numbers by minimizing the bandwidth using a
+            % RCM technique. 
+            %
+            % **Usage:**
+            % 
+            %   *renumb(obj)*
 
             np=length(obj.p); nt=length(obj.t);
             % Calculate adjacency matrix of t
@@ -886,13 +916,15 @@ classdef msh
             end
         end
 
-        % interp bathy/slope
         function obj = interp(obj,geodata,varargin)
-            % obj = interp(obj,geodata,varargin)
             % Puts bathy and slopes on the msh obj (a wrapper for GridData).
             % 'geodata' input may be a geodata class or a netCDF dem filename char.
             % 'geodata' may also be a cell array of geodata classes and dems and
             % interp will loop over all them.
+            % 
+            % **Usage:** 
+            % 
+            %    obj = interp(obj,geodata,varargin)
             %
             % optional varargins are as follows (copied from GridData):
             %          K - vector of relevant nodes to search. This can
@@ -937,7 +969,7 @@ classdef msh
             %                             (underwater is positive depth)
             %   lut      - A look up table (lut). See nlcd and ccap in
             %              datasets/ for examples
-            
+
             % if give cell of geodata or dems then interpolate all
             if iscell(geodata) || isstring(geodata)
                 for i = 1:length(geodata)
@@ -1300,7 +1332,7 @@ classdef msh
             % ---------
             % 'delete' - deletes a user-clicked land/mainland boundary condition from a msh.
             % varargins:
-            % index of land/mainland boundary to delete 
+            % index of land/mainland boundary to delete
 
             if nargin < 2
                 error('Needs type: one of "auto", "outer", "inner", "delete", or "weirs"')
@@ -1836,7 +1868,7 @@ classdef msh
                         dir,obj.op,obj.bd); %<--updates op and bd.
 
                 case('delete')
-                    
+
                     temp = obj.bd.nbvv;
                     bounodes=obj.bd.nbvv ;
                     idx=sum(bounodes~=0);
@@ -1849,12 +1881,12 @@ classdef msh
                         k = k + 1 ;
                         bounodes(idx2(i):idx2(i+1)-1,2) = k ;
                     end
-                    
+
                     if isempty(varargin)
                         % have the user select the nodestring '
                         plot(obj,'type','bd','proj','none') ;
-              
-                        
+
+
                         dcm_obj = datacursormode(gcf);
                         title('use data cursor to select nodestring to be deleted');
                         pause
@@ -1865,14 +1897,14 @@ classdef msh
                         pltid = temp(:,del) ; pltid(pltid==0)=[] ;
                         hold on; m_plot(obj.p(pltid,1),obj.p(pltid,2),'r-','linewi',2) ;
                     else
-                        del = varargin{1}; 
+                        del = varargin{1};
                     end
                     disp(['Deleting boundary with index ',num2str(del)]) ;
-                    
+
                     obj.bd.nbvv(:,del)=[];
                     if isfield(obj.bd,'ibconn')
                         obj.bd.ibconn(:,del)=[];
-                        obj.bd.barinht(:,del)=[]; 
+                        obj.bd.barinht(:,del)=[];
                         obj.bd.barincfsb(:,del)=[];
                         obj.bd.barincfsp(:,del)=[];
                     end
@@ -2266,7 +2298,7 @@ classdef msh
                     %% can be extracted and then obj1, obj2 concentated together
                     % extract the inner region of obj1 (inset) from obj2 (base)
                     % assuming that the inset fits perfectly in the base
-                    obj1o = obj1; 
+                    obj1o = obj1;
                     if extract
                         [p1(:,1),p1(:,2)] = m_ll2xy(p1(:,1),p1(:,2)) ;
                         [p2(:,1),p2(:,2)] = m_ll2xy(p2(:,1),p2(:,2)) ;
@@ -2467,7 +2499,7 @@ classdef msh
 
             if ~isempty(obj1.f13)
                 disp('Carrying over obj1 f13 data + any corresponding obj2 f13 data')
-                if ~isempty(obj2.f13) 
+                if ~isempty(obj2.f13)
                    ob2name = {obj2.f13.userval.Atr.AttrName};
                 else
                    ob2name = {};
@@ -2481,14 +2513,14 @@ classdef msh
                     idx1 = ourKNNsearch(merge.p',obj1.p(idx1,:)',1);
                     jj = find(contains(ob2name,attname));
                     if ~isempty(jj)
-                       disp(['Carrying over obj1 and obj2 ' attname]) 
+                       disp(['Carrying over obj1 and obj2 ' attname])
                        idx2 = obj2.f13.userval.Atr(jj).Val(1,:)';
                        val2 = obj2.f13.userval.Atr(jj).Val(2:end,:)';
                        idx2 = ourKNNsearch(merge.p',obj2.p(idx2,:)',1);
                        idx = [idx1; idx2];
                        val = [val1; val2];
                     else
-                       disp(['Carrying over obj1 ' attname]) 
+                       disp(['Carrying over obj1 ' attname])
                        idx = idx1; val = val1;
                     end
                     [idx,I] = sort(idx,'ascend');
@@ -2812,7 +2844,7 @@ classdef msh
 
             % Conduct initial check of Courant number to return early if possible
             Cr = real(CalcCFL(obj,dt,type));
-            if max(Cr) <= cr_max && min(Cr) >= cr_min 
+            if max(Cr) <= cr_max && min(Cr) >= cr_min
                disp('Courant number constraints are already satisfied')
                return
             end
@@ -2820,7 +2852,7 @@ classdef msh
             % deleting boundary conditions which are difficult to recompute when
             % the triangulation changes
             obj.bd = []; obj.op = [];
-         
+
             if ~isempty(obj.coord)
                 % kjr 2018,10,17; Set up projected space imported from msh class
                 global MAP_PROJECTION MAP_VAR_LIST MAP_COORDS
@@ -2897,7 +2929,7 @@ classdef msh
                     [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2));
                     bad = Cr < cr_min;
                     badnum = sum(bad);
-                    
+
                     display(['Number of minimum Cr bound violations ',num2str(badnum)]);
                     disp(['Min. Cr is : ',num2str(min(Cr))]);
                     if it == maxIT; break; end
@@ -2906,19 +2938,19 @@ classdef msh
 
                     % save old msh object for mapping
                     obj_old = obj;
-                    
+
                     % refine select elements using an octree approach
                     obj = RefineTrias(obj_old,bad);
 
                     % map back properties
                     obj = map_mesh_properties(obj,'msh_old',obj_old);
-                    
+
                     % put bathy back on with linear interp
                     obj.b = F(obj.p(:,1),obj.p(:,2));
 
                 end
             end
-                       
+
             % find nans
             if ~isempty(find(isnan(obj.b), 1))
                 warning('NaNs in bathy found')
@@ -2929,12 +2961,12 @@ classdef msh
 
             % Check Element order
             obj = CheckElementOrder(obj);
-           
+
             % Call itself recursively to make sure both criteria are satisifed
             obj = bound_courant_number(obj,dt,cr_max,cr_min,maxIT);
-      
-            % Last display message 
-            disp(['All msh attributes have been carried over except for boundary ' ... 
+
+            % Last display message
+            disp(['All msh attributes have been carried over except for boundary ' ...
                   'conditions which need to be recomputed. Since the triangulation ' ...
                   'has changed it may pay to recompute other attributes as well']);
             return;
@@ -3878,7 +3910,7 @@ classdef msh
             % Name value pairs specified.
             % Parse other varargin
             ind = [];
-            m_old = obj; 
+            m_old = obj;
             for kk = 1:2:length(varargin)
                 if strcmp(varargin{kk},'msh_old')
                     m_old = varargin{kk+1};
@@ -3944,7 +3976,7 @@ classdef msh
                     if ~isfield(obj.bd,'ibconn'); continue; end
                     if obj.bd.ibtype(ib) ~= 4 && obj.bd.ibtype(ib) ~= 5 && ...
                        obj.bd.ibtype(ib) ~= 24 && obj.bd.ibtype(ib) ~= 25
-                       continue; 
+                       continue;
                     end
                     idx_old = obj.bd.ibconn(1:nvell_old,ib);
                     % Only keep idx_old that is common to ind and map to ind
@@ -3971,7 +4003,7 @@ classdef msh
                     obj.bd = [];
                 else
                     % Remove unnessary part from the nbdv
-                    obj.bd.nbvv = obj.bd.nbvv(1:max(obj.bd.nvell),:);            
+                    obj.bd.nbvv = obj.bd.nbvv(1:max(obj.bd.nvell),:);
                     obj.bd.nbvv(:,obj.bd.nvell == 0) = [];
                     if isfield(obj.bd,'ibconn')
                         obj.bd.ibconn = obj.bd.ibconn(1:max(obj.bd.nvell),:);
@@ -3979,9 +4011,9 @@ classdef msh
                         obj.bd.barincfsb = obj.bd.barincfsb(1:max(obj.bd.nvell),:);
                         obj.bd.barincfsp = obj.bd.barincfsp(1:max(obj.bd.nvell),:);
                         obj.bd.ibconn(:,obj.bd.nvell == 0) = [];
-                        obj.bd.barinht(:,obj.bd.nvell == 0) = []; 
-                        obj.bd.barincfsb(:,obj.bd.nvell == 0) = []; 
-                        obj.bd.barincfsp(:,obj.bd.nvell == 0) = []; 
+                        obj.bd.barinht(:,obj.bd.nvell == 0) = [];
+                        obj.bd.barincfsb(:,obj.bd.nvell == 0) = [];
+                        obj.bd.barincfsp(:,obj.bd.nvell == 0) = [];
                     end
                     obj.bd.ibtype(obj.bd.nvell == 0) = [];
                     obj.bd.nvell(obj.bd.nvell == 0) = [];
@@ -3990,7 +4022,7 @@ classdef msh
             end
             % f13
             if ~isempty(m_old.f13)
-                obj.f13 = m_old.f13; 
+                obj.f13 = m_old.f13;
                 obj.f13.NumOfNodes = length(ind);
                 for att = 1:obj.f13.nAttr
                     % Get the old index for this attribute
@@ -3999,7 +4031,7 @@ classdef msh
                     % Only keep idx and val that is common to ind and map to ind
                     [~,ind_new,idx_new] = intersect(idx_old,ind);
                     val_new = val_old(:,ind_new);
-                    
+
                     % find indices of new nodes
                     [~,ind_added] = setdiff(obj.p,m_old.p,'rows');
                     if ~isempty(ind_added)
@@ -4011,10 +4043,10 @@ classdef msh
                         % for the new indices give the closest value in m_old
                         % for any given nodal attribute
                         tmp = ourKNNsearch(m_old.p',obj.p(ind_added,:)',1);
-                        val_new2 = values(tmp,:); 
+                        val_new2 = values(tmp,:);
                         idx_new = [idx_new; ind_added];
-                        val_new = [val_new'; val_new2]'; 
-                    end                    
+                        val_new = [val_new'; val_new2]';
+                    end
                     % Put the uservalues back into f13 struct
                     obj.f13.userval.Atr(att).AttrName = m_old.f13.userval.Atr(att).AttrName;
                     obj.f13.userval.Atr(att).Val = [idx_new'; val_new];
@@ -4246,7 +4278,7 @@ classdef msh
             sub1 = clean(sub1, {'ds',2,'mqa',1e-4,'djc',0.0,'con',5,'db',0,'sc_maxit',0});
             smoothed = plus(sub1,sub2,'match',{'djc',0.0,'ds',0,'db',0,'con',5,'mqa',1e-4,'sc_maxit',0});
         end
-          
+
         function obj= remove_attribute(obj, attrname)
             % obj = remove_attribute(obj, attrname)
             % Remove the attribute 'attrname' from the f13 field.
@@ -4259,10 +4291,10 @@ classdef msh
             % obj - msh object with f13 attribute removed.
             %
             % Author WJP, Mar, 2021
-       
+
             def_cell = {obj.f13.defval.Atr.AttrName};
             ii = find(contains(def_cell,attrname));
-            disp(['Removing attribute(s): ' def_cell{ii}]) 
+            disp(['Removing attribute(s): ' def_cell{ii}])
             obj.f13.defval.Atr(ii) = [];
             %
             user_cell = {obj.f13.userval.Atr.AttrName};
