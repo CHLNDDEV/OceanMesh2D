@@ -1379,6 +1379,8 @@ classdef msh
                             if ~isempty(gdat.mainland)
                                 land = gdat.mainland;
                                 land(isnan(land(:,1)),:) = [];
+                            else
+                                land = [];
                             end
                             if ~isempty(gdat.inner)
                                 inner = gdat.inner;
