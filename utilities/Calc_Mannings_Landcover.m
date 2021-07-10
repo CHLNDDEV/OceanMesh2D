@@ -87,10 +87,7 @@ obj.f13.userval.Atr(NA).usernumnodes = numnodes ;
 % Print out list of nodes for each
 K = find(Man ~= default_val);
 if isfield(obj.f13.userval.Atr(NA),'Val')
-    [idx,~] = ismember(obj.f13.userval.Atr(NA).Val(1,:),K);
-    for ww = 1: length(find(idx==1))
-        obj.f13.userval.Atr(NA).Val(2,idx(ww)) = Man(K(ww));
-    end
+    obj.f13.userval.Atr(NA).Val = [obj.f13.userval.Atr(NA).Val'; K' , Man(K)']';
 else
     obj.f13.userval.Atr(NA).Val = [K ; Man(K)];
 end
