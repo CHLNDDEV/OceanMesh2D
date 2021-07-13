@@ -4021,6 +4021,8 @@ classdef msh
                         val_new2 = values(tmp,:); 
                         idx_new = [idx_new; ind_added];
                         val_new = [val_new'; val_new2]'; 
+                        [idx_new, C] = unique(idx_new); 
+                        val_new = val_new(:,C); 
                     end                    
                     % Put the uservalues back into f13 struct
                     obj.f13.userval.Atr(att).AttrName = m_old.f13.userval.Atr(att).AttrName;
