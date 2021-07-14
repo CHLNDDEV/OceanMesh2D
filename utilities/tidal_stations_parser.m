@@ -110,8 +110,8 @@ for sta_database = sta_databases
             C = textscan(NDBC,'%s','Delimiter','\t');
             C = C{1}; C(1:5) = []; C(end) = [];
             for s = 1:length(C)
-                NDBC = textscan(C{s},'%d %s %f %f %f %s %f %f %f %s %d %d %s');
-                NDBC_ID(s) = string(NDBC{1}(1));
+                NDBC = textscan(C{s},'%s %s %f %f %f %s %f %f %f %s %d %d %*[^\n]');
+                NDBC_ID(s) = string(NDBC{1});
                 NDBC_name(s) = string(NDBC{2});
                 N = NDBC{6}; E = NDBC{10};
                 NDBC_lat(s) = NDBC{3} + NDBC{4}/60 + NDBC{5}/3600;
@@ -209,18 +209,20 @@ function [lon,lat,name] = read_NDBC_loc_name(Sta_ID)
     name = strings(length(Sta_ID),1);
     for s = 1:length(Sta_ID)
         NDBC = urlread([Prefix Sta_ID{s}]);
-        ii = strfind(NDBC,'('); wl = NDBC(ii(1)+1:ii(1)+100);
-        C = textscan(wl,'%f %s %f %s');
-        N = C{2}; E = C{4};
-        lat(s) = C{1};
-        if strcmp(N{1}(1),'S')
-            lat(s) = -lat(s);
+        if ~regexp(NDBC,'Station not found')
+            ii = strfind(NDBC,'('); wl = NDBC(ii(1)+1:ii(1)+100);
+            C = textscan(wl,'%f %s %f %s');
+            N = C{2}; E = C{4};
+            lat(s) = C{1};
+            if strcmp(N{1}(1),'S')
+                lat(s) = -lat(s);
+            end
+            lon(s) = C{3};
+            if strcmp(E{1}(1),'W')
+                lon(s) = -lon(s);
+            end
+            ii1 = strfind(wl,')'); ii2 = strfind(wl,'."'); 
+            name(s) = wl(ii1+4:ii2-1);
         end
-        lon(s) = C{3};
-        if strcmp(E{1}(1),'W')
-            lon(s) = -lon(s);
-        end
-        ii1 = strfind(wl,')'); ii2 = strfind(wl,'."'); 
-        name(s) = wl(ii1+4:ii2-1);
     end
 end
