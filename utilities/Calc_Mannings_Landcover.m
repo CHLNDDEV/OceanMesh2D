@@ -15,8 +15,9 @@ function obj = Calc_Mannings_Landcover(obj,data,type,varargin)
 % varargin: Accepts the same options as for msh.interp to control how 
 %           data is interpolated; see 'help msh.interp'
 % 
-%  Author:            WP July 19, 2018
+%  Author:            KR & WP July 19, 2018
 %  Update for CCAP:   WP May 5, 2021
+%  Update for storing incremental interpolation results: KJ & OK July 9, 2021
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if nargin < 3 || isempty(type)
@@ -85,9 +86,12 @@ numnodes = length(find(Man ~= default_val));
 obj.f13.userval.Atr(NA).usernumnodes = numnodes ;
 % Print out list of nodes for each
 K = find(Man ~= default_val);
-obj.f13.userval.Atr(NA).Val = [K ; Man(K)];
+if isfield(obj.f13.userval.Atr(NA),'Val')
+    obj.f13.userval.Atr(NA).Val = [obj.f13.userval.Atr(NA).Val'; K' , Man(K)']';
+else
+    obj.f13.userval.Atr(NA).Val = [K ; Man(K)];
+end
 %EOF
 end
-
 
 
