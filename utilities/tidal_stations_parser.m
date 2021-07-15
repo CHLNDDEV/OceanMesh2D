@@ -104,7 +104,8 @@ for sta_database = sta_databases
         end
         % Next first read NDBC stations
         if any(type > 1) 
-            NDBC = urlread('http://www.ndbc.noaa.gov/stndesc.shtml');
+            NDBC = urlread('https://www.ndbc.noaa.gov/stndesc.shtml');
+            %NDBC = urlread('http://www.ndbc.noaa.gov/stndesc.shtml');
             ii1 = strfind(NDBC,'<pre>'); ii2 = strfind(NDBC,'</pre>');
             NDBC = NDBC(ii1:ii2);
             C = textscan(NDBC,'%s','Delimiter','\t');
