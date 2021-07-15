@@ -160,6 +160,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Array format fix for reading in ibtype and nvell from fort.14 file and when executing carry_over_weirs. See https://github.com/CHLNDDEV/OceanMesh2D/pull/206
 - Fix for irregular grid spacings in DEMs. See https://github.com/CHLNDDEV/OceanMesh2D/pull/204
 - tidal constituents for `Make_f15` can now contain "major8" in addition to other constituents in the string/cell array https://github.com/CHLNDDEV/OceanMesh2D/pull/221
+- Correctly collect NDBC and NOS stations in mesh when creating `fort15` file using `Make_f15` for meteorological, velocity and elevation records https://github.com/CHLNDDEV/OceanMesh2D/pull/242
 ## Changed
 - `m_plot()` function calls `m_grid()` with background color input kwarg (if `backcolor` option used) instead of manual application. https://github.com/CHLNDDEV/OceanMesh2D/pull/225
 - `tidal_data_to_ob` function called from `Make_f15` populates boundary condition tidal constituents that do not exist in the tidal database with zero values so that user can add user-defined values later (previously did not populate). https://github.com/CHLNDDEV/OceanMesh2D/pull/225
@@ -192,7 +193,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - fix for `msh.make_bc(m,auto,gdat)` where gdat is empty. In this case it uses the depths on the mesh to determine the open boundaries.
 - check for `poly2ccw` mapping toolbox function in `kml2struct`
 - fix for `msh.plot()` on log colormap when plotting f13 attributes
-
 ## Deleted
 - Deprecating `msh.CheckTimestep()` for `msh.bound_courant_number`. Added error message and instruction in the CheckTimestep help
 

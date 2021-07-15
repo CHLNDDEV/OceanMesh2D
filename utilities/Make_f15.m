@@ -35,18 +35,20 @@ function obj = Make_f15( obj, ts, te, dt, varargin )
 %                  is 'h_**_tpxo9_atlas_30.nc' (for e.g., the tpxo9 atlas) 
 %                  where the wildcard is used in place of the constituent name
 %
-%               'sta_database' : a 1x2 cell, where the first element contains
+%               'sta_database' : a cell, where the first element contains
 %               a character referring to a specific database. At the moment
 %               it only handles CO-OPS/NOS/NOAA stations. The second
-%               element contains a vector of any of 1,2,3 corresponding to
+%               element contains a scalar either 1,2,3 corresponding to
 %               elev, vel and met stations. e.g. set
-%               ...('sta_database',{'CO-OPS',[1 2]}) to output the CO-OPS
-%               stations for elevation and velocity recording. 
+%               ...('sta_database',{'CO-OPS',1,'NDBC',2,'NDBC',3}) to output 
+%               the CO-OPS stations for elevation and NDBC stations for velocity and 
+%               meteorological recording
 %
 %  Outputs:  1) msh class obj with f15 struct populated
 %
 %  Author:      William Pringle and Keith Roberts                               
-%  Created:     March 15 2018                                      
+%  Created:     March 15 2018 
+%  Updated:     July 15, 2021 by Shintaro Bunya and Keith Roberts
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Putting in default options if f15 isn't already populated
