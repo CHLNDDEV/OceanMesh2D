@@ -320,9 +320,12 @@ classdef msh
             %                    will use new figure)
             %    v) 'pivot'   : value in meters for which to assume is datum when
             %                    plotting topo-bathymetry (default 0.0 m)
-            %
             %   'axis_limits' : Force the axes limits to be bounded by what
             %                   is passed in bbox.  
+            %   'cmap':         The name of the cmocean colormap 
+            %                    (each option has different default)     
+            %                    type 'help cmocean' to see all the colormaps
+            %                    available
 
             fsz = 12; % default font size
             bgc = [1 1 1]; % default background color
@@ -331,7 +334,8 @@ classdef msh
             pivot = 0.0; % assume datum is 0.0 m
             proj = 1;
             axis_limits = []; % use mesh extents to determine plot extents
-
+            cmap = 1; % default value is specified in plot method 
+            
             projtype = []; 
             type = 'tri'; 
             subdomain = [];
@@ -354,6 +358,8 @@ classdef msh
                     subdomain = varargin{kk+1}; 
                 elseif strcmp(varargin{kk},'axis_limits')
                     axis_limits = varargin{kk+1}; 
+                elseif strcmp(varargin{kk}, 'cmap')
+                    cmap = varargin{kk+1}; 
                 end
             end
 
@@ -510,7 +516,10 @@ classdef msh
                     else
                        q = obj.b;
                     end
-                    plotter('-topo',1,'depth below datum [m]',true);
+                    if cmap == 1
+                        cmap = '-topo';                        
+                    end
+                    plotter(cmap,1,'depth below datum [m]',true);
                     title('mesh topo-bathy');
                 case('slp')
                     slp = hypot(obj.bx,obj.by);
@@ -519,7 +528,10 @@ classdef msh
                     else
                         q = slp;
                     end
-                    plotter('thermal',3,'topographic gradient',false);
+                    if cmap == 1
+                        cmap = 'thermal';
+                    end
+                    plotter(cmap,3,'topographic gradient',false);
                 case('reso')
                     % Get bar lengths
                     if earthres
@@ -557,7 +569,10 @@ classdef msh
                     else
                         q = z;
                     end
-                    plotter('thermal',0,yylabel,false);
+                    if cmap == 1
+                        cmap = 'thermal';
+                    end
+                    plotter(cmap,0,yylabel,false);
                     title('mesh resolution');
                 case('resodx')
                     TR = triangulation(obj.t,obj.p(:,1),obj.p(:,2));
@@ -575,7 +590,10 @@ classdef msh
                     else
                         q = HH;
                     end
-                    plotter('balance',3,'change in resolution',true);
+                    if cmap == 1
+                        cmap = 'balance';
+                    end
+                    plotter(cmap,3,'change in resolution',true);
                     title('Relaxation rate of topology');
                 case('qual')
                     q = gettrimeshquan(obj.p, obj.t);
@@ -591,7 +609,10 @@ classdef msh
                     else
                         q = nq;
                     end
-                    plotter('matter',3,'area-length ratio',false);
+                    if cmap == 1
+                       cmap = 'matter'; 
+                    end
+                    plotter(cmap,3,'area-length ratio',false);
                     title('Mesh quality metric');
                 case('sponge')
                     ii = find(contains({obj.f13.defval.Atr(:).AttrName},'sponge'));
@@ -605,7 +626,10 @@ classdef msh
                         fastscatter(obj.p(:,1),obj.p(:,2),defval(1)*ones(length(obj.p),1));
                         fastscatter(obj.p(userval(1,:),1),obj.p(userval(1,:),2),values');
                     end
-                    colormap(cmocean('deep'));
+                    if cmap == 1 
+                       cmap = 'deep';  
+                    end
+                    colormap(cmocean(cmap));
                     colorbar;
                 case('transect')
                     if proj
@@ -671,7 +695,10 @@ classdef msh
                               rd = ceil(-log10((max(q) - min(q))/cmap_int(1)));
                            end                             
                         end
-                        plotter(lansey(cmap_int(1)),rd+1,'',false);
+                        if cmap == 1
+                            cmap = lansey(cmap_int(1)); 
+                        end
+                        plotter(cmap,rd+1,'',false);
                         ax = gca;
                         ax.Title.String = obj.f13.defval.Atr(ii).AttrName;
                         ax.Title.Interpreter = 'none';
@@ -1375,6 +1402,7 @@ classdef msh
                     switch classifier
                         case{'both','distance'}
                             % process gdat info
+                            land = [];
                             if ~isempty(gdat.mainland)
                                 land = gdat.mainland;
                                 land(isnan(land(:,1)),:) = [];
@@ -1384,7 +1412,13 @@ classdef msh
                                 inner(isnan(inner(:,1)),:) = [];
                                 land = [land; inner];
                             end
-                            [~,ldst] = ourKNNsearch(land',eb_mid',1);
+                            if ~isempty(land)
+                               [~,ldst] = ourKNNsearch(land',eb_mid',1);
+                            else
+                               % set distance to be larger than dist_lim  
+                               % everywhere when no land exists
+                               ldst = eb_mid(:,1)*0 + 2*dist_lim
+                            end    
                             eb_class = ldst > dist_lim;
                             if strcmp(classifier,'both')
                                 % ii) based on depth
@@ -3987,6 +4021,8 @@ classdef msh
                         val_new2 = values(tmp,:); 
                         idx_new = [idx_new; ind_added];
                         val_new = [val_new'; val_new2]'; 
+                        [idx_new, C] = unique(idx_new); 
+                        val_new = val_new(:,C); 
                     end                    
                     % Put the uservalues back into f13 struct
                     obj.f13.userval.Atr(att).AttrName = m_old.f13.userval.Atr(att).AttrName;
