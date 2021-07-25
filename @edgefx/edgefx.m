@@ -5,25 +5,37 @@ classdef edgefx
     %   resolution when building a mesh.
     %   Copyright (C) 2018  Keith Roberts & William Pringle
     %
-    %   The following properties (with default values) are available for input
-    %   to the edgefx method:
-    %      defval = 0; % placeholder value if arg is not passed.
-    %      addOptional(p,'dis',defval);
-    %      addOptional(p,'fs',defval);
-    %      addOptional(p,'wl',defval);
-    %      addOptional(p,'slp',defval);
-    %      addOptional(p,'ch',defval);
-    %      addOptional(p,'min_el_ch',100);
-    %      addOptional(p,'AngOfRe',60);
-    %      addOptional(p,'max_el',inf);
-    %      addOptional(p,'max_el_ns',inf);
-    %      addOptional(p,'g',0.20);
-    %      addOptional(p,'geodata',defval)
-    %      addOptional(p,'lmsl',defval)
-    %      addOptional(p,'dt',-1);
-    %      addOptional(p,'fl',defval);
-    %      addOptional(p,'Channels',defval);
-    %      addOptional(p,'h0',defval);
+    %   The following properties are available for input to the edgefx method:
+    %      Keyword     Default Val	Variable type
+    %      'dis'        defval;     scalar
+    %      'fs'         defval;     scalar
+    %      'wl'         defval;     scalar/array
+    %      'slp'        defval;     scalar/array
+    %      'ch'         defval;     scalar
+    %      'min_el_ch'  100;     	scalar
+    %      'AngOfRe'    60;        	scalar
+    %      'max_el'     inf;        scalar/array
+    %      'max_el_ns'  inf;     	scalar
+    %      'g'          0.20;       scalar/array
+    %      'geodata'    defval;     geodata class
+    %      'lmsl'       defval;     geodata class
+    %      'dt'         -1;         scalar
+    %      'fl'         defval;     scalar
+    %      'Channels'   defval;   	cell array
+    %      'h0'         defval;     scalar
+    %      [defval = 0; % placeholder value if arg is not passed.]
+    %
+    %      The 'wl','slp','max_el','g' options inputs can be scalars to apply
+    %      the parameter globally or they can be arrays to bound each parameter 
+    %      value within topographic elevation bounds, using the following stucture:
+    %      [parameter_value1 z_min1 z_max1;
+    %       parameter_value2 z_min2 z_max2;
+    %       ...
+    %       parameter_valuen z_minn z_maxn];
+    %
+    %       where, z_min is the minimum elevation bound and z_max is the maximum elevation bound. 
+    %        - similar to axis bounds on matlab plots such as caxis, xlim, ylim, ...
+    %        - z is oriented same as the DEM, i.e., +ve value of z is above datum (overland) 
     %
     %   This program is free software: you can redistribute it and/or modify
     %   it under the terms of the GNU General Public License as published by
@@ -413,18 +425,18 @@ classdef edgefx
                 if numel(param)==1
                     % no bounds specified.
                     wlp = param(1);
-                    dp_max = +inf;
-                    dp_min = -inf;
+                    z_min = -inf;
+                    z_max = +inf;
                 else
                     wlp = param(1);
-                    dp_max = param(3);
-                    dp_min = param(2);
+                    z_min = param(2);
+                    z_max = param(3);
                 end
                 % limit min. depth to 1 m
                 twld = period*sqrt(grav*max(abs(tmpz),1))/wlp;
+                limidx = (tmpz >= z_min & tmpz < z_max);
                 % Set wld with depth mask applied
-                obj.wld(tmpz > dp_min & tmpz < dp_max  ) = ...
-                    twld(tmpz > dp_min & tmpz < dp_max );
+                obj.wld(limidx) = twld(limidx);
                 clearvars twld
             end
             clearvars tmpz xg yg;
@@ -611,19 +623,19 @@ classdef edgefx
                 if numel(param)==1
                     % no bounds specified. valid in this range.
                     slpp = param(1);
-                    % default cutoff is 10 m
-                    dp_max = +inf;
-                    dp_min = -inf;
+                    z_min = -inf;
+                    z_max = +inf;
                 else
                     slpp = param(1);
-                    dp_max = param(3);
-                    dp_min = param(2);
+                    z_min = param(2);
+                    z_max = param(3);
                 end
                 % Calculating the slope function
                 dp = max(1,-tmpz);
                 tslpd = (2*pi/slpp)*dp./(bs+eps);
-                obj.slpd(tmpz > dp_min & tmpz < dp_max ) = ...
-                    tslpd(tmpz > dp_min & tmpz < dp_max );
+                % apply slope with mask
+                limidx = (tmpz >= z_min & tmpz < z_max);
+                obj.slpd(limidx) = tslpd(limidx);
                 clearvars tslpd
             end
             clearvars tmpz xg yg
@@ -848,10 +860,10 @@ classdef edgefx
                     hh_m( limidx ) = mx;
                 else
                     mx  = param(1);
-                    dp1 = param(2);
-                    dp2 = param(3);
+                    z_min = param(2);
+                    z_max = param(3);
 
-                    limidx = (tmpz < dp1 & tmpz > dp2) & ...
+                    limidx = (tmpz >= z_min & tmpz < z_max) & ...
                              (hh_m > mx | isnan(hh_m));
 
                     hh_m( limidx ) = mx;
@@ -891,10 +903,10 @@ classdef edgefx
                     dmy  = dmy + lim ;
                 else
                     lim  = param(1);
-                    dp1  = param(2);
-                    dp2  = param(3);
+                    z_min  = param(2);
+                    z_max  = param(3);
 
-                    limidx = (tmpz < dp1 & tmpz > dp2) ;
+                    limidx = (tmpz >= z_min & tmpz < z_max) ;
 
                     dmy( limidx ) = lim;
                 end
