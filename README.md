@@ -214,6 +214,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - 'invert' option in the msh.interp method to turn off the DEM value inversion typically performed
 
 ## Changed
+- forcing facecolor to white in `m_trimesh` so that it does not intefere with background color option
 - for the make_bc msh method 'auto'/'auto_outer' options, allowing for the 'depth' method of classification to use the interpolated depths on the mesh if gdat is empty.
 - improving help for make_bc msh method, Make_f15.m and Calc_Sponge.m
 - renamed "ExtractSubDomain.m" to "extract_subdomain.m"
