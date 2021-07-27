@@ -564,15 +564,6 @@ classdef meshgen
                         p1 = p1(rand(size(p1,1),1) < r0/max_r0,:);          % Rejection method
                         p = [p; p1];                                        % Adding p1 to p
                     end
-                    % add new points along boundary of multiscale nests
-                    if box_num < length(obj.h0)
-                        h0_rat = ceil(h0_l/obj.h0(box_num+1));
-                        nsplits = floor(log(h0_rat)/log(2));
-                        for add = 1:nsplits
-                            new_points = split_bars(p,fh_l);
-                            p = [p; new_points];
-                        end
-                    end
                 end
             else
                 disp('User-supplied initial points!');
@@ -670,8 +661,9 @@ classdef meshgen
                     
                     % If mesh quality went down "significantly" since last iteration
                     % which was a mesh improvement iteration, then rewind.
-                    if ~mod(it,imp+1) && obj.qual(it,1) - obj.qual(it-1,1) < -0.10
-                        disp('Mean mesh quality went down more than 10.0%, rewinding...');
+                    if ~mod(it,imp+1) && obj.qual(it,1) - obj.qual(it-1,1) < -0.10 || ...
+                            ~mod(it,imp+1) && (N - length(p_before_improve))/length(p_before_improve) < -0.10
+                        disp('Mesh improvement was unsuccessful...rewinding...');
                         p = p_before_improve; 
                         N = size(p,1);                                     % Number of points changed
                         pold = inf;                          
