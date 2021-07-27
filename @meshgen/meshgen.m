@@ -672,7 +672,6 @@ classdef meshgen
                     else
                         N = size(p,1); pold = p;                           % Assign number of points and save current positions
                     end
-                    
                     % 4. Describe each bar by a unique pair of nodes.
                     bars = [t(:,[1,2]); t(:,[1,3]); t(:,[2,3])];           % Interior bars duplicated
                     bars = unique(sort(bars,2),'rows');                    % Bars as node pairs
