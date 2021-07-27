@@ -670,8 +670,9 @@ classdef meshgen
                     
                     % If mesh quality went down "significantly" since last iteration
                     % which was a mesh improvement iteration, then rewind.
-                    if ~mod(it,imp+1) && obj.qual(it,1) - obj.qual(it-1,1) < -0.10
-                        disp('Mean mesh quality went down more than 10.0%, rewinding...');
+                    if ~mod(it,imp+1) && obj.qual(it,1) - obj.qual(it-1,1) < -0.10 || ...
+                            ~mod(it,imp+1) && (N - length(p_before_improve))/length(p_before_improve) < -0.10
+                        disp('Mesh improvement was unsuccessful...rewinding...');
                         p = p_before_improve; 
                         N = size(p,1);                                     % Number of points changed
                         pold = inf;                          
@@ -680,7 +681,6 @@ classdef meshgen
                     else
                         N = size(p,1); pold = p;                           % Assign number of points and save current positions
                     end
-                    
                     % 4. Describe each bar by a unique pair of nodes.
                     bars = [t(:,[1,2]); t(:,[1,3]); t(:,[2,3])];           % Interior bars duplicated
                     bars = unique(sort(bars,2),'rows');                    % Bars as node pairs
