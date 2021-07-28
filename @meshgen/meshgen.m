@@ -28,7 +28,7 @@ classdef meshgen
     %         itmax         % maximum number of iterations.
     %         pfix          % fixed node positions (nfix x 2 )
     %         egfix         % edge constraints
-	%         outer         % meshing boundary (manual specification, no bou)
+    %         outer         % meshing boundary (manual specification, no bou)
     %         inner         % island boundaries (manual specification, no bou)
     %         mainland      % the shoreline boundary (manual specification, no bou)
     %         fixboxes      % a flag that indicates which boxes will use fixed constraints
