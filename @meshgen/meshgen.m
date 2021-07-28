@@ -28,7 +28,7 @@ classdef meshgen
     %         itmax         % maximum number of iterations.
     %         pfix          % fixed node positions (nfix x 2 )
     %         egfix         % edge constraints
-	%         outer         % meshing boundary (manual specification, no bou)
+    %         outer         % meshing boundary (manual specification, no bou)
     %         inner         % island boundaries (manual specification, no bou)
     %         mainland      % the shoreline boundary (manual specification, no bou)
     %         fixboxes      % a flag that indicates which boxes will use fixed constraints
@@ -564,15 +564,6 @@ classdef meshgen
                         p1 = p1(rand(size(p1,1),1) < r0/max_r0,:);          % Rejection method
                         p = [p; p1];                                        % Adding p1 to p
                     end
-                    % add new points along boundary of multiscale nests
-                    if box_num < length(obj.h0)
-                        h0_rat = ceil(h0_l/obj.h0(box_num+1));
-                        nsplits = floor(log(h0_rat)/log(2));
-                        for add = 1:nsplits
-                            new_points = split_bars(p,fh_l);
-                            p = [p; new_points];
-                        end
-                    end
                 end
             else
                 disp('User-supplied initial points!');
@@ -656,7 +647,31 @@ classdef meshgen
                       disp('Exiting')
                       return
                     end
-                    N = size(p,1);
+                           
+                    % Getting element quality and check "goodness"
+                    if exist('pt','var'); clear pt; end
+                    [pt(:,1),pt(:,2)] = m_ll2xy(p(:,1),p(:,2));
+                    tq = gettrimeshquan( pt, t);
+                    mq_m = mean(tq.qm);
+                    mq_l = min(tq.qm);
+                    mq_s = std(tq.qm);
+                    mq_l3sig = mq_m - 3*mq_s;
+                    obj.qual(it,:) = [mq_m,mq_l3sig,mq_l];
+                    
+                    
+                    % If mesh quality went down "significantly" since last iteration
+                    % which was a mesh improvement iteration, then rewind.
+                    if ~mod(it,imp+1) && obj.qual(it,1) - obj.qual(it-1,1) < -0.10 || ...
+                            ~mod(it,imp+1) && (N - length(p_before_improve))/length(p_before_improve) < -0.10
+                        disp('Mesh improvement was unsuccessful...rewinding...');
+                        p = p_before_improve; 
+                        N = size(p,1);                                     % Number of points changed
+                        pold = inf;                          
+                        it = it + 1;
+                        continue
+                    else
+                        N = size(p,1); pold = p;                           % Assign number of points and save current positions
+                    end
                     % 4. Describe each bar by a unique pair of nodes.
                     bars = [t(:,[1,2]); t(:,[1,3]); t(:,[2,3])];           % Interior bars duplicated
                     bars = unique(sort(bars,2),'rows');                    % Bars as node pairs
@@ -779,6 +794,7 @@ classdef meshgen
 
                 % Mesh improvements (deleting and addition)
                 if ~mod(it,imp)
+                    p_before_improve = p;
                     nn = []; pst = [];
                     if qual_diff < imp*obj.qual_tol && qual_diff > 0
                         % Remove elements with small connectivity
