@@ -154,12 +154,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Deleting boundary conditions by specifyng their indices in `msh.object.bd` field. See https://github.com/CHLNDDEV/OceanMesh2D/pull/205
 - Ability for user to set their own axis limits when plotting with `msh.plot()`. https://github.com/CHLNDDEV/OceanMesh2D/pull/224
 ## Fixed
+- Minor fix to `msh.make_bc` using the `auto` method. https://github.com/CHLNDDEV/OceanMesh2D/pull/237
 - correction in setting stereographic projection bounds in `setProj` to make sure points are not pushed outside and become NaNs (was limited to radius of 178 deg but made sure can go up to full 180 deg). https://github.com/CHLNDDEV/OceanMesh2D/pull/225
 - Correctly deleting weirs from boundary object through `make_bc` delete method. See https://github.com/CHLNDDEV/OceanMesh2D/pull/205
 - Array format fix for reading in ibtype and nvell from fort.14 file and when executing carry_over_weirs. See https://github.com/CHLNDDEV/OceanMesh2D/pull/206
 - Fix for irregular grid spacings in DEMs. See https://github.com/CHLNDDEV/OceanMesh2D/pull/204
 - tidal constituents for `Make_f15` can now contain "major8" in addition to other constituents in the string/cell array https://github.com/CHLNDDEV/OceanMesh2D/pull/221
+- Correctly collect NDBC and NOS stations in mesh when creating `fort15` file using `Make_f15` for meteorological, velocity and elevation records https://github.com/CHLNDDEV/OceanMesh2D/pull/242
 ## Changed
+- forcing facecolor to white in `m_trimesh` so that it does not intefere with background color option. https://github.com/CHLNDDEV/OceanMesh2D/pull/245
+- made topographic elevation bound option for max_ele, wl, slp, and g `edgefx` kwargs consistent and added explanation of this option is included in `edgefx` help. https://github.com/CHLNDDEV/OceanMesh2D/pull/230
 - `m_plot()` function calls `m_grid()` with background color input kwarg (if `backcolor` option used) instead of manual application. https://github.com/CHLNDDEV/OceanMesh2D/pull/225
 - `tidal_data_to_ob` function called from `Make_f15` populates boundary condition tidal constituents that do not exist in the tidal database with zero values so that user can add user-defined values later (previously did not populate). https://github.com/CHLNDDEV/OceanMesh2D/pull/225
 - Improved `cmocean` for pivot handling with discrete colormap. https://github.com/CHLNDDEV/OceanMesh2D/pull/225
@@ -191,7 +195,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - fix for `msh.make_bc(m,auto,gdat)` where gdat is empty. In this case it uses the depths on the mesh to determine the open boundaries.
 - check for `poly2ccw` mapping toolbox function in `kml2struct`
 - fix for `msh.plot()` on log colormap when plotting f13 attributes
-
 ## Deleted
 - Deprecating `msh.CheckTimestep()` for `msh.bound_courant_number`. Added error message and instruction in the CheckTimestep help
 

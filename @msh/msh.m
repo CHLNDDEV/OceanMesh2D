@@ -1402,6 +1402,7 @@ classdef msh
                     switch classifier
                         case{'both','distance'}
                             % process gdat info
+                            land = [];
                             if ~isempty(gdat.mainland)
                                 land = gdat.mainland;
                                 land(isnan(land(:,1)),:) = [];
@@ -1411,7 +1412,13 @@ classdef msh
                                 inner(isnan(inner(:,1)),:) = [];
                                 land = [land; inner];
                             end
-                            [~,ldst] = ourKNNsearch(land',eb_mid',1);
+                            if ~isempty(land)
+                               [~,ldst] = ourKNNsearch(land',eb_mid',1);
+                            else
+                               % set distance to be larger than dist_lim  
+                               % everywhere when no land exists
+                               ldst = eb_mid(:,1)*0 + 2*dist_lim
+                            end    
                             eb_class = ldst > dist_lim;
                             if strcmp(classifier,'both')
                                 % ii) based on depth
@@ -4014,6 +4021,8 @@ classdef msh
                         val_new2 = values(tmp,:); 
                         idx_new = [idx_new; ind_added];
                         val_new = [val_new'; val_new2]'; 
+                        [idx_new, C] = unique(idx_new); 
+                        val_new = val_new(:,C); 
                     end                    
                     % Put the uservalues back into f13 struct
                     obj.f13.userval.Atr(att).AttrName = m_old.f13.userval.Atr(att).AttrName;
