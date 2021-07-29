@@ -148,6 +148,9 @@ Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Unreleased (on current HEAD of the Projection branch)
+- None
+
+### [5.0.0] - 2021-07-29
 ## Added
 - `meshgen.build()` now will rewind the iteration set in the case mesh improvement cannot improve the qualities. https://github.com/CHLNDDEV/OceanMesh2D/pull/234
 -  `msh.plot()` now has a `cmap` in which the user can specify their any `cmocean` colormap
