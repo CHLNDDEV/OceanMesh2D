@@ -375,7 +375,7 @@ classdef msh
                     projtype = MAP_PROJECTION.name;
                 else
                     error(['no native projection in msh class, please specify the plotting projection: ' ...
-                           'plot(m,''proj'',''lamb''), or no projection: plot(m,''proj'',''none'')'])
+                           'plot(m,''type'',''tri'','proj'',''lamb''), or no projection: plot(m,''type',''tri'',''proj'',''none'')'])
                 end
             end
 
