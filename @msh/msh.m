@@ -335,6 +335,7 @@ classdef msh
             proj = 1;
             axis_limits = []; % use mesh extents to determine plot extents
             cmap = 1; % default value is specified in plot method 
+            leg_ind = [];
             
             projtype = []; 
             type = 'tri'; 
@@ -375,7 +376,7 @@ classdef msh
                     projtype = MAP_PROJECTION.name;
                 else
                     error(['no native projection in msh class, please specify the plotting projection: ' ...
-                           'plot(m,''type'',''tri'','proj'',''lamb''), or no projection: plot(m,''type',''tri'',''proj'',''none'')'])
+                           'plot(m,''type'',''tri'',''proj'',''lamb''), or no projection: plot(m,''type'',''tri'',''proj'',''none'')'])
                 end
             end
 
@@ -445,6 +446,8 @@ classdef msh
                         simpplot(obj.p,obj.t);
                     end
                 case('bd')
+                    legend_names = {'open ocean boundary','outer no-flux boundary',...
+                        'inner no-flux boundary','subgrid scale barriers'};
                     if tri
                         if proj
                             m_triplot(obj.p(:,1),obj.p(:,2),obj.t);
@@ -455,35 +458,44 @@ classdef msh
                     if ~isempty(obj.bd)
                         for nb = 1 : obj.bd.nbou
                             if obj.bd.ibtype(nb)  == 24 || obj.bd.ibtype(nb) == 94
+                                if sum(leg_ind == 4) == 0
+                                    leg_ind(end+1) = 4;
+                                end
                                 if proj
                                     % plot front facing
                                     m_plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
                                         obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'g-','linewi',1.2);
                                     % plot back facing
-                                    m_plot(obj.p(obj.bd.ibconn(1:obj.bd.nvell(nb),nb),1),...
+                                    h(4) = m_plot(obj.p(obj.bd.ibconn(1:obj.bd.nvell(nb),nb),1),...
                                         obj.p(obj.bd.ibconn(1:obj.bd.nvell(nb),nb),2),'y-','linewi',1.2);
                                 else
                                     % plot front facing
                                     plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
                                         obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'g-','linewi',1.2);
                                     % plot back facing
-                                    plot(obj.p(obj.bd.ibconn(1:obj.bd.nvell(nb),nb),1),...
+                                    h(4) = plot(obj.p(obj.bd.ibconn(1:obj.bd.nvell(nb),nb),1),...
                                         obj.p(obj.bd.ibconn(1:obj.bd.nvell(nb),nb),2),'y-','linewi',1.2);
                                 end
                             elseif obj.bd.ibtype(nb)  == 20
+                                if sum(leg_ind == 2) == 0
+                                    leg_ind(end+1) = 2;
+                                end
                                 if proj
-                                    m_plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
+                                    h(2) = m_plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
                                         obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'r-','linewi',1.2);
                                 else
-                                    plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
+                                    h(2) = plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
                                         obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'r-','linewi',1.2);
                                 end
                             else
+                                if sum(leg_ind == 3) == 0
+                                    leg_ind(end+1) = 3;
+                                end
                                 if proj
-                                    m_plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
+                                    h(3) = m_plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
                                         obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'g-','linewi',1.2);
                                 else
-                                    plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
+                                    h(3) = plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
                                         obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'g-','linewi',1.2);
                                 end
                             end
@@ -491,11 +503,14 @@ classdef msh
                     end
                     if ~isempty(obj.op)
                         for nb = 1 : obj.op.nope
+                            if sum(leg_ind == 1) == 0
+                                leg_ind(end+1) = 1;
+                            end
                             if proj
-                                m_plot(obj.p(obj.op.nbdv(1:obj.op.nvdll(nb),nb),1),...
+                                h(1) = m_plot(obj.p(obj.op.nbdv(1:obj.op.nvdll(nb),nb),1),...
                                     obj.p(obj.op.nbdv(1:obj.op.nvdll(nb),nb),2),'b-','linewi',3.2);
                             else
-                                plot(obj.p(obj.op.nbdv(1:obj.op.nvdll(nb),nb),1),...
+                                h(1) = plot(obj.p(obj.op.nbdv(1:obj.op.nvdll(nb),nb),1),...
                                     obj.p(obj.op.nbdv(1:obj.op.nvdll(nb),nb),2),'b-','linewi',1.2);
                             end
                         end
@@ -712,6 +727,9 @@ classdef msh
             if proj == 1
                 % now add the box
                 m_grid('FontSize',fsz,'bac',bgc);
+            end
+            if ~isempty(leg_ind)
+                legend(h(leg_ind),legend_names(leg_ind),'location','best')
             end
 
             function plotter(cmap,round_dec,yylabel,apply_pivot)
