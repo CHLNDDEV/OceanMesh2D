@@ -31,7 +31,7 @@ Besides posting [issues](https://github.com/CHLNDDEV/OceanMesh2D/issues) with th
 
 Note: If the slack link invite isn't working, please send either one of us and an email and we'll fix it. By default, the invite link expires every 30 days.
 
-Otherwise please reach out to either Dr. William Pringle (wpringle@anl.gov) or Dr. Keith Roberts (krober@usp.br) with questions or concerns or feel free to start an Issue in the issues tab above.
+Otherwise please reach out to either Dr. William Pringle (wpringle@anl.gov) or Dr. Keith Roberts (keithrbt0@gmail.com) with questions or concerns or feel free to start an Issue in the issues tab above.
 
 
 Contributing
@@ -148,6 +148,9 @@ Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Unreleased (on current HEAD of the Projection branch)
+- None
+
+### [5.0.0] - 2021-07-29
 ## Added
 - `meshgen.build()` now will rewind the iteration set in the case mesh improvement cannot improve the qualities. https://github.com/CHLNDDEV/OceanMesh2D/pull/234
 -  `msh.plot()` now has a `cmap` in which the user can specify their any `cmocean` colormap
@@ -163,6 +166,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - tidal constituents for `Make_f15` can now contain "major8" in addition to other constituents in the string/cell array https://github.com/CHLNDDEV/OceanMesh2D/pull/221
 - Correctly collect NDBC and NOS stations in mesh when creating `fort15` file using `Make_f15` for meteorological, velocity and elevation records https://github.com/CHLNDDEV/OceanMesh2D/pull/242
 ## Changed
+- `msh.plot()` using type `bd` option now creates a legend for the different boundary condition types. https://github.com/CHLNDDEV/OceanMesh2D/pull/247
 - forcing facecolor to white in `m_trimesh` so that it does not intefere with background color option. https://github.com/CHLNDDEV/OceanMesh2D/pull/245
 - made topographic elevation bound option for max_ele, wl, slp, and g `edgefx` kwargs consistent and added explanation of this option is included in `edgefx` help. https://github.com/CHLNDDEV/OceanMesh2D/pull/230
 - `m_plot()` function calls `m_grid()` with background color input kwarg (if `backcolor` option used) instead of manual application. https://github.com/CHLNDDEV/OceanMesh2D/pull/225
