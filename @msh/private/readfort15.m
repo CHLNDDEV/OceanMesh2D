@@ -314,7 +314,7 @@ end
 
 % NOUTGW
 if ( f15dat.nws ~= 0 ) 
-    f15dat.outgw = readlinevec( fid ) ;
+    f15dat.outgm = readlinevec( fid ) ;
 end
 
 
