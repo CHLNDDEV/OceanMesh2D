@@ -20,7 +20,7 @@ grade     = 0.15;               % mesh grade in decimal percent.
 R         = 3; 			        % Number of elements to resolve feature.
   
 
-dem       = 'SRTM15+V2.1.nc';
+dem       = 'SRTM15+.nc';
 coastline = 'GSHHS_f_L1';
 gdat1 = geodata('shp',coastline,'dem',dem,'h0',min_el,...
                 'bbox',bbox);

@@ -18,13 +18,13 @@ else
    
    TestInterp
 
-   if exist('SRTM15+V2.1.nc')
+   if exist('SRTM15+.nc')
    
       TestECGC 
 
    else
    
-      warning('Need to download SRTM15+V2.1.nc to run TestECGC. Run setup.sh') 
+      warning('Need to download SRTM15+.nc to run TestECGC. Run setup.sh') 
 
    end
 
