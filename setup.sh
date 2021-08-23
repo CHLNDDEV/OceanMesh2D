@@ -38,11 +38,11 @@ if $gshhs; then
 fi
 
 if $srtm; then
-  if [ -f "SRTM15+V2.3.nc" ]; then
-     echo "SRTM15+V2.3.nc global bathymetry file already exists"
+  if [ -f "SRTM15+.nc" ]; then
+     echo "SRTM15+.nc global bathymetry file already exists"
   else
-     # download SRTM15+V2.1 bathymetry
-     wget "ftp://topex.ucsd.edu/pub/srtm15_plus/SRTM15+V2.1.nc"
+     # download SRTM15+ bathymetry
+     wget "ftp://topex.ucsd.edu/pub/srtm15_plus/SRTM15*.nc" -O SRTM15+.nc
   fi
 fi
 
