@@ -3854,10 +3854,11 @@ classdef msh
             egfix = renumberEdges(egfix) ;
         end
 
-        function boundary = get_boundary_of_mesh(obj,ascell)
-            % boundary = get_boundary_of_mesh(obj,ascell)
+        function [boundary, bou_index] = get_boundary_of_mesh(obj,ascell)
+            % [boundary, bou_index] = get_boundary_of_mesh(obj,ascell)
             %
-            % Returns the boundary of the mesh
+            % Returns the boundary of the mesh and/or the mesh indices of
+            % the boundary
             %
             % INPUTS: msh_obj
             % OUTPUTS: msh boundary in one of two forms:
@@ -3872,13 +3873,14 @@ classdef msh
             end
             bnde = extdom_edges2(obj.t,obj.p) ;
             try
-                boundary = extdom_polygon(bnde,obj.p,-1) ;
+                [boundary,bou_index] = extdom_polygon(bnde,obj.p,-1) ;
             catch
                 warning('ALERT: Boundary of mesh is not walkable. Returning polylines.');
-                boundary = extdom_polygon(bnde,obj.p,-1,1) ;
+                [boundary,bou_index] = extdom_polygon(bnde,obj.p,-1,1) ;
             end
             if ascell; return; end
             boundary = cell2mat(boundary');
+            bou_index = cell2mat(bou_index');
         end
 
         function obj = map_mesh_properties(obj,varargin)
