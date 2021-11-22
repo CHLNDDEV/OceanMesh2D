@@ -9,7 +9,7 @@ ny = size(lon,1);
 nx = size(lon,2);
 np = numel(x);
 
-if ny == 1 && ny == 1
+if nx == 1 && ny == 1
    IX = 1; IX1 = 1; IX2 = 1;
    return
 end
