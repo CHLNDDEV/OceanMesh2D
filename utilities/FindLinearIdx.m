@@ -17,8 +17,8 @@ y = y(:);
 % (trying both directions so could be meshgrid or ndgrid format)
 dx  = diff(lon(:,1));
 dy  = diff(lat(1,:));
-
-if max(dx) ~= min(dx) || max(dy) ~= min(dy)
+dx_cutoff = 0.1/111e3; % approx 10 cm 
+if (max(dx) - min(dx)) > dx_cutoff || (max(dy) - min(dy)) > dx_cutoff
     % % IRREGULAR GRID (SLOWER)
     
     % convert ndgrid to vector
