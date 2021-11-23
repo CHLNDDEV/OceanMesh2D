@@ -59,6 +59,7 @@ classdef msh
         f24 % A struct of the fort24 SAL values
         f2001 % A struct for the fort2001 non-periodic flux/ele sponge bc
         f5354 % A struct for the fort53001/54001 tidal ele/flux sponge bc
+        offset63 % A struct for the offset.63 dynamicwaterlevelcorrection file
         proj   % Description of projected space (m_mapv1.4)
         coord  % Description of projected space (m_mapv1.4)
         mapvar % Description of projected space (m_mapv1.4)
@@ -216,6 +217,9 @@ classdef msh
                 if ~isempty(obj.f5354)
                     writefort5354( obj.f5354, fname );
                 end
+                if ~isempty(obj.offset63)
+                    writeoffset63( obj.offset63, [fname '.offset.63'] );
+                end
             else
                 if any(contains(type,'14')) || any(contains(type,'ww3')) || ...
                         any(contains(type,'gr3'))
@@ -268,6 +272,9 @@ classdef msh
                 end
                 if any(contains(type,'5354')) && ~isempty(obj.f5354)
                     writefort5354( obj.f5354, fname );
+                end
+                if any(contains(type,'offset')) && ~isempty(obj.offset63)
+                    writeoffset63( obj.offset63, [fname '.offset.63'] );
                 end
             end
         end
@@ -3854,10 +3861,11 @@ classdef msh
             egfix = renumberEdges(egfix) ;
         end
 
-        function boundary = get_boundary_of_mesh(obj,ascell)
-            % boundary = get_boundary_of_mesh(obj,ascell)
+        function [boundary, bou_index] = get_boundary_of_mesh(obj,ascell)
+            % [boundary, bou_index] = get_boundary_of_mesh(obj,ascell)
             %
-            % Returns the boundary of the mesh
+            % Returns the boundary of the mesh and/or the mesh indices of
+            % the boundary
             %
             % INPUTS: msh_obj
             % OUTPUTS: msh boundary in one of two forms:
@@ -3872,13 +3880,14 @@ classdef msh
             end
             bnde = extdom_edges2(obj.t,obj.p) ;
             try
-                boundary = extdom_polygon(bnde,obj.p,-1) ;
+                [boundary,bou_index] = extdom_polygon(bnde,obj.p,-1) ;
             catch
                 warning('ALERT: Boundary of mesh is not walkable. Returning polylines.');
-                boundary = extdom_polygon(bnde,obj.p,-1,1) ;
+                [boundary,bou_index] = extdom_polygon(bnde,obj.p,-1,1) ;
             end
             if ascell; return; end
             boundary = cell2mat(boundary');
+            bou_index = cell2mat(bou_index');
         end
 
         function obj = map_mesh_properties(obj,varargin)
