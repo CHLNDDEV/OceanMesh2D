@@ -316,8 +316,9 @@ for k = 1: length(f15dat.controllist)
     fprintf( fid, '! -- Begin %s Control Namelist -- \n', f15dat.controllist(k).type ) ;
     fprintf( fid, '&%sControl\n', f15dat.controllist(k).type ) ;
     for m = 1:length(f15dat.controllist(k).var)
-        fprintf( fid, '%s = %s,\n',f15dat.controllist(k).var(m).name,...
-                 f15dat.controllist(k).var(m).val) ;
+        val = f15dat.controllist(k).var(m).val;
+        if ~ischar(val); val = num2str(val); end
+        fprintf( fid, '%s = %s,\n',f15dat.controllist(k).var(m).name,val) ;
     end
     fprintf( fid, '/\n') ;
     fprintf( fid, '! -- End %s Control Namelist -- \n', f15dat.controllist(k).type ) ;
