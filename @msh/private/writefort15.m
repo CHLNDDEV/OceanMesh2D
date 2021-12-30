@@ -175,7 +175,7 @@ if ( sm > 0 )
     
     nm = 0 ; 
     for ib = 1: boudat.nbou
-        ibty = boudat.ibtype(ib)
+        ibty = boudat.ibtype(ib);
         
         switch ibty
             case {2,12,22,32,52}
@@ -197,7 +197,7 @@ if ( sm > 0 )
         % val = fscanf(fid, '%f ' ) ; % Must be revisit
         icnt = 0 ;
         for ib = 1: boudat.nbou
-            ibty = boudat.ibtype(ib) 
+            ibty = boudat.ibtype(ib); 
             
             switch ibty
                 case {2,12,22,52}
