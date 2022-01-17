@@ -1063,7 +1063,7 @@ classdef msh
             else
                 disp('Employing default (medium) option or user-specified opts')
                 opt.db = 0.25; opt.ds = 2; opt.con = 9; opt.djc = 0.1;
-                opt.sc_maxit = 1; opt.mqa = 0.25; opt.renum = 1;
+                opt.sc_maxit = 0; opt.mqa = 0.25; opt.renum = 1;
                 varargin(strcmp(varargin,'default')) = [];
                 varargin(strcmp(varargin,'medium')) = [];
             end
