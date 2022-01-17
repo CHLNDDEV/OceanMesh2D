@@ -3946,8 +3946,13 @@ classdef msh
                     % Remove open boundary info...
                     obj.op = [];
                 else
-                    % Remove unnessary part from the nbdv
+                    % Remove zero length boundary and unnessary part from the nbdv
                     obj.op.nbdv = obj.op.nbdv(1:max(obj.op.nvdll),:);
+                    zero_bound = obj.op.nvdll == 0;
+                    obj.op.nope = sum(~zero_bound);
+                    obj.op.ibtype(zero_bound) = [];
+                    obj.op.nvdll(zero_bound) = [];
+                    obj.op.nbdv(:,zero_bound) = [];
                 end
             end
             % land boundary info
