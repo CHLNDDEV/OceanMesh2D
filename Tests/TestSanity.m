@@ -4,7 +4,7 @@ run('../Examples/Example_1_NZ.m')
 
 NP_TOL = 500;
 NT_TOL = 1500;
-QUAL_TOL = 0.5;
+QUAL_TOL = 0.25; %[mqa for medium cleaning option]
 % p: [5968×2 double]
 % t: [9530×3 double]
 % Element qual. metrics
