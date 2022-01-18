@@ -150,6 +150,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Unreleased (on current HEAD of the Projection branch)
 ## Added
 - Geoid offset nodal attribute in `Calc_f13` subroutine. https://github.com/CHLNDDEV/OceanMesh2D/pull/251
+## Changed
+- Default mesh imrpovement strategy is `ds` 2.
 
 ### [5.0.0] - 2021-07-29
 ## Added
