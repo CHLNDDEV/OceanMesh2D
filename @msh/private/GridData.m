@@ -135,7 +135,7 @@ if maxdepth < inf
     disp(['Bounding maximum depth to ',num2str(maxdepth), ' meters.']) ;  
 end
 
-if strcmp(type,'slope')
+if strcmp(type,'slope') 
     disp(['Computing cell-averaged slope using the ' slope_calc ' method'])
     if isempty(obj.b) || all(obj.b == 0) 
         error(['You must have the bathymetry on the mesh before ' ...
@@ -143,6 +143,11 @@ if strcmp(type,'slope')
     elseif sum(isnan(obj.b)) > 0
         warning(['There are some NaNs in the bathymetry that could ' ...
                  'affect the computation of the slopes'])
+    end
+end
+if length(K) == 1
+    if strcmp(type,'slope') || strcmp(type,'all')
+        error('Cannot compute slopes on bathymetry with K of length 1')      
     end
 end
 
@@ -266,19 +271,22 @@ pcon = reshape(pmid(vtoe,:),size(vtoe,1),[],2);
 
 % delta is max and min bounds of the connecting element centers (or if only
 % one connecting element then do difference with the vertex itself
-
-% kjr 10/17/2018 enlarge the cell-averaging stencil by a factor N 
-pcon_max = max(squeeze(max(pcon,[],1)),2*obj.p(K,:)-squeeze(min(pcon,[],1)));
-pcon_min = min(squeeze(min(pcon,[],1)),2*obj.p(K,:)-squeeze(max(pcon,[],1)));
+if length(K) == 1
+    pcon_max = max(max(squeeze(pcon)),2*obj.p(K,:)-max(squeeze(pcon)));
+    pcon_min = min(min(squeeze(pcon)),2*obj.p(K,:)-min(squeeze(pcon)));
+else
+    pcon_max = max(squeeze(max(pcon,[],1)),2*obj.p(K,:)-squeeze(min(pcon,[],1)));
+    pcon_min = min(squeeze(min(pcon,[],1)),2*obj.p(K,:)-squeeze(max(pcon,[],1)));
+end
 delta = pcon_max - pcon_min;
 
+% kjr 10/17/2018 enlarge the cell-averaging stencil by a factor N 
 pcon_max = N*pcon_max+(1-N)*obj.p(K,:) ;
 pcon_min = N*pcon_min+(1-N)*obj.p(K,:) ;
                 
-
 %% Now read the bathy (only what we need)
 if ~isa(geodata,'geodata')
-    BufferL = max(delta); 
+    BufferL = max(delta,[],1); 
     lon_min = min(obj.p(K,1)) - BufferL(1);
     lon_max = max(obj.p(K,1)) + BufferL(1);
     lat_min = min(obj.p(K,2)) - BufferL(2);
@@ -339,7 +347,6 @@ if strcmp(type,'depth') || strcmp(type,'all')
 end
 
 %% Calculate N - number of DEM grids to average - for each node
-tic
 if strcmp(interp,'CA')
     [~,IDXX,IDXY] = FindLinearIdx(obj.p(K,1),obj.p(K,2),DEM_X,DEM_Y);
     [~,IDXR,IDXT] = FindLinearIdx(pcon_max(:,1),pcon_max(:,2),DEM_X,DEM_Y);
@@ -437,7 +444,6 @@ else
         b = F(obj.p(K,1),obj.p(K,2));
     end
 end
-toc
 %% Put in the global msh class
 if strcmp(type,'depth') || strcmp(type,'all')
     if isempty(obj.b)

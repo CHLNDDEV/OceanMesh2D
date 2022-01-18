@@ -151,7 +151,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## Added
 - Geoid offset nodal attribute in `Calc_f13` subroutine. https://github.com/CHLNDDEV/OceanMesh2D/pull/251
 ## Changed
-- Default mesh imrpovement strategy is `ds` 2.
+- Default mesh improvement strategy is `ds` 2.
+- Retrieve boundary indices in `msh.get_boundary_of_mesh` method. https://github.com/CHLNDDEV/OceanMesh2D/pull/259
+- `msh.offset63` struct and associated write/make routines for dynamicwaterlevel offset functionality. https://github.com/CHLNDDEV/OceanMesh2D/pull/259
+- `msh.interp` method for `K` argument of length 1, and for the test to determine whether the bathymetry grid is irregular. https://github.com/CHLNDDEV/OceanMesh2D/pull/259
 
 ### [5.0.0] - 2021-07-29
 ## Added
