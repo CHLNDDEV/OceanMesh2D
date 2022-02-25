@@ -186,16 +186,33 @@ if isempty(obj.f15)
     f15dat.extraline(10).msg = '';
     
     % control lists
+    % met
     f15dat.controllist(1).type = 'met';
     f15dat.controllist(1).var(1).name = 'WindDragLimit';
     f15dat.controllist(1).var(1).val = 0.0025;
-    f15dat.controllist(1).var(2).name = 'DragLawString';
-    f15dat.controllist(1).var(2).val = 'default'; 
-    f15dat.controllist(1).var(3).name = 'outputWindDrag';
-    f15dat.controllist(1).var(3).val = 'F'; 
-    f15dat.controllist(1).var(4).name = 'invertedBarometerOnElevationBoundary';
+    f15dat.controllist(1).var(2).name = 'PRBCKGRND';
+    f15dat.controllist(1).var(2).val = 1013;
+    f15dat.controllist(1).var(3).name = 'DragLawString';
+    f15dat.controllist(1).var(3).val = 'default'; 
+    f15dat.controllist(1).var(4).name = 'outputWindDrag';
     f15dat.controllist(1).var(4).val = 'F'; 
-    
+    f15dat.controllist(1).var(5).name = 'invertedBarometerOnElevationBoundary';
+    f15dat.controllist(1).var(5).val = 'F'; 
+    % dynamicwaterlevelcorrection control
+    f15dat.controllist(2).type = 'dynamicWaterLevelCorrection';
+    f15dat.controllist(2).var(1).name = [f15dat.controllist(2).type 'FileName'];
+    f15dat.controllist(2).var(1).val = 'offset.63';
+    f15dat.controllist(2).var(2).name = [f15dat.controllist(2).type 'Multiplier'];
+    f15dat.controllist(2).var(2).val = 1.0; 
+    f15dat.controllist(2).var(3).name = [f15dat.controllist(2).type 'RampStart'];
+    f15dat.controllist(2).var(3).val = 0.0; 
+    f15dat.controllist(2).var(4).name = [f15dat.controllist(2).type 'RampEnd'];
+    f15dat.controllist(2).var(4).val = 0.0; 
+    f15dat.controllist(2).var(5).name = [f15dat.controllist(2).type 'RampReferenceTime'];
+    f15dat.controllist(2).var(5).val = 'coldstart'; 
+    f15dat.controllist(2).var(6).name = [f15dat.controllist(2).type 'SkipSnaps'];
+    f15dat.controllist(2).var(6).val = 0; 
+ 
     % Put into the msh class
     obj.f15 = f15dat;
 end
