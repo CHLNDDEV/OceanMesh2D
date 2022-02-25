@@ -59,6 +59,7 @@ classdef msh
         f24 % A struct of the fort24 SAL values
         f2001 % A struct for the fort2001 non-periodic flux/ele sponge bc
         f5354 % A struct for the fort53001/54001 tidal ele/flux sponge bc
+        offset63 % A struct for the offset.63 dynamicwaterlevelcorrection file
         proj   % Description of projected space (m_mapv1.4)
         coord  % Description of projected space (m_mapv1.4)
         mapvar % Description of projected space (m_mapv1.4)
@@ -217,6 +218,9 @@ classdef msh
                 if ~isempty(obj.f5354)
                     writefort5354( obj.f5354, fname );
                 end
+                if ~isempty(obj.offset63)
+                    writeoffset63( obj.offset63, [fname '.offset.63'] );
+                end
             else
                 if any(contains(type,'14')) || any(contains(type,'ww3')) || ...
                         any(contains(type,'gr3'))
@@ -269,6 +273,9 @@ classdef msh
                 end
                 if any(contains(type,'5354')) && ~isempty(obj.f5354)
                     writefort5354( obj.f5354, fname );
+                end
+                if any(contains(type,'offset')) && ~isempty(obj.offset63)
+                    writeoffset63( obj.offset63, [fname '.offset.63'] );
                 end
             end
         end
@@ -336,6 +343,7 @@ classdef msh
             proj = 1;
             axis_limits = []; % use mesh extents to determine plot extents
             cmap = 1; % default value is specified in plot method 
+            leg_ind = [];
             
             projtype = []; 
             type = 'tri'; 
@@ -376,7 +384,7 @@ classdef msh
                     projtype = MAP_PROJECTION.name;
                 else
                     error(['no native projection in msh class, please specify the plotting projection: ' ...
-                           'plot(m,''proj'',''lamb''), or no projection: plot(m,''proj'',''none'')'])
+                           'plot(m,''type'',''tri'',''proj'',''lamb''), or no projection: plot(m,''type'',''tri'',''proj'',''none'')'])
                 end
             end
 
@@ -446,6 +454,8 @@ classdef msh
                         simpplot(obj.p,obj.t);
                     end
                 case('bd')
+                    legend_names = {'open ocean boundary','outer no-flux boundary',...
+                        'inner no-flux boundary','subgrid scale barriers'};
                     if tri
                         if proj
                             m_triplot(obj.p(:,1),obj.p(:,2),obj.t);
@@ -456,35 +466,44 @@ classdef msh
                     if ~isempty(obj.bd)
                         for nb = 1 : obj.bd.nbou
                             if obj.bd.ibtype(nb)  == 24 || obj.bd.ibtype(nb) == 94
+                                if sum(leg_ind == 4) == 0
+                                    leg_ind(end+1) = 4;
+                                end
                                 if proj
                                     % plot front facing
                                     m_plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
                                         obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'g-','linewi',1.2);
                                     % plot back facing
-                                    m_plot(obj.p(obj.bd.ibconn(1:obj.bd.nvell(nb),nb),1),...
+                                    h(4) = m_plot(obj.p(obj.bd.ibconn(1:obj.bd.nvell(nb),nb),1),...
                                         obj.p(obj.bd.ibconn(1:obj.bd.nvell(nb),nb),2),'y-','linewi',1.2);
                                 else
                                     % plot front facing
                                     plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
                                         obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'g-','linewi',1.2);
                                     % plot back facing
-                                    plot(obj.p(obj.bd.ibconn(1:obj.bd.nvell(nb),nb),1),...
+                                    h(4) = plot(obj.p(obj.bd.ibconn(1:obj.bd.nvell(nb),nb),1),...
                                         obj.p(obj.bd.ibconn(1:obj.bd.nvell(nb),nb),2),'y-','linewi',1.2);
                                 end
                             elseif obj.bd.ibtype(nb)  == 20
+                                if sum(leg_ind == 2) == 0
+                                    leg_ind(end+1) = 2;
+                                end
                                 if proj
-                                    m_plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
+                                    h(2) = m_plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
                                         obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'r-','linewi',1.2);
                                 else
-                                    plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
+                                    h(2) = plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
                                         obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'r-','linewi',1.2);
                                 end
                             else
+                                if sum(leg_ind == 3) == 0
+                                    leg_ind(end+1) = 3;
+                                end
                                 if proj
-                                    m_plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
+                                    h(3) = m_plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
                                         obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'g-','linewi',1.2);
                                 else
-                                    plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
+                                    h(3) = plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
                                         obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'g-','linewi',1.2);
                                 end
                             end
@@ -492,11 +511,14 @@ classdef msh
                     end
                     if ~isempty(obj.op)
                         for nb = 1 : obj.op.nope
+                            if sum(leg_ind == 1) == 0
+                                leg_ind(end+1) = 1;
+                            end
                             if proj
-                                m_plot(obj.p(obj.op.nbdv(1:obj.op.nvdll(nb),nb),1),...
+                                h(1) = m_plot(obj.p(obj.op.nbdv(1:obj.op.nvdll(nb),nb),1),...
                                     obj.p(obj.op.nbdv(1:obj.op.nvdll(nb),nb),2),'b-','linewi',3.2);
                             else
-                                plot(obj.p(obj.op.nbdv(1:obj.op.nvdll(nb),nb),1),...
+                                h(1) = plot(obj.p(obj.op.nbdv(1:obj.op.nvdll(nb),nb),1),...
                                     obj.p(obj.op.nbdv(1:obj.op.nvdll(nb),nb),2),'b-','linewi',1.2);
                             end
                         end
@@ -713,6 +735,9 @@ classdef msh
             if proj == 1
                 % now add the box
                 m_grid('FontSize',fsz,'bac',bgc);
+            end
+            if ~isempty(leg_ind)
+                legend(h(leg_ind),legend_names(leg_ind),'location','best')
             end
 
             function plotter(cmap,round_dec,yylabel,apply_pivot)
@@ -1040,13 +1065,13 @@ classdef msh
                 varargin(strcmp(varargin,'passive')) = [];
             elseif any(strcmp(varargin,'aggressive'))
                 disp('Employing aggressive option')
-                opt.db = 0.5; opt.ds = 1; opt.con = 9; opt.djc = 0.25;
+                opt.db = 0.5; opt.ds = 2; opt.con = 9; opt.djc = 0.25;
                 opt.sc_maxit = inf; opt.mqa = 0.5; opt.renum = 1;
                 varargin(strcmp(varargin,'aggressive')) = [];
             else
                 disp('Employing default (medium) option or user-specified opts')
-                opt.db = 0.25; opt.ds = 1; opt.con = 9; opt.djc = 0.1;
-                opt.sc_maxit = 1; opt.mqa = 0.25; opt.renum = 1;
+                opt.db = 0.25; opt.ds = 2; opt.con = 9; opt.djc = 0.1;
+                opt.sc_maxit = 0; opt.mqa = 0.25; opt.renum = 1;
                 varargin(strcmp(varargin,'default')) = [];
                 varargin(strcmp(varargin,'medium')) = [];
             end
@@ -1403,6 +1428,7 @@ classdef msh
                     switch classifier
                         case{'both','distance'}
                             % process gdat info
+                            land = [];
                             if ~isempty(gdat.mainland)
                                 land = gdat.mainland;
                                 land(isnan(land(:,1)),:) = [];
@@ -1412,7 +1438,13 @@ classdef msh
                                 inner(isnan(inner(:,1)),:) = [];
                                 land = [land; inner];
                             end
-                            [~,ldst] = ourKNNsearch(land',eb_mid',1);
+                            if ~isempty(land)
+                               [~,ldst] = ourKNNsearch(land',eb_mid',1);
+                            else
+                               % set distance to be larger than dist_lim  
+                               % everywhere when no land exists
+                               ldst = eb_mid(:,1)*0 + 2*dist_lim
+                            end    
                             eb_class = ldst > dist_lim;
                             if strcmp(classifier,'both')
                                 % ii) based on depth
@@ -3830,10 +3862,11 @@ classdef msh
             egfix = renumberEdges(egfix) ;
         end
 
-        function boundary = get_boundary_of_mesh(obj,ascell)
-            % boundary = get_boundary_of_mesh(obj,ascell)
+        function [boundary, bou_index] = get_boundary_of_mesh(obj,ascell)
+            % [boundary, bou_index] = get_boundary_of_mesh(obj,ascell)
             %
-            % Returns the boundary of the mesh
+            % Returns the boundary of the mesh and/or the mesh indices of
+            % the boundary
             %
             % INPUTS: msh_obj
             % OUTPUTS: msh boundary in one of two forms:
@@ -3848,13 +3881,14 @@ classdef msh
             end
             bnde = extdom_edges2(obj.t,obj.p) ;
             try
-                boundary = extdom_polygon(bnde,obj.p,-1) ;
+                [boundary,bou_index] = extdom_polygon(bnde,obj.p,-1) ;
             catch
                 warning('ALERT: Boundary of mesh is not walkable. Returning polylines.');
-                boundary = extdom_polygon(bnde,obj.p,-1,1) ;
+                [boundary,bou_index] = extdom_polygon(bnde,obj.p,-1,1) ;
             end
             if ascell; return; end
             boundary = cell2mat(boundary');
+            bou_index = cell2mat(bou_index');
         end
 
         function obj = map_mesh_properties(obj,varargin)
@@ -3922,8 +3956,13 @@ classdef msh
                     % Remove open boundary info...
                     obj.op = [];
                 else
-                    % Remove unnessary part from the nbdv
+                    % Remove zero length boundary and unnessary part from the nbdv
                     obj.op.nbdv = obj.op.nbdv(1:max(obj.op.nvdll),:);
+                    zero_bound = obj.op.nvdll == 0;
+                    obj.op.nope = sum(~zero_bound);
+                    obj.op.ibtype(zero_bound) = [];
+                    obj.op.nvdll(zero_bound) = [];
+                    obj.op.nbdv(:,zero_bound) = [];
                 end
             end
             % land boundary info
@@ -4015,6 +4054,8 @@ classdef msh
                         val_new2 = values(tmp,:); 
                         idx_new = [idx_new; ind_added];
                         val_new = [val_new'; val_new2]'; 
+                        [idx_new, C] = unique(idx_new); 
+                        val_new = val_new(:,C); 
                     end                    
                     % Put the uservalues back into f13 struct
                     obj.f13.userval.Atr(att).AttrName = m_old.f13.userval.Atr(att).AttrName;

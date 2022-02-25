@@ -25,7 +25,7 @@ grade     = 0.25; 		% mesh grade in decimal percent.
 
 %% STEP 2: specify geographical datasets and process the geographical data 
 %%         to be used later with other OceanMesh classes...
-dem       = 'SRTM15+V2.1.nc';
+dem       = 'SRTM15+.nc';
 coastline = 'GSHHS_f_L1';
 gdat = geodata('shp',coastline,'bbox',bbox,'h0',min_el);
 % plotting the gdat to show it crosses the 180/-180 and 

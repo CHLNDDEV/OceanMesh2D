@@ -64,10 +64,10 @@ volume_diff = (max(volumes)-min(volumes))/mean(volumes);
 disp('Maximum relative volume difference:')
 disp(volume_diff)
 
-if volume_diff > 0.001
+if volume_diff > 0.005
     error('Mesh volumes are too disparate with different dems')
     disp('Not Passed: Interp');
 else
-    disp('Mesh volumes are within 0.1% of each other')
+    disp('Mesh volumes are within 0.5% of each other')
     disp('Passed: Interp');
 end
