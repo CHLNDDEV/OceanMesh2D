@@ -31,7 +31,7 @@ Besides posting [issues](https://github.com/CHLNDDEV/OceanMesh2D/issues) with th
 
 Note: If the slack link invite isn't working, please send either one of us and an email and we'll fix it. By default, the invite link expires every 30 days.
 
-Otherwise please reach out to either Dr. William Pringle (wpringle@anl.gov) or Dr. Keith Roberts (krober@usp.br) with questions or concerns or feel free to start an Issue in the issues tab above.
+Otherwise please reach out to either Dr. William Pringle (wpringle@anl.gov) or Dr. Keith Roberts (keithrbt0@gmail.com) with questions or concerns or feel free to start an Issue in the issues tab above.
 
 
 Contributing
@@ -149,18 +149,37 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Unreleased (on current HEAD of the Projection branch)
 ## Added
+- Geoid offset nodal attribute in `Calc_f13` subroutine. https://github.com/CHLNDDEV/OceanMesh2D/pull/251
+- Support for writing Self Attraction and Loading (SAL) files in NetCDF for the ADCIRC model. https://github.com/CHLNDDEV/OceanMesh2D/pull/231
+## Changed
+- Default mesh improvement strategy is `ds` 2.
+- Retrieve boundary indices in `msh.get_boundary_of_mesh` method. https://github.com/CHLNDDEV/OceanMesh2D/pull/259
+- `msh.offset63` struct and associated write/make routines for dynamicwaterlevel offset functionality. https://github.com/CHLNDDEV/OceanMesh2D/pull/259
+- dynamicWaterLevelCorrection to fort.15 namelist, and PRBCKGRND option to met fort.15 namelist. https://github.com/CHLNDDEV/OceanMesh2D/pull/261
+## Fixed
+- `msh.interp` method for `K` argument of length 1, and for the test to determine whether the bathymetry grid is irregular. https://github.com/CHLNDDEV/OceanMesh2D/pull/259
+- Printing of namelist character strings or numbers. https://github.com/CHLNDDEV/OceanMesh2D/pull/261
+- `Make_offset63.m` time interval computation. https://github.com/CHLNDDEV/OceanMesh2D/pull/261
+
+### [5.0.0] - 2021-07-29
+## Added
+- `meshgen.build()` now will rewind the iteration set in the case mesh improvement cannot improve the qualities. https://github.com/CHLNDDEV/OceanMesh2D/pull/234
 -  `msh.plot()` now has a `cmap` in which the user can specify their any `cmocean` colormap
 - `radius_separated_points` function that trims the points in the mesh to have a specified resolution that can be used before `m_quiver` so that vectors are evenly plotted. https://github.com/CHLNDDEV/OceanMesh2D/pull/225
 - Deleting boundary conditions by specifyng their indices in `msh.object.bd` field. See https://github.com/CHLNDDEV/OceanMesh2D/pull/205
 - Ability for user to set their own axis limits when plotting with `msh.plot()`. https://github.com/CHLNDDEV/OceanMesh2D/pull/224
-- Write fort24 files in a NetCDF format to save space. https://github.com/CHLNDDEV/OceanMesh2D/pull/231
 ## Fixed
+- Minor fix to `msh.make_bc` using the `auto` method. https://github.com/CHLNDDEV/OceanMesh2D/pull/237
 - correction in setting stereographic projection bounds in `setProj` to make sure points are not pushed outside and become NaNs (was limited to radius of 178 deg but made sure can go up to full 180 deg). https://github.com/CHLNDDEV/OceanMesh2D/pull/225
 - Correctly deleting weirs from boundary object through `make_bc` delete method. See https://github.com/CHLNDDEV/OceanMesh2D/pull/205
 - Array format fix for reading in ibtype and nvell from fort.14 file and when executing carry_over_weirs. See https://github.com/CHLNDDEV/OceanMesh2D/pull/206
 - Fix for irregular grid spacings in DEMs. See https://github.com/CHLNDDEV/OceanMesh2D/pull/204
 - tidal constituents for `Make_f15` can now contain "major8" in addition to other constituents in the string/cell array https://github.com/CHLNDDEV/OceanMesh2D/pull/221
+- Correctly collect NDBC and NOS stations in mesh when creating `fort15` file using `Make_f15` for meteorological, velocity and elevation records https://github.com/CHLNDDEV/OceanMesh2D/pull/242
 ## Changed
+- `msh.plot()` using type `bd` option now creates a legend for the different boundary condition types. https://github.com/CHLNDDEV/OceanMesh2D/pull/247
+- forcing facecolor to white in `m_trimesh` so that it does not intefere with background color option. https://github.com/CHLNDDEV/OceanMesh2D/pull/245
+- made topographic elevation bound option for max_ele, wl, slp, and g `edgefx` kwargs consistent and added explanation of this option is included in `edgefx` help. https://github.com/CHLNDDEV/OceanMesh2D/pull/230
 - `m_plot()` function calls `m_grid()` with background color input kwarg (if `backcolor` option used) instead of manual application. https://github.com/CHLNDDEV/OceanMesh2D/pull/225
 - `tidal_data_to_ob` function called from `Make_f15` populates boundary condition tidal constituents that do not exist in the tidal database with zero values so that user can add user-defined values later (previously did not populate). https://github.com/CHLNDDEV/OceanMesh2D/pull/225
 - Improved `cmocean` for pivot handling with discrete colormap. https://github.com/CHLNDDEV/OceanMesh2D/pull/225
@@ -192,7 +211,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - fix for `msh.make_bc(m,auto,gdat)` where gdat is empty. In this case it uses the depths on the mesh to determine the open boundaries.
 - check for `poly2ccw` mapping toolbox function in `kml2struct`
 - fix for `msh.plot()` on log colormap when plotting f13 attributes
-
 ## Deleted
 - Deprecating `msh.CheckTimestep()` for `msh.bound_courant_number`. Added error message and instruction in the CheckTimestep help
 
