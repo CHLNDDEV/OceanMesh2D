@@ -1064,13 +1064,13 @@ classdef msh
                 varargin(strcmp(varargin,'passive')) = [];
             elseif any(strcmp(varargin,'aggressive'))
                 disp('Employing aggressive option')
-                opt.db = 0.5; opt.ds = 1; opt.con = 9; opt.djc = 0.25;
+                opt.db = 0.5; opt.ds = 2; opt.con = 9; opt.djc = 0.25;
                 opt.sc_maxit = inf; opt.mqa = 0.5; opt.renum = 1;
                 varargin(strcmp(varargin,'aggressive')) = [];
             else
                 disp('Employing default (medium) option or user-specified opts')
-                opt.db = 0.25; opt.ds = 1; opt.con = 9; opt.djc = 0.1;
-                opt.sc_maxit = 1; opt.mqa = 0.25; opt.renum = 1;
+                opt.db = 0.25; opt.ds = 2; opt.con = 9; opt.djc = 0.1;
+                opt.sc_maxit = 0; opt.mqa = 0.25; opt.renum = 1;
                 varargin(strcmp(varargin,'default')) = [];
                 varargin(strcmp(varargin,'medium')) = [];
             end
@@ -3955,8 +3955,13 @@ classdef msh
                     % Remove open boundary info...
                     obj.op = [];
                 else
-                    % Remove unnessary part from the nbdv
+                    % Remove zero length boundary and unnessary part from the nbdv
                     obj.op.nbdv = obj.op.nbdv(1:max(obj.op.nvdll),:);
+                    zero_bound = obj.op.nvdll == 0;
+                    obj.op.nope = sum(~zero_bound);
+                    obj.op.ibtype(zero_bound) = [];
+                    obj.op.nvdll(zero_bound) = [];
+                    obj.op.nbdv(:,zero_bound) = [];
                 end
             end
             % land boundary info
