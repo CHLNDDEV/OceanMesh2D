@@ -678,7 +678,7 @@ classdef meshgen
                     % then if the number of points significantly decreased
                     % due to a mesh improvement iteration, then rewind.
                     if ~mod(it,imp+1) && ((obj.qual(it,1) - obj.qual(it-1,1) < -0.10)  || ...
-                        (~improve_with_reduced_quality && ...
+                        (~obj.improve_with_reduced_quality && ...
                         (N - length(p_before_improve))/length(p_before_improve) < -0.10))
                         disp('Mesh improvement was unsuccessful...rewinding...');
                         p = p_before_improve; 
@@ -751,7 +751,7 @@ classdef meshgen
                 if ~mod(it,imp)
                     if abs(qual_diff) < obj.qual_tol
                         % Do the final elimination of small connectivity
-                        if delaunay_elim_on_exit
+                        if obj.delaunay_elim_on_exit
                             [t,p] = delaunay_elim(p,obj.fd,geps,1);
                         end
                         disp('Quality of mesh is good enough, exit')
@@ -815,7 +815,8 @@ classdef meshgen
                 if ~mod(it,imp)
                     p_before_improve = p;
                     nn = []; pst = [];
-                    if abs(qual_diff) < imp*obj.qual_tol && (improve_with_reduced_quality || qual_diff > 0)
+                    if abs(qual_diff) < imp*obj.qual_tol && ...
+                        (obj.improve_with_reduced_quality || qual_diff > 0)
                         % Remove elements with small connectivity
                         nn = get_small_connectivity(p,t);
                         disp(['Deleting ' num2str(length(nn)) ' due to small connectivity'])
@@ -889,7 +890,7 @@ classdef meshgen
 
                 if ( it > obj.itmax )
                     % Do the final deletion of small connectivity
-                    if delaunay_elim_on_exit
+                    if obj.delaunay_elim_on_exit
                         [t,p] = delaunay_elim(p,obj.fd,geps,1);
                     end
                     disp('too many iterations, exit')
