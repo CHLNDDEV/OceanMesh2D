@@ -1,4 +1,4 @@
-% Example_13_Tokyo: Mesh Tokyo Bay
+% Example_1_NZ: Mesh the South Island of New Zealand
 clearvars; clc;
 
 addpath('..')
@@ -7,9 +7,9 @@ addpath(genpath('../datasets/'))
 addpath(genpath('../m_map/'))
 
 %% STEP 1: set mesh extents and set parameters for mesh.
-bbox = [139 140.5;		% lon_min lon_max
-        34.7 36]; 		% lat_min lat_max
-min_el    = 1e2;  		% minimum resolution in meters.
+bbox = [166 176;		% lon_min lon_max
+        -48 -40]; 		% lat_min lat_max
+min_el    = 1e3;  		% minimum resolution in meters.
 max_el    = 100e3; 		% maximum resolution in meters. 
 max_el_ns = 5e3;        % maximum resolution nearshore in meters.
 grade     = 0.35; 		% mesh grade in decimal percent.
@@ -36,6 +36,6 @@ plot(m,'type','bd');
 % write(m,'South_Island_NZ');
 
 %% STEP 6: Example of plotting a subdomain with bcs
-%bbox_s =  [172   176;
-%           -42   -39];
-%plot(m,'type','bd','subdomain',bbox_s)
+bbox_s =  [172   176;
+           -42   -39];
+plot(m,'type','bd','subdomain',bbox_s)
