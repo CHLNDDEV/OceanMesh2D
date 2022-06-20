@@ -1197,17 +1197,21 @@ classdef msh
             qual = [mq_m,mq_l3sig,mq_l];
             LTn = size(obj.t,1);
 
-            if mq_l < opt.mqa && (opt.ds || LT ~= LTn)
+            if mq_l < opt.mqa && LT ~= LTn
                 % Need to clean it again
                 disp('Poor or overlapping elements, cleaning again')
                 disp(['(Min Qual = ' num2str(mq_l) ')'])
                 % repeat without projecting (already projected)
-                ii = find(strcmp(varargino,'proj'));
+                ii = find(strcmp(varargino,'proj'), 1);
                 if ~isempty(ii)
                     varargino{ii+1} = 0;
                 else
                     varargino{end+1} = 'proj';
                     varargino{end+1} = 0;
+                end
+                ii = find(strcmp(varargino,'pfix'), 1);
+                if ~isempty(ii)
+                    varargino{ii+1} = pfixV;
                 end
                 obj = clean(obj,varargino(:));
             elseif opt.nscreen
