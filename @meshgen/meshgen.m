@@ -39,7 +39,10 @@ classdef meshgen
     %         qual_tol      % tolerance for the accepted negligible change in quality
     %         enforceWeirs  % whether or not to enforce weirs in meshgen
     %         enforceMin    % whether or not to enfore minimum edgelength for all edgefxs
+    % delaunay_elim_on_exit % whether or not to run delaunay_elim on exit of meshgen   
+    % improve_with_reduced_quality % whether or not to allow mesh improvements with decreases in mesh quality
     %         big_mesh      % set to 1 to remove the bou data from memory
+    %       
     properties
         fd            % handle to distance function
         fh            % handle to edge function
@@ -73,6 +76,8 @@ classdef meshgen
         Fb            % bathymetry data interpolant
         enforceWeirs  % whether or not to enforce weirs in meshgen
         enforceMin    % whether or not to enfore minimum edgelength for all edgefxs
+        delaunay_elim_on_exit % whether or not to run delaunay_elim on exit of meshgen   
+        improve_with_reduced_quality % whether or not to allow mesh improvements with decreases in mesh quality
     end
 
 
@@ -126,6 +131,8 @@ classdef meshgen
             addOptional(p,'qual_tol',defval);
             addOptional(p,'enforceWeirs',1);
             addOptional(p,'enforceMin',1);
+            addOptional(p,'delaunay_elim_on_exit',1);
+            addOptional(p,'improve_with_reduced_quality',0);
 
             % parse the inputs
             parse(p,varargin{:});
@@ -137,7 +144,9 @@ classdef meshgen
             % kjr...order these argument so they are processed in a predictable
             % manner. Process the general opts first, then the OceanMesh
             % classes...then basic non-critical options.
-            inp = orderfields(inp,{'h0','bbox','enforceWeirs','enforceMin','fh',...
+            inp = orderfields(inp,{'h0','bbox','enforceWeirs','enforceMin',...
+                                   'delaunay_elim_on_exit','improve_with_reduced_quality',...
+                                   'fh',...
                                    'inner','outer','mainland',...
                                    'bou','ef',... %<--OceanMesh classes come after
                                    'egfix','pfix','fixboxes',...
@@ -409,6 +418,10 @@ classdef meshgen
                         obj.enforceWeirs = inp.(fields{i});
                     case('enforceMin')
                         obj.enforceMin = inp.(fields{i});
+                    case('delaunay_elim_on_exit')
+                        obj.delaunay_elim_on_exit = inp.(fields{i});
+                    case('improve_with_reduced_quality')
+                        obj.improve_with_reduced_quality = inp.(fields{i});
                 end
             end
 
@@ -660,9 +673,13 @@ classdef meshgen
                     
                     
                     % If mesh quality went down "significantly" since last iteration
-                    % which was a mesh improvement iteration, then rewind.
-                    if ~mod(it,imp+1) && obj.qual(it,1) - obj.qual(it-1,1) < -0.10 || ...
-                            ~mod(it,imp+1) && (N - length(p_before_improve))/length(p_before_improve) < -0.10
+                    % ..or.. 
+                    % If not allowing improvements with reduction in quality 
+                    % then if the number of points significantly decreased
+                    % due to a mesh improvement iteration, then rewind.
+                    if ~mod(it,imp+1) && ((obj.qual(it,1) - obj.qual(it-1,1) < -0.10)  || ...
+                        (~obj.improve_with_reduced_quality && ...
+                        (N - length(p_before_improve))/length(p_before_improve) < -0.10))
                         disp('Mesh improvement was unsuccessful...rewinding...');
                         p = p_before_improve; 
                         N = size(p,1);                                     % Number of points changed
@@ -734,7 +751,9 @@ classdef meshgen
                 if ~mod(it,imp)
                     if abs(qual_diff) < obj.qual_tol
                         % Do the final elimination of small connectivity
-                        [t,p] = delaunay_elim(p,obj.fd,geps,1);
+                        if obj.delaunay_elim_on_exit
+                            [t,p] = delaunay_elim(p,obj.fd,geps,1);
+                        end
                         disp('Quality of mesh is good enough, exit')
                         close all;
                         break;
@@ -796,7 +815,8 @@ classdef meshgen
                 if ~mod(it,imp)
                     p_before_improve = p;
                     nn = []; pst = [];
-                    if qual_diff < imp*obj.qual_tol && qual_diff > 0
+                    if abs(qual_diff) < imp*obj.qual_tol && ...
+                        (obj.improve_with_reduced_quality || qual_diff > 0)
                         % Remove elements with small connectivity
                         nn = get_small_connectivity(p,t);
                         disp(['Deleting ' num2str(length(nn)) ' due to small connectivity'])
@@ -870,7 +890,9 @@ classdef meshgen
 
                 if ( it > obj.itmax )
                     % Do the final deletion of small connectivity
-                    [t,p] = delaunay_elim(p,obj.fd,geps,1);
+                    if obj.delaunay_elim_on_exit
+                        [t,p] = delaunay_elim(p,obj.fd,geps,1);
+                    end
                     disp('too many iterations, exit')
                     close all;
                     break ;
