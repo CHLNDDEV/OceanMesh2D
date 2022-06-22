@@ -149,6 +149,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Unreleased (on current HEAD of the Projection branch)
 ## Added
+- Option `improve_with_reduced_quality` to `meshgen` for allowing for mesh improvements even when quality is decreasing or large number of nodes eliminated, which sometimes is necessary to force the advancement in mesh quality.
+- Option `delaunay_elim_on_exit` to `meshgen` to skip the last call to `delaunay_elim` to potentially avoid deleting boundary elements.
 - Geoid offset nodal attribute in `Calc_f13` subroutine. https://github.com/CHLNDDEV/OceanMesh2D/pull/251
 - Support for writing Self Attraction and Loading (SAL) files in NetCDF for the ADCIRC model. https://github.com/CHLNDDEV/OceanMesh2D/pull/231
 ## Changed
@@ -157,6 +159,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - `msh.offset63` struct and associated write/make routines for dynamicwaterlevel offset functionality. https://github.com/CHLNDDEV/OceanMesh2D/pull/259
 - dynamicWaterLevelCorrection to fort.15 namelist, and PRBCKGRND option to met fort.15 namelist. https://github.com/CHLNDDEV/OceanMesh2D/pull/261
 ## Fixed
+- Recursive cleaning issues: infinite loop and preservation of fixed points.
 - `msh.interp` method for `K` argument of length 1, and for the test to determine whether the bathymetry grid is irregular. https://github.com/CHLNDDEV/OceanMesh2D/pull/259
 - Printing of namelist character strings or numbers. https://github.com/CHLNDDEV/OceanMesh2D/pull/261
 - `Make_offset63.m` time interval computation. https://github.com/CHLNDDEV/OceanMesh2D/pull/261
