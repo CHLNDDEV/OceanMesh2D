@@ -1,17 +1,29 @@
-function mfp = mesh2dgen( polygon, fh )
-% mfp = mesh2dgen( polygon, fh )
+function mfp = mesh2dgen( polygon, fh, kind, iter)
+% mfp = mesh2dgen( polygon, fh, kind, iter)
 % Generates a mesh using mesh2d based on a nan-delimited polygon on wgs84
 % lat-lon coordinates and the oceanmesh2D edgefx class, fh
 % We make the assumption that floodplain domain is relatively small so that
 % projection is not that important..
+% kind: 'delaunay' (default) or 'delfront' method for mesh generation
+% iter: maximum allowable iterations (default is 100) 
 %
 % This section of the code used `mesh2d` by DR. Darren Engwirda
 % https://github.com/dengwirda/mesh2d
 
-opts.iter = 100;
-opts.kind = 'delaunay';
+if nargin < 3 || isempty(kind)
+    opts.kind = 'delaunay';
+else
+    opts.kind = kind;
+end
+if nargin < 4 || isempty(iter)
+    opts.iter = 100;
+else
+    opts.iter = iter;
+end
 opts.ref1 = 'preserve';
+
 [node,edge] = getnan2(polygon);
+
 if isa(fh,'edgefx')
     fh.F.Values = fh.F.Values/111e3;
     hfun = @(p)fh.F(p);
