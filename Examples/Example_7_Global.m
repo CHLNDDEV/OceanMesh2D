@@ -22,7 +22,7 @@ outname = 'Global_4km_20km';
 
 %% STEP 2: specify geographical datasets and process the geographical data
 %% to be used later with other OceanMesh classes...
-dem       = 'SRTM15+V2.1.nc';
+dem       = 'SRTM15+.nc';
 coastline = {'GSHHS_f_L1','GSHHS_f_L6'};
 gdat1 = geodata('shp',coastline,'dem',dem,...
                 'bbox',bbox,'h0',min_el);

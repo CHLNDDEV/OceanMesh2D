@@ -38,7 +38,7 @@ mshopts = mshopts.build;
 % Get out the msh class and put on nodestrings
 m = mshopts.grd;
 % Interpolate topobathy data onto the vertices of the mesh.
-m = interp(m,'SRTM15+V2.1.nc');
+m = interp(m,'SRTM15+.nc');
 %% Extract the region which you want to remesh
 % For the purpose of this example, we have drawn a random polygon on top
 % of the mesh for which we would like to remesh.

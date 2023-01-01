@@ -27,7 +27,7 @@ OceanMesh2D is a set of user-friendly MATLAB functions to generate two-dimension
 Getting help
 ==============
 
-Besides posting [issues](https://github.com/CHLNDDEV/OceanMesh2D/issues) with the code on Github, you can also ask questions via our Slack channel [here](https://join.slack.com/t/oceanmesh2d/shared_invite/zt-r5ddyn78-xapbXmJmeuKwLPB5ZiSNtQ).
+Besides posting [issues](https://github.com/CHLNDDEV/OceanMesh2D/issues) with the code on Github, you can also ask questions via our Slack channel [here](https://join.slack.com/t/oceanmesh2d/shared_invite/zt-1b96mhvhw-sHUhP2emepHlGtw0~fWmAg).
 
 Note: If the slack link invite isn't working, please send either one of us and an email and we'll fix it. By default, the invite link expires every 30 days.
 
@@ -142,6 +142,14 @@ GALLERY:
   <img src = "imgs/Globalocean.jpg"> &nbsp &nbsp &nbsp &nbsp
 </p>
 
+
+* The following images are provided from happy users. Please send us your meshes.
+
+Jiangchao Qiu from his [publication](https://agupubs.onlinelibrary.wiley.com/doi/abs/10.1029/2021EF002638).
+<p align="center">
+  <img src = "imgs/PRD_Mesh.png"> &nbsp &nbsp &nbsp &nbsp
+</p>
+
 Changelog
 =========
 
@@ -149,7 +157,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Unreleased (on current HEAD of the Projection branch)
 ## Added
+- Option `improve_with_reduced_quality` to `meshgen` for allowing for mesh improvements even when quality is decreasing or large number of nodes eliminated, which sometimes is necessary to force the advancement in mesh quality.
+- Option `delaunay_elim_on_exit` to `meshgen` to skip the last call to `delaunay_elim` to potentially avoid deleting boundary elements.
 - Geoid offset nodal attribute in `Calc_f13` subroutine. https://github.com/CHLNDDEV/OceanMesh2D/pull/251
+- Support for writing Self Attraction and Loading (SAL) files in NetCDF for the ADCIRC model. https://github.com/CHLNDDEV/OceanMesh2D/pull/231
+## Changed
+- Default mesh improvement strategy is `ds` 2.
+- Retrieve boundary indices in `msh.get_boundary_of_mesh` method. https://github.com/CHLNDDEV/OceanMesh2D/pull/259
+- `msh.offset63` struct and associated write/make routines for dynamicwaterlevel offset functionality. https://github.com/CHLNDDEV/OceanMesh2D/pull/259
+- dynamicWaterLevelCorrection to fort.15 namelist, and PRBCKGRND option to met fort.15 namelist. https://github.com/CHLNDDEV/OceanMesh2D/pull/261
+## Fixed
+- Recursive cleaning issues: infinite loop and preservation of fixed points.
+- `msh.interp` method for `K` argument of length 1, and for the test to determine whether the bathymetry grid is irregular. https://github.com/CHLNDDEV/OceanMesh2D/pull/259
+- Printing of namelist character strings or numbers. https://github.com/CHLNDDEV/OceanMesh2D/pull/261
+- `Make_offset63.m` time interval computation. https://github.com/CHLNDDEV/OceanMesh2D/pull/261
+- Removed dependency on statistics toolbox when using the 'nanfill' option in `msh.interp`. https://github.com/CHLNDDEV/OceanMesh2D/pull/269
 
 ### [5.0.0] - 2021-07-29
 ## Added

@@ -31,7 +31,7 @@ addpath(genpath('../m_map/'))
 % Shoreline
 shoreline = 'GSHHS_f_L1';
 % Bathy data
-dem = 'SRTM15+V2.1.nc';
+dem = 'SRTM15+.nc';
 %% Define meshing domain and parameters
 bbox{1} = [-83, -82; 27 28.5];      % outermost bbox
 min_el = 100;                       % minimum edgelength

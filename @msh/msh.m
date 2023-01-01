@@ -59,6 +59,7 @@ classdef msh
         f24 % A struct of the fort24 SAL values
         f2001 % A struct for the fort2001 non-periodic flux/ele sponge bc
         f5354 % A struct for the fort53001/54001 tidal ele/flux sponge bc
+        offset63 % A struct for the offset.63 dynamicwaterlevelcorrection file
         proj   % Description of projected space (m_mapv1.4)
         coord  % Description of projected space (m_mapv1.4)
         mapvar % Description of projected space (m_mapv1.4)
@@ -175,9 +176,9 @@ classdef msh
         end
 
         % write mesh to disk
-        function write(obj,fname,type)
+        function write(obj,fname,type,varargin)
             % Usage:
-            % write(obj,fname,type)
+            % write(obj,fname,type,varargin)
             %
             % Examples:
             % write(obj);       % writes all available data to fort_1.xx (ADCIRC) files
@@ -186,6 +187,7 @@ classdef msh
             % write(obj,fname,'gr3'); % writes mesh data to fname.gr3 (SCHISM) file
             % write(obj,fname,'ww3'); % writes mesh data to fname.ww3 (WaveWatchIII) file
             % write(obj,fname,{'13','14'}); % writes mesh data and f13 attribute data to fname.14 and fname.13 (ADCIRC) files
+            % write(obj,fname,'24','netcdf'); % writes fort.24 SAL data to fname.24.nc netcdf file
             if nargin == 1
                 fname = 'fort_1';
             end
@@ -211,10 +213,13 @@ classdef msh
                     writefort15( obj.f15, [fname '.15'], obj.bd );
                 end
                 if ~isempty(obj.f24)
-                    writefort24( obj.f24, [fname '.24'] );
+                    writefort24( obj.f24, [fname '.24'], obj.p, varargin);
                 end
                 if ~isempty(obj.f5354)
                     writefort5354( obj.f5354, fname );
+                end
+                if ~isempty(obj.offset63)
+                    writeoffset63( obj.offset63, [fname '.offset.63'] );
                 end
             else
                 if any(contains(type,'14')) || any(contains(type,'ww3')) || ...
@@ -264,10 +269,13 @@ classdef msh
                     writefort19( obj.f2001, [fname '.2001'] );
                 end
                 if any(contains(type,'24')) && ~isempty(obj.f24)
-                    writefort24( obj.f24, [fname '.24'] );
+                    writefort24( obj.f24, [fname '.24'], obj.p, varargin);
                 end
                 if any(contains(type,'5354')) && ~isempty(obj.f5354)
                     writefort5354( obj.f5354, fname );
+                end
+                if any(contains(type,'offset')) && ~isempty(obj.offset63)
+                    writeoffset63( obj.offset63, [fname '.offset.63'] );
                 end
             end
         end
@@ -1057,13 +1065,13 @@ classdef msh
                 varargin(strcmp(varargin,'passive')) = [];
             elseif any(strcmp(varargin,'aggressive'))
                 disp('Employing aggressive option')
-                opt.db = 0.5; opt.ds = 1; opt.con = 9; opt.djc = 0.25;
+                opt.db = 0.5; opt.ds = 2; opt.con = 9; opt.djc = 0.25;
                 opt.sc_maxit = inf; opt.mqa = 0.5; opt.renum = 1;
                 varargin(strcmp(varargin,'aggressive')) = [];
             else
                 disp('Employing default (medium) option or user-specified opts')
-                opt.db = 0.25; opt.ds = 1; opt.con = 9; opt.djc = 0.1;
-                opt.sc_maxit = 1; opt.mqa = 0.25; opt.renum = 1;
+                opt.db = 0.25; opt.ds = 2; opt.con = 9; opt.djc = 0.1;
+                opt.sc_maxit = 0; opt.mqa = 0.25; opt.renum = 1;
                 varargin(strcmp(varargin,'default')) = [];
                 varargin(strcmp(varargin,'medium')) = [];
             end
@@ -1189,17 +1197,21 @@ classdef msh
             qual = [mq_m,mq_l3sig,mq_l];
             LTn = size(obj.t,1);
 
-            if mq_l < opt.mqa && (opt.ds || LT ~= LTn)
+            if mq_l < opt.mqa && LT ~= LTn
                 % Need to clean it again
                 disp('Poor or overlapping elements, cleaning again')
                 disp(['(Min Qual = ' num2str(mq_l) ')'])
                 % repeat without projecting (already projected)
-                ii = find(strcmp(varargino,'proj'));
+                ii = find(strcmp(varargino,'proj'), 1);
                 if ~isempty(ii)
                     varargino{ii+1} = 0;
                 else
                     varargino{end+1} = 'proj';
                     varargino{end+1} = 0;
+                end
+                ii = find(strcmp(varargino,'pfix'), 1);
+                if ~isempty(ii)
+                    varargino{ii+1} = pfixV;
                 end
                 obj = clean(obj,varargino(:));
             elseif opt.nscreen
@@ -3854,10 +3866,11 @@ classdef msh
             egfix = renumberEdges(egfix) ;
         end
 
-        function boundary = get_boundary_of_mesh(obj,ascell)
-            % boundary = get_boundary_of_mesh(obj,ascell)
+        function [boundary, bou_index] = get_boundary_of_mesh(obj,ascell)
+            % [boundary, bou_index] = get_boundary_of_mesh(obj,ascell)
             %
-            % Returns the boundary of the mesh
+            % Returns the boundary of the mesh and/or the mesh indices of
+            % the boundary
             %
             % INPUTS: msh_obj
             % OUTPUTS: msh boundary in one of two forms:
@@ -3872,13 +3885,14 @@ classdef msh
             end
             bnde = extdom_edges2(obj.t,obj.p) ;
             try
-                boundary = extdom_polygon(bnde,obj.p,-1) ;
+                [boundary,bou_index] = extdom_polygon(bnde,obj.p,-1) ;
             catch
                 warning('ALERT: Boundary of mesh is not walkable. Returning polylines.');
-                boundary = extdom_polygon(bnde,obj.p,-1,1) ;
+                [boundary,bou_index] = extdom_polygon(bnde,obj.p,-1,1) ;
             end
             if ascell; return; end
             boundary = cell2mat(boundary');
+            bou_index = cell2mat(bou_index');
         end
 
         function obj = map_mesh_properties(obj,varargin)
@@ -3946,8 +3960,13 @@ classdef msh
                     % Remove open boundary info...
                     obj.op = [];
                 else
-                    % Remove unnessary part from the nbdv
+                    % Remove zero length boundary and unnessary part from the nbdv
                     obj.op.nbdv = obj.op.nbdv(1:max(obj.op.nvdll),:);
+                    zero_bound = obj.op.nvdll == 0;
+                    obj.op.nope = sum(~zero_bound);
+                    obj.op.ibtype(zero_bound) = [];
+                    obj.op.nvdll(zero_bound) = [];
+                    obj.op.nbdv(:,zero_bound) = [];
                 end
             end
             % land boundary info

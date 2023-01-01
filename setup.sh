@@ -38,11 +38,11 @@ if $gshhs; then
 fi
 
 if $srtm; then
-  if [ -f "SRTM15+V2.1.nc" ]; then
-     echo "SRTM15+V2.1.nc global bathymetry file already exists"
+  if [ -f "SRTM15+.nc" ]; then
+     echo "SRTM15+.nc global bathymetry file already exists"
   else
-     # download SRTM15+V2.1 bathymetry
-     wget "ftp://topex.ucsd.edu/pub/srtm15_plus/SRTM15+V2.1.nc"
+     # download SRTM15+ bathymetry
+     wget "https://topex.ucsd.edu/pub/srtm15_plus/SRTM15_V2.4.nc"" -O SRTM15+.nc
   fi
 fi
 
@@ -51,6 +51,6 @@ if $gebco; then
      echo "GEBCO_2020.nc global bathymetry file already exists"
   else
      # download GEBCO_2020.nc bathymetry
-     wget "https://www.bodc.ac.uk/data/open_download/gebco/gebco_2020/zip/" -O GEBCO_2020.nc
+     wget "https://www.bodc.ac.uk/data/open_download/gebco/gebco_2021/zip/" -O GEBCO_2020.nc
   fi
 fi
