@@ -213,13 +213,13 @@ if isempty(obj.f15)
     f15dat.controllist(2).var(6).name = [f15dat.controllist(2).type 'SkipSnaps'];
     f15dat.controllist(2).var(6).val = 0; 
     % limit control
-    f15dat.controllist(3).type = 'limitControl';
+    f15dat.controllist(3).type = 'limit';
     f15dat.controllist(3).var(1).name = 'slim';
     f15dat.controllist(3).var(1).val = 4e-4;
     f15dat.controllist(3).var(2).name = 'windlim';
     f15dat.controllist(3).var(2).val = 'T';
     % wetdry velocity control
-    f15dat.controllist(4).type = 'velwdControl';
+    f15dat.controllist(4).type = 'velwd';
     f15dat.controllist(4).var(1).name = 'directvelWD';
     f15dat.controllist(4).var(1).val = 'T';
  
