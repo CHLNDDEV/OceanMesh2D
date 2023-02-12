@@ -201,7 +201,7 @@ if isempty(obj.f15)
     % dynamicwaterlevelcorrection control
     f15dat.controllist(2).type = 'dynamicWaterLevelCorrection';
     f15dat.controllist(2).var(1).name = [f15dat.controllist(2).type 'FileName'];
-    f15dat.controllist(2).var(1).val = 'offset.63';
+    f15dat.controllist(2).var(1).val = 'null';
     f15dat.controllist(2).var(2).name = [f15dat.controllist(2).type 'Multiplier'];
     f15dat.controllist(2).var(2).val = 1.0; 
     f15dat.controllist(2).var(3).name = [f15dat.controllist(2).type 'RampStart'];
