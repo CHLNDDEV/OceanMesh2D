@@ -256,12 +256,13 @@ f15dat.nstae = readlinescalar( fid ) ;
  
 % STAE location
 if ( f15dat.nstae > 0 )
-    
     f15dat.elvstaloc = zeros(f15dat.nstae,2) ;
+    f15dat.elvstaname = strings(f15dat.nstae,1)  ; 
     for k = 1: f15dat.nstae
-        val = readlinevec( fid ) ;
-        
+        [val,name] = readlinevecname( fid ) ; 
+
         f15dat.elvstaloc(k,1:2) = val(1:2)' ;
+        f15dat.elvstaname(k) = name; 
     end
 end
 
@@ -274,11 +275,13 @@ f15dat.velstaloc = [] ;
 
 % STAV location
 if ( f15dat.nstav > 0 ) 
-    f15dat.velstaloc = zeros(f15dat.nstav,2) ;
+    f15dat.velstaloc = zeros(f15dat.nstav,2) ; 
+    f15dat.velstaname = strings(f15dat.nstav,1)  ; 
     for k = 1: f15dat.nstav
-        val = readlinevec( fid ) ; 
-        
+        [val,name] = readlinevecname( fid ) ; 
+
         f15dat.velstaloc(k,1:2) = val ; 
+        f15dat.velstaname(k) = name ; 
     end
 end
 
@@ -316,7 +319,6 @@ end
 if ( f15dat.nws ~= 0 ) 
     f15dat.outgm = readlinevec( fid ) ;
 end
-
 
 % NFREQ 
 f15dat.nfreq = readlinescalar( fid ) ; 
@@ -379,5 +381,12 @@ fclose(fid) ;
        [token,rem] = strtok(msg) ; 
         
     end
- 
+
+    function [vec, name] = readlinevecname( fid )
+        
+        msg = fgetl(fid) ; 
+        [token, name] = strtok(msg,"!");
+        vec = sscanf(token,'%f');
+    
+    end 
 end
