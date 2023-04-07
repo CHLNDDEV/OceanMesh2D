@@ -1106,6 +1106,14 @@ classdef msh
                     obj.renum = varargin{ii + 1};
                 end
             end
+            if ~isempty(pfixV)
+                if opt.ds == 2
+                    warning(['Fixed points is not compatible with ' ...
+                        'hill-climbing smoothing (ds = 2), changing ' ...
+                        'to implicit smoothing (ds = 1)'])
+                    opt.ds = 1;
+                end
+            end
 
             % display options
             disp('INFO: The following cleaning options have been enabled..')
