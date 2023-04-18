@@ -169,12 +169,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - `msh.offset63` struct and associated write/make routines for dynamicwaterlevel offset functionality. https://github.com/CHLNDDEV/OceanMesh2D/pull/259
 - dynamicWaterLevelCorrection to fort.15 namelist, and PRBCKGRND option to met fort.15 namelist. https://github.com/CHLNDDEV/OceanMesh2D/pull/261
 ## Fixed
+- Updated `Calc_f13.m` to avoid an "Unrecognized variable" error by ensuring "broken" is always defined. https://github.com/CHLNDDEV/OceanMesh2D/pull/282
+- Fixed test for likely geographic coordinates in `Make_f15.m`. https://github.com/CHLNDDEV/OceanMesh2D/pull/282
 - updated `Gridded_to_Mesh_SeaBed_DepthAveraged.m` to fix the infinite loop in using `Cal_IT_Fric.m` by filling in the NaNs at greater depths with values from above. https://github.com/CHLNDDEV/OceanMesh2D/pull/280
 - Recursive cleaning issues: infinite loop and preservation of fixed points.
 - `msh.interp` method for `K` argument of length 1, and for the test to determine whether the bathymetry grid is irregular. https://github.com/CHLNDDEV/OceanMesh2D/pull/259
 - Printing of namelist character strings or numbers. https://github.com/CHLNDDEV/OceanMesh2D/pull/261
 - `Make_offset63.m` time interval computation. https://github.com/CHLNDDEV/OceanMesh2D/pull/261 and https://github.com/CHLNDDEV/OceanMesh2D/pull/272
 - Removed dependency on statistics toolbox when using the 'nanfill' option in `msh.interp`. https://github.com/CHLNDDEV/OceanMesh2D/pull/269
+- Missing routines for reading in elvstaname and velstaname in readfort15.m by adding readlinevecname() method. https://github.com/CHLNDDEV/OceanMesh2D/pull/281 
 
 ### [5.0.0] - 2021-07-29
 ## Added

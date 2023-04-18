@@ -65,7 +65,7 @@ if isempty(obj.f15)
     % IHOT (cold start)
     f15dat.ihot = 0;
     % ICS 
-    if all(abs(obj.p(:,1))) <= 180 && all(abs(obj.p(:,2))) <= 90
+    if all(abs(obj.p(:,1)) <= 180) && all(abs(obj.p(:,2)) <= 90)
         f15dat.ics = 2 ; % uses lat, lon (probably)
     else
         f15dat.ics = 1 ; % not lat, lon
