@@ -88,17 +88,32 @@ fprintf( fid, '%g  \t \t ! STATIM \n',  f15dat.statim ) ;
 fprintf( fid, '%g  \t \t ! REFTIM \n', f15dat.reftim ) ; 
 
 % WTIMINC
-if f15dat.nws == 8
-  fprintf( fid, '%d %d %d %d %d %g', f15dat.wtimnc ) ;
-  fprintf( fid, '  \t ! YYYY MM DD HH24 StormNumber BLAdj \n' ) ;  
-elseif f15dat.nws >= 19
-  fprintf( fid, '%d %d %d %d %d %g %d', f15dat.wtimnc ) ;
-  fprintf( fid, '  \t ! YYYY MM DD HH24 StormNumber BLAdj geofactor \n' ) ;  
-elseif f15dat.nws > 0
-  fprintf( fid, '%d  ', f15dat.wtimnc ) ;
-  fprintf( fid, '  \t ! WTMINC \n' ) ;       
-end
-  
+if f15dat.nws > 0
+   nws = f15dat.nws;
+   wtimnc = f15dat.wtimnc;
+   rstimnc_fmt = ''; rstimnc_msg = '';
+   if nws > 300
+      wtimnc = [f15dat.wtimnc f15dat.rstimnc];
+      nws = f15dat.nws - 300;
+      rstimnc_fmt = ' %d'; 
+      rstimnc_msg = ' RSTIMINC';
+   end
+   if nws == 8
+      wtimnc_fmt = '%d %d %d %d %d %g';
+      wtimnc_msg = 'YYYY MM DD HH24 StormNumber BLAdj';
+   elseif nws >= 19
+      wtimnc_fmt = '%d %d %d %d %d %g %d';
+      wtimnc_msg = 'YYYY MM DD HH24 StormNumber BLAdj geofactor';
+   else
+      wtimnc_fmt = '%d  ';
+      wtimnc_msg = 'WTIMINC';
+   end
+   wtimnc_fmt = [wtimnc_fmt rstimnc_fmt]; 
+   wtimnc_msg = [wtimnc_msg rstimnc_msg]; 
+   fprintf( fid, wtimnc_fmt, wtimnc ) ;
+   fprintf( fid, ['  \t ! ' wtimnc_msg ' \n'] ) ; 
+end  
+
 % RNDY
 fprintf( fid, '%g   \t \t ! RNDY \n', f15dat.rndy ) ;
 
