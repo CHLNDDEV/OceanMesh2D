@@ -17,7 +17,7 @@ if $m_map; then
      echo "m_map directory already exists"
   else
      # download m_map archive and unzip
-     wget "http://www.eos.ubc.ca/%7Erich/m_map1.4.zip" -O m_map.zip
+     wget "https://www.eoas.ubc.ca/~rich/m_map1.4.zip" -O m_map.zip
      unzip m_map.zip
      rm m_map.zip
   fi

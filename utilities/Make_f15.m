@@ -43,6 +43,24 @@ function obj = Make_f15( obj, ts, te, dt, varargin )
 %               ...('sta_database',{'CO-OPS',1,'NDBC',2,'NDBC',3}) to output 
 %               the CO-OPS stations for elevation and NDBC stations for velocity and 
 %               meteorological recording
+% 
+%               'tau0' : specify the GWCE control parameter: https://wiki.adcirc.org/TAU0 
+%
+%               'tau0minmax' : specify the min/max of GWCE control parameter 
+%                (must be supplied when tau0 == -5) : https://wiki.adcirc.org/TAU0 
+%
+%               'NWS' : specify the wind control parameter: https://wiki.adcirc.org/NWS 
+%
+%               'WTIMNC' : specify the wind timestep (must be supplied of NWS > 0): 
+%                https://wiki.adcirc.org/WTIMINC
+%                https://wiki.adcirc.org/Supplemental_meteorological/wave/ice_parameters 
+%
+%               'RSTIMNC' : specify the SWAN wave timestep (must be supplied of NWS > 300): 
+%                https://wiki.adcirc.org/Supplemental_meteorological/wave/ice_parameters
+%    
+%               'namelist' : cell/string list of namelists to add from the following:
+%                {'met', 'dynamicWaterLevelCorrection', 'limit', 'velwd'}
+%                https://wiki.adcirc.org/Fort.15_file_format#Namelists
 %
 %  Outputs:  1) msh class obj with f15 struct populated
 %
@@ -94,6 +112,7 @@ if isempty(obj.f15)
     % NWS
     f15dat.nws = 0 ;
     f15dat.wtimnc = 0;
+    f15dat.rstimnc = 0;
     % NRAMP
     f15dat.nramp = 0 ;
     % G
@@ -185,34 +204,6 @@ if isempty(obj.f15)
     f15dat.extraline(9).msg = 'name@instit.edu';
     f15dat.extraline(10).msg = '';
     
-    % control lists
-    % met
-    f15dat.controllist(1).type = 'met';
-    f15dat.controllist(1).var(1).name = 'WindDragLimit';
-    f15dat.controllist(1).var(1).val = 0.0025;
-    f15dat.controllist(1).var(2).name = 'PRBCKGRND';
-    f15dat.controllist(1).var(2).val = 1013;
-    f15dat.controllist(1).var(3).name = 'DragLawString';
-    f15dat.controllist(1).var(3).val = 'default'; 
-    f15dat.controllist(1).var(4).name = 'outputWindDrag';
-    f15dat.controllist(1).var(4).val = 'F'; 
-    f15dat.controllist(1).var(5).name = 'invertedBarometerOnElevationBoundary';
-    f15dat.controllist(1).var(5).val = 'F'; 
-    % dynamicwaterlevelcorrection control
-    f15dat.controllist(2).type = 'dynamicWaterLevelCorrection';
-    f15dat.controllist(2).var(1).name = [f15dat.controllist(2).type 'FileName'];
-    f15dat.controllist(2).var(1).val = 'null';
-    f15dat.controllist(2).var(2).name = [f15dat.controllist(2).type 'Multiplier'];
-    f15dat.controllist(2).var(2).val = 1.0; 
-    f15dat.controllist(2).var(3).name = [f15dat.controllist(2).type 'RampStart'];
-    f15dat.controllist(2).var(3).val = 0.0; 
-    f15dat.controllist(2).var(4).name = [f15dat.controllist(2).type 'RampEnd'];
-    f15dat.controllist(2).var(4).val = 0.0; 
-    f15dat.controllist(2).var(5).name = [f15dat.controllist(2).type 'RampReferenceTime'];
-    f15dat.controllist(2).var(5).val = 'coldstart'; 
-    f15dat.controllist(2).var(6).name = [f15dat.controllist(2).type 'SkipSnaps'];
-    f15dat.controllist(2).var(6).val = 0; 
- 
     % Put into the msh class
     obj.f15 = f15dat;
 end
@@ -253,9 +244,10 @@ end
 const = [];
 tidal_database = [];
 sta_database = [];
+namelists = [];
 if ~isempty(varargin)
     names = {'const','tidal_database','NWS','WTIMNC','tau0','tau0minmax',...
-             'sta_database'};
+             'sta_database','RSTIMNC','namelist'};
     for ii = 1:length(names)
         ind = find(~cellfun(@isempty,strfind(varargin(1:2:end),names{ii})));
         if ~isempty(ind)
@@ -273,6 +265,10 @@ if ~isempty(varargin)
                 obj.f15.tau0minmax = varargin{ind*2};
             elseif ii == 7
                 sta_database = varargin{ind*2};
+            elseif ii == 8
+                obj.f15.rstimnc = varargin{ind*2};
+            elseif ii == 9
+                namelists = varargin{ind*2};
             end
         end    
     end
@@ -283,6 +279,10 @@ end
 if obj.f15.nws > 0 %~mod(obj.f15.nws - 1,10) ||  ~mod(obj.f15.nws - 11,10) || obj.f15.nws == 8 
     if obj.f15.wtimnc == 0
         error(['Must specify WTIMNC option with NWS = ' num2str(obj.f15.nws)])
+    end
+    
+    if obj.f15.nws > 300 && obj.f15.rstimnc == 0
+        error(['Must specify RSTIMNC option with NWS = ' num2str(obj.f15.nws)])
     end
 end
 
@@ -356,15 +356,58 @@ if ~isempty(sta_database)
     obj = tidal_stations_parser(obj,string(sta_database(1:2:end-1)),...
                                 sta_database(2:2:end));
 end
-% 
-% % NOUTGC
-% if ( f15dat.im == 10 )
-%     f15dat.outgc = readlinevec( fid ) ; 
-% end
-% 
-% % NOUTGW
-% if ( f15dat.nws ~= 0 ) 
-%     f15dat.outgw = readlinevec( fid ) ;
-% end
+
+% adding the namelist controls
+if ~isempty(namelists)
+    ci = 0;
+    if find(contains(namelists,'met'),1)
+       % met
+       ci = ci + 1;
+       obj.f15.controllist(ci).type = 'met';
+       obj.f15.controllist(ci).var(1).name = 'WindDragLimit';
+       obj.f15.controllist(ci).var(1).val = 0.0025;
+       obj.f15.controllist(ci).var(2).name = 'PRBCKGRND';
+       obj.f15.controllist(ci).var(2).val = 1013;
+       obj.f15.controllist(ci).var(3).name = 'DragLawString';
+       obj.f15.controllist(ci).var(3).val = 'default'; 
+       obj.f15.controllist(ci).var(4).name = 'outputWindDrag';
+       obj.f15.controllist(ci).var(4).val = 'F'; 
+       obj.f15.controllist(ci).var(5).name = 'invertedBarometerOnElevationBoundary';
+       obj.f15.controllist(ci).var(5).val = 'F'; 
+    end
+    if find(contains(namelists,'dynamicWaterLevelCorrection','IgnoreCase',true),1)
+       % dynamicwaterlevelcorrection control
+       ci = ci + 1;
+       obj.f15.controllist(ci).type = 'dynamicWaterLevelCorrection';
+       obj.f15.controllist(ci).var(1).name = [obj.f15.controllist(ci).type 'FileName'];
+       obj.f15.controllist(ci).var(1).val = 'null';
+       obj.f15.controllist(ci).var(2).name = [obj.f15.controllist(ci).type 'Multiplier'];
+       obj.f15.controllist(ci).var(2).val = 1.0; 
+       obj.f15.controllist(ci).var(3).name = [obj.f15.controllist(ci).type 'RampStart'];
+       obj.f15.controllist(ci).var(3).val = 0.0; 
+       obj.f15.controllist(ci).var(4).name = [obj.f15.controllist(ci).type 'RampEnd'];
+       obj.f15.controllist(ci).var(4).val = 0.0; 
+       obj.f15.controllist(ci).var(5).name = [obj.f15.controllist(ci).type 'RampReferenceTime'];
+       obj.f15.controllist(ci).var(5).val = 'coldstart'; 
+       obj.f15.controllist(ci).var(6).name = [obj.f15.controllist(ci).type 'SkipSnaps'];
+       obj.f15.controllist(ci).var(6).val = 0;
+    end 
+    if find(contains(namelists,'limit'),1)
+       ci = ci + 1;
+       % limit control
+       obj.f15.controllist(ci).type = 'limit';
+       obj.f15.controllist(ci).var(1).name = 'slim';
+       obj.f15.controllist(ci).var(1).val = 4e-4;
+       obj.f15.controllist(ci).var(2).name = 'windlim';
+       obj.f15.controllist(ci).var(2).val = 'T';
+    end
+    if find(contains(namelists,'velwd'),1)
+       ci = ci + 1;
+       % wetdry velocity control
+       obj.f15.controllist(ci).type = 'velwd';
+       obj.f15.controllist(ci).var(1).name = 'directvelWD';
+       obj.f15.controllist(ci).var(1).val = 'T';
+    end
+end
 
 end

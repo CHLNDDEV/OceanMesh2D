@@ -32,6 +32,9 @@ obj.offset63.time_interval = round(...
                               seconds(time_vector(end) - time_vector(1))/ ...
                               max(length(time_vector)-1,1)...
                              );
+if isnan(obj.offset63.time_interval)
+    obj.offset63.time_interval = 999*3600*24;
+end 
 obj.offset63.default_val = 0;
 obj.offset63.offset_nodes = offset_nodes;
 obj.offset63.offset_values = offset_values;

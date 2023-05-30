@@ -389,8 +389,7 @@ if strcmp(interp,'CA')
         if nanfill
             if sum(isnan(b)) > 0
                 localcoord = obj.p(K,:);
-                [KI, ~] = ourKNNsearch(localcoord(~isnan(b),:),',localcoord(isnan(b)',1); 
-                %KI = knnsearch(localcoord(~isnan(b),:),localcoord(isnan(b),:));
+                [KI, ~] = ourKNNsearch(localcoord(~isnan(b),:)',localcoord(isnan(b),:)',1); 
                 bb = b(~isnan(b));
                 b(isnan(b)) = bb(KI); clear bb localcoord
             end
@@ -420,14 +419,12 @@ if strcmp(interp,'CA')
             if ~isempty(find(isnan(bx),1))
                 localcoord = obj.p(K,:);
                 [KI, ~] = ourKNNsearch(localcoord(~isnan(bx),:)',localcoord(isnan(bx),:)',1); 
-                %KI = knnsearch(localcoord(~isnan(bx),:),localcoord(isnan(bx),:));
                 bb = bx(~isnan(bx));
                 bx(isnan(bx)) = bb(KI); clear bb localcoord
             end
             if ~isempty(find(isnan(by),1))
                 localcoord = obj.p(K,:);
                 [KI, ~] = ourKNNsearch(localcoord(~isnan(by),:)',localcoord(isnan(by),:)',1); 
-                %KI = knnsearch(localcoord(~isnan(by),:),localcoord(isnan(by),:));
                 bb = by(~isnan(by));
                 by(isnan(by)) = bb(KI); clear bb localcoord
             end

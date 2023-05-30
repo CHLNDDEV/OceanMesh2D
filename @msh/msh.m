@@ -1106,6 +1106,14 @@ classdef msh
                     obj.renum = varargin{ii + 1};
                 end
             end
+            if ~isempty(pfixV)
+                if opt.ds == 2
+                    warning(['Fixed points is not compatible with ' ...
+                        'hill-climbing smoothing (ds = 2), changing ' ...
+                        'to implicit smoothing (ds = 1)'])
+                    opt.ds = 1;
+                end
+            end
 
             % display options
             disp('INFO: The following cleaning options have been enabled..')
@@ -1335,7 +1343,8 @@ classdef msh
             if nargin < 2
                 error('Needs type: one of "auto", "outer", "inner", "delete", or "weirs"')
             end
-            if iscell(varargin{1})
+
+            if ~isempty(varargin) && iscell(varargin{1})
                 varargin = varargin{1};
             end
             L = 1e3;
@@ -1447,7 +1456,7 @@ classdef msh
                             else
                                % set distance to be larger than dist_lim  
                                % everywhere when no land exists
-                               ldst = eb_mid(:,1)*0 + 2*dist_lim
+                               ldst = eb_mid(:,1)*0 + 2*dist_lim;
                             end    
                             eb_class = ldst > dist_lim;
                             if strcmp(classifier,'both')
