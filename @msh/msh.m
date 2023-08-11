@@ -3973,7 +3973,7 @@ classdef msh
                     obj.op.nbdv = obj.op.nbdv(1:max(obj.op.nvdll),:);
                     zero_bound = obj.op.nvdll == 0;
                     obj.op.nope = sum(~zero_bound);
-                    obj.op.ibtype(zero_bound) = [];
+                    obj.op.ibtypee(zero_bound) = [];
                     obj.op.nvdll(zero_bound) = [];
                     obj.op.nbdv(:,zero_bound) = [];
                 end
