@@ -1,4 +1,4 @@
-function cmap = cmocean(ColormapName,varargin) 
+function cmap = cmocean2(ColormapName,varargin) 
 % cmocean returns perceptually-uniform colormaps created by Kristen Thyng. 
 % 
 %% Syntax 
@@ -207,7 +207,7 @@ end
 
 if autopivot
    clim = caxis; 
-   assert(PivotValue>=clim(1) & PivotValue<=clim(2),'Error: pivot value must be within the current color axis limits.') 
+   assert((PivotValue>=clim(1) & PivotValue<=clim(2)) | PivotValue==0,'Error: pivot value must be within the current color axis limits.') 
    maxval = max(abs(clim-PivotValue)); 
    cmap = interp1(linspace(-maxval,maxval,size(cmap,1))+PivotValue, cmap, linspace(clim(1),clim(2),size(cmap,1)),'linear');
 end

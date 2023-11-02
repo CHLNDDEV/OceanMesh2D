@@ -36,7 +36,7 @@ end
 % make the delaunay refinement mesh
 [p2,etri,t2,tnum] = refine2_om(node,edge,[],opts,hfun);
 % smooth2
-[p2,~,t2,~] = smooth2(p2,etri,t2,tnum);
+[p2,~,t2,~] = smooth2d(p2,etri,t2,tnum);
 
 mfp = msh();
 mfp.p = p2;

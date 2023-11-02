@@ -79,9 +79,9 @@ classdef msh
                 error('The utilities directory was not found. Please read the user guide')
             end
             % Check for dataset dir
-            if exist('datasets','dir')~=7
-                warning('We suggest you to place your files in a folder called datasets. Please read the user guide')
-            end
+            %if exist('datasets','dir')~=7
+            %    warning('We suggest you to place your files in a folder called datasets. Please read the user guide')
+            %end
             
             % just want a blank mesh object
             if nargin == 0
@@ -646,19 +646,19 @@ classdef msh
                         m_fastscatter(obj.p(:,1),obj.p(:,2),defval(1)*ones(length(obj.p),1));
                         m_fastscatter(obj.p(userval(1,:),1),obj.p(userval(1,:),2),values');
                     else
-                        fastscatter(obj.p(:,1),obj.p(:,2),defval(1)*ones(length(obj.p),1));
-                        fastscatter(obj.p(userval(1,:),1),obj.p(userval(1,:),2),values');
+                        fastscatter2(obj.p(:,1),obj.p(:,2),defval(1)*ones(length(obj.p),1));
+                        fastscatter2(obj.p(userval(1,:),1),obj.p(userval(1,:),2),values');
                     end
                     if cmap == 1
                         cmap = 'deep';
                     end
-                    colormap(cmocean(cmap));
+                    colormap(cmocean2(cmap));
                     colorbar;
                 case('transect')
                     if proj
                         error('To plot transects, you must plot with proj=0!');
                     end
-                    cmap = cmocean('ice',256);
+                    cmap = cmocean2('ice',256);
                     subplot(2,1,1)
                     trisurf(obj.t,obj.p(:,1),obj.p(:,2),obj.b); view(2);
                     alpha 0.75
@@ -789,10 +789,10 @@ classdef msh
                     end
                 end
                 if apply_pivot
-                    cmocean(cmap,cmap_int(1),'pivot',pivot);
+                    cmocean2(cmap,cmap_int(1),'pivot',pivot);
                 else
                     try
-                        cmocean(cmap,cmap_int(1));
+                        cmocean2(cmap,cmap_int(1));
                     catch
                         colormap(cmap)
                     end
@@ -1188,7 +1188,7 @@ classdef msh
             if opt.ds
                 if opt.ds == 2
                     % Perform the hill-climbing smoothing
-                    [obj.p,~,obj.t,~] = smooth2(obj.p,[],obj.t);
+                    [obj.p,~,obj.t,~] = smooth2d(obj.p,[],obj.t);
                 else
                     % Perform the direct smoothing
                     [obj.p,obj.t] = direct_smoother_lur(obj.p,obj.t,...
@@ -1547,7 +1547,7 @@ classdef msh
                                     nope = nope + 1;
                                     nvdll(nope) = length(idv_t);
                                     neta = neta + nvdll(nope);
-                                    ibtypee(nope) = 0;
+                                    ibtype(nope) = 0;
                                     nbdv(1:nvdll(nope),nope) = idv_t';
                                 else
                                     % make this segment ocean
@@ -1577,7 +1577,7 @@ classdef msh
                         obj.op.nope = nope ;
                         obj.op.neta = neta ;
                         obj.op.nvdll = nvdll ;
-                        obj.op.ibtype = ibtypee ;
+                        obj.op.ibtype = ibtype ;
                         obj.op.nbdv = nbdv;
                     end
                     
@@ -1708,7 +1708,7 @@ classdef msh
                                     nope = nope + 1;
                                     nvdll(nope) = length(idv);
                                     neta = neta + nvdll(nope);
-                                    ibtypee(nope) = 0;
+                                    ibtype(nope) = 0;
                                     nbdv(1:nvdll(nope),nope) = idv';
                                 end
                             else
@@ -1732,7 +1732,7 @@ classdef msh
                                             nope = nope + 1;
                                             nvdll(nope) = length(idv_t);
                                             neta = neta + nvdll(nope);
-                                            ibtypee(nope) = 0;
+                                            ibtype(nope) = 0;
                                             nbdv(1:nvdll(nope),nope) = idv_t;
                                         else
                                             % Get mainland
@@ -1751,7 +1751,7 @@ classdef msh
                             nope = nope + 1;
                             nvdll(nope) = length(idv);
                             neta = neta + nvdll(nope);
-                            ibtypee(nope) = 0;
+                            ibtype(nope) = 0;
                             nbdv(1:nvdll(nope),nope) = idv';
                         end
                     end
@@ -1761,7 +1761,7 @@ classdef msh
                         obj.op.nope = nope ;
                         obj.op.neta = neta ;
                         obj.op.nvdll = nvdll ;
-                        obj.op.ibtype = ibtypee ;
+                        obj.op.ibtype = ibtype ;
                         obj.op.nbdv = nbdv;
                     end
                     
@@ -1851,7 +1851,7 @@ classdef msh
                     if length(varargin) < 3
                         % use this to figure out the vstart and vend
                         figure, plot(bpts(:,1),bpts(:,2),'k.');
-                        %hold on; fastscatter(obj.p(:,1),obj.p(:,2),obj.b) ;
+                        %hold on; fastscatter2(obj.p(:,1),obj.p(:,2),obj.b);
                         caxis([-10 10]); axis equal ;
                         title('use data cursor to identify vstart and vend');
                         dcm_obj = datacursormode(gcf);
@@ -3973,7 +3973,7 @@ classdef msh
                     obj.op.nbdv = obj.op.nbdv(1:max(obj.op.nvdll),:);
                     zero_bound = obj.op.nvdll == 0;
                     obj.op.nope = sum(~zero_bound);
-                    obj.op.ibtypee(zero_bound) = [];
+                    obj.op.ibtype(zero_bound) = [];
                     obj.op.nvdll(zero_bound) = [];
                     obj.op.nbdv(:,zero_bound) = [];
                 end
@@ -4252,7 +4252,7 @@ classdef msh
             else
                 % use this to figure out the vstart and vend
                 figure, plot(bpts(:,1),bpts(:,2),'k.');
-                %hold on; fastscatter(obj.p(:,1),obj.p(:,2),obj.b) ;
+                %hold on; fastscatter2(obj.p(:,1),obj.p(:,2),obj.b);
                 caxis([-10 10]); axis equal ;
                 title('Use the data cursor to identify the starting point');
                 dcm_obj = datacursormode(gcf);
