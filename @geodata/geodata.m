@@ -80,21 +80,21 @@ classdef geodata
             % Check for m_map dir
             M_MAP_EXISTS=0 ;
             if exist('m_proj','file')==2
-              M_MAP_EXISTS=1 ;
+                M_MAP_EXISTS=1 ;
             end
-            if M_MAP_EXISTS~=1 
-              error('Where''s m_map? Please read the user guide')
+            if M_MAP_EXISTS~=1
+                error('Where''s m_map? Please read the user guide')
             end
-
+            
             % Check for utilties dir
             UTIL_DIR_EXISTS=0  ;
             if exist('inpoly.m','file')
-              UTIL_DIR_EXISTS=1; 
+                UTIL_DIR_EXISTS=1;
             end
-            if UTIL_DIR_EXISTS~=1 
-              error('Where''s the utilities directory? Please read the user guide')
+            if UTIL_DIR_EXISTS~=1
+                error('Where''s the utilities directory? Please read the user guide')
             end
-
+            
             % Check for dataset dir
             DATASET_DIR_EXISTS=0 ;
             if exist('datasets','dir')==7
@@ -103,8 +103,8 @@ classdef geodata
             if DATASET_DIR_EXISTS~=1
                 warning('We suggest you to place your files in a directory called "datasets". Please read the user guide')
             end
-
-
+            
+            
             p = inputParser;
             
             defval = 0; % placeholder value if arg is not passed.
@@ -204,11 +204,11 @@ classdef geodata
                             obj.window = 5;
                         end
                     case('shapefile_3d')
-                         obj.shapefile_3d = inp.(fields{i}) ;
+                        obj.shapefile_3d = inp.(fields{i}) ;
                     case('weirs')
                         if ~iscell(inp.(fields{i})) && ~isstruct(inp.(fields{i})) && inp.(fields{i})==0, continue; end
                         if ~iscell(inp.(fields{i})) && ~isstruct(inp.(fields{i}))
-                            error('Data for weirs must be in a cell-array or struct. Please see the user guide.'); 
+                            error('Data for weirs must be in a cell-array or struct. Please see the user guide.');
                         end
                         obj.weirs = inp.(fields{i}) ;
                         noWeirs   = length(obj.weirs) ;
@@ -230,16 +230,16 @@ classdef geodata
                                     width      = obj.weirs(ii).width/111e3 ;
                                     weir_min_ele = obj.weirs(ii).min_ele/111e3;
                                 end
-                                if width == 0 
-                                  error('Please specify non-zero width of weir in meters!');
+                                if width == 0
+                                    error('Please specify non-zero width of weir in meters!');
                                 end
                                 % user-defined spacing along face of weir
                                 if weir_min_ele ~= 0
                                     [tempPfix,tmpEgfix,obj.ibconn_pts{ii}] = GenerateWeirGeometry(crestlines,width,...
-                                          weir_min_ele,0) ;
+                                        weir_min_ele,0) ;
                                 else
-                                % by default spacing along face of weir is
-                                % MIN_EL
+                                    % by default spacing along face of weir is
+                                    % MIN_EL
                                     [tempPfix,tmpEgfix,obj.ibconn_pts{ii}] = GenerateWeirGeometry(crestlines,width,...
                                         2*(obj.h0/111e3),0) ;
                                 end
@@ -266,7 +266,7 @@ classdef geodata
             end
             
             if obj.bbox == 0
-                error('No bbox supplied. If you are using the pslg option then you need to supply a bbox.') 
+                error('No bbox supplied. If you are using the pslg option then you need to supply a bbox.')
             elseif size(obj.bbox,1) == 2
                 % Typical square bbox type
                 % Make the bounding box 5 x 2 matrix in clockwise order
@@ -282,7 +282,7 @@ classdef geodata
             end
             
             obj = ParseShoreline(obj) ;
-      
+            
             % kjr Add the weir faux islands to the inner geometry
             if ~isempty(obj.weirPfix)
                 idx = [0; cumsum(weirLength)']+1 ;
@@ -441,7 +441,7 @@ classdef geodata
                 backup = 1;
                 fname = obj.BACKUPdemfile ;
             end
-                                    
+            
             % Process the DEM for the meshing region.
             if ~isempty(fname)
                 
@@ -452,7 +452,7 @@ classdef geodata
                 % Read x and y
                 x = double(ncread(fname,xvn));
                 y = double(ncread(fname,yvn));
-                                
+                
                 if any(strcmp(varargin,'bbox'))
                     obj.bbox = [min(x) max(x); min(y) max(y)];
                     return;
@@ -488,42 +488,42 @@ classdef geodata
                     It = find(x >= bboxt(1,1) & x <= bboxt(1,2));
                     I = [I; It];
                     
-                    % At this point, detect the memory footprint of the 
+                    % At this point, detect the memory footprint of the
                     % DEM subset and compute the required stride necessary
                     % to satisfy the memory requirements
                     if nn == 1
                         AVAILABLE_MEMORY=4; % 4 gb;
                         mult = (obj.bbox(1,2) - obj.bbox(1,1))/...
-                                   (bboxt(1,2) - bboxt(1,1)); 
+                            (bboxt(1,2) - bboxt(1,1));
                         peak_mem = mult*length(I)*length(J)*4/1e9; % in GB assuming single
                         STRIDE_MEM = ceil(sqrt(peak_mem/AVAILABLE_MEMORY));
                         DEM_GRIDSPACE = (x(2)-x(1))*111e3; % in meters
                         STRIDE_H0 = ceil(obj.h0/DEM_GRIDSPACE); % skip # of DEM entires
-                        STRIDE = max(STRIDE_H0, STRIDE_MEM); 
+                        STRIDE = max(STRIDE_H0, STRIDE_MEM);
                         if STRIDE > 1
                             if STRIDE_MEM > STRIDE_H0
                                 warning(['DEM would occupy ',num2str(peak_mem),...
-                                         'GB of RAM. DEM will be downsampled ' ...
-                                         'by a stride of ' num2str(STRIDE)])
+                                    'GB of RAM. DEM will be downsampled ' ...
+                                    'by a stride of ' num2str(STRIDE)])
                             else
                                 warning(['DEM will be downsampled by a stride ' ...
-                                         'of ' num2str(STRIDE) ' to match h0'])
+                                    'of ' num2str(STRIDE) ' to match h0'])
                             end
                         end
-                    
+                        
                     end
-                    % grab only the portion that was requested 
+                    % grab only the portion that was requested
                     if STRIDE > 1 && STRIDE_MEM > STRIDE_H0
-                        % with a stride to save memory 
+                        % with a stride to save memory
                         LX = length(It(1:STRIDE:end));
                         LY = length(J(1:STRIDE:end));
                         demzt = single(ncread(fname,zvn,[It(1) J(1)],...
-                                       [LX LY],[STRIDE,STRIDE]));
+                            [LX LY],[STRIDE,STRIDE]));
                     else
                         % faster to read in with no stride if not memory
                         % bound
                         demzt = single(ncread(fname,zvn,[It(1) J(1)],...
-                                       [length(It) length(J)]));
+                            [length(It) length(J)]));
                         if STRIDE > 1
                             demzt = demzt(1:STRIDE:end,1:STRIDE:end);
                         end
@@ -547,12 +547,12 @@ classdef geodata
                     y = flipud(y) ;
                     demz = fliplr(demz) ;
                 end
-                % Determine bottom left corner of DEM 
+                % Determine bottom left corner of DEM
                 % (after possible flipping of DEM packing)
                 obj.x0y0 = [x(1),y(1)];
                 
                 % check for any invalid values
-                bad = isnan(demz); 
+                bad = isnan(demz);
                 if sum(bad(:)) > 0 && ~backup
                     warning('ALERT: Invalid and/or missing DEM values detected..check DEM');
                     if ~isempty(obj.BACKUPdemfile)
@@ -738,14 +738,14 @@ classdef geodata
             polyline = cell2mat(extdom_polygon(edge,node,-1,1,10)') ;
             
             obj = geodata('pslg',polyline,'bbox',obj.bbox,...
-                          'h0',obj.h0,'dem',obj.demfile) ;
+                'h0',obj.h0,'dem',obj.demfile) ;
             
         end
         
         function plot(obj,type,projection,holdon)
             % plot(obj,type,projection,holdon)
             % Plot geodata class info
-            % 
+            %
             % Inputs:
             % obj  : geodata class object [required input]
             %
@@ -778,13 +778,13 @@ classdef geodata
                         min(179.9,1.20*max(diff(obj.bbox(2,:)))));
                 else
                     lmin = -180; lmax = +180;
-                    if obj.bbox(1,2) > 180; lmax = 360; lmin = 0; end 
+                    if obj.bbox(1,2) > 180; lmax = 360; lmin = 0; end
                     lon1 = max(lmin,obj.bbox(1,1) - bufx);
                     lon2 = min(lmax,obj.bbox(1,2) + bufx);
                     lat1 = max(- 90,obj.bbox(2,1) - bufy);
                     lat2 = min(+ 90,obj.bbox(2,2) + bufy);
                     m_proj(projection,...
-                           'long',[lon1, lon2],'lat',[lat1, lat2]);
+                        'long',[lon1, lon2],'lat',[lat1, lat2]);
                 end
                 % plot on new figure
                 figure;
@@ -798,7 +798,7 @@ classdef geodata
             % select optional types
             switch type
                 case('dem')
-                    % interpolate DEM's bathy linearly onto our 
+                    % interpolate DEM's bathy linearly onto our
                     % edgefunction grid (or a coarsened version of it for
                     % memory considerations)
                     mem = inf; stride = obj.h0/111e3;
