@@ -2,7 +2,7 @@ function matrixOut = smooth2a(matrixIn,Nr,Nc)
 % Smooths 2D array data.  Ignores NaN's.
 %
 %function matrixOut = smooth2a(matrixIn,Nr,Nc)
-% 
+%
 % This function smooths the data in matrixIn using a mean filter over a
 % rectangle of size (2*Nr+1)-by-(2*Nc+1).  Basically, you end up replacing
 % element "i" by the mean of the rectange centered on "i".  Any NaN
@@ -11,22 +11,22 @@ function matrixOut = smooth2a(matrixIn,Nr,Nc)
 % where you cannot build a full rectangle, as much of the rectangle that
 % fits on your matrix is used (similar to the default on Matlab's builtin
 % function "smooth").
-% 
+%
 % "matrixIn": original matrix
 % "Nr": number of points used to smooth rows
 % "Nc": number of points to smooth columns.  If not specified, Nc = Nr.
-% 
+%
 % "matrixOut": smoothed version of original matrix
-% 
-% 
+%
+%
 % 	Written by Greg Reeves, March 2009.
 % 	Division of Biology
 % 	Caltech
-% 
+%
 % 	Inspired by "smooth2", written by Kelly Hilands, October 2004
 % 	Applied Research Laboratory
 % 	Penn State University
-% 
+%
 % 	Developed from code written by Olof Liungman, 1997
 % 	Dept. of Oceanography, Earth Sciences Centre
 % 	G�teborg University, Sweden
@@ -37,7 +37,7 @@ function matrixOut = smooth2a(matrixIn,Nr,Nc)
 %
 if nargin < 2, error('Not enough input arguments!'), end
 
-N(1) = Nr; 
+N(1) = Nr;
 if nargin < 3, N(2) = N(1); else N(2) = Nc; end
 
 if length(N(1)) ~= 1, error('Nr must be a scalar!'), end
@@ -46,7 +46,7 @@ if length(N(2)) ~= 1, error('Nc must be a scalar!'), end
 %
 % Building matrices that will compute running sums.  The left-matrix, eL,
 % smooths along the rows.  The right-matrix, eR, smooths along the
-% columns.  You end up replacing element "i" by the mean of a (2*Nr+1)-by- 
+% columns.  You end up replacing element "i" by the mean of a (2*Nr+1)-by-
 % (2*Nc+1) rectangle centered on element "i".
 %
 [row,col] = size(matrixIn);
@@ -74,15 +74,3 @@ nrmlize(A) = NaN;
 %
 matrixOut = eL*matrixIn*eR;
 matrixOut = matrixOut./nrmlize;
-
-
-
-
-
-
-
-
-
-
-
-
