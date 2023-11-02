@@ -24,7 +24,7 @@ f24dat.sphs = zeros(nn,next);
 for i = 1: ncon
     line = fgetl(fid);
     
-    cname = strtrim(sscanf(line,'%s %*s')) 
+    cname = strtrim(sscanf(line,'%s %*s'));
     
     found = 0;
     for ii = 1: next
