@@ -112,7 +112,7 @@ ts = '01-Jan-2005 00:00'; % start time of the total volume flow time series
 te = '01-Jan-2005 23:00'; % end time of the total volume flow time series
 DT = 3600; % time step of the total volume flow time series,
 % DT=3600 for hourly data series while DT=86400 for daily data series.
-m = Make_f20_volume_flow(m,'Example_12_test_make_f20.csv',ts,te,DT);
+m = Make_f20_volume_flow(m,'test_make_f20.csv',ts,te,DT);
 
 %% Export plots
 figs = get(0,'children');
