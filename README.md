@@ -157,15 +157,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Unreleased (on current HEAD of the Projection branch)
 ## Added
-- `namelist` and `RSTIMNC` input arguments for `Make_f15.m` fort.15 generator. updated the help message for all input argumebts to `Make_f15`. https://github.com/CHLNDDEV/OceanMesh2D/pull/283 
-- New stability namelist options to `Make_f15.m` fort.15 generator. https://github.com/CHLNDDEV/OceanMesh2D/pull/283 
+- Read and write to 2dm format.
+- `namelist` and `RSTIMNC` input arguments for `Make_f15.m` fort.15 generator. updated the help message for all input argumebts to `Make_f15`. https://github.com/CHLNDDEV/OceanMesh2D/pull/283
+- New stability namelist options to `Make_f15.m` fort.15 generator. https://github.com/CHLNDDEV/OceanMesh2D/pull/283
 - Optionality for mesh2dgen to choose the method of mesh generation `kind`, and the maximum iteration count `iter`. https://github.com/CHLNDDEV/OceanMesh2D/pull/272
 - Option `improve_with_reduced_quality` to `meshgen` for allowing for mesh improvements even when quality is decreasing or large number of nodes eliminated, which sometimes is necessary to force the advancement in mesh quality.
 - Option `delaunay_elim_on_exit` to `meshgen` to skip the last call to `delaunay_elim` to potentially avoid deleting boundary elements.
 - Geoid offset nodal attribute in `Calc_f13` subroutine. https://github.com/CHLNDDEV/OceanMesh2D/pull/251
 - Support for writing Self Attraction and Loading (SAL) files in NetCDF for the ADCIRC model. https://github.com/CHLNDDEV/OceanMesh2D/pull/231
 ## Changed
-- removed namelists from default setup in `Make_f15.m` fort.15 generator to be invoked by user as an input argument instead. https://github.com/CHLNDDEV/OceanMesh2D/pull/283 
+- removed namelists from default setup in `Make_f15.m` fort.15 generator to be invoked by user as an input argument instead. https://github.com/CHLNDDEV/OceanMesh2D/pull/283
 - Use implicit smoother (`ds=1`) in `msh.clean` when fix points are present. https://github.com/CHLNDDEV/OceanMesh2D/pull/283
 - Default filename for the dynamicWaterLevelCorrection is now `null` so that it is not evoked by default. https://github.com/CHLNDDEV/OceanMesh2D/pull/272
 - Default mesh improvement strategy is `ds` 2.
@@ -173,7 +174,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - `msh.offset63` struct and associated write/make routines for dynamicwaterlevel offset functionality. https://github.com/CHLNDDEV/OceanMesh2D/pull/259
 - dynamicWaterLevelCorrection to fort.15 namelist, and PRBCKGRND option to met fort.15 namelist. https://github.com/CHLNDDEV/OceanMesh2D/pull/261
 ## Fixed
-- writing out the wave coupling timestep `RSTIMNC` on the `WTIMNC` line of fort.15 when `NWS > 300`. https://github.com/CHLNDDEV/OceanMesh2D/pull/283 
+- writing out the wave coupling timestep `RSTIMNC` on the `WTIMNC` line of fort.15 when `NWS > 300`. https://github.com/CHLNDDEV/OceanMesh2D/pull/283
 - `make_bc` call with empty varargin, e.g., when calling inner. https://github.com/CHLNDDEV/OceanMesh2D/pull/283
 - `Make_offset63` call with constant offset (length 1 `time_vector`). https://github.com/CHLNDDEV/OceanMesh2D/pull/283
 - `ourKNNsearch` call in `nanfill` option of `Griddata` (`msh.interp`). https://github.com/CHLNDDEV/OceanMesh2D/pull/283
