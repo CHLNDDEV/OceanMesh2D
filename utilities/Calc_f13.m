@@ -109,13 +109,13 @@ end
 % Default Values
 if ~broken
    obj.f13.defval.Atr(NA).AttrName = attrname;
-  % We can just put in the options here
-  obj.f13.defval.Atr(NA).Unit = 'unitless';
-  valpernode = 1;
-  obj.f13.defval.Atr(NA).ValuesPerNode = valpernode ;
-  obj.f13.defval.Atr(NA).Val = default_val;
+   % We can just put in the options here
+   obj.f13.defval.Atr(NA).Unit = 'unitless';
+   valpernode = 1;
+   obj.f13.defval.Atr(NA).ValuesPerNode = valpernode ;
+   obj.f13.defval.Atr(NA).Val = default_val;
 else
-  default_val = obj.f13.defval.Atr(NA).Val;
+   default_val = obj.f13.defval.Atr(NA).Val;
 end
 
 % User Values
