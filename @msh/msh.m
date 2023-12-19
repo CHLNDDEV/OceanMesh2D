@@ -3271,6 +3271,54 @@ classdef msh
 
         end
 
+        function [m_remeshed] = remesh_patch(obj, poly, efdx, const_resolution)
+            %REMESH_PATCH Remeshes the region inside the given polygon.
+            %
+            % Syntax:
+            %   [m_remeshed] = remesh_patch(obj, poly, efdx, const_resolution)
+            %
+            % Inputs:
+            %   obj             - Mesh object containing the original mesh
+            %   poly            - Array of polygon vertices
+            %   efdx            - Background grid resolution (should be finer than intended min element size)
+            %   const_resolution- Optional, uniform resolution in the patch (in meters)
+            %
+            % Outputs:
+            %   m_remeshed      - Remeshed region
+            %
+            % Usage Example:
+            %   [m_remeshed] = remesh_patch(obj, poly, efdx)  % For variable resolution
+            %   [m_remeshed] = remesh_patch(obj, poly, efdx, 50) % For constant 50m resolution
+
+            % Check if const_resolution is specified
+            if nargin < 4
+                const_resolution = -999;
+            end
+
+            % Extract subdomain enclosed by the polygon
+            subdomain = extract_subdomain(obj, poly);
+
+            % Get polygon from subdomain
+            poly = get_poly(subdomain);
+
+            % Reconstruct edge function (ef) using subdomain and efdx
+            [ef, efx, efy] = reconstructEdgefx(subdomain, efdx, const_resolution);
+
+            % Create gridded interpolant function
+            fh = griddedInterpolant(efx, efy, ef);
+            hfun = @(p) fh(p);
+
+            % Generate new mesh for the subdomain
+            subdomain_new = mesh2dgen(poly, hfun);
+
+            % Extract subdomain with the hole
+            m_w_hole = extract_subdomain(obj, poly, "keep_inverse", 1);
+
+            % Combine the new and original subdomains
+            m_remeshed = plus(subdomain_new, m_w_hole, ...
+                'match', {'djc', 0.0, 'ds', 0, 'db', 0, 'con', 5, 'mqa', 1e-4, 'sc_maxit', 0});
+        end
+
         function [ef,efx,efy]=reconstructEdgefx(obj,efdx)
             % Given a msh object, reconstruct the edge function resolution
             % with a resolution equal to efdx in WGS84 degrees.
