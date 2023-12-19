@@ -137,6 +137,13 @@ classdef msh
                 obj.title = title;
                 % elseif any(contains(type,'otherformat'))
                 % OTHER FORMAT READING GOES HERE.
+            elseif any(contains(fname,'.2dm'))
+                disp('INFO: A 2dm file will be read...')
+                [~, ~, x, y, z, ikle] = read2dm(fname);
+                obj.p  = [x,y]; obj.t  = ikle+1; obj.b  = z;
+                obj.bd = []; obj.op = [];
+                obj.title = 'Import from 2dm format';
+
             else
                 % for now only handling fort.14 mesh type
                 error('Please specify filename with suffix (e.g., fname.14)');
@@ -188,6 +195,7 @@ classdef msh
             % write(obj,fname,'ww3'); % writes mesh data to fname.ww3 (WaveWatchIII) file
             % write(obj,fname,{'13','14'}); % writes mesh data and f13 attribute data to fname.14 and fname.13 (ADCIRC) files
             % write(obj,fname,'24','netcdf'); % writes fort.24 SAL data to fname.24.nc netcdf file
+            % write(obj,fname,'2dm'); % writes mesh data to a 2dm  file
             if nargin == 1
                 fname = 'fort_1';
             end
@@ -223,7 +231,7 @@ classdef msh
                 end
             else
                 if any(contains(type,'14')) || any(contains(type,'ww3')) || ...
-                        any(contains(type,'gr3'))
+                        any(contains(type,'gr3')) || any(contains(type,'2dm'))
                     if isempty(obj.p)
                         error('No mesh, cannot write.')
                     end
@@ -248,6 +256,10 @@ classdef msh
                     if any(contains(type,'ww3'))
                         writeww3( [fname '.ww3'] , obj.t, obj.p, b_t, ...
                             obj.op , obj.title ) ;
+                    end
+                    if any(contains(type,'2dm'))
+                        write2dm(length(obj.p), length(obj.t), obj.p(:,1), obj.p(:,2), ...
+                            b_t, obj.t, fname)
                     end
                 end
                 if any(contains(type,'11')) && ~isempty(obj.f11)
