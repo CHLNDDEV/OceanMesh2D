@@ -17,6 +17,7 @@ classdef geodata
     %     addOptional(p,'pslg',defval);
     %     addOptional(p,'boubox',defval);
     %     addOptional(p,'window',defval);
+    %     addOptional(p,'high_fidelity',defval);
     %
     %   This program is free software: you can redistribute it and/or modify
     %   it under the terms of the GNU General Public License as published by
@@ -58,6 +59,8 @@ classdef geodata
         spacing = 2.0 ; %Relative spacing along polygon, large effect on computational efficiency of signed distance.
         gridspace
         shapefile_3d % if the shapefile has a height attribute
+        high_fidelity % performs a 1D mesh generation step to form pfix and egfix prior to 2D meshing
+
     end
     
     methods
@@ -205,6 +208,8 @@ classdef geodata
                         end
                     case('shapefile_3d')
                          obj.shapefile_3d = inp.(fields{i}) ;
+                    case('high_fidelity')
+                        obj.high_fidelity = inp.(fields{i});
                     case('weirs')
                         if ~iscell(inp.(fields{i})) && ~isstruct(inp.(fields{i})) && inp.(fields{i})==0, continue; end
                         if ~iscell(inp.(fields{i})) && ~isstruct(inp.(fields{i}))
@@ -403,97 +408,143 @@ classdef geodata
                 if ~isempty(obj.inner)
                     obj.inner = smooth_coastline(obj.inner,obj.window,0);
                 end
-                
-                % WJP: Jan 25, 2018 check the polygon
-                obj = check_connectedness_inpoly(obj);
-                
-                % Make the bounding box 5 x 2 matrix in clockwise order
-                obj.boubox = [obj.bbox(1,1) obj.bbox(2,1);
-                    obj.bbox(1,1) obj.bbox(2,2); ...
-                    obj.bbox(1,2) obj.bbox(2,2);
-                    obj.bbox(1,2) obj.bbox(2,1); ...
-                    obj.bbox(1,1) obj.bbox(2,1); NaN NaN];
-                iboubox = obj.boubox;
-                iboubox(:,1) = 1.10*iboubox(:,1)+(1-1.10)*mean(iboubox(1:end-1,1));
-                iboubox(:,2) = 1.10*iboubox(:,2)+(1-1.10)*mean(iboubox(1:end-1,2));
-                
-                % KJR: May 13, 2018 coarsen portions of outer, mainland 
-                % and inner outside bbox (made into function WP)
-                obj.outer = coarsen_polygon(obj.outer,iboubox);
-              
-                if ~isempty(obj.inner)
-                    obj.inner = coarsen_polygon(obj.inner,iboubox);
-                end
-                
-                if ~isempty(obj.mainland)
-                    obj.mainland = coarsen_polygon(obj.mainland,iboubox);
-                end
-                
-                if numel(obj.contourfile)>1
-                    fprintf('Read in contourfiles\n');
-                    fprintf('   %s\n',obj.contourfile{:});
-                else
-                    fprintf('Read in contourfile %s\n',obj.contourfile{1});
-                end
-                
             else
-                % then user defined file passed
-                centroid     = mean(obj.bbox(2,:));
-                gridspace =    abs(obj.h0)/(cosd(centroid)*111e3);
-                % make sure it has equal spacing of h0/2
-                [la,lo]=my_interpm(obj.outer(:,2),obj.outer(:,1),gridspace/2);
-                obj.outer = [];
-                obj.outer(:,1) = lo; obj.outer(:,2) = la;
-                if isempty(obj.outer)
-                    error('Outer segment is required to mesh!');
-                end
-                % for mainland
-                if ~isempty(obj.mainland)
-                    [la,lo]=my_interpm(obj.mainland(:,2),obj.mainland(:,1),gridspace/2);
-                    obj.mainland = [];
-                    obj.mainland(:,1) = lo; obj.mainland(:,2) = la;
-                else
-                    error('Mainland segment is required to mesh!');
-                end
-                % for islands
-                if ~isempty(obj.inner)
-                    [la,lo]=my_interpm(obj.inner(:,2),obj.inner(:,1),gridspace/2);
-                    obj.inner = [];
-                    obj.inner(:,1) = lo; obj.inner(:,2) = la;
-                end
-                clearvars lo la
-                
-                % Make the bounding box 5 x 2 matrix in clockwise order
-                obj.boubox = [obj.bbox(1,1) obj.bbox(2,1);
-                    obj.bbox(1,1) obj.bbox(2,2); ...
-                    obj.bbox(1,2) obj.bbox(2,2);
-                    obj.bbox(1,2) obj.bbox(2,1); ...
-                    obj.bbox(1,1) obj.bbox(2,1); NaN NaN];
-                
+                disp('No smoothing of coastline enabled')
             end
             
-            if ~isempty(obj.demfile)
-                try
-                   x = double(ncread(obj.demfile,'lon'));
-                   y = double(ncread(obj.demfile,'lat'));
-                catch
-                   x = double(ncread(obj.demfile,'x'));
-                   y = double(ncread(obj.demfile,'y'));    
+            % KJR: Coarsen portions of outer, mainland
+            % and inner outside bbox.
+            iboubox = bbox_to_bou(obj.bbox);
+            iboubox(:,1) = 1.10*iboubox(:,1)+(1-1.10)*mean(iboubox(1:end-1,1));
+            iboubox(:,2) = 1.10*iboubox(:,2)+(1-1.10)*mean(iboubox(1:end-1,2));
+            
+            % Coarsen outer
+            obj.outer = coarsen_polygon(obj.outer,iboubox);
+            
+            % Coarsen inner and move parts that overlap with bounding box
+            % to mainland
+            if ~isempty(obj.inner)
+                obj.inner = coarsen_polygon(obj.inner,iboubox);
+            end
+            
+            % Coarsen mainland and remove parts that overlap with bounding
+            % box (note this doesn't change the polygon used for inpoly,
+            % only changes the distance function used for edgefx)
+            if ~isempty(obj.mainland)
+                obj.mainland = coarsen_polygon(obj.mainland,iboubox);
+            end
+            
+            
+        end
+        
+        function obj = ParseDEM(obj,varargin)
+            % obj = ParseDEM(obj,varargin)
+            % set 'BackUp' for reading backupdem
+            % set 'bbox' for reading only bbox
+            fname = obj.demfile ; backup = 0;
+            if any(strcmp(varargin,'BackUp'))
+                backup = 1;
+                fname = obj.BACKUPdemfile ;
+            end
+                                    
+            % Process the DEM for the meshing region.
+            if ~isempty(fname)
+                
+                % Find name of x, y (one that has 1 dimensions)
+                % z values (use one that has 2 dimensions)
+                [xvn, yvn, zvn] = getdemvarnames(fname);
+                
+                % Read x and y
+                x = double(ncread(fname,xvn));
+                y = double(ncread(fname,yvn));
+                                
+                if any(strcmp(varargin,'bbox'))
+                    obj.bbox = [min(x) max(x); min(y) max(y)];
+                    return;
                 end
-                % Read with Buffer
-                centroid  = mean(obj.bbox(2,:));
-                gridspace = abs(obj.h0)/(cosd(centroid)*111e3);
-                I = find(x >= obj.bbox(1,1) & ...
-                         x <= obj.bbox(1,2));
-                J = find(y >= obj.bbox(2,1) & ...
-                         y <= obj.bbox(2,2));
-                x = x(I); y = y(J);
-                % Find name of z value (use first one that has 2 dimensions
-                finfo = ncinfo(obj.demfile);
-                for ii = 1:length(finfo.Variables)
-                    if length(finfo.Variables(ii).Size) == 2
-                        zvarname = finfo.Variables(ii).Name;
-                        break
+                
+                modbox = [0 0];
+                if obj.bbox(1,2) > 180 && obj.bbox(1,1) < 180 && min(x) < 0
+                    % bbox straddles 180/-180 line
+                    loop = 2;
+                else
+                    loop = 1;
+                    if max(x) > 180
+                        if obj.bbox(1,1) < 0; modbox(1) = 1; end
+                        if obj.bbox(1,2) < 0; modbox(2) = 1; end
+                    elseif min(x) < 0
+                        if obj.bbox(1,1) > 180; modbox(1) = -1; end
+                        if obj.bbox(1,2) > 180; modbox(2) = -1; end
+                    end
+                end
+                J = find(y >= obj.bbox(2,1) & y <= obj.bbox(2,2));
+                I = []; demz = [];
+                for nn = 1:loop
+                    bboxt = obj.bbox;
+                    bboxt(1,:) =  bboxt(1,:) + modbox.*360;
+                    if loop == 2
+                        if nn == 1
+                            bboxt(1,2) = 180;
+                        else
+                            bboxt(1,1) = -180;
+                            bboxt(1,2) = bboxt(1,2) - 360;
+                        end
+                    end
+                    It = find(x >= bboxt(1,1) & x <= bboxt(1,2));
+                    I = [I; It];
+                    
+                    % At this point, detect the memory footprint of the 
+                    % DEM subset and compute the required stride necessary
+                    % to satisfy the memory requirements
+                    if nn == 1
+                        AVAILABLE_MEMORY=4; % 4 gb;
+                        mult = (obj.bbox(1,2) - obj.bbox(1,1))/...
+                                   (bboxt(1,2) - bboxt(1,1)); 
+                        peak_mem = mult*length(I)*length(J)*4/1e9; % in GB assuming single
+                        STRIDE_MEM = ceil(sqrt(peak_mem/AVAILABLE_MEMORY));
+                        DEM_GRIDSPACE = (x(2)-x(1))*111e3; % in meters
+                        STRIDE_H0 = ceil(obj.h0/DEM_GRIDSPACE); % skip # of DEM entires
+                        STRIDE = max(STRIDE_H0, STRIDE_MEM); 
+                        if STRIDE > 1
+                            if STRIDE_MEM > STRIDE_H0
+                                warning(['DEM would occupy ',num2str(peak_mem),...
+                                         'GB of RAM. DEM will be downsampled ' ...
+                                         'by a stride of ' num2str(STRIDE)])
+                            else
+                                warning(['DEM will be downsampled by a stride ' ...
+                                         'of ' num2str(STRIDE) ' to match h0'])
+                            end
+                        end
+                    
+                    end
+                    % grab only the portion that was requested 
+                    if STRIDE > 1 && STRIDE_MEM > STRIDE_H0
+                        % with a stride to save memory 
+                        LX = length(It(1:STRIDE:end));
+                        LY = length(J(1:STRIDE:end));
+                        demzt = single(ncread(fname,zvn,[It(1) J(1)],...
+                                       [LX LY],[STRIDE,STRIDE]));
+                    else
+                        % faster to read in with no stride if not memory
+                        % bound
+                        demzt = single(ncread(fname,zvn,[It(1) J(1)],...
+                                       [length(It) length(J)]));
+                        if STRIDE > 1
+                            demzt = demzt(1:STRIDE:end,1:STRIDE:end);
+                        end
+                    end
+                    if isempty(demz)
+                        demz = demzt;
+                    else
+                        demz = cat(1,demz,demzt);
+                    end
+                end
+                x = x(I(1:STRIDE:end)); y = y(J(1:STRIDE:end));
+                if obj.bbox(1,2) > 180
+                    x(x < 0) = x(x < 0) + 360;
+                    [x1,IA] = unique(x);
+                    if length(x) > length(x1)
+                        x = x1; demz = demz(IA,:);
                     end
                 end
                 % handle DEMS from packed starting from the bottom left
@@ -815,4 +866,3 @@ classdef geodata
     end
     
 end
-

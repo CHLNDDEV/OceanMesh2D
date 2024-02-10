@@ -22,14 +22,29 @@ function polygon_struct = Read_shapefile( finputname, polygon, bbox, ...
 % Edits by Keith Roberts, July 2018. 
 %% Loop over all the filenames and get the shapefile within bbox
 SG = [];
-finputfile = cellstr(finputname);
-if ~isempty(finputfile)
-    for i = 1:numel(finputname)
-        fname = finputname{i};
-        fprintf('%s: loading %s\n',mfilename,fname);
-        % The shaperead is much faster if it is available
-        if exist('shaperead','file')
-            disp('Reading shapefile with shaperead')
+if bbox(1,2) > 180 && bbox(1,1) < 180
+    % bbox straddles 180/-180 meridian
+    loop = 2; minus = 0;
+elseif all(bbox(1,:) > 180)
+    % beyond 180 in 0 to 360 format
+    loop = 1; minus = 1;
+else
+    loop = 1; minus = 0;
+end
+if (size(finputname,1)~=0)
+    for fname = finputname
+        for nn = 1:loop
+            bboxt = bbox';
+            if loop == 2
+                if nn == 1
+                    bboxt(2,1) = 180;
+                else
+                    bboxt(1,1) = -180; bboxt(2,1) = bboxt(2,1) - 360;
+                end
+            end
+            if minus 
+               bboxt(:,1) = bboxt(:,1) - 360; 
+            end          
             % Read the structure
             try 
                 % The shaperead is faster if it is available
