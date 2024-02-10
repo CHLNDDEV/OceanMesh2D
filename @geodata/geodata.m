@@ -123,6 +123,8 @@ classdef geodata
             addOptional(p,'boubox',defval);
             addOptional(p,'window',defval);
             addOptional(p,'shapefile_3d',defval);
+            addOptional(p,'high_fidelity',defval);
+
             
             % parse the inputs
             parse(p,varargin{:});
