@@ -1,4 +1,9 @@
-function [pfix, egfix] = filter_constraints(pfix, egfix, ibouboxes, box_number)
+function [pfix, egfix] = filter_polygon_constraints(pfix, egfix, ibouboxes, box_number)
+%FILTER_CONSTRAINTS Removes edge constraints based on bounding box criteria.
+%   This function filters out edge constraints (egfix) where at least one
+%   endpoint (from pfix) is outside the specified bounding box (ibouboxes)
+%   for the given box_number. It also adjusts the edges based on nested
+%   bounding boxes, if applicable.
 % remove bars if one point is outside
 node1=pfix(egfix(:,1),:);
 node2=pfix(egfix(:,2),:);
@@ -39,68 +44,3 @@ end
 egfix = renumberEdges(egfix);
 
 end
-
-
-% function [pfix, egfix] = filter_polygon_constraints(pfix, egfix, ibouboxes, box_number)
-% %FILTER_CONSTRAINTS Removes edges based on bounding box constraints.
-% %   [pfix, egfix] = FILTER_CONSTRAINTS(pfix, egfix, ibouboxes, box_number)
-% %   adjusts the fixed points (pfix) and edge constraints (egfix) for a
-% %   given bounding box (specified by box_number within ibouboxes). Edges
-% %   are removed if either of their endpoints lies outside the main bounding
-% %   box or inside any nested bounding boxes.
-% 
-% % Extract endpoints of each edge
-% node1 = pfix(egfix(:,1), :);
-% node2 = pfix(egfix(:,2), :);
-% 
-% % Main bounding box for the current box_number
-% iboubox = ibouboxes{box_number};
-% 
-% % Interpolate to refine the bounding box resolution and adjust dimensions
-% [ty, tx] = my_interpm(iboubox(:,2), iboubox(:,1), 100/111e3); % Custom interpolation
-% iboubox = [tx, ty]; % Updated bounding box after interpolation
-% 
-% % Adjust bounding box by applying a buffer size to modify its scale
-% buffer_size = 1.0; % No scaling applied if buffer_size is 1
-% iboubox(:,1) = buffer_size * iboubox(:,1) + (1 - buffer_size) * mean(iboubox(1:end-1,1));
-% iboubox(:,2) = buffer_size * iboubox(:,2) + (1 - buffer_size) * mean(iboubox(1:end-1,2));
-% 
-% % Determine if nodes are inside the main bounding box
-% inside_node1 = inpoly(node1, iboubox(1:end-1, :));
-% inside_node2 = inpoly(node2, iboubox(1:end-1, :));
-% inside = inside_node1 & inside_node2; % Logical AND to find edges fully inside
-% 
-% % Exclude edges based on nested boxes
-% for bn = box_number+1:length(ibouboxes)
-%     % Process each nested bounding box
-%     iboubox = ibouboxes{bn}(1:end-1,:);
-%     [ty, tx] = my_interpm(iboubox(:,2), iboubox(:,1), 100/111e3);
-%     iboubox = [tx, ty]; % Update bounding box after interpolation
-% 
-%     % Scale and adjust the nested bounding box
-%     scale_factor = 1.25;
-%     iboubox(:,1) = scale_factor * iboubox(:,1) + (1 - scale_factor) * mean(iboubox(1:end-1,1));
-%     iboubox(:,2) = scale_factor * iboubox(:,2) + (1 - scale_factor) * mean(iboubox(1:end-1,2));
-% 
-%     % Check if nodes are inside this nested box
-%     inside_node1 = inpoly(node1, iboubox);
-%     inside_node2 = inpoly(node2, iboubox);
-%     inside2 = inside_node1 & inside_node2; % Edges inside nested box
-% 
-%     % Mark edges inside nested boxes as outside
-%     inside(inside2) = false;
-% end
-% 
-% % Remove edges not meeting the inside criteria
-% egfix(~inside, :) = [];
-% 
-% % Renumber edges to maintain consistency
-% egfix = renumberEdges(egfix); % Assumes renumberEdges is a custom function
-% 
-% % Filter pfix based on unique edge endpoints
-% uniqueEndpoints = unique(egfix(:));
-% if ~isempty(uniqueEndpoints)
-%     pfix = pfix(uniqueEndpoints, :);
-% end
-% 
-% end
