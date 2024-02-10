@@ -1,3 +1,12 @@
+# `OceanMesh2D:`
+## `Precise distance-based two-dimensional automated mesh generation toolbox intended for coast ocean/shallow water flow models`
+
+## IMPORTANT NOTE:
+This is the legacy `MASTER` branch, and is not recommended unless for example you want to reproduce the results from the GMD paper referenced at the bottom here. Otherwise, it is recommended to use the default `PROJECTION` branch.
+
+## `DISCLAIMER: `
+The boundary of the meshing domain must be a polygon (first point equals the last and non-self intersecting) but it does not need to be simplified. Read the user guide for more information about the inputs.
+
 <p align="center">
   <a href="https://github.com/CHLNDDEV/OceanMesh2D"><img alt="OceanMesh2D" src="imgs/Oceanmesh_logo_white.png" width="95%"></a>
   <p align="center">Precise distance-based two-dimensional automated mesh generation toolbox intended for coastal ocean/shallow water flow models.</p>
@@ -99,10 +108,10 @@ References!
 If you make use of `OceanMesh2D` please include a reference to [1], and to any of [2]-[5] if pertinent ([latex .bib file](https://github.com/CHLNDDEV/OceanMesh2D/tree/Projection/UserGuide/OceanMesh2D_library.bib)). We would also appreciate using our [logo](https://github.com/CHLNDDEV/OceanMesh2D/tree/Projection/imgs) in a presentation featuring `OceanMesh2D`.
 ```
 
-[1] - Roberts, K. J., Pringle, W. J., and Westerink, J. J., 2019.
-      OceanMesh2D 1.0: MATLAB-based software for two-dimensional unstructured mesh generation in coastal ocean modeling,
-      Geoscientific Model Development, 12, 1847-1868. https://doi.org/10.5194/gmd-12-1847-2019.
-[2] - Roberts, K. J., Pringle, W. J, 2018.
+[1] - Roberts, K. J., Pringle, W. J., and Westerink, J. J., 2019. 
+      OceanMesh2D 1.0: MATLAB-based software for two-dimensional unstructured mesh generation in coastal ocean modeling, 
+      Geosci. Model Dev. (GMD), https://doi.org/10.5194/gmd-12-1847-2019.
+[2] - Roberts, K. J., Pringle, W. J, 2018. 
       OceanMesh2D: User guide - Precise distance-based two-dimensional automated mesh generation toolbox intended for coastal
       ocean/shallow water. https://doi.org/10.13140/RG.2.2.21840.61446/2.
 [3] - Roberts, Keith J. Unstructured Mesh Generation and Dynamic Load Balancing for Coastal Ocean Hydrodynamic Simulation, 2019.
