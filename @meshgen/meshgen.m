@@ -39,8 +39,11 @@ classdef meshgen
     %         qual_tol      % tolerance for the accepted negligible change in quality
     %         enforceWeirs  % whether or not to enforce weirs in meshgen
     %         enforceMin    % whether or not to enfore minimum edgelength for all edgefxs
+    % delaunay_elim_on_exit % whether or not to run delaunay_elim on exit of meshgen
+    % improve_with_reduced_quality % whether or not to allow mesh improvements with decreases in mesh quality
     %      improve_boundary % run a gradient desc. to improve the boundary conformity
     %       high_fidelity   % flag to form pfix and egfix for this domain
+    %
     properties
         fd            % handle to distance function
         fh            % handle to edge function
@@ -76,6 +79,8 @@ classdef meshgen
         improve_boundary  % improve the boundary representation
         high_fidelity     % flag to form pfix and egfix for this domain
         
+        delaunay_elim_on_exit % whether or not to run delaunay_elim on exit of meshgen
+        improve_with_reduced_quality % whether or not to allow mesh improvements with decreases in mesh quality
     end
     
     
@@ -175,10 +180,13 @@ classdef meshgen
             addOptional(p,'cleanup',1);
             addOptional(p,'direc_smooth',1);
             addOptional(p,'dj_cutoff',0.25);
+            addOptional(p,'big_mesh',defval);
             addOptional(p,'proj',defval);
             addOptional(p,'qual_tol',defval);
-            addOptional(p,'enforceWeirs',0);
+            addOptional(p,'enforceWeirs',1);
             addOptional(p,'enforceMin',1);
+            addOptional(p,'delaunay_elim_on_exit',1);
+            addOptional(p,'improve_with_reduced_quality',0);
             
             % parse the inputs
             parse(p,varargin{:});
@@ -186,18 +194,21 @@ classdef meshgen
             %if isempty(varargin); return; end
             % store the inputs as a struct
             inp = p.Results;
+     
             
             % kjr...order these argument so they are processed in a predictable
             % manner. Process the general opts first, then the OceanMesh
             % classes...then basic non-critical options.
-            inp = orderfields(inp,{'h0','bbox','enforceWeirs','enforceMin','fh',...
-                'inner','outer','mainland',...
-                'bou','ef',... %<--OceanMesh classes come after
-                'egfix','pfix','fixboxes',...
-                'plot_on','nscreen','itmax',...
-                'memory_gb','qual_tol','cleanup',...
-                'direc_smooth','dj_cutoff',...
-                'proj'});
+            inp = orderfields(inp,{'h0','bbox','enforceWeirs','enforceMin',...
+                                   'delaunay_elim_on_exit','improve_with_reduced_quality',...
+                                   'fh',...
+                                   'inner','outer','mainland',...
+                                   'bou','ef',... %<--OceanMesh classes come after
+                                   'egfix','pfix','fixboxes',...
+                                   'plot_on','nscreen','itmax',...
+                                   'memory_gb','qual_tol','cleanup',...
+                                   'direc_smooth','dj_cutoff',...
+                                   'big_mesh','proj'});
             % get the fieldnames of the edge functions
             fields = fieldnames(inp);
             % loop through and determine which args were passed.
@@ -453,6 +464,10 @@ classdef meshgen
                         obj.enforceWeirs = inp.(fields{i});
                     case('enforceMin')
                         obj.enforceMin = inp.(fields{i});
+                    case('delaunay_elim_on_exit')
+                        obj.delaunay_elim_on_exit = inp.(fields{i});
+                    case('improve_with_reduced_quality')
+                        obj.improve_with_reduced_quality = inp.(fields{i});
                 end
             end
             
@@ -523,7 +538,7 @@ classdef meshgen
                                     tmp_pfix = points;
                                     tmp_egfix = Get_poly_edges([points; NaN,NaN]);
                                 elseif obj.high_fidelity{box_num} == 1
-                                    [tmp_pfix, tmp_egfix, ~] = mesh1d(points, obj.fh, obj.h0./111e3, [], obj.boubox, box_num, []);
+                                    [tmp_pfix, tmp_egfix] = mesh1d(points, obj.fh, obj.h0./111e3, [], obj.boubox, box_num, []);
                                 end
                                 if size(tmp_pfix, 1) > 2
                                     [tmp_pfix, tmp_egfix] = fixgeo2(tmp_pfix, tmp_egfix);
@@ -595,7 +610,7 @@ classdef meshgen
             end
         end
         
-function  obj = build(obj)
+        function  obj = build(obj)
             % 2-D Mesh Generator using Distance Functions.
             % Checking existence of major inputs
             %%
@@ -712,9 +727,9 @@ function  obj = build(obj)
             if ~isempty(obj.pfix); p = [obj.pfix; p]; end
             % kjr July 2023, set to these values for better convg.
             if nfix > 0
-                Fscale=1.1; 
-                deltat=0.10; 
-            end 
+                Fscale=1.1;
+                deltat=0.10;
+            end
             N = size(p,1); % Number of points N
             disp(['Number of initial points after rejection is ',num2str(N)]);
             %% Iterate
@@ -733,7 +748,7 @@ function  obj = build(obj)
                 % 3. Retriangulation by the Delaunay algorithm
                 if max(sqrt(sum((p(1:size(pold,1),:)-pold).^2,2))/h0_l*111e3) > ttol         % Any large movement?
                     if it > 1
-                        p = fixmesh([obj.pfix; p]); 
+                        p = fixmesh([obj.pfix; p]);
                     else
                         p = fixmesh(p);                                        % Ensure only unique points.
                     end
@@ -753,9 +768,13 @@ function  obj = build(obj)
                     mq_l3sig = mq_m - 3*mq_s;
                     obj.qual(it,:) = [mq_m,mq_l3sig,mq_l];
                     % If mesh quality went down "significantly" since last iteration
-                    % which was a mesh improvement iteration, then rewind.
-                    if ~mod(it,imp+1) && obj.qual(it,1) - obj.qual(it-1,1) < -0.10 || ...
-                            ~mod(it,imp+1) && (N - length(p_before_improve))/length(p_before_improve) < -0.10
+                    % ..or..
+                    % If not allowing improvements with reduction in quality
+                    % then if the number of points significantly decreased
+                    % due to a mesh improvement iteration, then rewind.
+                    if ~mod(it,imp+1) && ((obj.qual(it,1) - obj.qual(it-1,1) < -0.10)  || ...
+                            (~obj.improve_with_reduced_quality && ...
+                            (N - length(p_before_improve))/length(p_before_improve) < -0.10))
                         disp('Mesh improvement was unsuccessful...rewinding...');
                         p = p_before_improve;
                         N = size(p,1);                                     % Number of points changed
@@ -782,7 +801,6 @@ function  obj = build(obj)
                         end
                         hold on ;
                         axis manual
-                        %axis([-0.0032   -0.0029    0.4818    0.4820]);
                         drawnow
                     end
                 end
@@ -800,6 +818,8 @@ function  obj = build(obj)
                 if ~mod(it,imp)
                     if mq_l > EXIT_QUALITY
                         % Do the final elimination of small connectivity
+                        if obj.delaunay_elim_on_exit
+                        end
                         disp('Quality of mesh is good enough, exit')
                         close all;
                         break;
@@ -859,7 +879,8 @@ function  obj = build(obj)
                 p_before_improve = p;
                 if ~mod(it,imp) % && ~HIGH_FIDELITY_MODE
                     nn = []; pst = [];
-                    if qual_diff < imp*obj.qual_tol && qual_diff > 0
+                    if abs(qual_diff) < imp*obj.qual_tol && ...
+                            (obj.improve_with_reduced_quality || qual_diff > 0)
                         % Remove elements with small connectivity
                         nn = get_small_connectivity(p,t);
                         disp(['Deleting ' num2str(length(nn)) ' due to small connectivity'])
@@ -910,7 +931,7 @@ function  obj = build(obj)
                 
                 Ftot = full(sparse(bars(:,[1,1,2,2]),ones(size(F))*[1,2,1,2],[Fvec,-Fvec],N,2));
                 Ftot(1:nfix,:) = 0;                                        % Force = 0 at fixed points
-                % find nodes on the boundary 
+                % find nodes on the boundary
                 %if it > 30
                 %     bnde = extdom_edges2(t,p);
                 %    Ftot(bnde(:))=0.0; % boundary nodes don't move
@@ -943,6 +964,8 @@ function  obj = build(obj)
                 
                 if ( it > obj.itmax )
                     % Do the final deletion of small connectivity
+                    if obj.delaunay_elim_on_exit
+                    end
                     disp('too many iterations, exit')
                     close all;
                     break ;

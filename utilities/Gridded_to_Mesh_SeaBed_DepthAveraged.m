@@ -19,7 +19,38 @@ function [Nb,Nm,Nmw,N_interp] = Gridded_to_Mesh_SeaBed_DepthAveraged(...
 %                   decreasing weights from bottom to surface)
 %
 % Author: William Pringle, CHL, Notre Dame University
-% Created: 2017-9-28
+% Created: 2017-9-28, 
+% Updated: 2023-02-15 by Jiangchao Qiu
+
+%% updated Gridded_N_values.mat file regionally 
+% fill NaNs in the original N in the vertical direction by extrapolating
+% all N values down the column using the nearest non-NaN value above  
+
+[~,index_lon_min] = min(abs(lon_N-min(lon_M)));
+if lon_N(index_lon_min) > min(lon_M)
+    index_lon_min = index_lon_min - 1;
+end
+[~,index_lon_max] = min(abs(lon_N-max(lon_M)));
+if lon_N(index_lon_max) < max(lon_M)
+    index_lon_max = index_lon_max + 1;
+end
+[~,index_lat_min] = min(abs(lat_N-min(lat_M)));
+if lat_N(index_lat_min) > min(lat_M)
+    index_lat_min = index_lat_min - 1;
+end
+[~,index_lat_max] = min(abs(lat_N-max(lat_M)));
+if lat_N(index_lat_max) < max(lat_M)
+    index_lat_max = index_lat_max + 1;
+end
+
+for i = index_lon_min:index_lon_max
+    for j = index_lat_min:index_lat_max
+        temp_vertical = N(i,j,:);
+        temp_vertical_new = fillmissing(temp_vertical,'previous');
+        N(i,j,:) = temp_vertical_new;
+    end
+end
+%%
 
 if nargin == 7
     fillNaN = 1;

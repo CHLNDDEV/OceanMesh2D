@@ -89,6 +89,7 @@ if isempty(obj.f13)
     obj.f13.NumOfNodes = length(obj.p);
     obj.f13.nAttr = 1;
     NA = 1;
+    broken = 0;
 else
     broken = 0;
     for NA = 1:obj.f13.nAttr
