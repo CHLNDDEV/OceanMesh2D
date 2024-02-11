@@ -534,12 +534,18 @@ classdef meshgen
                             
                             for ii = 1:length(poly_split)
                                 points = unique(poly_split{ii}, 'rows', 'stable');
+                                % Option 2 simply constrains the vector as
+                                % it is in the file.
                                 if obj.high_fidelity{box_num} == 2
                                     tmp_pfix = points;
                                     tmp_egfix = Get_poly_edges([points; NaN,NaN]);
+                                % Option 1: resamples based on the local
+                                % mesh resolution
                                 elseif obj.high_fidelity{box_num} == 1
-                                    [tmp_pfix, tmp_egfix] = mesh1d(points, obj.fh, obj.h0./111e3, [], obj.boubox, box_num, []);
+                                    [tmp_pfix, tmp_egfix] = mesh1d(points, obj.fh, obj.h0./111e3,...
+                                        [], obj.boubox, box_num, []);
                                 end
+                                
                                 if size(tmp_pfix, 1) > 2
                                     [tmp_pfix, tmp_egfix] = fixgeo2(tmp_pfix, tmp_egfix);
                                     if max(tmp_egfix(:)) ~= size(tmp_pfix, 1), continue; end
@@ -555,8 +561,7 @@ classdef meshgen
                     end
                 end
             end
-            
-            
+                        
             % Final geometry check and update
             [tpfix, tegfix] = fixgeo2(tpfix, tegfix);
             checkfixp = setdiff(tpfix, fixmesh(tpfix), 'rows');
