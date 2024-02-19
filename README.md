@@ -159,17 +159,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## Added
 - auxiliary file reader function that can be used outside of msh function as well as within. https://github.com/CHLNDDEV/OceanMesh2D/pull/287
 - swanoutput namelist for SWAN model outputs. https://github.com/CHLNDDEV/OceanMesh2D/pull/287
-- `namelist` and `RSTIMNC` input arguments for `Make_f15.m` fort.15 generator. updated the help message for all input argumebts to `Make_f15`. https://github.com/CHLNDDEV/OceanMesh2D/pull/283 
-- New stability namelist options to `Make_f15.m` fort.15 generator. https://github.com/CHLNDDEV/OceanMesh2D/pull/283 
+- Added new function in `msh` called `remesh_patch` to remesh within specified polygonal domains and insert back into parent mesh. https://github.com/CHLNDDEV/OceanMesh2D/pull/301
+- Read and write to 2dm format. https://github.com/CHLNDDEV/OceanMesh2D/pull/300
+- `namelist` and `RSTIMNC` input arguments for `Make_f15.m` fort.15 generator. updated the help message for all input argumebts to `Make_f15`. https://github.com/CHLNDDEV/OceanMesh2D/pull/283
+- New stability namelist options to `Make_f15.m` fort.15 generator. https://github.com/CHLNDDEV/OceanMesh2D/pull/283
 - Optionality for mesh2dgen to choose the method of mesh generation `kind`, and the maximum iteration count `iter`. https://github.com/CHLNDDEV/OceanMesh2D/pull/272
 - Option `improve_with_reduced_quality` to `meshgen` for allowing for mesh improvements even when quality is decreasing or large number of nodes eliminated, which sometimes is necessary to force the advancement in mesh quality.
 - Option `delaunay_elim_on_exit` to `meshgen` to skip the last call to `delaunay_elim` to potentially avoid deleting boundary elements.
 - Geoid offset nodal attribute in `Calc_f13` subroutine. https://github.com/CHLNDDEV/OceanMesh2D/pull/251
 - Support for writing Self Attraction and Loading (SAL) files in NetCDF for the ADCIRC model. https://github.com/CHLNDDEV/OceanMesh2D/pull/231
 ## Changed
-- treating logicals in namelists as a logicals type within MATLAB but ouput as a string. https://github.com/CHLNDDEV/OceanMesh2D/pull/287 
+- treating logicals in namelists as a logicals type within MATLAB but ouput as a string. https://github.com/CHLNDDEV/OceanMesh2D/pull/287
 - `Calc_Sponge.m` to allow for sponge in polygon region and coefficents based on spatially varying depth. https://github.com/CHLNDDEV/OceanMesh2D/pull/287
-- removed namelists from default setup in `Make_f15.m` fort.15 generator to be invoked by user as an input argument instead. https://github.com/CHLNDDEV/OceanMesh2D/pull/283 
+- removed namelists from default setup in `Make_f15.m` fort.15 generator to be invoked by user as an input argument instead. https://github.com/CHLNDDEV/OceanMesh2D/pull/283
 - Use implicit smoother (`ds=1`) in `msh.clean` when fix points are present. https://github.com/CHLNDDEV/OceanMesh2D/pull/283
 - Default filename for the dynamicWaterLevelCorrection is now `null` so that it is not evoked by default. https://github.com/CHLNDDEV/OceanMesh2D/pull/272
 - Default mesh improvement strategy is `ds` 2.
@@ -178,7 +180,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - dynamicWaterLevelCorrection to fort.15 namelist, and PRBCKGRND option to met fort.15 namelist. https://github.com/CHLNDDEV/OceanMesh2D/pull/261
 ## Fixed
 - catch for offset_nodes of int type in writeoffset63.m. https://github.com/CHLNDDEV/OceanMesh2D/pull/287
-- writing out the wave coupling timestep `RSTIMNC` on the `WTIMNC` line of fort.15 when `NWS > 300`. https://github.com/CHLNDDEV/OceanMesh2D/pull/283 
+- writing out the wave coupling timestep `RSTIMNC` on the `WTIMNC` line of fort.15 when `NWS > 300`. https://github.com/CHLNDDEV/OceanMesh2D/pull/283
 - `make_bc` call with empty varargin, e.g., when calling inner. https://github.com/CHLNDDEV/OceanMesh2D/pull/283
 - `Make_offset63` call with constant offset (length 1 `time_vector`). https://github.com/CHLNDDEV/OceanMesh2D/pull/283
 - `ourKNNsearch` call in `nanfill` option of `Griddata` (`msh.interp`). https://github.com/CHLNDDEV/OceanMesh2D/pull/283
@@ -191,7 +193,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Printing of namelist character strings or numbers. https://github.com/CHLNDDEV/OceanMesh2D/pull/261
 - `Make_offset63.m` time interval computation. https://github.com/CHLNDDEV/OceanMesh2D/pull/261 and https://github.com/CHLNDDEV/OceanMesh2D/pull/272
 - Removed dependency on statistics toolbox when using the 'nanfill' option in `msh.interp`. https://github.com/CHLNDDEV/OceanMesh2D/pull/269
-- Missing routines for reading in elvstaname and velstaname in readfort15.m by adding readlinevecname() method. https://github.com/CHLNDDEV/OceanMesh2D/pull/281 
+- Missing routines for reading in elvstaname and velstaname in readfort15.m by adding readlinevecname() method. https://github.com/CHLNDDEV/OceanMesh2D/pull/281
+- Incorrect reference to `ibtype` was changed to `ibtypee` in `map_mesh_properties` function. https://github.com/CHLNDDEV/OceanMesh2D/pull/298
 
 ### [5.0.0] - 2021-07-29
 ## Added
