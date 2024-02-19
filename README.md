@@ -157,6 +157,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Unreleased (on current HEAD of the Projection branch)
 ## Added
+- auxiliary file reader function that can be used outside of msh function as well as within. https://github.com/CHLNDDEV/OceanMesh2D/pull/287
+- swanoutput namelist for SWAN model outputs. https://github.com/CHLNDDEV/OceanMesh2D/pull/287
 - `namelist` and `RSTIMNC` input arguments for `Make_f15.m` fort.15 generator. updated the help message for all input argumebts to `Make_f15`. https://github.com/CHLNDDEV/OceanMesh2D/pull/283 
 - New stability namelist options to `Make_f15.m` fort.15 generator. https://github.com/CHLNDDEV/OceanMesh2D/pull/283 
 - Optionality for mesh2dgen to choose the method of mesh generation `kind`, and the maximum iteration count `iter`. https://github.com/CHLNDDEV/OceanMesh2D/pull/272
@@ -165,6 +167,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Geoid offset nodal attribute in `Calc_f13` subroutine. https://github.com/CHLNDDEV/OceanMesh2D/pull/251
 - Support for writing Self Attraction and Loading (SAL) files in NetCDF for the ADCIRC model. https://github.com/CHLNDDEV/OceanMesh2D/pull/231
 ## Changed
+- treating logicals in namelists as a logicals type within MATLAB but ouput as a string. https://github.com/CHLNDDEV/OceanMesh2D/pull/287 
+- `Calc_Sponge.m` to allow for sponge in polygon region and coefficents based on spatially varying depth. https://github.com/CHLNDDEV/OceanMesh2D/pull/287
 - removed namelists from default setup in `Make_f15.m` fort.15 generator to be invoked by user as an input argument instead. https://github.com/CHLNDDEV/OceanMesh2D/pull/283 
 - Use implicit smoother (`ds=1`) in `msh.clean` when fix points are present. https://github.com/CHLNDDEV/OceanMesh2D/pull/283
 - Default filename for the dynamicWaterLevelCorrection is now `null` so that it is not evoked by default. https://github.com/CHLNDDEV/OceanMesh2D/pull/272
@@ -173,6 +177,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - `msh.offset63` struct and associated write/make routines for dynamicwaterlevel offset functionality. https://github.com/CHLNDDEV/OceanMesh2D/pull/259
 - dynamicWaterLevelCorrection to fort.15 namelist, and PRBCKGRND option to met fort.15 namelist. https://github.com/CHLNDDEV/OceanMesh2D/pull/261
 ## Fixed
+- catch for offset_nodes of int type in writeoffset63.m. https://github.com/CHLNDDEV/OceanMesh2D/pull/287
 - writing out the wave coupling timestep `RSTIMNC` on the `WTIMNC` line of fort.15 when `NWS > 300`. https://github.com/CHLNDDEV/OceanMesh2D/pull/283 
 - `make_bc` call with empty varargin, e.g., when calling inner. https://github.com/CHLNDDEV/OceanMesh2D/pull/283
 - `Make_offset63` call with constant offset (length 1 `time_vector`). https://github.com/CHLNDDEV/OceanMesh2D/pull/283
