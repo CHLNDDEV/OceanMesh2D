@@ -932,6 +932,7 @@ classdef meshgen
                 end
                 
                 F    = (1-LN.^4).*exp(-LN.^4)./LN;                         % Bessens-Heckbert edge force
+                F(isinf(F)) = 0; 
                 Fvec = F*[1,1].*barvec;
                 
                 Ftot = full(sparse(bars(:,[1,1,2,2]),ones(size(F))*[1,2,1,2],[Fvec,-Fvec],N,2));
