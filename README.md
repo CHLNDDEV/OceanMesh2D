@@ -149,7 +149,7 @@ GALLERY:
   <img src = "imgs/nesting.png"> &nbsp &nbsp &nbsp &nbsp
   <img src = "imgs/ResoNA.png"> &nbsp &nbsp &nbsp &nbsp
   <img src = "imgs/Globalocean.jpg"> &nbsp &nbsp &nbsp &nbsp
-  <img src = "imgs/multiscale_nz_ex_13"> &nbsp &nbsp &nbsp &nbsp
+  <img src = "imgs/multiscale_nz_ex_13.png"> &nbsp &nbsp &nbsp &nbsp
 </p>
 
 
