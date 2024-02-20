@@ -149,6 +149,7 @@ GALLERY:
   <img src = "imgs/nesting.png"> &nbsp &nbsp &nbsp &nbsp
   <img src = "imgs/ResoNA.png"> &nbsp &nbsp &nbsp &nbsp
   <img src = "imgs/Globalocean.jpg"> &nbsp &nbsp &nbsp &nbsp
+  <img src = "imgs/multiscale_nz_ex_13"> &nbsp &nbsp &nbsp &nbsp
 </p>
 
 
@@ -166,7 +167,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Unreleased (on current HEAD of the Projection branch)
 ## Added
-
+- Added ability to generate constrainsts for shorelines automatically using the new high-fidelity method. https://github.com/CHLNDDEV/OceanMesh2D/pull/264
 - Added new function in `msh` called `remesh_patch` to remesh within specified polygonal domains and insert back into parent mesh.
 - Read and write to 2dm format.
 - `namelist` and `RSTIMNC` input arguments for `Make_f15.m` fort.15 generator. updated the help message for all input argumebts to `Make_f15`. https://github.com/CHLNDDEV/OceanMesh2D/pull/283
