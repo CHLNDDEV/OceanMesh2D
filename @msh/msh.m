@@ -137,6 +137,13 @@ classdef msh
                 obj.title = title;
                 % elseif any(contains(type,'otherformat'))
                 % OTHER FORMAT READING GOES HERE.
+            elseif any(contains(fname,'.2dm'))
+                disp('INFO: A 2dm file will be read...')
+                [~, ~, x, y, z, ikle] = read2dm(fname);
+                obj.p  = [x,y]; obj.t  = ikle+1; obj.b  = z;
+                obj.bd = []; obj.op = [];
+                obj.title = 'Import from 2dm format';
+
             else
                 % for now only handling fort.14 mesh type
                 error('Please specify filename with suffix (e.g., fname.14)');
@@ -188,6 +195,7 @@ classdef msh
             % write(obj,fname,'ww3'); % writes mesh data to fname.ww3 (WaveWatchIII) file
             % write(obj,fname,{'13','14'}); % writes mesh data and f13 attribute data to fname.14 and fname.13 (ADCIRC) files
             % write(obj,fname,'24','netcdf'); % writes fort.24 SAL data to fname.24.nc netcdf file
+            % write(obj,fname,'2dm'); % writes mesh data to a 2dm  file
             if nargin == 1
                 fname = 'fort_1';
             end
@@ -223,7 +231,7 @@ classdef msh
                 end
             else
                 if any(contains(type,'14')) || any(contains(type,'ww3')) || ...
-                        any(contains(type,'gr3'))
+                        any(contains(type,'gr3')) || any(contains(type,'2dm'))
                     if isempty(obj.p)
                         error('No mesh, cannot write.')
                     end
@@ -248,6 +256,10 @@ classdef msh
                     if any(contains(type,'ww3'))
                         writeww3( [fname '.ww3'] , obj.t, obj.p, b_t, ...
                             obj.op , obj.title );
+                    end
+                    if any(contains(type,'2dm'))
+                        write2dm(length(obj.p), length(obj.t), obj.p(:,1), obj.p(:,2), ...
+                            b_t, obj.t, fname)
                     end
                 end
                 if any(contains(type,'11')) && ~isempty(obj.f11)
@@ -963,7 +975,7 @@ classdef msh
             %                             (underwater is positive depth)
             %   lut      - A look up table (lut). See nlcd and ccap in
             %              datasets/ for examples
-            
+
             % if give cell of geodata or dems then interpolate all
             if iscell(geodata) || isstring(geodata)
                 for i = 1:length(geodata)
@@ -1882,7 +1894,7 @@ classdef msh
                         dir,obj.op,obj.bd); %<--updates op and bd.
                     
                 case('delete')
-                    
+
                     temp = obj.bd.nbvv;
                     bounodes=obj.bd.nbvv ;
                     idx=sum(bounodes~=0);
@@ -1895,11 +1907,10 @@ classdef msh
                         k = k + 1 ;
                         bounodes(idx2(i):idx2(i+1)-1,2) = k ;
                     end
-                    
+
                     if isempty(varargin)
-                        % have the user select the nodestring '
+                        % have the user select the nodestring
                         plot(obj,'type','bd','proj','none');
-                        
                         
                         dcm_obj = datacursormode(gcf);
                         title('use data cursor to select nodestring to be deleted');
@@ -2943,7 +2954,7 @@ classdef msh
                     [obj.p(:,1),obj.p(:,2)] = m_ll2xy(obj.p(:,1),obj.p(:,2));
                     bad = Cr < cr_min;
                     badnum = sum(bad);
-                    
+
                     display(['Number of minimum Cr bound violations ',num2str(badnum)]);
                     disp(['Min. Cr is : ',num2str(min(Cr))]);
                     if it == maxIT; break; end
@@ -2952,13 +2963,13 @@ classdef msh
                     
                     % save old msh object for mapping
                     obj_old = obj;
-                    
+
                     % refine select elements using an octree approach
                     obj = RefineTrias(obj_old,bad);
                     
                     % map back properties
                     obj = map_mesh_properties(obj,'msh_old',obj_old);
-                    
+
                     % put bathy back on with linear interp
                     obj.b = F(obj.p(:,1),obj.p(:,2));
                     
@@ -3258,7 +3269,55 @@ classdef msh
             %                 Sta_ID(Sta_type(:,1) == 1))];
             
         end
-        
+
+        function [m_remeshed] = remesh_patch(obj, poly, efdx, const_resolution)
+            %REMESH_PATCH Remeshes the region inside the given polygon.
+            %
+            % Syntax:
+            %   [m_remeshed] = remesh_patch(obj, poly, efdx, const_resolution)
+            %
+            % Inputs:
+            %   obj             - Mesh object containing the original mesh
+            %   poly            - Array of polygon vertices
+            %   efdx            - Background grid resolution (should be finer than intended min element size)
+            %   const_resolution- Optional, uniform resolution in the patch (in meters)
+            %
+            % Outputs:
+            %   m_remeshed      - Remeshed region
+            %
+            % Usage Example:
+            %   [m_remeshed] = remesh_patch(obj, poly, efdx)  % For variable resolution
+            %   [m_remeshed] = remesh_patch(obj, poly, efdx, 50) % For constant 50m resolution
+
+            % Check if const_resolution is specified
+            if nargin < 4
+                const_resolution = -999;
+            end
+
+            % Extract subdomain enclosed by the polygon
+            subdomain = extract_subdomain(obj, poly);
+
+            % Get polygon from subdomain
+            poly = get_poly(subdomain);
+
+            % Reconstruct edge function (ef) using subdomain and efdx
+            [ef, efx, efy] = reconstructEdgefx(subdomain, efdx, const_resolution);
+
+            % Create gridded interpolant function
+            fh = griddedInterpolant(efx, efy, ef);
+            hfun = @(p) fh(p);
+
+            % Generate new mesh for the subdomain
+            subdomain_new = mesh2dgen(poly, hfun);
+
+            % Extract subdomain with the hole
+            m_w_hole = extract_subdomain(obj, poly, "keep_inverse", 1);
+
+            % Combine the new and original subdomains
+            m_remeshed = plus(subdomain_new, m_w_hole, ...
+                'match', {'djc', 0.0, 'ds', 0, 'db', 0, 'con', 5, 'mqa', 1e-4, 'sc_maxit', 0});
+        end
+
         function [ef,efx,efy]=reconstructEdgefx(obj,efdx)
             % Given a msh object, reconstruct the edge function resolution
             % with a resolution equal to efdx in WGS84 degrees.
@@ -4052,7 +4111,7 @@ classdef msh
                     % Only keep idx and val that is common to ind and map to ind
                     [~,ind_new,idx_new] = intersect(idx_old,ind);
                     val_new = val_old(:,ind_new);
-                    
+
                     % find indices of new nodes
                     [~,ind_added] = setdiff(obj.p,m_old.p,'rows');
                     if ~isempty(ind_added)
