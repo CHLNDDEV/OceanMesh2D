@@ -128,7 +128,7 @@ for icon = 1: ntip
     
     % Plot interpolated results
     if plot_on
-        figure(1); fastscatter(VX(:,1),VX(:,2),amp);
+        figure(1); fastscatter2(VX(:,1),VX(:,2),amp);
         colorbar;
         constituent = obj.f24.tiponame{icon};
         title(constituent)

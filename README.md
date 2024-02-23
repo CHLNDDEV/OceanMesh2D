@@ -178,6 +178,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Retrieve boundary indices in `msh.get_boundary_of_mesh` method. https://github.com/CHLNDDEV/OceanMesh2D/pull/259
 - `msh.offset63` struct and associated write/make routines for dynamicwaterlevel offset functionality. https://github.com/CHLNDDEV/OceanMesh2D/pull/259
 - dynamicWaterLevelCorrection to fort.15 namelist, and PRBCKGRND option to met fort.15 namelist. https://github.com/CHLNDDEV/OceanMesh2D/pull/261
+- Improved code readability by auto-indenting core functions and reworking 'setup' and 'Examples' functions, including adding necessary files for separation from core functions. https://github.com/CHLNDDEV/OceanMesh2D/pull/308
+- Renamed functions for clarity and fixed multiple small bugs; changes are compatible with OpenEarthTools but distinct. https://github.com/CHLNDDEV/OceanMesh2D/pull/308
 ## Fixed
 - catch for offset_nodes of int type in writeoffset63.m. https://github.com/CHLNDDEV/OceanMesh2D/pull/287
 - writing out the wave coupling timestep `RSTIMNC` on the `WTIMNC` line of fort.15 when `NWS > 300`. https://github.com/CHLNDDEV/OceanMesh2D/pull/283

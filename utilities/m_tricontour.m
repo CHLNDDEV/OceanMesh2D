@@ -14,9 +14,9 @@ end
 [X,Y] = m_ll2xy(p(:,1),p(:,2),'clip','on');
 hold on; 
 if nargin < 5
-    H = tricontour(tri,X,Y,z,N);
+    H = tricontour2(tri,X,Y,z,N);
 else
-    H = tricontour(tri,X,Y,z,N,C);
+    H = tricontour2(tri,X,Y,z,N,C);
 end
 
 end

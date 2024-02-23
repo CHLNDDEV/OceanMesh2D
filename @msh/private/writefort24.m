@@ -7,12 +7,12 @@ else
     finputname = finame ;
 end
 
-if nargin < 3 || isempty(format) 
-   format = 'ascii';
-   warning('Using ASCII file format. Pass ''netcdf'' to write in NetCDF')
+if nargin < 3 || isempty(format)
+    format = 'ascii';
+    warning('Using ASCII file format. Pass ''netcdf'' to write in NetCDF')
 end
 if iscell(format)
-   format = format{1};
+    format = format{1};
 end
 
 if strcmp(format,'ascii') % LEGACY
@@ -41,21 +41,21 @@ elseif strcmp(format,'netcdf') % NETCDF
     % deflate level (set zero for no deflation if necessary.. using single precision so not very different in size)
     dl = 5;
     
-    node = length(points); 
+    node = length(points);
     tipnames = char(f24dat.tiponame); ntip = size(tipnames) ;
     fillvalue = 0.0;
-        
+    
     nccreate(file,'x','Dimensions',{'node',node},'DataType','int32','DeflateLevel',dl) ;
     ncwriteatt(file,'x','standard_name', 'longitude') ;
     ncwriteatt(file,'x','units', 'degrees_east') ;
     ncwriteatt(file,'x','positive', 'east') ;
     ncwrite(file, 'x', points(:,1)) ;
-
+    
     nccreate(file,'y','Dimensions',{'node',node},'DataType','int32','DeflateLevel',dl) ;
     ncwriteatt(file,'y','standard_name', 'latitude') ;
     ncwriteatt(file,'y','units', 'degrees_north') ;
     ncwriteatt(file,'y','positive', 'north') ;
-    ncwrite(file, 'y', points(:,2)) ;    
+    ncwrite(file, 'y', points(:,2)) ;
     
     nccreate(file,'constituents','Dimensions',{'num_constituents',ntip(1),'char_len',ntip(2)},'DataType','char') ;
     ncwriteatt(file,'constituents','standard_name', 'name_of_tidal_harmonic_constituents') ;
@@ -79,12 +79,12 @@ elseif strcmp(format,'netcdf') % NETCDF
     ncwriteatt(file,'sal_phase','standard_name','phase_lag_of_self_attraction_and_loading_tide_elevation')
     ncwriteatt(file,'sal_phase','units','degrees with respect to GMT/UTC')
     ncwrite(file, 'sal_phase', squeeze(f24dat.Val(:,3,:))) ;
-   
+    
     ncwriteatt(file,'/','title','The self-attraction and loading terms for an ADCIRC simulation');
     ncwriteatt(file,'/','creation_date',datestr(now));
     ncwriteatt(file,'/','source',"Made by OceanMesh2D writefort24");
     ncwriteatt(file,'/','references',"https://github.com/CHLNDDEV/OceanMesh2D/" );
-
+    
 else
     error(['format = ' format ' is invalid. Choose from ascii or netcdf'])
 end

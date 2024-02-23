@@ -91,12 +91,10 @@ while any(active)
         
         r = find(v_next==bnde(st:ed,1) & active(st:ed),1);
         tsel = bnde(st+r-1,:); tsel_inv = fliplr(tsel) ;
-        sel=tsel(tsel~=v_next);
+        sel = tsel(tsel~=v_next);
         
-        if(line)
-            if(isempty(sel))
-                break
-            end
+        if(isempty(sel))
+            break
         end
         % store points.
         k = k + 1;

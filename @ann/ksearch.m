@@ -1,5 +1,5 @@
 function [idx dst] = ksearch(ann, query, k, epsl, asm)
-% 
+%
 % kNN search
 %   Usage:
 %     [idx dst] = ksearch(ann, query, k, epsl, [asm])
@@ -9,8 +9,8 @@ function [idx dst] = ksearch(ann, query, k, epsl, asm)
 %   query - (d)x(N) query points
 %   k - number of nearest nieghbors (if points in ann < k than less than k
 %                                    points are returned)
-%   epsl - epsilon search precision 
-%   asm - allow self match flag, if false points with dst = 0 are ignored 
+%   epsl - epsilon search precision
+%   asm - allow self match flag, if false points with dst = 0 are ignored
 %         (default is true)
 %
 if nargin == 4

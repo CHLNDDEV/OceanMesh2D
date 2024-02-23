@@ -93,7 +93,7 @@ if ~isempty(boudat)
                     % fprintf( fid, '%d %f %f \n', boudat.nbvv(idxn,i), ...
                     %    boudat.barinht(idxn,1), boudat.barincfsp(idxn,i) ) ;
                     fprintf( fid, '%d %16.10f %16.10f \n', nbvv(ll), ...
-                             barinht(ll), barincfsp(ll) ) ;
+                        barinht(ll), barincfsp(ll) ) ;
                     %
                 end
             case  {4, 24}
