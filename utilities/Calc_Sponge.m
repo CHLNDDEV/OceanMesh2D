@@ -56,12 +56,12 @@ for op = 1:obj.op.nope
     W = sponge(op).W*111e3; d = sponge(op).d*111e3;
     % spongetype polynomial or hyperbola
     if strcmp(spngtype,'poly')
-        sigma_m = -sqrt(g*sponge(op).H)*(alpha+1)*log(1/F)/...
+        sigma_m = -sqrt(g*sponge(op).H).*(alpha+1)*log(1/F)./...
                         (W*dis_ratio^(alpha+1));  
-        sigma_n = sigma_m*(d/W).^alpha;
+        sigma_n = sigma_m.*(d./W).^alpha;
     elseif  strcmp(spngtype,'hyper')
         sigma_m = -log(1/F)/(-log(1-dis_ratio)-dis_ratio);
-        sigma_n = sigma_m*min(1,sqrt(g*sponge(op).H)*d./(W*(W-d)));
+        sigma_n = sigma_m*min(1,sqrt(g*sponge(op).H)*d./(W.*(W-d)));
     end
     idspg_node = [idspg_node; sponge(op).idx];
     sigma = [sigma; sigma_n];
@@ -155,7 +155,18 @@ for op = 1:obj.op.nope
     nodes = obj.op.nbdv(1:obj.op.nvdll(op),op);
     % get mean depth along boundary
     H = mean(obj.b(nodes));
-    if length(W) > 1
+    if length(W) > 2
+        % get points not inside another polygon;
+        in = inpoly(obj.p,W);
+        idx = find(~in);
+        [~,db] = ourKNNsearch(obj.p(nodes,:)',obj.p(idx,:)',1);
+        [~,dp] = ourKNNsearch(W',obj.p(idx,:)',1);
+        sponge(op).idx = idx;
+        sponge(op).d = dp;
+        sponge(op).W = dp+db; %max(db+dp);
+        sponge(op).H = max(10,obj.b(idx)); 
+        continue
+    elseif length(W) == 2
         % Get the length of the sponge (in metres)
         W1 = W(2)*W(1)*sqrt(g*H); 
         % Change length to degrees (roughly)
@@ -174,7 +185,7 @@ for op = 1:obj.op.nope
     idx = I(d < W1);
     sponge(op).idx = idx;
     sponge(op).d   = W1 - d( d < W1);
-    sponge(op).H   = H;
+    sponge(op).H   = max(5,obj.b(idx));
     sponge(op).W   = W1;
 end
 

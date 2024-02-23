@@ -327,16 +327,22 @@ end
 
 % If
 if find(strcmp(fieldnames(f15dat),'controllist'),1)
-    for k = 1: length(f15dat.controllist)
-        fprintf( fid, '! -- Begin %s Control Namelist -- \n', f15dat.controllist(k).type ) ;
-        fprintf( fid, '&%sControl\n', f15dat.controllist(k).type ) ;
-        for m = 1:length(f15dat.controllist(k).var)
-            val = f15dat.controllist(k).var(m).val;
-            if ~ischar(val); val = num2str(val); end
-            fprintf( fid, '%s = %s,\n',f15dat.controllist(k).var(m).name,val) ;
+
+for k = 1: length(f15dat.controllist)
+    fprintf( fid, '! -- Begin %s Control Namelist -- \n', f15dat.controllist(k).type ) ;
+    fprintf( fid, '&%sControl\n', f15dat.controllist(k).type ) ;
+    for m = 1:length(f15dat.controllist(k).var)
+        val = f15dat.controllist(k).var(m).val;
+        if ~ischar(val); 
+           if islogical(val)
+              if val; val = 'T'; else; val = 'F'; end
+           else
+              val = num2str(val);
+           end
+           fprintf( fid, '%s = %s,\n',f15dat.controllist(k).var(m).name,val);
+        else
+           fprintf( fid, '%s = "%s",\n',f15dat.controllist(k).var(m).name,val);
         end
-        fprintf( fid, '/\n') ;
-        fprintf( fid, '! -- End %s Control Namelist -- \n', f15dat.controllist(k).type ) ;
     end
 end
 
