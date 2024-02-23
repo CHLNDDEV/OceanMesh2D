@@ -167,6 +167,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Unreleased (on current HEAD of the Projection branch)
 ## Added
+- Added ability to generate constrainsts for shorelines automatically using the new high-fidelity method. https://github.com/CHLNDDEV/OceanMesh2D/pull/264
 - auxiliary file reader function that can be used standalone e.g., m = m.read({'fort.13','fort.15'})), as well as called from within msh() function. https://github.com/CHLNDDEV/OceanMesh2D/pull/287
 - swanoutput namelist for SWAN model outputs. https://github.com/CHLNDDEV/OceanMesh2D/pull/287
 - Added new function in `msh` called `remesh_patch` to remesh within specified polygonal domains and insert back into parent mesh. https://github.com/CHLNDDEV/OceanMesh2D/pull/301
