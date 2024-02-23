@@ -1,4 +1,4 @@
-function [ s ] = xml2struct( file )
+function [ s ] = xml2struct2( file )
 %Convert xml file into a MATLAB structure
 % [ s ] = xml2struct( file )
 %

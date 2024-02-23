@@ -40,6 +40,7 @@ classdef meshgen
     %         enforceWeirs  % whether or not to enforce weirs in meshgen
     %         enforceMin    % whether or not to enfore minimum edgelength for all edgefxs
     % delaunay_elim_on_exit % whether or not to run delaunay_elim on exit of meshgen
+    % delaunay_elim_on_exit % whether or not to run delaunay_elim on exit of meshgen
     % improve_with_reduced_quality % whether or not to allow mesh improvements with decreases in mesh quality
     %      improve_boundary % run a gradient desc. to improve the boundary conformity
     %       high_fidelity   % flag to form pfix and egfix for this domain
@@ -82,6 +83,8 @@ classdef meshgen
         delaunay_elim_on_exit % whether or not to run delaunay_elim on exit of meshgen
         improve_with_reduced_quality % whether or not to allow mesh improvements with decreases in mesh quality
     end
+    
+    
     
     
     methods
@@ -143,22 +146,29 @@ classdef meshgen
             M_MAP_EXISTS=0;
             if exist('m_proj','file')==2
                 M_MAP_EXISTS=1 ;
+                M_MAP_EXISTS=1 ;
             end
             if M_MAP_EXISTS~=1
                 error('Where''s m_map? Chief, you need to read the user guide')
+                error('Where''s m_map? Chief, you need to read the user guide')
             end
+            
             
             % Check for utilties dir
             UTIL_DIR_EXISTS=0 ;
             if exist('inpoly.m','file')
                 UTIL_DIR_EXISTS=1;
+                UTIL_DIR_EXISTS=1;
             end
             if UTIL_DIR_EXISTS~=1
                 error('Where''s the utilities directory? Chief, you need to read the user guide')
+                error('Where''s the utilities directory? Chief, you need to read the user guide')
             end
+            
             
             p = inputParser;
             % unpack options and set default ones, catch errors.
+            
             
             defval = 0; % placeholder value if arg is not passed.
             % add name/value pairs
@@ -188,8 +198,10 @@ classdef meshgen
             addOptional(p,'delaunay_elim_on_exit',1);
             addOptional(p,'improve_with_reduced_quality',0);
             
+            
             % parse the inputs
             parse(p,varargin{:});
+            
             
             %if isempty(varargin); return; end
             % store the inputs as a struct
@@ -200,15 +212,15 @@ classdef meshgen
             % manner. Process the general opts first, then the OceanMesh
             % classes...then basic non-critical options.
             inp = orderfields(inp,{'h0','bbox','enforceWeirs','enforceMin',...
-                                   'delaunay_elim_on_exit','improve_with_reduced_quality',...
-                                   'fh',...
-                                   'inner','outer','mainland',...
-                                   'bou','ef',... %<--OceanMesh classes come after
-                                   'egfix','pfix','fixboxes',...
-                                   'plot_on','nscreen','itmax',...
-                                   'memory_gb','qual_tol','cleanup',...
-                                   'direc_smooth','dj_cutoff',...
-                                   'big_mesh','proj'});
+                'delaunay_elim_on_exit','improve_with_reduced_quality',...
+                'fh',...
+                'inner','outer','mainland',...
+                'bou','ef',... %<--OceanMesh classes come after
+                'egfix','pfix','fixboxes',...
+                'plot_on','nscreen','itmax',...
+                'memory_gb','qual_tol','cleanup',...
+                'direc_smooth','dj_cutoff',...
+                'big_mesh','proj'});
             % get the fieldnames of the edge functions
             fields = fieldnames(inp);
             % loop through and determine which args were passed.
@@ -241,6 +253,7 @@ classdef meshgen
                                 end
                             end
                         end
+                        
                         
                         % if user didn't pass anything explicitly for
                         % bounding box make it empty so it can be populated
@@ -285,11 +298,14 @@ classdef meshgen
                         % got it from user arg
                         if obj.outer~=0, continue; end
                         
+                        
                         obj.outer = {} ;
                         obj.inner = {} ;
                         obj.mainland = {} ;
                         
+                        
                         obj.bou = inp.(fields{i});
+                        
                         
                         % handle when not a cell
                         if ~iscell(obj.bou)
@@ -297,6 +313,7 @@ classdef meshgen
                             obj.bou = cell(1);
                             obj.bou{1} = boutemp;
                         end
+                        
                         
                         % then the geodata class was provide, unpack
                         for ee = 1:length(obj.bou)
@@ -310,12 +327,16 @@ classdef meshgen
                                 obj.outer{ee} = obj.bou{ee}.outer;
                                 obj.inner{ee} = obj.bou{ee}.inner;
                                 
+                                
                                 % save bathy interpolant to meshgen
                                 if ~isempty(obj.bou{ee}.Fb)
                                     obj.Fb{ee} = obj.bou{ee}.Fb ;
+                                    obj.Fb{ee} = obj.bou{ee}.Fb ;
                                 end
                                 
+                                
                                 if ~isempty(obj.inner{ee}) && ...
+                                        obj.inner{ee}(1)~= 0
                                         obj.inner{ee}(1)~= 0
                                     obj.outer{ee} = [obj.outer{ee};
                                         obj.inner{ee}];
@@ -326,12 +347,14 @@ classdef meshgen
                             end
                         end
                         
+                        
                     case('ef')
                         tmp = inp.(fields{i});
                         if isa(tmp, 'function_handle')
                             error('Please specify your edge function handle through the name/value pair fh');
                         end
                         obj.ef = tmp;
+                        
                         
                         % handle when not a cell
                         if ~iscell(obj.ef)
@@ -340,12 +363,15 @@ classdef meshgen
                             obj.ef{1} = eftemp;
                         end
                         
+                        
                         % Gather boxes from ef class.
                         for ee = 1 : length(obj.ef)
                             if isa(obj.ef{ee},'edgefx')
                                 obj.bbox{ee} = obj.ef{ee}.bbox;
                             end
                         end
+                        
+                        % checking bbox extents
                         
                         % checking bbox extents
                         if iscell(obj.bbox)
@@ -361,12 +387,14 @@ classdef meshgen
                             end
                         end
                         
+                        
                         % kjr 2018 June: get h0 from edge functions
                         for ee = 1:length(obj.ef)
                             if isa(obj.ef{ee},'edgefx')
                                 obj.h0(ee) = obj.ef{ee}.h0;
                             end
                         end
+                        
                         
                         % kjr 2018 smooth the outer automatically
                         if length(obj.ef) > 1
@@ -378,12 +406,14 @@ classdef meshgen
                             obj.ef = smooth_outer(obj.ef,obj.Fb);
                         end
                         
+                        
                         % Save the ef interpolants into the edgefx
                         for ee = 1:length(obj.ef)
                             if isa(obj.ef{ee},'edgefx')
                                 obj.fh{ee} = @(p)obj.ef{ee}.F(p);
                             end
                         end
+                        
                         
                     case('plot_on')
                         obj.plot_on= inp.(fields{i});
@@ -471,7 +501,9 @@ classdef meshgen
                 end
             end
             
+            
             if isempty(varargin); return; end
+            
             
             % error checking
             if isempty(obj.boubox) && ~isempty(obj.bbox)
@@ -483,6 +515,10 @@ classdef meshgen
                     obj.bbox(1,2) obj.bbox(2,2);
                     obj.bbox(1,2) obj.bbox(2,1); ...
                     obj.bbox(1,1) obj.bbox(2,1); NaN NaN];
+                    obj.bbox(1,1) obj.bbox(2,2); ...
+                    obj.bbox(1,2) obj.bbox(2,2);
+                    obj.bbox(1,2) obj.bbox(2,1); ...
+                    obj.bbox(1,1) obj.bbox(2,1); NaN NaN];
             end
             if any(obj.h0==0), error('h0 was not correctly specified!'), end
             if isempty(obj.outer), error('no outer boundary specified!'), end
@@ -490,6 +526,7 @@ classdef meshgen
             obj.fd = @dpoly;  % <-default distance fx accepts p and pv (outer polygon).
             % kjr build ANN object into meshgen
             obj = createANN(obj) ;
+            
             
             global MAP_PROJECTION MAP_COORDS MAP_VAR_LIST
             obj.grd.proj    = MAP_PROJECTION ;
@@ -615,6 +652,7 @@ classdef meshgen
             end
         end
         
+        
         function  obj = build(obj)
             % 2-D Mesh Generator using Distance Functions.
             % Checking existence of major inputs
@@ -654,6 +692,7 @@ classdef meshgen
                     % Lets estimate the num_points the distribution will be
                     num_points = ceil(2/sqrt(3)*prod(abs(diff(bbox_l)))...
                         /(h0_l/111e3)^2);
+                        /(h0_l/111e3)^2);
                     noblks = ceil(num_points*2*8/obj.memory_gb*1e-9);
                     len = abs(bbox_l(1,1)-bbox_l(2,1));
                     blklen = len/noblks;
@@ -667,6 +706,7 @@ classdef meshgen
                         ys = bbox_l(1,2);
                         ny = floor(1e3*m_lldist(repmat(0.5*(st+ed),2,1),...
                             [ys;bbox_l(2,2)])/h0_l);
+                            [ys;bbox_l(2,2)])/h0_l);
                         dy = diff(bbox_l(:,2))/ny;
                         ns = 1;
                         % start at lower left and make grid going up to
@@ -677,8 +717,12 @@ classdef meshgen
                                     [ys;ys])/(2/sqrt(3)*h0_l)) + ...
                                     floor(1e3*m_lldist([0;ed],...
                                     [ys;ys])/(2/sqrt(3)*h0_l));
+                                    [ys;ys])/(2/sqrt(3)*h0_l)) + ...
+                                    floor(1e3*m_lldist([0;ed],...
+                                    [ys;ys])/(2/sqrt(3)*h0_l));
                             else
                                 nx = floor(1e3*m_lldist([st;ed],...
+                                    [ys;ys])/(2/sqrt(3)*h0_l));
                                     [ys;ys])/(2/sqrt(3)*h0_l));
                             end
                             ne = ns+nx-1;
@@ -703,6 +747,7 @@ classdef meshgen
                         st = ed;
                         ed = st + blklen;
                         p1 = [x(:) y(:)]; clear x y
+                        
                         
                         %% 2. Remove points outside the region, apply the rejection method
                         p1 = p1(feval(obj.fd,p1,obj,box_num) < geps,:);     % Keep only d<0 points
@@ -748,7 +793,7 @@ classdef meshgen
             while 1
                 tic
                 if ~mod(it,obj.nscreen) && delIT == 0
-                    disp(['Iteration =' num2str(it)]) ;
+                    disp(['Iteration = ' num2str(it)]) ;
                 end
                 % 3. Retriangulation by the Delaunay algorithm
                 if max(sqrt(sum((p(1:size(pold,1),:)-pold).^2,2))/h0_l*111e3) > ttol         % Any large movement?
@@ -760,6 +805,8 @@ classdef meshgen
                     N = size(p,1); pold = p;                               % Save current positions
                     [t,p] = delaunay_elim(p,obj.fd,geps,0);                % Delaunay with elimination
                     if isempty(t)
+                        disp('Exiting')
+                        return
                         disp('Exiting')
                         return
                     end
@@ -775,14 +822,20 @@ classdef meshgen
                     % If mesh quality went down "significantly" since last iteration
                     % ..or..
                     % If not allowing improvements with reduction in quality
+                    % ..or..
+                    % If not allowing improvements with reduction in quality
                     % then if the number of points significantly decreased
                     % due to a mesh improvement iteration, then rewind.
                     if ~mod(it,imp+1) && ((obj.qual(it,1) - obj.qual(it-1,1) < -0.10)  || ...
                             (~obj.improve_with_reduced_quality && ...
                             (N - length(p_before_improve))/length(p_before_improve) < -0.10))
+                            (~obj.improve_with_reduced_quality && ...
+                            (N - length(p_before_improve))/length(p_before_improve) < -0.10))
                         disp('Mesh improvement was unsuccessful...rewinding...');
                         p = p_before_improve;
+                        p = p_before_improve;
                         N = size(p,1);                                     % Number of points changed
+                        pold = inf;
                         pold = inf;
                         it = it + 1;
                         continue
@@ -799,6 +852,7 @@ classdef meshgen
                         title(['Iteration = ',num2str(it)]);
                         if negfix > 0
                             m_plot(reshape(obj.pfix(obj.egfix,1),[],2)',...
+                                reshape(obj.pfix(obj.egfix,2),[],2)','r-')
                                 reshape(obj.pfix(obj.egfix,2),[],2)','r-')
                         end
                         if nfix > 0
@@ -860,6 +914,7 @@ classdef meshgen
                     m_xy2ll(ideal_bars(:,1),ideal_bars(:,2));              % coordinates
                 hbars = 0*ideal_bars(:,1);
                 
+                
                 for box_num = 1:length(obj.h0)                             % For each bbox, find the bars that are in and calculate
                     if ~iscell(obj.fh)                                     % their ideal lengths.
                         fh_l = obj.fh;
@@ -877,8 +932,10 @@ classdef meshgen
                     hbars(inside) = feval(fh_l,ideal_bars(inside,:));      % Ideal lengths
                 end
                 
+                
                 L0 = hbars*Fscale*median(L)/median(hbars);                 % L0 = Desired lengths using ratio of medians scale factor
                 LN = L./L0;                                                % LN = Normalized bar lengths
+                
                 
                 % Mesh improvements (deleting and addition)
                 p_before_improve = p;
@@ -886,9 +943,11 @@ classdef meshgen
                     nn = []; pst = [];
                     if abs(qual_diff) < imp*obj.qual_tol && ...
                             (obj.improve_with_reduced_quality || qual_diff > 0)
+                            (obj.improve_with_reduced_quality || qual_diff > 0)
                         % Remove elements with small connectivity
                         nn = get_small_connectivity(p,t);
                         disp(['Deleting ' num2str(length(nn)) ' due to small connectivity'])
+                        
                         
                         % Remove points that are too close (< LN = 0.5)
                         if any(LN < 0.5)
@@ -897,6 +956,7 @@ classdef meshgen
                             disp(['Deleting ' num2str(length(nn1)) ' points too close together'])
                             nn = unique([nn; nn1]);
                         end
+                        
                         
                         % Split long edges however many times to
                         % better lead to LN of 1
@@ -931,9 +991,11 @@ classdef meshgen
                     end
                 end
                 
+                
                 F    = (1-LN.^4).*exp(-LN.^4)./LN;                         % Bessens-Heckbert edge force
                 F(isinf(F)) = 0; 
                 Fvec = F*[1,1].*barvec;
+                
                 
                 Ftot = full(sparse(bars(:,[1,1,2,2]),ones(size(F))*[1,2,1,2],[Fvec,-Fvec],N,2));
                 Ftot(1:nfix,:) = 0;                                        % Force = 0 at fixed points
@@ -944,7 +1006,9 @@ classdef meshgen
                 %end
                 pt = pt + deltat*Ftot;                                     % Update node positions
                 
+                
                 [p(:,1),p(:,2)] = m_xy2ll(pt(:,1),pt(:,2));
+                
                 
                 %7. Bring outside points back to the boundary
                 d = feval(obj.fd,p,obj,[],1); ix = d > 0;                  % Find points outside (d>0)
@@ -965,8 +1029,10 @@ classdef meshgen
                     alpha = alpha / 0.5;
                 end
                 
+                
                 % 8. Termination criterion: Exceed itmax
                 it = it + 1 ;
+                
                 
                 if ( it > obj.itmax )
                     % Do the final deletion of small connectivity
@@ -984,6 +1050,7 @@ classdef meshgen
             disp('Finished iterating...');
             fprintf(1,' ------------------------------------------------------->\n') ;
             
+            
             %% Doing the final cleaning and fixing to the mesh...
             % Always save the mesh!
             save('Precleaned_grid.mat','it','p','t');
@@ -995,7 +1062,10 @@ classdef meshgen
                 [obj.grd,qout] = clean(obj.grd,obj.cleanup,...
                     'nscreen',obj.nscreen,'djc',obj.dj_cutoff,...
                     'pfix',obj.pfix);
+                    'nscreen',obj.nscreen,'djc',obj.dj_cutoff,...
+                    'pfix',obj.pfix);
                 obj.grd.pfix = obj.pfix ;
+                obj.grd.egfix= obj.egfix ;
                 obj.grd.egfix= obj.egfix ;
                 obj.qual(end+1,:) = qout;
             else
@@ -1009,9 +1079,11 @@ classdef meshgen
                 obj.grd.egfix= obj.egfix ;
             end
             
+            
             % Check element order, important for the global meshes crossing
             % -180/180 boundary
             obj.grd = CheckElementOrder(obj.grd);
+            
             
             if obj.plot_on
                 figure; plot(obj.qual,'linewi',2);
@@ -1029,6 +1101,7 @@ classdef meshgen
             %%%%%%%%%%%%%%%%%%%%%%%%%%
             % Auxiliary subfunctions %
             %%%%%%%%%%%%%%%%%%%%%%%%%%
+            
             
             function [t,p] = delaunay_elim(p,fd,geps,final)
                 % Removing mean to reduce the magnitude of the points to
@@ -1063,6 +1136,7 @@ classdef meshgen
                 end
             end
             
+            
             function nn = get_small_connectivity(p,t)
                 % Get node connectivity (look for 4)
                 [~, enum] = VertToEle(t);
@@ -1078,5 +1152,6 @@ classdef meshgen
         
         
     end % end methods
+    
     
 end % end class

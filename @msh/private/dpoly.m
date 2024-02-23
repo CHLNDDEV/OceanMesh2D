@@ -61,7 +61,7 @@ for box_num = box_vec
     if sum(inside)~=0
         in    = inpoly(p(inside,:),outer,edges);
     else
-        in    = d_l*0; 
+        in    = d_l*0;
     end
     
     % d is negative if inside polygon and vice versa.
@@ -72,7 +72,7 @@ for box_num = box_vec
     end
     
     if sum(inside)==0; return; end;
-        
+    
     % IF OUTSIDE BUT APPEARS INSIDE
     bad = find((p(inside,1) < bbox(1,1) | p(inside,1) > bbox(1,2) | ...
         p(inside,2) < bbox(2,1) | p(inside,2) > bbox(2,2)) & d_l < 0);

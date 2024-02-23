@@ -1,7 +1,7 @@
-function [vert,conn,tria,tnum] = smooth2(varargin)
-%SMOOTH2 "hill-climbing" mesh-smoothing for two-dimensional,
+function [vert,conn,tria,tnum] = smooth2d(varargin)
+%SMOOTH2D "hill-climbing" mesh-smoothing for two-dimensional,
 %2-simplex triangulations.
-%   [VERT,EDGE,TRIA,TNUM] = SMOOTH2(VERT,EDGE,TRIA,TNUM) re-
+%   [VERT,EDGE,TRIA,TNUM] = SMOOTH2D(VERT,EDGE,TRIA,TNUM) re-
 %   turns a "smoothed" triangulation {VERT,TRIA}, incorpora-
 %   ting "optimised" vertex coordinates and mesh topology.
 %
@@ -15,7 +15,7 @@ function [vert,conn,tria,tnum] = smooth2(varargin)
 %   array of part indexing, such that TNUM(II) is the index 
 %   of the part in which the II-TH triangle resides.
 %
-%   [VERT,EDGE,TRIA,TNUM] = SMOOTH2(... ,OPTS) passes an ad-
+%   [VERT,EDGE,TRIA,TNUM] = SMOOTH2D(... ,OPTS) passes an ad-
 %   ditional options structure OPTS, containing user-defined 
 %   parameters, including:
 %
@@ -80,7 +80,7 @@ function [vert,conn,tria,tnum] = smooth2(varargin)
          ~isnumeric(tria) || ...
          ~isnumeric(tnum) || ...
          ~isstruct (opts) )
-        error('smooth2:incorrectInputClass' , ...
+        error('smooth2d:incorrectInputClass' , ...
             'Incorrect input class.') ;
     end
     
@@ -89,7 +89,7 @@ function [vert,conn,tria,tnum] = smooth2(varargin)
         ndims(conn) ~= +2 || ...
         ndims(tria) ~= +2 || ...
         ndims(tnum) ~= +2 )
-        error('smooth2:incorrectDimensions' , ...
+        error('smooth2d:incorrectDimensions' , ...
             'Incorrect input dimensions.');
     end
     
@@ -98,7 +98,7 @@ function [vert,conn,tria,tnum] = smooth2(varargin)
         size(tria,2)~= +3 || ...
         size(tnum,2)~= +1 || ...
         size(tria,1)~= size(tnum,1) )
-        error('smooth2:incorrectDimensions' , ...
+        error('smooth2d:incorrectDimensions' , ...
             'Incorrect input dimensions.');
     end
 
@@ -107,13 +107,13 @@ function [vert,conn,tria,tnum] = smooth2(varargin)
 %---------------------------------------------- basic checks
     if (min(min(conn(:,1:2))) < +1 || ...
             max(max(conn(:,1:2))) > nvrt )
-        error('smooth2:invalidInputs', ...
+        error('smooth2d:invalidInputs', ...
             'Invalid EDGE input array.') ;
     end
     
     if (min(min(tria(:,1:3))) < +1 || ...
             max(max(tria(:,1:3))) > nvrt )
-        error('smooth2:invalidInputs', ...
+        error('smooth2d:invalidInputs', ...
             'Invalid TRIA input array.') ;
     end
 
@@ -569,21 +569,21 @@ function [hvrt] = evalhfn(vert,edge,EMAT,hfun,harg)
 end
 
 function [opts] = makeopt(opts)
-%MAKEOPT setup the options structure for SMOOTH2.
+%MAKEOPT setup the options structure for SMOOTH2D.
     
     if (~isfield(opts,'iter'))
         opts.iter = +32;
     else
     if (~isnumeric(opts.iter))
-        error('smooth2:incorrectInputClass', ...
+        error('smooth2d:incorrectInputClass', ...
             'Incorrect input class.');
     end
     if (numel(opts.iter)~= +1)
-        error('smooth2:incorrectDimensions', ...
+        error('smooth2d:incorrectDimensions', ...
             'Incorrect input dimensions.') ;    
     end
     if (opts.iter <= +0)
-        error('smooth2:invalidOptionValues', ...
+        error('smooth2d:invalidOptionValues', ...
             'Invalid OPT.ITER selection.') ;
     end
     end
@@ -592,15 +592,15 @@ function [opts] = makeopt(opts)
         opts.disp = + 4;
     else
     if (~isnumeric(opts.disp))
-        error('smooth2:incorrectInputClass', ...
+        error('smooth2d:incorrectInputClass', ...
             'Incorrect input class.');
     end
     if (numel(opts.disp)~= +1)
-        error('smooth2:incorrectDimensions', ...
+        error('smooth2d:incorrectDimensions', ...
             'Incorrect input dimensions.') ;    
     end
     if (opts.disp <= +0)
-        error('smooth2:invalidOptionValues', ...
+        error('smooth2d:invalidOptionValues', ...
             'Invalid OPT.DISP selection.') ;
     end
     end
@@ -609,15 +609,15 @@ function [opts] = makeopt(opts)
         opts.vtol = +1.0E-02;
     else
     if (~isnumeric(opts.vtol))
-        error('smooth2:incorrectInputClass', ...
+        error('smooth2d:incorrectInputClass', ...
             'Incorrect input class.');
     end
     if (numel(opts.vtol)~= +1)
-        error('smooth2:incorrectDimensions', ...
+        error('smooth2d:incorrectDimensions', ...
             'Incorrect input dimensions.') ;    
     end
     if (opts.vtol <= 0.)
-        error('smooth2:invalidOptionValues', ...
+        error('smooth2d:invalidOptionValues', ...
             'Invalid OPT.VTOL selection.') ;
     end
     end

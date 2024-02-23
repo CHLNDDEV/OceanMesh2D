@@ -1,7 +1,7 @@
-function h=fastscatter(X,Y,C,varargin)
+function h=fastscatter2(X,Y,C,varargin)
 %% A fast scatter plot 
 %  
-% h=fastscatter(X,Y,C [,markertype,property-value pairs])
+% h=fastscatter2(X,Y,C [,markertype,property-value pairs])
 %
 % Inputs: 
 %    X,Y: coordinates 
@@ -10,10 +10,10 @@ function h=fastscatter(X,Y,C,varargin)
 %
 % Examples:
 %    N=100000;  
-%    fastscatter(randn(N,1),randn(N,1),randn(N,1))
+%    fastscatter2(randn(N,1),randn(N,1),randn(N,1))
 %  
 %    N=100;  
-%    fastscatter(randn(N,1),randn(N,1),randn(N,1),'+','markersize',7)
+%    fastscatter2(randn(N,1),randn(N,1),randn(N,1),'+','markersize',7)
 % 
 %
 % Aslak Grinsted 2014

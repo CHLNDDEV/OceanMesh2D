@@ -18,9 +18,9 @@ fprintf(fid1, '%d \n', f5354dat.nfreq ) ;
 nfreq = f5354dat.nfreq ;
 for i = 1: nfreq
     fprintf( fid, '%16.9e %f %f %s \n', f5354dat.freqinfo(i).val, ...
-                                    f5354dat.freqinfo(i).name ) ;
+        f5354dat.freqinfo(i).name ) ;
     fprintf( fid1, '%16.9e %f %f %s \n', f5354dat.freqinfo(i).val, ...
-                                    f5354dat.freqinfo(i).name ) ;
+        f5354dat.freqinfo(i).name ) ;
 end
 
 % Number of nodes/stations
@@ -30,8 +30,8 @@ fprintf(fid1,'%d \n', nstae) ;
 
 % write out each node/stations
 for i = 1: nstae
-    fprintf(fid,'%d \n', f5354dat.nodes(i)) ;  
-    fprintf(fid1,'%d \n', f5354dat.nodes(i)) ;  
+    fprintf(fid,'%d \n', f5354dat.nodes(i)) ;
+    fprintf(fid1,'%d \n', f5354dat.nodes(i)) ;
     
     val = f5354dat.ele(:,:,i) ;
     fprintf(fid,'  %f %f \n', val' ) ;

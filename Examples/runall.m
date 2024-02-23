@@ -1,0 +1,16 @@
+% run all examples
+
+Example_1_NZ
+Example_2_NY
+Example_3_ECGC
+% Example_4_PRVI
+Example_5_JBAY
+Example_5b_JBAY_w_weirs
+Example_6_GBAY
+Example_6b_GBAY_w_floodplain
+Example_7_Global
+Example_8_AK
+Example_9_TBAY
+Example_10_Multiscale_Smoother
+Example_11_Remeshing_Patches
+Example_12_Riverine_flow

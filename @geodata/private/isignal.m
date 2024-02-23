@@ -2,48 +2,48 @@ function [pY,PowerSpectrum,maxy,miny,area,stdev]=isignal(datamatrix,xcenter,xran
 % Y=isignal(DataMatrix,xcenter,xrange,SmoothMode,SmoothWidth,ends,...
 % DerivativeMode,Sharpen,Sharp1,Sharp2,SlewRate,MedianWidth,SpectrumMode)
 % An interactive function that performs smoothing, differentiation, and
-% peak sharpening of a time-series signal in the form of a 2-column 
+% peak sharpening of a time-series signal in the form of a 2-column
 % matrix with the independent variable (x-vfixedparametersalues) in the first
 % column and dependent variable (y values) in the second column, or as
 % separate x and y vectors. Returns the processed independent axis (Y)
 % vector as the output argument. The lower half of the figure window shows
 % a plot of the entire signal, and the upper half shows a selected portion
-% controlled by the pan and zoom keystrokes or by optional input  
+% controlled by the pan and zoom keystrokes or by optional input
 % arguments 'xcenter' and 'xrange', respeSctively. Other keystrokes
 % also allow you to control the smooth type, width, and ends
-% treatment, the derivative order (0th through 5th), and peak 
-% sharpening. (Alternatively, the initial values of these parameters 
-% can be passed to the function via the optional input arguments.) 
+% treatment, the derivative order (0th through 5th), and peak
+% sharpening. (Alternatively, the initial values of these parameters
+% can be passed to the function via the optional input arguments.)
 %
 % Version 5.71  Adds Shift-L to replace signal with processed version
 % Shift-V for Fourier convolution/Deconvolution function menu
-% 
-% By T. C. O'Haver (toh@umd.edu); Savitzky-Golay smooth code by Diederick.  
+%
+% By T. C. O'Haver (toh@umd.edu); Savitzky-Golay smooth code by Diederick.
 % See http://terpconnect.umd.edu/~toh/spectrum/iSignal.html
 % The S key (or optional argument "sm") determines the smooth mode:
 %     If sm=0, the signal is not smoothed.
-%     If sm=1, rectangular (sliding-average or boxcar) 
+%     If sm=1, rectangular (sliding-average or boxcar)
 %     If sm=2, triangular (2 passes of sliding-average)
 %     If sm=3, pseudo-Gaussian (3 passes of sliding-average)
-%     If sm=4, Savitzky-Golay smooth 
+%     If sm=4, Savitzky-Golay smooth
 % The A and Z keys (or optional argument sw) control the smooth width.
-% The Z key (or argument "em") controls how the "ends" of the signal 
+% The Z key (or argument "em") controls how the "ends" of the signal
 %   (the first w/2 points and the last w/2 points) are handled.
 %     If ends=0, the ends are zeroed
-%     If ends=1, the ends are smoothed with progressively 
+%     If ends=1, the ends are smoothed with progressively
 %     smaller smooths the closer to the end.
 % See http://terpconnect.umd.edu/~toh/spectrum/Smoothing.html
 %
-% The D key (or optional input argument "dm") determines the derivative 
+% The D key (or optional input argument "dm") determines the derivative
 %   order (O, 1, 2, 3, 4, 5, and back to 0). See
 %   http://terpconnect.umd.edu/~toh/spectrum/Differentiation.html
 %
-% The E key (or optional argument "rm") turns off and on peak 
+% The E key (or optional argument "rm") turns off and on peak
 %  sharpening (resolution enhancement). The sharpening strength is
-%  controled by the F and V keys (optional argument "s1") and B and G 
-%  keys (optional argument "s2"). The optimum values depend on the 
+%  controled by the F and V keys (optional argument "s1") and B and G
+%  keys (optional argument "s2"). The optimum values depend on the
 %  peak shape and width; For details, see
-%  http://terpconnect.umd.edu/~toh/spectrum/InteractiveResEnhance.htm). 
+%  http://terpconnect.umd.edu/~toh/spectrum/InteractiveResEnhance.htm).
 %
 % Shift-S key toggles on and off Frequency Spectrum mode, which computes
 %  frequency spectrum of the segment of the signal displayed in the upper
@@ -53,7 +53,7 @@ function [pY,PowerSpectrum,maxy,miny,area,stdev]=isignal(datamatrix,xcenter,xran
 %  Shift-A to cycle through four plot modes (linear, semilog X, semilog Y,
 %  or log-log) and press Shift-X to toggle between a frequency on the x axis
 %  and time on the x-axis. Press Shift-S again to return to the normal mode.
-%  Shift-Z toggles on and off peak detection and labeling on the 
+%  Shift-Z toggles on and off peak detection and labeling on the
 %  frequency/time spectrum. Adjust peak detection in lines 2196-2199; see
 %  http://terpconnect.umd.edu/~toh/spectrum/PeakFindingandMeasurement.htm
 %
@@ -64,16 +64,16 @@ function [pY,PowerSpectrum,maxy,miny,area,stdev]=isignal(datamatrix,xcenter,xran
 % The 'R' key prints out the peak measures in the command window.
 % The L key toggles off and on the Overlay mode, which overlays the
 %  selected portion in the upper plot with the original signal as a dotted
-%  line, for comparison. 
+%  line, for comparison.
 % The H key switches between linear and log y-axis on the lower plot. The 0
 %  (zero) key set minimun signal to zero.
 % The ; key (semicolon) sets the entire selected region to zero (use to
-%  remove stray data points). 
-% The Tab key resets smooth, derivative, and sharpen effects to zero. 
+%  remove stray data points).
+% The Tab key resets smooth, derivative, and sharpen effects to zero.
 % The O (letter O) key saves the X,Y processed signal as a "mat" file, in a
-%  location and with a file name that you specify. 
+%  location and with a file name that you specify.
 % The C key condenses the signal by the specified factor N, replacing each
-%  group of N points with their average; 
+%  group of N points with their average;
 % The I key replaces the signal with a linearily interploated version
 %  containing N data points.
 % The M key implements a median filter for removing spikes. The ~ key
@@ -85,21 +85,21 @@ function [pY,PowerSpectrum,maxy,miny,area,stdev]=isignal(datamatrix,xcenter,xran
 % EXAMPLE 1: Data in two columns of a matrix: [x y].
 %             >> load data.mat
 %             >> isignal(DataMatrix);
-% 
+%
 % EXAMPLE 2: Data in separate x,y vectors or single y vector
 %             >> isignal(x,y);  or
-%             >> isignal(y);  
+%             >> isignal(y);
 %
-% EXAMPLE 3: As above, but specifies initial values of pan (xcenter) and 
-%            zoom (xrange) in the last two input arguments. 
+% EXAMPLE 3: As above, but specifies initial values of pan (xcenter) and
+%            zoom (xrange) in the last two input arguments.
 %             >> isignal(DataMatrix,180,40); or
 %             >> isignal(x,y,180,40);
 %
-% EXAMPLE 4: As above, but additionally specifies initial values of 
-%            SmoothMode, SmoothWidth, ends, and DerivativeMode. 
+% EXAMPLE 4: As above, but additionally specifies initial values of
+%            SmoothMode, SmoothWidth, ends, and DerivativeMode.
 %             >> isignal(DataMatrix,180,40,2,9,0,1);
-% 
-% EXAMPLE 5: As above, but additionally specifies initial values of the  
+%
+% EXAMPLE 5: As above, but additionally specifies initial values of the
 %            peak sharpening parameters Sharpen, Sharp1, and Sharp2.
 %             >> isignal(DataMatrix,180,40,4,19,0,0,1,51,6000);
 %                (Press 'E' key to toggle sharpening ON/OFF)
@@ -111,14 +111,14 @@ function [pY,PowerSpectrum,maxy,miny,area,stdev]=isignal(datamatrix,xcenter,xran
 %              >> isignal(Data,0.3,0.5,4,3,1,0,1,220,5400);
 %                 (Press 'E' key to toggle sharpening ON/OFF)
 %
-% EXAMPLE 7: Measurement of peak area.  This example generates four 
-% Gaussian peaks, all with the exact same peak height (1.00) and area 
-% (1.77). The first peak (at x=4) is isolated, the second peak (x=9) 
-% is slightly overlapped with the third one, and the last two peaks 
-% (at x= 13 and 15) are strongly overlapped.  To measure the area under 
+% EXAMPLE 7: Measurement of peak area.  This example generates four
+% Gaussian peaks, all with the exact same peak height (1.00) and area
+% (1.77). The first peak (at x=4) is isolated, the second peak (x=9)
+% is slightly overlapped with the third one, and the last two peaks
+% (at x= 13 and 15) are strongly overlapped.  To measure the area under
 % a peak using the perpendicular drop method, position the dotted red
-% marker lines at the minimum between the overlapped peaks.  
-% 
+% marker lines at the minimum between the overlapped peaks.
+%
 % >> x=[0:.01:20];y=exp(-(x-4).^2)+exp(-(x-9).^2)+exp(-(x-13).^2)+exp(-(x-15).^2);
 % >> isignal(x,y);
 %
@@ -128,12 +128,12 @@ function [pY,PowerSpectrum,maxy,miny,area,stdev]=isignal(datamatrix,xcenter,xran
 % >> y=exp(-(x).^2);for n=1:1000,if randn()>2,y(n)=rand()+y(n);,end,end;
 % >> isignal(x,y);
 %
-% Example 9: Weak peak at x=128 on a smooth, curved background. 
+% Example 9: Weak peak at x=128 on a smooth, curved background.
 % Try second derivative + smoothing
 % >> x=1:.1:256;
 % >> y=gaussian(x,-100,300)+.02.*gaussian(x,128,30)+0.001.*randn(size(x));
 % >> isignal(x,y);
-%  
+%
 % Example 10: Spectrum mode
 % >> x=0:.1:60; y=sin(x)+sin(10.*x);
 % >> [pY,PowerSpectrum]=isignal([x;y],30,30,4,3,1,0,0,1,0,0,0,1);
@@ -147,12 +147,12 @@ function [pY,PowerSpectrum,maxy,miny,area,stdev]=isignal(datamatrix,xcenter,xran
 %  Pan signal left and right...Coarse pan: < and >
 %                              Fine pan: left and right cursor arrows
 %                              Nudge: [ and ]
-%  Zoom in and out.............Coarse zoom: / and "  
+%  Zoom in and out.............Coarse zoom: / and "
 %                              Fine zoom: up and down cursor arrows
 %  Resets pan and zoom.........ESC
 %  Select entire signal........Ctrl-A
 %  Display Grid (on/off).......Shift-G  Temporarily displays grid on plots
-%  Adjust smooth width.........A,Z  (A=>more, Z=>less) 
+%  Adjust smooth width.........A,Z  (A=>more, Z=>less)
 %  Adjust smooth type..........S (No, Rectanglular, Triangle, Gaussian, Savitzky-Golay)
 %  Toggle smooth ends..........X (0=ends zeroed  1=ends smoothed (slower)
 %  Cycle derivative orders.....D/Shift-D Increase/Decrease derivative order
@@ -180,7 +180,7 @@ function [pY,PowerSpectrum,maxy,miny,area,stdev]=isignal(datamatrix,xcenter,xran
 %  Baseline subtraction........Backspace, then click baseline at multiple points
 %  Restore background..........\  to cancel previous background subtraction
 %  Invert signal...............Shift-N  Invert (negate) the signal (flip + and -)
-%  Remove offset...............0  (zero) set minimun signal to zero 
+%  Remove offset...............0  (zero) set minimun signal to zero
 %  Sets region to zero.........;  sets selected region to zero.
 %  Absolute value..............+  Computes absolute value of entire signal')
 %  Condense signal.............C  Condense oversampled signal by factor N
@@ -195,17 +195,17 @@ function [pY,PowerSpectrum,maxy,miny,area,stdev]=isignal(datamatrix,xcenter,xran
 %  Switch to iPeak.............Shift-Ctrl-P transfer current signal to iPeak.m
 
 % Copyright (c) 2016, Thomas C. O'Haver
-% 
+%
 % Permission is hereby granted, free of charge, to any person obtaining a copy
 % of this software and associated documentation files (the "Software"), to deal
 % in the Software without restriction, including without limitation the rights
 % to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 % copies of the Software, and to permit persons to whom the Software is
 % furnished to do so, subject to the following conditions:
-% 
+%
 % The above copyright notice and this permission notice shall be included in
 % all copies or substantial portions of the Software.
-% 
+%
 % THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 % IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 % FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -213,7 +213,7 @@ function [pY,PowerSpectrum,maxy,miny,area,stdev]=isignal(datamatrix,xcenter,xran
 % LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 % OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 % THE SOFTWARE.
-% 
+%
 global X Y xo dx DerivativeMode Sharpen Sharp1 Sharp2 SmoothWidth SlewRate MedianWidth
 global SmoothType ends SmoothMode SavedSignal SavedXvalues PeakLabels Report autozero
 global plotmode xmode SpectrumMode samplerate LabelPeaks NumSigs DataMatrix
@@ -227,7 +227,7 @@ switch nargin % Process arguments
     case 1  % One argument only
         % Might be isignal(DataMatrix) ot isignal(Y-vector)
         % If data is in the wrong transposition, fix it.
-        datasize=size(DataMatrix);  
+        datasize=size(DataMatrix);
         if datasize(1)<datasize(2),DataMatrix=DataMatrix';end
         datasize=size(DataMatrix);
         if datasize(2)==1, %  Must be isignal(Y-vector)
@@ -250,7 +250,7 @@ switch nargin % Process arguments
         MedianWidth=0;
         xo=length(Y)/2; % Initial Pan setting
         dx=length(Y); % Initial Zoom setting
-        SpectrumMode=0; % Frequency spectrum initially off. 
+        SpectrumMode=0; % Frequency spectrum initially off.
     case 2
         % Two arguments, might be separate x and y data vectors,
         % or one data matrix and a peak density estimate.
@@ -283,7 +283,7 @@ switch nargin % Process arguments
         SlewRate=0;
         MedianWidth=0;
         dx=length(Y); %  % Default initial zoom setting
-        SpectrumMode=0; % Frequency spectrum initially off. 
+        SpectrumMode=0; % Frequency spectrum initially off.
     case 3
         % Might be isignal(DataMatrix,xcenter,xrange) or isignal(x,y,xcenter)
         if isscalar(xcenter) % if second argument is scalar
@@ -315,7 +315,7 @@ switch nargin % Process arguments
         Sharp2=1000; % factor2 for resolution enhancement
         SlewRate=0;
         MedianWidth=0;
-        SpectrumMode=0; % Frequency spectrum initially off. 
+        SpectrumMode=0; % Frequency spectrum initially off.
     case 4   % Must be isignal(x,y,xcenter,xrange)
         xdatasize=size(DataMatrix);
         if xdatasize(1)<xdatasize(2),DataMatrix=DataMatrix';end
@@ -334,7 +334,7 @@ switch nargin % Process arguments
         SlewRate=0;
         MedianWidth=0;
         [xo,dx]=panandzoom(X,xrange,sm);
-        SpectrumMode=0; % Frequency spectrum initially off. 
+        SpectrumMode=0; % Frequency spectrum initially off.
     case 7
         % One data matrix, all smoothing and derivative parameters specified
         % in arguments, default values for resolution enhancement.
@@ -353,7 +353,7 @@ switch nargin % Process arguments
         Sharp2=1000; % factor2 for resolution enhancement
         SlewRate=0;
         MedianWidth=0;
-        SpectrumMode=0; % Frequency spectrum initially off. 
+        SpectrumMode=0; % Frequency spectrum initially off.
     case 10
         % One data matrix, all signal processing parameters specified
         % in arguments, including  resolution enhancement.
@@ -372,7 +372,7 @@ switch nargin % Process arguments
         Sharp2=s2; % factor2 for resolution enhancement
         SlewRate=0;
         MedianWidth=0;
-        SpectrumMode=0; % Frequency spectrum initially off. 
+        SpectrumMode=0; % Frequency spectrum initially off.
     case 11
         % One data matrix, all signal processing parameters specified
         % in arguments, except MedianWidth.
@@ -391,7 +391,7 @@ switch nargin % Process arguments
         Sharp2=s2; % factor2 for resolution enhancement
         SlewRate=sr;
         MedianWidth=0;
-        SpectrumMode=0; % Frequency spectrum initially off. 
+        SpectrumMode=0; % Frequency spectrum initially off.
     case 12
         % One data matrix, all signal processing parameters specified
         % in arguments, except SpectrumMode.
@@ -410,8 +410,8 @@ switch nargin % Process arguments
         Sharp2=s2; % factor2 for resolution enhancement
         SlewRate=sr;
         MedianWidth=mw;
-        SpectrumMode=0; % Frequency spectrum initially off. 
-     case 13
+        SpectrumMode=0; % Frequency spectrum initially off.
+    case 13
         % One data matrix, all signal processing parameters specified
         % in arguments, except SpectrumMode.
         % If DataMatrix is in the wrong transposition, fix it.
@@ -445,19 +445,19 @@ switch nargin % Process arguments
 end % switch nargin
 % Define smooth type string for xlabel
 switch SmoothMode
-     case 0
-          SmoothType='No';
-     case 1
-          SmoothType='Rect.';
-     case 2
-          SmoothType='Tri.';
-     case 3
-          SmoothType='Gauss';
-     case 4
-           SmoothType='Savitzky-Golay';
+    case 0
+        SmoothType='No';
+    case 1
+        SmoothType='Rect.';
+    case 2
+        SmoothType='Tri.';
+    case 3
+        SmoothType='Gauss';
+    case 4
+        SmoothType='Savitzky-Golay';
 end
 PeakLabels=0;  % Start with peak label turned off
-% Save original signal in SavedSignal for undo function 
+% Save original signal in SavedSignal for undo function
 SavedSignal=Y;
 SavedXvalues=X;
 Overlay=0;  % Start with overlay turned off
@@ -476,7 +476,7 @@ NumTrials=1;
 [xx,yy]=RedrawSignal(X,Y,xo,dx);
 pY=ProcessSignal(X,SavedSignal,DerivativeMode,SmoothWidth,SmoothMode,ends,Sharpen,Sharp1,Sharp2,SlewRate,MedianWidth);
 Y=pY;
-% xo=length(Y)/2; % Initial Pan setting           
+% xo=length(Y)/2; % Initial Pan setting
 % dx=length(Y); % Initial Zoom setting
 [xx,yy]=RedrawSignal(X,Y,xo,dx);
 maxy=max(yy);
@@ -485,7 +485,7 @@ area=trapz(xx,yy);
 stdev=std(yy);
 if SpectrumMode==1;
     % Plot the power spectrum  in the lower half of the window.
-     [f realsy PowerSpectrum]=PlotFrequencySpectrum(X,Y,xo,dx,plotmode,xmode,LabelPeaks);
+    [f realsy PowerSpectrum]=PlotFrequencySpectrum(X,Y,xo,dx,plotmode,xmode,LabelPeaks);
     subplot(2,1,1)
     title('iSignal 5   Frequency Spectrum Mode (Press Shift-S again to cancel')
 end
@@ -563,41 +563,41 @@ if isscalar(key),
             if dx<2,dx=2;end
             [xx,yy]=RedrawSignal(X,Y,xo,dx);
         case 1 % Ctrl-A selects entire signal
-            xo=length(Y)/2; % Initial Pan setting           
+            xo=length(Y)/2; % Initial Pan setting
             dx=length(Y); % Initial Zoom setting
             [xx,yy]=RedrawSignal(X,Y,xo,dx);
         case 71 % Shift-G temporatiy displays grid on both upper and lower panels
             subplot(211);grid
             subplot(212);grid
-%         case {49,50,51,52,53,54,55,56,57}
-%             % When a number key is pressed, sets the signal
-%             % number
-%             % NumSigs=NumSigs; % Testing
-%             AllMode=0;
-%             SS=key-48;
-%             if SS>NumSigs,
-%                 disp('The signal matrix is not that large.')
-%                 SS=NumSigs;
-%             end
-%             datasize=size(DataMatrix);
-%             % if SS>sizey(2),SS=sizey(2);end
-%             % SignalSelected=[SS NumSigs]
-%             %             sizeX=size(X)
-%             %             sizeY=size(Y)
-%             switch SmoothMode(SS)
-%                 case 0
-%                     SmoothType='No';
-%                 case 1
-%                     SmoothType='Rect.';
-%                 case 2
-%                     SmoothType='Tri.';
-%                 case 3
-%                     SmoothType='Gauss';
-%                 case 4
-%                     SmoothType='Savitzky-Golay';
-%             end
-%             Y=ProcessSignal(X,DataMatrix(:,SS),DerivativeMode(SS),SmoothWidth(SS),SmoothMode(SS),ends(SS),Sharpen(SS),Sharp1(SS),Sharp2(SS),SlewRate(SS),MedianWidth(SS));
-%             [xx,yy]=RedrawSignal(X,Y,xo,dx);
+            %         case {49,50,51,52,53,54,55,56,57}
+            %             % When a number key is pressed, sets the signal
+            %             % number
+            %             % NumSigs=NumSigs; % Testing
+            %             AllMode=0;
+            %             SS=key-48;
+            %             if SS>NumSigs,
+            %                 disp('The signal matrix is not that large.')
+            %                 SS=NumSigs;
+            %             end
+            %             datasize=size(DataMatrix);
+            %             % if SS>sizey(2),SS=sizey(2);end
+            %             % SignalSelected=[SS NumSigs]
+            %             %             sizeX=size(X)
+            %             %             sizeY=size(Y)
+            %             switch SmoothMode(SS)
+            %                 case 0
+            %                     SmoothType='No';
+            %                 case 1
+            %                     SmoothType='Rect.';
+            %                 case 2
+            %                     SmoothType='Tri.';
+            %                 case 3
+            %                     SmoothType='Gauss';
+            %                 case 4
+            %                     SmoothType='Savitzky-Golay';
+            %             end
+            %             Y=ProcessSignal(X,DataMatrix(:,SS),DerivativeMode(SS),SmoothWidth(SS),SmoothMode(SS),ends(SS),Sharpen(SS),Sharp1(SS),Sharp2(SS),SlewRate(SS),MedianWidth(SS));
+            %             [xx,yy]=RedrawSignal(X,Y,xo,dx);
         case 41  % When Shift-0 ')' key is pressed, asks for the signal number
             SS=input('Enter desired signal number and press Enter:');
             if isempty(SS),SS=1;end
@@ -634,8 +634,8 @@ if isscalar(key),
             disp(['SlewRate = ' num2str(SlewRate) ] )
             disp(['Peak Shape = ' num2str(Shape) ] )
             disp(['NumPeaks = ' num2str(NumPeaksUW) ] )
-            disp(['NumTrials = ' num2str(NumTrials) ] )  
-            disp(['Baseline mode = ' num2str(autozero) ] )  
+            disp(['NumTrials = ' num2str(NumTrials) ] )
+            disp(['Baseline mode = ' num2str(autozero) ] )
         case 77 % Shift-M key applies current processing variable to all signals
             for sig=1:NumSigs
                 DerivativeMode(sig)=DerivativeMode(SS);
@@ -650,7 +650,7 @@ if isscalar(key),
                 DataMatrix(:,sig)=Y;
             end
             disp('Current signal processing applied to all signals')
-            [xx,yy]=RedrawSignal(X,Y,xo,dx);   
+            [xx,yy]=RedrawSignal(X,Y,xo,dx);
         case 8
             % When 'Backspace' key is pressed, user clicks the graph
             % along the presumed background points, then the program
@@ -891,7 +891,7 @@ if isscalar(key),
                 if endpoint>length(Y);endpoint=length(Y);end
                 Y(startpoint:endpoint)=0;
             end
-             [xx,yy]=RedrawSignal(X,Y,xo,dx);
+            [xx,yy]=RedrawSignal(X,Y,xo,dx);
         case 48
             % When '0' key is pressed, minimum value of Y is set to zero
             Y=Y-min(Y);
@@ -931,25 +931,25 @@ if isscalar(key),
             Y(round(xo))=0;
             SavedSignal=Y;
             [xx,yy]=RedrawSignal(X,Y,xo,dx);
-%       case 95  % FUTURE ADDITION?
-%             % When '_' key (Shift '-') is pressed, replaces selected region
-%             startpoint=round(xo-dx/2);
-%             if startpoint<1;startpoint=1;end
-%             endpoint=round(xo+dx/2)-1;
-%             if endpoint>length(Y);endpoint=length(Y);end
-%             lxx=length(xx);
-%             bkgsize=2;
-%             X1=xx(1:round(lxx/bkgsize));
-%             X2=xx((lxx-round(lxx/bkgsize)):lxx);
-%             MX=[X1;X2];
-%             Y1=yy(1:round(length(xx)/bkgsize));
-%             Y2=yy((lxx-round(lxx/bkgsize)):lxx);
-%             MY=[Y1;Y2];
-%             bkgcoef=polyfit(MX,MY,1);  % Fit straight line to sub-group of points
-%             bkg=polyval(bkgcoef,xx);
-%             Y(startpoint:endpoint)=bkg;
-%             Y=ProcessSignal(X,Y,DerivativeMode,SmoothWidth,SmoothMode,ends,Sharpen,Sharp1,Sharp2,SlewRate,MedianWidth);
-%             [xx,yy]=RedrawSignal(X,Y,xo,dx);
+            %       case 95  % FUTURE ADDITION?
+            %             % When '_' key (Shift '-') is pressed, replaces selected region
+            %             startpoint=round(xo-dx/2);
+            %             if startpoint<1;startpoint=1;end
+            %             endpoint=round(xo+dx/2)-1;
+            %             if endpoint>length(Y);endpoint=length(Y);end
+            %             lxx=length(xx);
+            %             bkgsize=2;
+            %             X1=xx(1:round(lxx/bkgsize));
+            %             X2=xx((lxx-round(lxx/bkgsize)):lxx);
+            %             MX=[X1;X2];
+            %             Y1=yy(1:round(length(xx)/bkgsize));
+            %             Y2=yy((lxx-round(lxx/bkgsize)):lxx);
+            %             MY=[Y1;Y2];
+            %             bkgcoef=polyfit(MX,MY,1);  % Fit straight line to sub-group of points
+            %             bkg=polyval(bkgcoef,xx);
+            %             Y(startpoint:endpoint)=bkg;
+            %             Y=ProcessSignal(X,Y,DerivativeMode,SmoothWidth,SmoothMode,ends,Sharpen,Sharp1,Sharp2,SlewRate,MedianWidth);
+            %             [xx,yy]=RedrawSignal(X,Y,xo,dx);
         case 73
             % When 'I' key (upper-case i or Shift-i) is pressed, integrates the signal
             sum=0;
@@ -1009,16 +1009,16 @@ if isscalar(key),
             disp([ num2str(length(Y)) ' total points from x= ' num2str(X(1)) ' to '  num2str(X(length(X))) ] )
             disp(['Interval between points = ' num2str(X(2)-X(1)) ' to ' num2str(X(length(X))-X(length(X)-1)) ] )
             disp(sprintf('min/max Y = %0.3g / %0.4g', min(Y), max(Y)))
-                switch autozero,
-                    case 0
-                        disp('No baseline correction')
-                    case 1
-                        disp('Linear baseline subtraction')
-                    case 2
-                        disp('Quadratic subtraction baseline')
-                    case 3
-                        disp('Flat baseline correction')
-                end
+            switch autozero,
+                case 0
+                    disp('No baseline correction')
+                case 1
+                    disp('Linear baseline subtraction')
+                case 2
+                    disp('Quadratic subtraction baseline')
+                case 3
+                    disp('Flat baseline correction')
+            end
             if SlewRate,
                 disp(['Maximum slew rate = ' num2str(SlewRate) ] ),
             end
@@ -1062,7 +1062,7 @@ if isscalar(key),
             disp(' Toggle peak parabola........P  fits parabola to center, labels vertex')
             disp(' Fit polynomial to segment...Shift-o  Asks for polynomial order')
             disp(' Fits peak in upper window...Shift-F (Asks for shape, number of peaks, etc)')
-            disp(' Spectrum mode on/off........Shift-S (Shift-A and Shift-X to change axes)')            
+            disp(' Spectrum mode on/off........Shift-S (Shift-A and Shift-X to change axes)')
             disp(' Peak labels on spectrum.....Shift-Z in spectrum mode ')
             disp(' Click graph to print x,y....Shift-C  Click graph to print coordinates')
             disp(' Display Waterfall spectrum..Shift-W  Allows choice of mesh, surf, contour, or pcolor')
@@ -1097,7 +1097,7 @@ if isscalar(key),
             lastpoint=xo-dx/2;
             if lastpoint<1,lastpoint=1;end
             disp(['isignal(DataMatrix,'  num2str(X(round(xo))) ',' num2str(X(round(firstpoint))-X(round(lastpoint)))  ',' num2str(SmoothMode)  ',' num2str(SmoothWidth) ',' num2str(ends) ',' num2str(DerivativeMode)  ',' num2str(Sharpen)  ',' num2str(Sharp1)  ',' num2str(Sharp2)  ',' num2str(SlewRate) ',' num2str(MedianWidth)  ',' num2str(SpectrumMode) ');' ] )
-            disp(['peakfit(DataMatrix,'  num2str(X(round(xo))) ',' num2str(X(round(firstpoint))-X(round(lastpoint))) ')' ] )        
+            disp(['peakfit(DataMatrix,'  num2str(X(round(xo))) ',' num2str(X(round(firstpoint))-X(round(lastpoint))) ')' ] )
         case 111
             % When 'o' key is pressed, processed signal X,Y matrix is saved as in
             % mat file as the variable 'Output"
@@ -1105,8 +1105,8 @@ if isscalar(key),
             uisave('Output');
             if SpectrumMode==1;
                 [f realsy PowerSpectrum]=PlotFrequencySpectrum(X,Y,xo,dx,plotmode,xmode,LabelPeaks);
-               uisave('PowerSpectrum');
-            end 
+                uisave('PowerSpectrum');
+            end
         case 70
             % When 'Shift-F' is pressed, applies peakfit function only to
             %  peaks in the upper window.
@@ -1118,15 +1118,15 @@ if isscalar(key),
             if (Endx-Startx)<2, PlotRange=xo:xo+2;end
             xx=X(PlotRange);
             yy=Y(PlotRange);
-
-%             if Shape==11||12,
-%                 fixedstart=[];
-%                 for pk=1:NumPeaks,
-%                     fixedstart(pk)=start(2*pk-1);
-%                 end
-%                 peakfit([xx;yy],0,0,NumPeaks,shapesvector,extra,1,start,AUTOZERO,FIXEDPARAMETERS,1,BIPOLAR,MINWIDTH,delta);
-%             end
-%             [FitResults,MeanFitError]=FitAndPlot(xx,yy,NumPeaks,Shape,delta,start,extra);
+            
+            %             if Shape==11||12,
+            %                 fixedstart=[];
+            %                 for pk=1:NumPeaks,
+            %                     fixedstart(pk)=start(2*pk-1);
+            %                 end
+            %                 peakfit([xx;yy],0,0,NumPeaks,shapesvector,extra,1,start,AUTOZERO,FIXEDPARAMETERS,1,BIPOLAR,MINWIDTH,delta);
+            %             end
+            %             [FitResults,MeanFitError]=FitAndPlot(xx,yy,NumPeaks,Shape,delta,start,extra);
             disp('Gaussians: y=exp(-((x-pos)./(0.6005615.*width)) .^2)')
             disp('  Gaussians with independent positions and widths...................1 (default)')
             disp('  Exponentially-broadened Gaussian (equal time constants)...........5 ')
@@ -1161,7 +1161,7 @@ if isscalar(key),
             disp('Triangular.........................................................21')
             disp(' ')
             disp(['Select the peak shape of the model from the table above (type 1-37 and press Enter key):'])
-            disp(['Current shape number is ' num2str(Shape) '. Press Enter to keep.' ]) 
+            disp(['Current shape number is ' num2str(Shape) '. Press Enter to keep.' ])
             Shapeinput=input('Peak shape number (1-37): ');
             if isempty(Shapeinput),
             else
@@ -1187,7 +1187,7 @@ if isscalar(key),
                     end
                 case 5
                     ShapeString='ExpGaussian';
-                    disp(['Current shape number is ' num2str(extra) '. Press Enter to keep.' ]) 
+                    disp(['Current shape number is ' num2str(extra) '. Press Enter to keep.' ])
                     inputextra=input('Exponentional factor: ');
                     if isempty(inputextra),
                     else
@@ -1199,7 +1199,7 @@ if isscalar(key),
                     ShapeString='Equal-width Lorentzian';
                 case 8
                     ShapeString='Equal-width ExpGauss.';
-                    disp(['Current shape number is ' num2str(extra) '. Press Enter to keep.' ]) 
+                    disp(['Current shape number is ' num2str(extra) '. Press Enter to keep.' ])
                     inputextra=input('Exponentional factor: ');
                     if isempty(inputextra),
                     else
@@ -1340,14 +1340,14 @@ if isscalar(key),
                 otherwise
                     ShapeString='';
             end % switch Shape''
-                disp(' ')
-                disp(['Current number of peaks is ' num2str(NumPeaksUW) '. Press Enter to keep.' ])
-                inputNumPeaks=input('Number of peaks: ');
-                if isempty(inputNumPeaks),
-                else
-                    NumPeaksUW=inputNumPeaks;
-                end
-
+            disp(' ')
+            disp(['Current number of peaks is ' num2str(NumPeaksUW) '. Press Enter to keep.' ])
+            inputNumPeaks=input('Number of peaks: ');
+            if isempty(inputNumPeaks),
+            else
+                NumPeaksUW=inputNumPeaks;
+            end
+            
             disp(' ')
             disp(['Current number of trials is ' num2str(NumTrials) '. Press Enter to keep.' ])
             inputNumTrials=input('Number of Trial fits: ');
@@ -1393,17 +1393,17 @@ if isscalar(key),
             figure(1)
             [xx,yy]=RedrawSignal(X,Y,xo,dx);
         case 83 % If Shift-S is pressed, plots frequency spectrum in the lower window
-            if SpectrumMode==1, 
+            if SpectrumMode==1,
                 SpectrumMode=0;
                 [xx,yy]=RedrawSignal(X,Y,xo,dx);
             else
                 SpectrumMode=1;
                 % Plot the power spectrum  in the lower half of
                 % the window.
-                 [f,realsy,PowerSpectrum]=PlotFrequencySpectrum(X,Y,xo,dx,plotmode,xmode,LabelPeaks);
+                [f,realsy,PowerSpectrum]=PlotFrequencySpectrum(X,Y,xo,dx,plotmode,xmode,LabelPeaks);
                 subplot(2,1,1)
                 title('iSignal 5   Frequency Spectrum Mode (Press Shift-S again to cancel')
-            end  
+            end
         case 84 % If Shift-T is pressed, transfers spectrum to signal in upper window
             if SpectrumMode==1,
                 [f,realsy,PowerSpectrum]=PlotFrequencySpectrum(X,Y,xo,dx,plotmode,xmode,LabelPeaks);
@@ -1418,16 +1418,16 @@ if isscalar(key),
             
             disp('Signal replaced with its power spectrum. Press Tab to cancel.')
         case 90 % If Shift-Z is pressed, prints frequency spectrum peaks in the lower window
-             if LabelPeaks==1, 
-                 LabelPeaks=0;
-                 [xx,yy]=RedrawSignal(X,Y,xo,dx);
-             else
+            if LabelPeaks==1,
+                LabelPeaks=0;
+                [xx,yy]=RedrawSignal(X,Y,xo,dx);
+            else
                 LabelPeaks=1;
                 % Plot the power spectrum  in the lower half of
                 % the window.
                 [f,realsy,PowerSpectrum]=PlotFrequencySpectrum(X,Y,xo,dx,plotmode,xmode,LabelPeaks);
-             end  
-        case 87 % Shift-W computes 3D matrix 
+            end
+        case 87 % Shift-W computes 3D matrix
             n=input('Number of segments: ');
             disp('Type of 3D display:');
             disp('1 mesh');
@@ -1454,25 +1454,25 @@ if isscalar(key),
                 case 5
                     waterfall(M');
                 otherwise
-                   waterfall(M');
+                    waterfall(M');
             end
         case 67  % Shift-C Click on plot points
-                [clickX,clickY] = ginput(1);
-                f=CompFrequencySpectrum(X,Y,xo,dx,0,xmode);
-                disp('          x        y')
-                disp([clickX,clickY])
+            [clickX,clickY] = ginput(1);
+            f=CompFrequencySpectrum(X,Y,xo,dx,0,xmode);
+            disp('          x        y')
+            disp([clickX,clickY])
         case 65 % If Shift-A is pressed, changes plot mode for Spectrum
             plotmode=plotmode+1;
             if plotmode==5;plotmode=1;end
-             [f realsy PowerSpectrum]=PlotFrequencySpectrum(X,Y,xo,dx,plotmode,xmode,LabelPeaks);
+            [f realsy PowerSpectrum]=PlotFrequencySpectrum(X,Y,xo,dx,plotmode,xmode,LabelPeaks);
             subplot(2,1,1)
             title('iSignal 5   Frequency Spectrum Mode (Press Shift-S again to cancel')
-         case 88 % If Shift-X is pressed,changes xmode for Spectrum
+        case 88 % If Shift-X is pressed,changes xmode for Spectrum
             xmode=xmode+1;
             if xmode==2;xmode=0;end
-             [f realsy PowerSpectrum]=PlotFrequencySpectrum(X,Y,xo,dx,plotmode,xmode,LabelPeaks);
+            [f realsy PowerSpectrum]=PlotFrequencySpectrum(X,Y,xo,dx,plotmode,xmode,LabelPeaks);
             subplot(2,1,1)
-           title('iSignal 5   Frequency Spectrum Mode (Press Shift-S again to cancel')
+            title('iSignal 5   Frequency Spectrum Mode (Press Shift-S again to cancel')
         case {80,32}  % Shift-P or Space bar; Play signal as sound through computer sound system
             sound(yy./max(yy),samplerate)
             figure(1)
@@ -1555,26 +1555,26 @@ if isscalar(key),
 end % if  isscalar(key),
 % ----------------------------------------------------------------------
 function [xo,dx]=panandzoom(X,xcenter,xrange)
- xo=val2ind(X,xcenter);
- hirange=val2ind(X,xcenter+xrange);
- lorange=val2ind(X,xcenter-xrange);
- dx=(hirange-lorange)./2;
- if xcenter<min(X),
-      disp(['Lowest X value is ' num2str(min(X)) ]),
-      xcenter=min(X)+xrange;
- end
- if xcenter>max(X),
-       disp(['Highest X value is ' num2str(max(X)) ]),
-       xcenter=max(X)-xrange;
-  end
-% ----------------------------------------------------------------------    
+xo=val2ind(X,xcenter);
+hirange=val2ind(X,xcenter+xrange);
+lorange=val2ind(X,xcenter-xrange);
+dx=(hirange-lorange)./2;
+if xcenter<min(X),
+    disp(['Lowest X value is ' num2str(min(X)) ]),
+    xcenter=min(X)+xrange;
+end
+if xcenter>max(X),
+    disp(['Highest X value is ' num2str(max(X)) ]),
+    xcenter=max(X)-xrange;
+end
+% ----------------------------------------------------------------------
 function [xx,yy]=RedrawSignal(x,y,xo,dx)
 % Plots the entire signal (x,y) in the lower half of the plot window and an
 % isolated segment (xx,yy) in the upper half, controlled by Pan and Zoom
 % keys.
 global X SmoothType SmoothWidth Sharpen Sharp1 Sharp2 ends SpectrumMode LabelPeaks
 global DerivativeMode PeakLabels Overlay Report autozero MedianWidth xmode
-global SavedSignal GaussEstimate LorentzEstimate logymode SlewRate plotmode 
+global SavedSignal GaussEstimate LorentzEstimate logymode SlewRate plotmode
 Startx=round(xo-(dx/2));
 Endx=abs(round(xo+(dx/2)-1));
 if Endx>length(y),Endx=length(y);end
@@ -1582,7 +1582,7 @@ if Startx<1,Startx=1;end
 PlotRange=Startx:Endx;
 if (Endx-Startx)<2, PlotRange=xo:xo+2;end
 xx=x(PlotRange);
-yy=y(PlotRange); 
+yy=y(PlotRange);
 datasize=size(yy);if datasize(1)>datasize(2),yy=yy';end
 datasize=size(xx);if datasize(1)>datasize(2),xx=xx';end
 % Remove local baseline from data segment
@@ -1590,7 +1590,7 @@ bkgsize=round(length(xx)/10);
 if bkgsize<2,bkgsize=2;end
 lxx=length(xx);
 bkgcoef=0;
-if autozero==1, % linear autozero operation  
+if autozero==1, % linear autozero operation
     XX1=xx(1:round(lxx/bkgsize));
     XX2=xx((lxx-round(lxx/bkgsize)):lxx);
     Y1=yy(1:(round(length(xx)/bkgsize)));
@@ -1599,7 +1599,7 @@ if autozero==1, % linear autozero operation
     bkg=polyval(bkgcoef,xx);
     yy=yy-bkg;
 end % if
-if autozero==2, % Quadratic autozero operation  
+if autozero==2, % Quadratic autozero operation
     XX1=xx(1:round(lxx/bkgsize));
     XX2=xx((lxx-round(lxx/bkgsize)):lxx);
     Y1=yy(1:round(length(xx)/bkgsize));
@@ -1614,23 +1614,23 @@ clf
 subplot(2,1,1);
 if Overlay,
     hold on
-    plot(xx,SavedSignal(PlotRange),'b:'); 
+    plot(xx,SavedSignal(PlotRange),'b:');
 end % Overlay
 plot(xx,yy,'b')
-    switch autozero,
-        case 0
-            title('iSignal 5. No baseline correction.  Press K for keyboard commands')
-        case 1
-            title('iSignal 5. Linear baseline subtraction.  Press K for keyboard commands')
-        case 2
-            title('iSignal 5. Quadratic subtraction baseline.  Press K for keyboard commands')
-        case 3
-            title('iSignal 5. Flat baseline correction.  Press K for keyboard commands')
-    end
+switch autozero,
+    case 0
+        title('iSignal 5. No baseline correction.  Press K for keyboard commands')
+    case 1
+        title('iSignal 5. Linear baseline subtraction.  Press K for keyboard commands')
+    case 2
+        title('iSignal 5. Quadratic subtraction baseline.  Press K for keyboard commands')
+    case 3
+        title('iSignal 5. Flat baseline correction.  Press K for keyboard commands')
+end
 lyy=min(yy);
 uyy=max(yy)+(max(yy)-min(yy))/10;
 if lyy<uyy;
-   axis([x(Startx) x(Endx) lyy uyy ]);
+    axis([x(Startx) x(Endx) lyy uyy ]);
 end
 center=x(round(xo));
 hold on;plot([center center],[lyy uyy],'g-')
@@ -1736,7 +1736,7 @@ else
         pos9=.9*yrange;
         text(hpos,topaxis(4)-pos1,[' Position=' num2str(PeakX)])
         text(hpos,topaxis(4)-pos2,[' Height=' num2str(PeakY)])
-        text(hpos,topaxis(4)-pos3,[' Gaussian Width=' num2str(MeasuredWidth)]) 
+        text(hpos,topaxis(4)-pos3,[' Gaussian Width=' num2str(MeasuredWidth)])
         text(hpos,topaxis(4)-pos5,[' Gaussian area=' num2str(1.0645*PeakY*MeasuredWidth) ])
         area=trapz(xx,yy); % Compute the area of displayed segment
         text(hpos,topaxis(4)-pos6,[' Displayed area=' num2str(area) ])
@@ -1746,13 +1746,13 @@ else
         try
             FWHM=halfwidth(xx,yy);
             text(hpos,topaxis(4)-pos4,[' FWHM=' num2str(FWHM)])
-        catch  
+        catch
         end
         if Report,
-        try
-            FWHM=halfwidth(xx,yy);
-        catch  
-        end
+            try
+                FWHM=halfwidth(xx,yy);
+            catch
+            end
             % disp([PeakX PeakY MeasuredWidth 1.0645*PeakY*MeasuredWidth area SNR  FWHM]);
             disp(sprintf('%0.5g       %0.5g       %0.5g       %0.5g       %0.5g       %0.3g       %0.5g',PeakX, PeakY, MeasuredWidth, 1.0645*PeakY*MeasuredWidth, area, SNR, FWHM));
             Report=0;
@@ -1812,12 +1812,12 @@ if type==4,
     if w<2,w=3;end
     if DerivativeMode>4,
         if w<5,w=5;end
-    end 
+    end
     % The polynomial order, 2+DerivativeMode, must be less than the
-    % frame size, 2*w+1, and 2*w+1 must be odd.  
-        Processed=savitzkyGolayFilt(y,2+DerivativeMode,DerivativeMode,2*w+1);
-        if DerivativeMode==1,Processed=-Processed;end
-        if DerivativeMode==3,Processed=-Processed;end;
+    % frame size, 2*w+1, and 2*w+1 must be odd.
+    Processed=savitzkyGolayFilt(y,2+DerivativeMode,DerivativeMode,2*w+1);
+    if DerivativeMode==1,Processed=-Processed;end
+    if DerivativeMode==3,Processed=-Processed;end;
 else
     switch DerivativeMode
         case 0
@@ -1845,7 +1845,7 @@ else
     end
 end
 if Sharpen,
-    type=4; 
+    type=4;
     if w<3;w=3;end
     Processed=enhance(x,Processed,factor1,factor2,w,type);
 end
@@ -1859,10 +1859,10 @@ Processed=reshape(Processed,size(X));
 function Enhancedsignal=enhance(x,signal,factor1,factor2,SmoothWidth,type)
 % Resolution enhancement function by even derivative method. The
 % arguments factor1 and factor 2 are 2nd and 4th derivative weighting
-% factors. Larger values of factor1 and factor2 will reduce the 
-% peak width but will cause artifacts in the baseline near 
-% the peak.  Adjust the factors for the the best compromise. 
-% Use minimum smooth width needed to reduce excess noise. 
+% factors. Larger values of factor1 and factor2 will reduce the
+% peak width but will cause artifacts in the baseline near
+% the peak.  Adjust the factors for the the best compromise.
+% Use minimum smooth width needed to reduce excess noise.
 datasize=size(signal);
 if datasize(1)>datasize(2),signal=signal';end
 if type==4,
@@ -1882,8 +1882,8 @@ function d=secderiv(x,a)
 n=length(a);
 d=zeros(size(a));
 for j = 2:n-2;
-  x1=x(j-1);x2=x(j);x3=x(j+1);
-  d(j)=((a(j+1)-a(j))./(x3-x2) - (a(j)-a(j-1))./(x2-x1))./((x3-x1)/2);
+    x1=x(j-1);x2=x(j);x3=x(j+1);
+    d(j)=((a(j+1)-a(j))./(x3-x2) - (a(j)-a(j-1))./(x2-x1))./((x3-x1)/2);
 end
 d(1)=d(2);
 d(n)=d(n-1);
@@ -1896,22 +1896,22 @@ d=zeros(size(y));
 d(1)=(y(2)-y(1))./(x(2)-x(1));
 d(n)=(y(n)-y(n-1))./(x(n)-x(n-1));
 for j = 2:n-1;
-  d(j)=(y(j+1)-y(j-1)) ./ (1.*(x(j+1)-x(j-1)));
+    d(j)=(y(j+1)-y(j-1)) ./ (1.*(x(j+1)-x(j-1)));
 end
 % ----------------------------------------------------------------------
 function SmoothY=fastsmooth(Y,w,type,ends)
-% fastbsmooth(Y,w,type,ends) smooths vector Y with smooth 
+% fastbsmooth(Y,w,type,ends) smooths vector Y with smooth
 %  of width w. Version 2.0, May 2008.
 % The argument "type" determines the smooth type:
-%   If type=1, rectangular (sliding-average or boxcar) 
+%   If type=1, rectangular (sliding-average or boxcar)
 %   If type=2, triangular (2 passes of sliding-average)
 %   If type=3, pseudo-Gaussian (3 passes of sliding-average)
-% The argument "ends" controls how the "ends" of the signal 
+% The argument "ends" controls how the "ends" of the signal
 % (the first w/2 points and the last w/2 points) are handled.
-%   If ends=0, the ends are zero.  (In this mode the elapsed 
+%   If ends=0, the ends are zero.  (In this mode the elapsed
 %     time is independent of the smooth width). The fastest.
-%   If ends=1, the ends are smoothed with progressively 
-%     smaller smooths the closer to the end. (In this mode the  
+%   If ends=1, the ends are smoothed with progressively
+%     smaller smooths the closer to the end. (In this mode the
 %     elapsed time increases with increasing smooth widths).
 % fastsmooth(Y,w,type) smooths with ends=0.
 % fastsmooth(Y,w) smooths with type=1 and ends=0.
@@ -1921,18 +1921,18 @@ function SmoothY=fastsmooth(Y,w,type,ends)
 %  T. C. O'Haver, May, 2008.
 if nargin==2, ends=0; type=1; end
 if nargin==3, ends=0; end
-  switch type
+switch type
     case 0
-       SmoothY=sa(Y,w,ends);  
+        SmoothY=sa(Y,w,ends);
     case 1
-       SmoothY=sa(Y,w,ends);
-    case 2   
-       SmoothY=sa(sa(Y,w,ends),w,ends);
+        SmoothY=sa(Y,w,ends);
+    case 2
+        SmoothY=sa(sa(Y,w,ends),w,ends);
     case 3
-       SmoothY=sa(sa(sa(Y,w,ends),w,ends),w,ends);
+        SmoothY=sa(sa(sa(Y,w,ends),w,ends),w,ends);
     case 4
-       SmoothY=sa(sa(sa(sa(Y,w,ends),w,ends),w,ends),w,ends);
-  end
+        SmoothY=sa(sa(sa(sa(Y,w,ends),w,ends),w,ends),w,ends);
+end
 function SmoothY=sa(Y,smoothwidth,ends)
 w=round(smoothwidth);
 SumPoints=sum(Y(1:w));
@@ -1940,32 +1940,32 @@ s=zeros(size(Y));
 halfw=round(w/2);
 L=length(Y);
 for k=1:L-w,
-   s(k+halfw-1)=SumPoints;
-   SumPoints=SumPoints-Y(k);
-   SumPoints=SumPoints+Y(k+w);
+    s(k+halfw-1)=SumPoints;
+    SumPoints=SumPoints-Y(k);
+    SumPoints=SumPoints+Y(k+w);
 end
 s(k+halfw)=sum(Y(L-w+1:L));
 SmoothY=s./w;
 % Taper the ends of the signal if ends=1.
-  if ends==1,
+if ends==1,
     startpoint=(smoothwidth + 1)/2;
     SmoothY(1)=(Y(1)+Y(2))./2;
     for k=2:startpoint,
-       SmoothY(k)=mean(Y(1:(2*k-1)));
-       SmoothY(L-k+1)=mean(Y(L-2*k+2:L));
+        SmoothY(k)=mean(Y(1:(2*k-1)));
+        SmoothY(L-k+1)=mean(Y(L-2*k+2:L));
     end
     SmoothY(L)=(Y(L)+Y(L-1))./2;
-  end
+end
 % ----------------------------------------------------------------------
 function sy=condense(y,n)
 % Condense y by a factor of n, where n is a non-zero positive integer.
-% Produces a shorter, approximate version of vector y, with each group 
-% of n adjacent points in y replaced by its average. Use for reducing the 
-% length and processing time of over-sampled signals or for preliminary 
-% and exploratory analysis of very large signals to locate the interesting 
-% bits, which can then be selected out of the full-length signal for 
-% more precise analysis. For x,y data sets, use this function on both 
-% independent variable x AND dependent variable y so that the features 
+% Produces a shorter, approximate version of vector y, with each group
+% of n adjacent points in y replaced by its average. Use for reducing the
+% length and processing time of over-sampled signals or for preliminary
+% and exploratory analysis of very large signals to locate the interesting
+% bits, which can then be selected out of the full-length signal for
+% more precise analysis. For x,y data sets, use this function on both
+% independent variable x AND dependent variable y so that the features
 % of y will appear at the same x values.
 % Example: condense([1 2 3 4 5 6 7 8 9 10 11 12],3) yields [2 5 8 11]
 % condense([.9 1.1 .9 1 .9 1.1 .9 1 .9 1.1 .9 1],3) = [0.9667 1 0.9333 1]
@@ -1988,7 +1988,7 @@ g = exp(-((x-pos)./(0.60056120439323.*wid)) .^2);
 % ----------------------------------------------------------------------
 function y=savitzkyGolayFilt(x,N,DN,F,W,DIM)
 %savitzkyGolayFilt Savitzky-Golay Filtering.
-%   savitzkyGolayFilt(X,N,DN,F) filters the signal X using a Savitzky-Golay 
+%   savitzkyGolayFilt(X,N,DN,F) filters the signal X using a Savitzky-Golay
 %   (polynomial) filter.  The polynomial order, N, must be less than the
 %   frame size, F, and F must be odd.  DN specifies the differentiation
 %   order (DN=0 is smoothing). For a DN higher than zero, you'll have to
@@ -2028,13 +2028,13 @@ if N > F-1, error(generatemsgid('InvalidRange'),'The Polynomial order must be le
 if DN > N, error(generatemsgid('InvalidRange'),'The Differentiation order must be less than or equal to the Polynomial order.'), end
 
 if nargin < 5 || isempty(W)
-   % No weighting matrix, make W an identity
-   W = ones(F,1);
+    % No weighting matrix, make W an identity
+    W = ones(F,1);
 else
-   % Check for right length of W
-   if length(W) ~= F, error(generatemsgid('InvalidDimensions'),'The weight vector must be of the same length as the frame length.'),end
-   % Check to see if all elements are positive
-   if min(W) <= 0, error(generatemsgid('InvalidRange'),'All the elements of the weight vector must be greater than zero.'), end
+    % Check for right length of W
+    if length(W) ~= F, error(generatemsgid('InvalidDimensions'),'The weight vector must be of the same length as the frame length.'),end
+    % Check to see if all elements are positive
+    if min(W) <= 0, error(generatemsgid('InvalidRange'),'All the elements of the weight vector must be greater than zero.'), end
 end
 
 if nargin < 6, DIM = []; end
@@ -2044,18 +2044,18 @@ pp = fix(-F./2):fix(F./2);
 B = savitzkyGolay(pp,N,DN,pp,W);
 
 if ~isempty(DIM) && DIM > ndims(x)
-	error(generatemsgid('InvalidDimensions'),'Dimension specified exceeds the dimensions of X.')
+    error(generatemsgid('InvalidDimensions'),'Dimension specified exceeds the dimensions of X.')
 end
 
 % Reshape X into the right dimension.
 if isempty(DIM)
-	% Work along the first non-singleton dimension
-	[x, nshifts] = shiftdim(x);
+    % Work along the first non-singleton dimension
+    [x, nshifts] = shiftdim(x);
 else
-	% Put DIM in the first dimension (this matches the order 
-	% that the built-in filter function uses)
-	perm = [DIM,1:DIM-1,DIM+1:ndims(x)];
-	x = permute(x,perm);
+    % Put DIM in the first dimension (this matches the order
+    % that the built-in filter function uses)
+    perm = [DIM,1:DIM-1,DIM+1:ndims(x)];
+    x = permute(x,perm);
 end
 
 if size(x,1) < F, error(generatemsgid('InvalidDimensions'),'The length of the input must be >= frame length.'), end
@@ -2077,9 +2077,9 @@ y(end-(F+1)/2+2:end,:) = fliplr(B(:,1:(F-1)/2)).'*flipud(x(end-(F-1):end,:));
 
 % Convert Y to the original shape of X
 if isempty(DIM)
-	y = shiftdim(y, -nshifts);
+    y = shiftdim(y, -nshifts);
 else
-	y = ipermute(y,perm);
+    y = ipermute(y,perm);
 end
 % ----------------------------------------------------------------------
 function [fc, df] = savitzkyGolay(x,n,dn,x0,W,flag)
@@ -2089,7 +2089,7 @@ function [fc, df] = savitzkyGolay(x,n,dn,x0,W,flag)
 %       The Savitzky-Golay smoothing/differentiation filter (i.e., the
 %       polynomial smoothing/differentiation filter, or  the least-squares
 %       smoothing/differentiation filters) optimally fit a set of data
-%       points to polynomials of different degrees. 
+%       points to polynomials of different degrees.
 %       See for details in Matlab Documents (help sgolay). The sgolay
 %       function in Matlab can deal with only symmetrical and uniformly
 %       spaced data of even number.
@@ -2104,11 +2104,11 @@ function [fc, df] = savitzkyGolay(x,n,dn,x0,W,flag)
 % Usage:
 %       [fc,df] = savitzkyGolay(x,n,dn,x0,flag)
 %   input:
-%       x    = the original data point, e.g., -5:5 
+%       x    = the original data point, e.g., -5:5
 %       n    = polynomial order
 %       dn   = differentation order (0=smoothing),  default=0
 %       x0   = estimation point, can be a vector    default=0
-%       W    = weight vector, can be empty          
+%       W    = weight vector, can be empty
 %              must have same length as x0          default=identity
 %       flag = numerical(0) or symbolical(1),       default=0
 %
@@ -2117,7 +2117,7 @@ function [fc, df] = savitzkyGolay(x,n,dn,x0,W,flag)
 %       df   = differentiation filters (G output of sgolay).
 % Notes:
 % 1.    x can be arbitrary, e.g., odd number or even number, symmetrical or
-%       nonsymmetrical, uniformly spaced or nonuniformly spaced, etc.       
+%       nonsymmetrical, uniformly spaced or nonuniformly spaced, etc.
 % 2.    x0 can be arbitrary, e.g., the initial point, the end point, etc.
 % 3.    Either numerical results or symbolical results can be obtained.
 % Example:
@@ -2126,7 +2126,7 @@ function [fc, df] = savitzkyGolay(x,n,dn,x0,W,flag)
 %       sgsdf([-3:3],2,0,-3,[],1)
 %       sgsdf([-3:3],2,1,2,[],1)
 %       sgsdf([-2:3],2,1,1/2,[],1)
-%       sgsdf([-5:2:5],2,1,0,[],1)     
+%       sgsdf([-5:2:5],2,1,0,[],1)
 %       sgsdf([-1:1 2:2:8],2,0,0,[],1)
 % Author:
 %       Diederick C. Niehorster <dcniehorster@hku.hk> 2011-02-05
@@ -2141,7 +2141,7 @@ function [fc, df] = savitzkyGolay(x,n,dn,x0,W,flag)
 %       remains.
 %       Jianwen Luo <luojw@bme.tsinghua.edu.cn, luojw@ieee.org> 2003-10-05
 %       Department of Biomedical Engineering, Department of Electrical Engineering
-%       Tsinghua University, Beijing 100084, P. R. China  
+%       Tsinghua University, Beijing 100084, P. R. China
 % Reference
 %[1]A. Savitzky and M. J. E. Golay, "Smoothing and Differentiation of Data
 %   by Simplified Least Squares Procedures," Analytical Chemistry, vol. 36,
@@ -2180,17 +2180,17 @@ if nargin<6
     flag=false;
 end
 if nargin < 5 || isempty(W)
-   % No weighting matrix, make W an identity
-   W = eye(length(x0));
+    % No weighting matrix, make W an identity
+    W = eye(length(x0));
 else
-   % Check W is real.
-   if ~isreal(W), error(generatemsgid('NotReal'),'The weight vector must be real.'),end
-   % Check for right length of W
-   if length(W) ~= length(x0), error(generatemsgid('InvalidDimensions'),'The weight vector must be of the same length as the frame length.'),end
-   % Check to see if all elements are positive
-   if min(W) <= 0, error(generatemsgid('InvalidRange'),'All the elements of the weight vector must be greater than zero.'), end
-   % Diagonalize the vector to form the weighting matrix
-   W = diag(W);
+    % Check W is real.
+    if ~isreal(W), error(generatemsgid('NotReal'),'The weight vector must be real.'),end
+    % Check for right length of W
+    if length(W) ~= length(x0), error(generatemsgid('InvalidDimensions'),'The weight vector must be of the same length as the frame length.'),end
+    % Check to see if all elements are positive
+    if min(W) <= 0, error(generatemsgid('InvalidRange'),'All the elements of the weight vector must be greater than zero.'), end
+    % Diagonalize the vector to form the weighting matrix
+    W = diag(W);
 end
 if nargin<4
     x0=0;
@@ -2230,8 +2230,8 @@ end
 fc = df*hx'*W;
 % ----------------------------------------------------------------------
 function [f realsy PowerSpectrum]=PlotFrequencySpectrum(X,Y,xo,dx,plotmode,XMODE,LabelPeaks)
-global SmoothType SmoothWidth Sharpen Sharp1 Sharp2 ends 
-global DerivativeMode MedianWidth SlewRate 
+global SmoothType SmoothWidth Sharpen Sharp1 Sharp2 ends
+global DerivativeMode MedianWidth SlewRate
 % xodx=[xo dx]
 Startx=round(xo-(dx/2));
 Endx=abs(round(xo+(dx/2)-1));
@@ -2276,11 +2276,11 @@ end
 % spectrumaxis=axis;
 % hpos=min(realsy);
 % text(spectrumaxis(1),0.5.*spectrumaxis(4),['Peak ' num2str(maxf) ' at harmonic #' num2str(maxx) ])
- if Sharpen,
-        xlabel([ num2str(SmoothWidth) ' point '  SmoothType ' smooth. Ends: ' num2str(ends) '   Der: ' num2str(DerivativeMode)  '   S1: ' num2str(round(10*Sharp1)/10)  '   S2: ' num2str(round(100*Sharp2)/100) '   Slew: ' num2str(SlewRate) '   Median: ' num2str(MedianWidth) ])
-    else
-        xlabel([ num2str(SmoothWidth) ' point '  SmoothType ' smooth. Ends: ' num2str(ends) '    Der: ' num2str(DerivativeMode) '    Slew: ' num2str(SlewRate) '    Median: ' num2str(MedianWidth) ])
- end
+if Sharpen,
+    xlabel([ num2str(SmoothWidth) ' point '  SmoothType ' smooth. Ends: ' num2str(ends) '   Der: ' num2str(DerivativeMode)  '   S1: ' num2str(round(10*Sharp1)/10)  '   S2: ' num2str(round(100*Sharp2)/100) '   Slew: ' num2str(SlewRate) '   Median: ' num2str(MedianWidth) ])
+else
+    xlabel([ num2str(SmoothWidth) ' point '  SmoothType ' smooth. Ends: ' num2str(ends) '    Der: ' num2str(DerivativeMode) '    Slew: ' num2str(SlewRate) '    Median: ' num2str(MedianWidth) ])
+end
 if XMODE,
     title('x=Time. Press Shift-X to change to frequency.')
 else
@@ -2296,16 +2296,16 @@ if LabelPeaks % If Shift-Z has been pressed to set LabelPeaks=1
     xaxis=((plotrange-1)./range(xx));
     P=findpeaksG(xaxis,realsy,SlopeT,AmpT,SmoothW,FitW);
     if XMODE,
-       subplot(2,1,2)
-       text(1./P(:,2),P(:,3),num2str(1./P(:,2)))
-       subplot(2,1,1)
-       title('iSignal 5 Frequency Spectrum Mode (Press Shift-S again to cancel)')
+        subplot(2,1,2)
+        text(1./P(:,2),P(:,3),num2str(1./P(:,2)))
+        subplot(2,1,1)
+        title('iSignal 5 Frequency Spectrum Mode (Press Shift-S again to cancel)')
     else
-       subplot(2,1,2)
-       text(P(:,2),P(:,3),num2str(P(:,2)))
-       subplot(2,1,1)
-       title('iSignal 5 Frequency Spectrum Mode (Press Shift-S again to cancel)')
-    end  
+        subplot(2,1,2)
+        text(P(:,2),P(:,3),num2str(P(:,2)))
+        subplot(2,1,1)
+        title('iSignal 5 Frequency Spectrum Mode (Press Shift-S again to cancel)')
+    end
 end
 % ----------------------------------------------------------------------
 function [f,realsy]=CompFrequencySpectrum(X,Y,xo,dx,plotmode,XMODE)
@@ -2338,7 +2338,7 @@ function [FitResults,GOF,baseline,coeff,residual,xi,yi,BootResults]=peakfit(sign
 % For more details, see
 % http://terpconnect.umd.edu/~toh/spectrum/CurveFittingC.html and
 % http://terpconnect.umd.edu/~toh/spectrum/InteractivePeakFitter.htm
-% 
+%
 global AA xxx PEAKHEIGHTS FIXEDPARAMETERS AUTOZERO delta BIPOLAR CLIPHEIGHT
 format short g
 format compact
@@ -2352,7 +2352,7 @@ if datasize(2)==1, %  Must be isignal(Y-vector)
     Y=signal;
 else
     % Must be isignal(DataMatrix)
-    X=signal(:,1); % Split matrix argument 
+    X=signal(:,1); % Split matrix argument
     Y=signal(:,2);
 end
 X=reshape(X,1,length(X)); % Adjust X and Y vector shape to 1 x n (rather than n x 1)
@@ -2452,7 +2452,7 @@ switch nargin
         BIPOLAR=0;
         MINWIDTH=zeros(size(peakshape))+(xx(2)-xx(1));
         delta=1;
-    case 7 % extra, Numpeaks, peakshape specified in arguments 
+    case 7 % extra, Numpeaks, peakshape specified in arguments
         start=0;
         AUTOZERO=0;
         FIXEDPARAMETERS=0;
@@ -2549,11 +2549,11 @@ firststart=start; % <<<<<<<<<<<
 if start==0;
     start=calcstart(xx,NumPeaks,xoffset);
 else
-     for Peak=1:NumPeaks,
-         newstart(2*Peak-1)=start(2*Peak-1)-xoffset;
-         newstart(2*Peak)=start(2*Peak);
-     end
-     start=newstart;
+    for Peak=1:NumPeaks,
+        newstart(2*Peak-1)=start(2*Peak-1)-xoffset;
+        newstart(2*Peak)=start(2*Peak);
+    end
+    start=newstart;
 end
 newstart=start; % <<<<<<<<<<<
 if FIXEDPARAMETERS==0, FIXEDPARAMETERS=length(xx)/10;end
@@ -2570,7 +2570,7 @@ bkgcoef=0;
 bkgsize=round(length(xx)/10);
 if bkgsize<2,bkgsize=2;end
 lxx=length(xx);
-if AUTOZERO==1, % linear autozero operation  
+if AUTOZERO==1, % linear autozero operation
     XX1=xx(1:round(lxx/bkgsize));
     XX2=xx((lxx-round(lxx/bkgsize)):lxx);
     Y1=yy(1:(round(length(xx)/bkgsize)));
@@ -2579,7 +2579,7 @@ if AUTOZERO==1, % linear autozero operation
     bkg=polyval(bkgcoef,xx);
     yy=yy-bkg;
 end % if
-if AUTOZERO==2, % Quadratic autozero operation  
+if AUTOZERO==2, % Quadratic autozero operation
     XX1=xx(1:round(lxx/bkgsize));
     XX2=xx((lxx-round(lxx/bkgsize)):lxx);
     Y1=yy(1:round(length(xx)/bkgsize));
@@ -2615,7 +2615,7 @@ switch peakshape(1)
     case 10
         ShapeString='Up Sigmoid (logistic function)';
     case 23
-        ShapeString='Down Sigmoid (logistic function)';  
+        ShapeString='Down Sigmoid (logistic function)';
     case 11
         ShapeString='Fixed-width Gaussian';
     case 12
@@ -2623,9 +2623,9 @@ switch peakshape(1)
     case 13
         ShapeString='Gaussian/Lorentzian blend';
     case 14
-        ShapeString='BiGaussian';    
+        ShapeString='BiGaussian';
     case 15
-        ShapeString='Breit-Wigner-Fano';   
+        ShapeString='Breit-Wigner-Fano';
     case 16
         ShapeString='Fixed-position Gaussians';
     case 17
@@ -2670,16 +2670,16 @@ switch peakshape(1)
         ShapeString='Fixed-width Pearson';
     otherwise
 end % switch peakshape
-  
+
 % Perform peak fitting for selected peak shape using fminsearch function
 options = optimset('TolX',.00001,'TolFun',.00001,'Display','off','MaxFunEvals',1000 );
 LowestError=1000; % or any big number greater than largest error expected
-FitParameters=zeros(1,NumPeaks.*2); 
-BestStart=zeros(1,NumPeaks.*2); 
-height=zeros(1,NumPeaks); 
+FitParameters=zeros(1,NumPeaks.*2);
+BestStart=zeros(1,NumPeaks.*2);
+height=zeros(1,NumPeaks);
 bestmodel=zeros(size(yy));
 
-for k=1:NumTrials, 
+for k=1:NumTrials,
     % StartMatrix(k,:)=newstart;
     % disp(['Trial number ' num2str(k) ] ) % optionally prints the current trial number as progress indicator
     switch peakshape(1)
@@ -2887,7 +2887,7 @@ for k=1:NumTrials,
             end
         case 26
             TrialParameters=fminsearch(@(lambda)(fitlinslope(lambda,xx,yy)),polyfit(xx,yy,1),options);
-             coeff=TrialParameters;
+            coeff=TrialParameters;
         case 27
             TrialParameters=fminsearch(@(lambda)(fitd1gauss(lambda,xx,yy)),newstart,options);
         case 28
@@ -2907,14 +2907,14 @@ for k=1:NumTrials,
                 markx=startpos(marker)+ xoffset;
                 start=[start markx nn/5 extra];
             end % for marker
-             newstart=start;
+            newstart=start;
             for parameter=1:3:3*NumPeaks,
                 newstart(parameter)=newstart(parameter)*(1+randn/100);
                 newstart(parameter+1)=newstart(parameter+1)*(1+randn/20);
                 newstart(parameter+2)=newstart(parameter+1)*(1+randn/20);
             end
             TrialParameters=fminsearch(@(lambda)(fitvoigtv(lambda,xx,yy)),newstart);
-         case 31
+        case 31
             nn=max(xx)-min(xx);
             start=[];
             startpos=[nn/(NumPeaks+1):nn/(NumPeaks+1):nn-(nn/(NumPeaks+1))]+min(xx);
@@ -2922,7 +2922,7 @@ for k=1:NumTrials,
                 markx=startpos(marker)+ xoffset;
                 start=[start markx nn/5 extra];
             end % for marker
-             newstart=start;
+            newstart=start;
             for parameter=1:3:3*NumPeaks,
                 newstart(parameter)=newstart(parameter)*(1+randn/100);
                 newstart(parameter+1)=newstart(parameter+1)*(1+randn/20);
@@ -2940,7 +2940,7 @@ for k=1:NumTrials,
                 markx=startpos(marker)+ xoffset;
                 start=[start markx nn/5 extra];
             end % for marker
-             newstart=start;
+            newstart=start;
             for parameter=1:3:3*NumPeaks,
                 newstart(parameter)=newstart(parameter)*(1+randn/100);
                 newstart(parameter+1)=newstart(parameter+1)*(1+randn/20);
@@ -2949,14 +2949,14 @@ for k=1:NumTrials,
             % newstart=newstart
             TrialParameters=fminsearch(@(lambda)(fitpearsonv(lambda,xx,yy)),newstart);
         case 33
-             nn=max(xx)-min(xx);
+            nn=max(xx)-min(xx);
             start=[];
             startpos=[nn/(NumPeaks+1):nn/(NumPeaks+1):nn-(nn/(NumPeaks+1))]+min(xx);
             for marker=1:NumPeaks,
                 markx=startpos(marker)+ xoffset;
                 start=[start markx nn/5 extra];
             end % for marker
-             newstart=start;
+            newstart=start;
             for parameter=1:3:3*NumPeaks,
                 newstart(parameter)=newstart(parameter)*(1+randn/100);
                 newstart(parameter+1)=newstart(parameter+1)*(1+randn/20);
@@ -2968,160 +2968,160 @@ for k=1:NumTrials,
             fixedstart=[];
             for pc=1:NumPeaks,
                 fixedstart(pc)=min(xx)+pc.*(max(xx)-min(xx))./(NumPeaks+1);
-            end            
+            end
             TrialParameters=fminsearch(@(lambda)(fitFWVoigt(lambda,xx,yy,extra)),fixedstart,options);
         case 35
             fixedstart=[];
             for pc=1:NumPeaks,
                 fixedstart(pc)=min(xx)+pc.*(max(xx)-min(xx))./(NumPeaks+1);
-            end            
+            end
             TrialParameters=fminsearch(@(lambda)(fitFWGL(lambda,xx,yy,extra)),fixedstart,options);
         case 36
             fixedstart=[];
             for pc=1:NumPeaks,
                 fixedstart(pc)=min(xx)+pc.*(max(xx)-min(xx))./(NumPeaks+1);
-            end            
+            end
             TrialParameters=fminsearch(@(lambda)(fitFWExpGaussian(lambda,xx,yy,extra)),fixedstart,options);
         case 37
             fixedstart=[];
             for pc=1:NumPeaks,
                 fixedstart(pc)=min(xx)+pc.*(max(xx)-min(xx))./(NumPeaks+1);
-            end            
+            end
             TrialParameters=fminsearch(@(lambda)(fitFWPearson(lambda,xx,yy,extra)),fixedstart,options);
         otherwise
     end % switch peakshape
-
-% Construct model from Trial parameters
-A=zeros(NumPeaks,n);
-for m=1:NumPeaks,
-    switch peakshape(1)
-        case 1
-            A(m,:)=gaussian(xx,TrialParameters(2*m-1),TrialParameters(2*m));
-        case 2
-            A(m,:)=lorentzian(xx,TrialParameters(2*m-1),TrialParameters(2*m));
-        case 3
-            A(m,:)=logistic(xx,TrialParameters(2*m-1),TrialParameters(2*m));
-        case 4
-            A(m,:)=pearson(xx,TrialParameters(2*m-1),TrialParameters(2*m),extra);
-        case 5
-            A(m,:)=expgaussian(xx,TrialParameters(2*m-1),TrialParameters(2*m),-extra)';
-        case 6
-            A(m,:)=gaussian(xx,TrialParameters(m),TrialParameters(NumPeaks+1));
-        case 7
-            A(m,:)=lorentzian(xx,TrialParameters(m),TrialParameters(NumPeaks+1));
-        case 8
-            A(m,:)=expgaussian(xx,TrialParameters(m),TrialParameters(NumPeaks+1),-extra)';
-        case 9
-            A(m,:)=exppulse(xx,TrialParameters(2*m-1),TrialParameters(2*m));
-        case 10
-            A(m,:)=upsigmoid(xx,TrialParameters(2*m-1),TrialParameters(2*m));
-        case 11
-            A(m,:)=gaussian(xx,TrialParameters(m),FIXEDPARAMETERS(m));
-        case 12
-            A(m,:)=lorentzian(xx,TrialParameters(m),FIXEDPARAMETERS(m));
-        case 13
-            A(m,:)=GL(xx,TrialParameters(2*m-1),TrialParameters(2*m),extra);
-        case 14
-            A(m,:)=BiGaussian(xx,TrialParameters(2*m-1),TrialParameters(2*m),extra);
-        case 15
-            A(m,:)=BWF(xx,TrialParameters(2*m-1),TrialParameters(2*m),extra);        
-        case 16
-            A(m,:)=gaussian(xx,FIXEDPOSITIONS(m),TrialParameters(m));
-        case 17
-            A(m,:)=lorentzian(xx,FIXEDPOSITIONS(m),TrialParameters(m));
-        case 18
-            A(m,:)=explorentzian(xx,TrialParameters(2*m-1),TrialParameters(2*m),-extra)';
-        case 19
-            A(m,:)=alphafunction(xx,TrialParameters(2*m-1),TrialParameters(2*m));
-        case 20
-            A(m,:)=voigt(xx,TrialParameters(2*m-1),TrialParameters(2*m),extra);        
-        case 21
-            A(m,:)=triangular(xx,TrialParameters(2*m-1),TrialParameters(2*m));
-        case 22
-            A(m,:)=peakfunction(shapesvector(m),xx,TrialParameters(2*m-1),TrialParameters(2*m),extra(m));        
-        case 23
-            A(m,:)=downsigmoid(xx,TrialParameters(2*m-1),TrialParameters(2*m));        
-        case 24
-            A(m,:)=nbinpdf(xx,TrialParameters(2*m-1),TrialParameters(2*m));
-        case 25
-            A(m,:)=lognormal(xx,TrialParameters(2*m-1),TrialParameters(2*m));
-        case 26
-            A(m,:)=linslope(xx,TrialParameters(2*m-1),TrialParameters(2*m));
-        case 27
-            A(m,:)=d1gauss(xx,TrialParameters(2*m-1),TrialParameters(2*m));
-        case 28
-            A(m,:)=polynomial(xx,coeff);
-        case 29
-            A(m,:)=segmented(xx,yy,PEAKHEIGHTS);
-        case 30
-            A(m,:)=voigt(xx,TrialParameters(3*m-2),TrialParameters(3*m-1),TrialParameters(3*m));        
-        case 31
-            A(m,:)=expgaussian(xx,TrialParameters(3*m-2),TrialParameters(3*m-1),-TrialParameters(3*m));        
-        case 32
-            A(m,:)=pearson(xx,TrialParameters(3*m-2),TrialParameters(3*m-1),TrialParameters(3*m));        
-        case 33
-            A(m,:)=GL(xx,TrialParameters(3*m-2),TrialParameters(3*m-1),TrialParameters(3*m));        
-        case 34
-             width(m)=abs(FIXEDPARAMETERS(m));
-%                 gD(m)=width(m);
-%                 gL(m)=extra.*gD(m);
-%                 width(m) = 2.*(0.5346*gL(m) + sqrt(0.2166*gL(m).^2 + gD(m).^2))
-            A(m,:)=Voigt(xx,TrialParameters(m), width(m),extra);
-        case 35
-            A(m,:)=GL(xx,TrialParameters(m),FIXEDPARAMETERS(m),extra);    
-        case 36
-            A(m,:)=expgaussian(xx,TrialParameters(m),FIXEDPARAMETERS(m),extra);    
-        case 37
-            A(m,:)=pearson(xx,TrialParameters(m),FIXEDPARAMETERS(m),extra);    
-    end % switch
-    for parameter=1:2:2*NumPeaks,
-        newstart(parameter)=newstart(parameter)*(1+delta*(rand-.5)/50);
-        newstart(parameter+1)=newstart(parameter+1)*(1+delta*(rand-.5)/100);
-    end
-end % for NumPeaks
-% newstart=newstart
-% Multiplies each row by the corresponding amplitude and adds them up
-if peakshape(1)==29, % Segmented linear
-    model=segmented(xx,yy,PEAKHEIGHTS);
-    TrialParameters=PEAKHEIGHTS;
-    Heights=ones(size(PEAKHEIGHTS));
-else
-    if AUTOZERO==3,
-        baseline=PEAKHEIGHTS(1);
-        Heights=PEAKHEIGHTS(2:1+NumPeaks);
-        model=Heights'*A+baseline;
+    
+    % Construct model from Trial parameters
+    A=zeros(NumPeaks,n);
+    for m=1:NumPeaks,
+        switch peakshape(1)
+            case 1
+                A(m,:)=gaussian(xx,TrialParameters(2*m-1),TrialParameters(2*m));
+            case 2
+                A(m,:)=lorentzian(xx,TrialParameters(2*m-1),TrialParameters(2*m));
+            case 3
+                A(m,:)=logistic(xx,TrialParameters(2*m-1),TrialParameters(2*m));
+            case 4
+                A(m,:)=pearson(xx,TrialParameters(2*m-1),TrialParameters(2*m),extra);
+            case 5
+                A(m,:)=expgaussian(xx,TrialParameters(2*m-1),TrialParameters(2*m),-extra)';
+            case 6
+                A(m,:)=gaussian(xx,TrialParameters(m),TrialParameters(NumPeaks+1));
+            case 7
+                A(m,:)=lorentzian(xx,TrialParameters(m),TrialParameters(NumPeaks+1));
+            case 8
+                A(m,:)=expgaussian(xx,TrialParameters(m),TrialParameters(NumPeaks+1),-extra)';
+            case 9
+                A(m,:)=exppulse(xx,TrialParameters(2*m-1),TrialParameters(2*m));
+            case 10
+                A(m,:)=upsigmoid(xx,TrialParameters(2*m-1),TrialParameters(2*m));
+            case 11
+                A(m,:)=gaussian(xx,TrialParameters(m),FIXEDPARAMETERS(m));
+            case 12
+                A(m,:)=lorentzian(xx,TrialParameters(m),FIXEDPARAMETERS(m));
+            case 13
+                A(m,:)=GL(xx,TrialParameters(2*m-1),TrialParameters(2*m),extra);
+            case 14
+                A(m,:)=BiGaussian(xx,TrialParameters(2*m-1),TrialParameters(2*m),extra);
+            case 15
+                A(m,:)=BWF(xx,TrialParameters(2*m-1),TrialParameters(2*m),extra);
+            case 16
+                A(m,:)=gaussian(xx,FIXEDPOSITIONS(m),TrialParameters(m));
+            case 17
+                A(m,:)=lorentzian(xx,FIXEDPOSITIONS(m),TrialParameters(m));
+            case 18
+                A(m,:)=explorentzian(xx,TrialParameters(2*m-1),TrialParameters(2*m),-extra)';
+            case 19
+                A(m,:)=alphafunction(xx,TrialParameters(2*m-1),TrialParameters(2*m));
+            case 20
+                A(m,:)=voigt(xx,TrialParameters(2*m-1),TrialParameters(2*m),extra);
+            case 21
+                A(m,:)=triangular(xx,TrialParameters(2*m-1),TrialParameters(2*m));
+            case 22
+                A(m,:)=peakfunction(shapesvector(m),xx,TrialParameters(2*m-1),TrialParameters(2*m),extra(m));
+            case 23
+                A(m,:)=downsigmoid(xx,TrialParameters(2*m-1),TrialParameters(2*m));
+            case 24
+                A(m,:)=nbinpdf(xx,TrialParameters(2*m-1),TrialParameters(2*m));
+            case 25
+                A(m,:)=lognormal(xx,TrialParameters(2*m-1),TrialParameters(2*m));
+            case 26
+                A(m,:)=linslope(xx,TrialParameters(2*m-1),TrialParameters(2*m));
+            case 27
+                A(m,:)=d1gauss(xx,TrialParameters(2*m-1),TrialParameters(2*m));
+            case 28
+                A(m,:)=polynomial(xx,coeff);
+            case 29
+                A(m,:)=segmented(xx,yy,PEAKHEIGHTS);
+            case 30
+                A(m,:)=voigt(xx,TrialParameters(3*m-2),TrialParameters(3*m-1),TrialParameters(3*m));
+            case 31
+                A(m,:)=expgaussian(xx,TrialParameters(3*m-2),TrialParameters(3*m-1),-TrialParameters(3*m));
+            case 32
+                A(m,:)=pearson(xx,TrialParameters(3*m-2),TrialParameters(3*m-1),TrialParameters(3*m));
+            case 33
+                A(m,:)=GL(xx,TrialParameters(3*m-2),TrialParameters(3*m-1),TrialParameters(3*m));
+            case 34
+                width(m)=abs(FIXEDPARAMETERS(m));
+                %                 gD(m)=width(m);
+                %                 gL(m)=extra.*gD(m);
+                %                 width(m) = 2.*(0.5346*gL(m) + sqrt(0.2166*gL(m).^2 + gD(m).^2))
+                A(m,:)=Voigt(xx,TrialParameters(m), width(m),extra);
+            case 35
+                A(m,:)=GL(xx,TrialParameters(m),FIXEDPARAMETERS(m),extra);
+            case 36
+                A(m,:)=expgaussian(xx,TrialParameters(m),FIXEDPARAMETERS(m),extra);
+            case 37
+                A(m,:)=pearson(xx,TrialParameters(m),FIXEDPARAMETERS(m),extra);
+        end % switch
+        for parameter=1:2:2*NumPeaks,
+            newstart(parameter)=newstart(parameter)*(1+delta*(rand-.5)/50);
+            newstart(parameter+1)=newstart(parameter+1)*(1+delta*(rand-.5)/100);
+        end
+    end % for NumPeaks
+    % newstart=newstart
+    % Multiplies each row by the corresponding amplitude and adds them up
+    if peakshape(1)==29, % Segmented linear
+        model=segmented(xx,yy,PEAKHEIGHTS);
+        TrialParameters=PEAKHEIGHTS;
+        Heights=ones(size(PEAKHEIGHTS));
     else
-%          size(PEAKHEIGHTS) % error check
-%          size(A)
-        model=PEAKHEIGHTS'*A;
-        Heights=PEAKHEIGHTS;
-        baseline=0;
+        if AUTOZERO==3,
+            baseline=PEAKHEIGHTS(1);
+            Heights=PEAKHEIGHTS(2:1+NumPeaks);
+            model=Heights'*A+baseline;
+        else
+            %          size(PEAKHEIGHTS) % error check
+            %          size(A)
+            model=PEAKHEIGHTS'*A;
+            Heights=PEAKHEIGHTS;
+            baseline=0;
+        end
     end
-end
-if peakshape(1)==28, % polynomial;
-    model=polynomial(xx,coeff);
-    TrialParameters=PEAKHEIGHTS;
-    Heights=ones(size(PEAKHEIGHTS));
-end
-% Compare trial model to data segment and compute the fit error
+    if peakshape(1)==28, % polynomial;
+        model=polynomial(xx,coeff);
+        TrialParameters=PEAKHEIGHTS;
+        Heights=ones(size(PEAKHEIGHTS));
+    end
+    % Compare trial model to data segment and compute the fit error
     MeanFitError=100*norm(yy-model)./(sqrt(n)*max(yy));
-  % Take only the single fit that has the lowest MeanFitError
-  if MeanFitError<LowestError, 
-      if min(Heights)>=-BIPOLAR*10^100,  % Consider only fits with positive peak heights
-        LowestError=MeanFitError;  % Assign LowestError to the lowest MeanFitError
-        FitParameters=TrialParameters;  % Assign FitParameters to the fit with the lowest MeanFitError
-        BestStart=newstart; % Assign BestStart to the start with the lowest MeanFitError
-        height=Heights; % Assign height to the PEAKHEIGHTS with the lowest MeanFitError
-        bestmodel=model; % Assign bestmodel to the model with the lowest MeanFitError
-      end % if min(PEAKHEIGHTS)>0
-  end % if MeanFitError<LowestError
-%  ErrorVector(k)=MeanFitError;
+    % Take only the single fit that has the lowest MeanFitError
+    if MeanFitError<LowestError,
+        if min(Heights)>=-BIPOLAR*10^100,  % Consider only fits with positive peak heights
+            LowestError=MeanFitError;  % Assign LowestError to the lowest MeanFitError
+            FitParameters=TrialParameters;  % Assign FitParameters to the fit with the lowest MeanFitError
+            BestStart=newstart; % Assign BestStart to the start with the lowest MeanFitError
+            height=Heights; % Assign height to the PEAKHEIGHTS with the lowest MeanFitError
+            bestmodel=model; % Assign bestmodel to the model with the lowest MeanFitError
+        end % if min(PEAKHEIGHTS)>0
+    end % if MeanFitError<LowestError
+    %  ErrorVector(k)=MeanFitError;
 end % for k (NumTrials)
-    Rsquared=1-(norm(yy-bestmodel)./norm(yy-mean(yy)));
-    SStot=sum((yy-mean(yy)).^2);
-    SSres=sum((yy-bestmodel).^2);
-    Rsquared=1-(SSres./SStot);
-    GOF=[LowestError Rsquared];
+Rsquared=1-(norm(yy-bestmodel)./norm(yy-mean(yy)));
+SStot=sum((yy-mean(yy)).^2);
+SSres=sum((yy-bestmodel).^2);
+Rsquared=1-(SSres./SStot);
+GOF=[LowestError Rsquared];
 % Uncomment following 4 lines to monitor trail fit starts and errors.
 % StartMatrix=StartMatrix;
 % ErrorVector=ErrorVector;
@@ -3133,87 +3133,87 @@ xxx=linspace(min(xx),max(xx),600);
 % minxxx=min(xxx)
 % xxx=linspace(min(xx)-length(xx),max(xx)+length(xx),200);
 for m=1:NumPeaks,
-   switch peakshape(1)
-    case 1
-        AA(m,:)=gaussian(xxx,FitParameters(2*m-1),FitParameters(2*m));
-    case 2
-        AA(m,:)=lorentzian(xxx,FitParameters(2*m-1),FitParameters(2*m));
-    case 3
-        AA(m,:)=logistic(xxx,FitParameters(2*m-1),FitParameters(2*m));
-    case 4
-        AA(m,:)=pearson(xxx,FitParameters(2*m-1),FitParameters(2*m),extra);
-    case 5
-        AA(m,:)=expgaussian(xxx,FitParameters(2*m-1),FitParameters(2*m),-extra*length(xxx)./length(xx))';
-    case 6
-        AA(m,:)=gaussian(xxx,FitParameters(m),FitParameters(NumPeaks+1));
-    case 7
-        AA(m,:)=lorentzian(xxx,FitParameters(m),FitParameters(NumPeaks+1));
-    case 8
-        AA(m,:)=expgaussian(xxx,FitParameters(m),FitParameters(NumPeaks+1),-extra*length(xxx)./length(xx))';
-    case 9
-        AA(m,:)=exppulse(xxx,FitParameters(2*m-1),FitParameters(2*m));  
-    case 10
-        AA(m,:)=upsigmoid(xxx,FitParameters(2*m-1),FitParameters(2*m));   
-    case 11
-        AA(m,:)=gaussian(xxx,FitParameters(m),FIXEDPARAMETERS(m));
-    case 12
-        AA(m,:)=lorentzian(xxx,FitParameters(m),FIXEDPARAMETERS(m));
-    case 13
-        AA(m,:)=GL(xxx,FitParameters(2*m-1),FitParameters(2*m),extra);
-    case 14
-        AA(m,:)=BiGaussian(xxx,FitParameters(2*m-1),FitParameters(2*m),extra);       
-    case 15
-        AA(m,:)=BWF(xxx,FitParameters(2*m-1),FitParameters(2*m),extra);       
-    case 16
-        AA(m,:)=gaussian(xxx,FIXEDPOSITIONS(m),FitParameters(m));
-    case 17
-        AA(m,:)=lorentzian(xxx,FIXEDPOSITIONS(m),FitParameters(m));
-    case 18
-        AA(m,:)=explorentzian(xxx,FitParameters(2*m-1),FitParameters(2*m),-extra*length(xxx)./length(xx))';
-    case 19
-        AA(m,:)=alphafunction(xxx,FitParameters(2*m-1),FitParameters(2*m));
-    case 20
-        AA(m,:)=voigt(xxx,FitParameters(2*m-1),FitParameters(2*m),extra);       
-    case 21
-        AA(m,:)=triangular(xxx,FitParameters(2*m-1),FitParameters(2*m));
-    case 22
-        AA(m,:)=peakfunction(shapesvector(m),xxx,FitParameters(2*m-1),FitParameters(2*m),extra(m));        
-    case 23
-        AA(m,:)=downsigmoid(xxx,FitParameters(2*m-1),FitParameters(2*m));  
-    case 24
-        AA(m,:)=nbinpdf(xxx,FitParameters(2*m-1),FitParameters(2*m));    
-    case 25
-        AA(m,:)=lognormal(xxx,FitParameters(2*m-1),FitParameters(2*m));    
-    case 26
-        AA(m,:)=linslope(xxx,FitParameters(2*m-1),FitParameters(2*m));   
-    case 27
-        AA(m,:)=d1gauss(xxx,FitParameters(2*m-1),FitParameters(2*m));  
-    case 28
-        AA(m,:)=polynomial(xxx,coeff);
-    case 29
-    case 30
-        AA(m,:)=voigt(xxx,FitParameters(3*m-2),FitParameters(3*m-1),FitParameters(3*m));        
-    case 31
-        AA(m,:)=expgaussian(xxx,FitParameters(3*m-2),FitParameters(3*m-1),-FitParameters(3*m)*length(xxx)./length(xx));        
-    case 32
-        AA(m,:)=pearson(xxx,FitParameters(3*m-2),FitParameters(3*m-1),FitParameters(3*m));        
-    case 33
-        AA(m,:)=GL(xxx,FitParameters(3*m-2),FitParameters(3*m-1),FitParameters(3*m)); 
-    case 34
-                  width(m)=abs(FIXEDPARAMETERS(m));
-%                 gD(m)=width(m);
-%                 gL(m)=extra.*gD(m);
-%                 width(m) = 2.*(0.5346*gL(m) + sqrt(0.2166*gL(m).^2 +
-%                 gD(m).^2));
-        AA(m,:)=Voigt(xxx,FitParameters(m),width(m),extra);
-    case 35
-        AA(m,:)=GL(xxx,FitParameters(m),FIXEDPARAMETERS(m),extra);
-    case 36
-        AA(m,:)=expgaussian(xxx,FitParameters(m),FIXEDPARAMETERS(m),extra);    
-    case 37
-        AA(m,:)=pearson(xxx,FitParameters(m),FIXEDPARAMETERS(m),extra);
-    otherwise
-  end % switch
+    switch peakshape(1)
+        case 1
+            AA(m,:)=gaussian(xxx,FitParameters(2*m-1),FitParameters(2*m));
+        case 2
+            AA(m,:)=lorentzian(xxx,FitParameters(2*m-1),FitParameters(2*m));
+        case 3
+            AA(m,:)=logistic(xxx,FitParameters(2*m-1),FitParameters(2*m));
+        case 4
+            AA(m,:)=pearson(xxx,FitParameters(2*m-1),FitParameters(2*m),extra);
+        case 5
+            AA(m,:)=expgaussian(xxx,FitParameters(2*m-1),FitParameters(2*m),-extra*length(xxx)./length(xx))';
+        case 6
+            AA(m,:)=gaussian(xxx,FitParameters(m),FitParameters(NumPeaks+1));
+        case 7
+            AA(m,:)=lorentzian(xxx,FitParameters(m),FitParameters(NumPeaks+1));
+        case 8
+            AA(m,:)=expgaussian(xxx,FitParameters(m),FitParameters(NumPeaks+1),-extra*length(xxx)./length(xx))';
+        case 9
+            AA(m,:)=exppulse(xxx,FitParameters(2*m-1),FitParameters(2*m));
+        case 10
+            AA(m,:)=upsigmoid(xxx,FitParameters(2*m-1),FitParameters(2*m));
+        case 11
+            AA(m,:)=gaussian(xxx,FitParameters(m),FIXEDPARAMETERS(m));
+        case 12
+            AA(m,:)=lorentzian(xxx,FitParameters(m),FIXEDPARAMETERS(m));
+        case 13
+            AA(m,:)=GL(xxx,FitParameters(2*m-1),FitParameters(2*m),extra);
+        case 14
+            AA(m,:)=BiGaussian(xxx,FitParameters(2*m-1),FitParameters(2*m),extra);
+        case 15
+            AA(m,:)=BWF(xxx,FitParameters(2*m-1),FitParameters(2*m),extra);
+        case 16
+            AA(m,:)=gaussian(xxx,FIXEDPOSITIONS(m),FitParameters(m));
+        case 17
+            AA(m,:)=lorentzian(xxx,FIXEDPOSITIONS(m),FitParameters(m));
+        case 18
+            AA(m,:)=explorentzian(xxx,FitParameters(2*m-1),FitParameters(2*m),-extra*length(xxx)./length(xx))';
+        case 19
+            AA(m,:)=alphafunction(xxx,FitParameters(2*m-1),FitParameters(2*m));
+        case 20
+            AA(m,:)=voigt(xxx,FitParameters(2*m-1),FitParameters(2*m),extra);
+        case 21
+            AA(m,:)=triangular(xxx,FitParameters(2*m-1),FitParameters(2*m));
+        case 22
+            AA(m,:)=peakfunction(shapesvector(m),xxx,FitParameters(2*m-1),FitParameters(2*m),extra(m));
+        case 23
+            AA(m,:)=downsigmoid(xxx,FitParameters(2*m-1),FitParameters(2*m));
+        case 24
+            AA(m,:)=nbinpdf(xxx,FitParameters(2*m-1),FitParameters(2*m));
+        case 25
+            AA(m,:)=lognormal(xxx,FitParameters(2*m-1),FitParameters(2*m));
+        case 26
+            AA(m,:)=linslope(xxx,FitParameters(2*m-1),FitParameters(2*m));
+        case 27
+            AA(m,:)=d1gauss(xxx,FitParameters(2*m-1),FitParameters(2*m));
+        case 28
+            AA(m,:)=polynomial(xxx,coeff);
+        case 29
+        case 30
+            AA(m,:)=voigt(xxx,FitParameters(3*m-2),FitParameters(3*m-1),FitParameters(3*m));
+        case 31
+            AA(m,:)=expgaussian(xxx,FitParameters(3*m-2),FitParameters(3*m-1),-FitParameters(3*m)*length(xxx)./length(xx));
+        case 32
+            AA(m,:)=pearson(xxx,FitParameters(3*m-2),FitParameters(3*m-1),FitParameters(3*m));
+        case 33
+            AA(m,:)=GL(xxx,FitParameters(3*m-2),FitParameters(3*m-1),FitParameters(3*m));
+        case 34
+            width(m)=abs(FIXEDPARAMETERS(m));
+            %                 gD(m)=width(m);
+            %                 gL(m)=extra.*gD(m);
+            %                 width(m) = 2.*(0.5346*gL(m) + sqrt(0.2166*gL(m).^2 +
+            %                 gD(m).^2));
+            AA(m,:)=Voigt(xxx,FitParameters(m),width(m),extra);
+        case 35
+            AA(m,:)=GL(xxx,FitParameters(m),FIXEDPARAMETERS(m),extra);
+        case 36
+            AA(m,:)=expgaussian(xxx,FitParameters(m),FIXEDPARAMETERS(m),extra);
+        case 37
+            AA(m,:)=pearson(xxx,FitParameters(m),FIXEDPARAMETERS(m),extra);
+        otherwise
+    end % switch
 end % for NumPeaks
 
 % Multiplies each row by the corresponding amplitude and adds them up
@@ -3235,7 +3235,7 @@ if plots,
     hold on
 end
 if peakshape(1)==28, % Polynomial
-     yi=polynomial(xxx,coeff);
+    yi=polynomial(xxx,coeff);
 else
     for m=1:NumPeaks,
         if plots, plot(xxx+xoffset,height(m)*AA(m,:)+baseline,'g'),end  % Plot the individual component peaks in green lines
@@ -3258,13 +3258,13 @@ if plots,
             end % for
         end
     end % if peakshape
-
+    
     % Plot the total model (sum of component peaks) in red lines
     if peakshape(1)==29, % Segmented linear
         mmodel=segmented(xx,yy,PEAKHEIGHTS);
-       plot(xx+xoffset,mmodel,'r');  
+        plot(xx+xoffset,mmodel,'r');
     else
-       plot(xxx+xoffset,mmodel,'r');  
+        plot(xxx+xoffset,mmodel,'r');
     end
     hold off;
     lyy=min(yy);
@@ -3286,7 +3286,7 @@ if plots,
         case 3
             title(['peakfit.m Version 7.7  Flat baseline correction'])
     end
- 
+    
     switch peakshape(1)
         case {4,20,34,37}
             xlabel(['Peaks = ' num2str(NumPeaks) '     Shape = ' ShapeString '     Min. Width = ' num2str(MINWIDTH) '      Shape Constant = ' num2str(extra)  '     Error = ' num2str(round(1000*LowestError)/1000) '%   R2 = ' num2str(round(100000*Rsquared)/100000) ] )
@@ -3305,7 +3305,7 @@ if plots,
                 xlabel(['Peaks = ' num2str(NumPeaks) '     Shape = ' ShapeString '     Min. Width = ' num2str(MINWIDTH)  '     Error = ' num2str(round(1000*LowestError)/1000) '%  R2 = ' num2str(round(100000*Rsquared)/100000) ] )
             end % if peakshape(1)==29
     end % switch peakshape(1)
-
+    
     % Bottom half of the figure shows the residuals and displays RMS error
     % between original signal and model
     residual=yy-bestmodel;
@@ -3313,9 +3313,9 @@ if plots,
     axis([min(xx)+xoffset max(xx)+xoffset min(residual) max(residual)]);
     xlabel('Residual Plot')
     if NumTrials>1,
-       title(['Best of ' num2str(NumTrials) ' fits'])
+        title(['Best of ' num2str(NumTrials) ' fits'])
     else
-       title(['Single fit'])
+        title(['Single fit'])
     end
 end % if plots
 
@@ -3388,7 +3388,7 @@ switch peakshape(1),
             
         end % for m=1:NumPeaks,
 end % switch peakshape(1)
-  
+
 % Display Fit Results on lower graph
 if plots,
     % Display Fit Results on lower  graph
@@ -3405,9 +3405,9 @@ if plots,
         case 28, % Polynomial
             text(startx,starty+dyy/2,['Polynomial coefficients'] );
         case 29 % Segmented linear
-             text(startx,starty+dyy/2,['x-axis breakpoints'] );
+            text(startx,starty+dyy/2,['x-axis breakpoints'] );
         case {30,31,32,33} % Special case of shapes with 3 iterated variables
-            text(startx,starty+dyy/2,['Peak #          Position        Height         Width             Area       Shape factor'] );            
+            text(startx,starty+dyy/2,['Peak #          Position        Height         Width             Area       Shape factor'] );
         otherwise
             text(startx,starty+dyy/2,['Peak #          Position        Height         Width             Area '] );
     end
@@ -3508,7 +3508,7 @@ else
 end
 % ----------------------------------------------------------------------
 function [FitResults,LowestError]=fitpeaks(xx,yy,NumPeaks,peakshape,extra,NumTrials,start,AUTOZERO,fixedparameters,shapesvector)
-% Based on peakfit Version 3: June, 2012. 
+% Based on peakfit Version 3: June, 2012.
 global PEAKHEIGHTS FIXEDPARAMETERS BIPOLAR MINWIDTH coeff
 format short g
 format compact
@@ -3524,9 +3524,9 @@ LOGPLOT=0;
 % Perform peak fitting for selected peak shape using fminsearch function
 options = optimset('TolX',.00001,'TolFun',.00001,'Display','off','MaxFunEvals',1000 );
 LowestError=1000; % or any big number greater than largest error expected
-FitParameters=zeros(1,NumPeaks.*2); 
-BestStart=zeros(1,NumPeaks.*2); 
-height=zeros(1,NumPeaks); 
+FitParameters=zeros(1,NumPeaks.*2);
+BestStart=zeros(1,NumPeaks.*2);
+height=zeros(1,NumPeaks);
 bestmodel=zeros(size(yy));
 for k=1:NumTrials,
     % StartVector=newstart
@@ -3738,7 +3738,7 @@ for k=1:NumTrials,
             end
         case 26
             TrialParameters=fminsearch(@(lambda)(fitlinslope(lambda,xx,yy)),polyfit(xx,yy,1),options);
-        coeff=TrialParameters;
+            coeff=TrialParameters;
         case 27
             TrialParameters=fminsearch(@(lambda)(fitd1gauss(lambda,xx,yy)),newstart,options);
             for Peak=1:NumPeaks;
@@ -3787,11 +3787,11 @@ for k=1:NumTrials,
         otherwise
     end % switch peakshape
     
-for peaks=1:NumPeaks,
-     peakindex=2*peaks-1;
-     newstart(peakindex)=start(peakindex)-xoffset;
-end
-
+    for peaks=1:NumPeaks,
+        peakindex=2*peaks-1;
+        newstart(peakindex)=start(peakindex)-xoffset;
+    end
+    
     % Construct model from Trial parameters
     A=zeros(NumPeaks,n);
     for m=1:NumPeaks,
@@ -3841,7 +3841,7 @@ end
             case 22
                 A(m,:)=peakfunction(shapesvector(m),xx,TrialParameters(2*m-1),TrialParameters(2*m),extra(m));
             case 23
-                A(m,:)=downsigmoid(xx,TrialParameters(2*m-1),TrialParameters(2*m));      
+                A(m,:)=downsigmoid(xx,TrialParameters(2*m-1),TrialParameters(2*m));
             case 24
                 A(m,:)=nbinpdf(xx,TrialParameters(2*m-1),TrialParameters(2*m));
             case 25
@@ -3849,27 +3849,27 @@ end
             case 26
                 A(m,:)=linslope(xx,TrialParameters(2*m-1),TrialParameters(2*m));
             case 27
-                A(m,:)=d1gauss(xx,TrialParameters(2*m-1),TrialParameters(2*m));       
+                A(m,:)=d1gauss(xx,TrialParameters(2*m-1),TrialParameters(2*m));
             case 28
-                A(m,:)=polynomial(xx,TrialParameters(2*m-1),TrialParameters(2*m));       
+                A(m,:)=polynomial(xx,TrialParameters(2*m-1),TrialParameters(2*m));
             case 29
                 A(m,:)=segmented(xx,yy,PEAKHEIGHTS);
             case 30
-                A(m,:)=voigt(xx,TrialParameters(3*m-2),TrialParameters(3*m-1),TrialParameters(3*m));        
+                A(m,:)=voigt(xx,TrialParameters(3*m-2),TrialParameters(3*m-1),TrialParameters(3*m));
             case 31
-                A(m,:)=expgaussian(xx,TrialParameters(3*m-2),TrialParameters(3*m-1),TrialParameters(3*m));        
+                A(m,:)=expgaussian(xx,TrialParameters(3*m-2),TrialParameters(3*m-1),TrialParameters(3*m));
             case 32
-                A(m,:)=pearson(xx,TrialParameters(3*m-2),TrialParameters(3*m-1),TrialParameters(3*m));        
+                A(m,:)=pearson(xx,TrialParameters(3*m-2),TrialParameters(3*m-1),TrialParameters(3*m));
             case 33
                 A(m,:)=GL(xx,TrialParameters(3*m-2),TrialParameters(3*m-1),TrialParameters(3*m));
             case 34
                 width(m)=abs(FIXEDPARAMETERS(m));
-
-%                 gD(m)=width(m);
-%                 gL(m)=extra.*gD(m);
-%                 width(m) = 2.*(0.5346*gL(m) + sqrt(0.2166*gL(m).^2 + gD(m).^2))
-
-            A(m,:)=Voigt(xx,TrialParameters(m), width(m),extra);
+                
+                %                 gD(m)=width(m);
+                %                 gL(m)=extra.*gD(m);
+                %                 width(m) = 2.*(0.5346*gL(m) + sqrt(0.2166*gL(m).^2 + gD(m).^2))
+                
+                A(m,:)=Voigt(xx,TrialParameters(m), width(m),extra);
             case 35
                 A(m,:)=GL(xx,TrialParameters(m),FIXEDPARAMETERS(m),extra);
             case 36
@@ -3907,11 +3907,11 @@ end
         end % if min(PEAKHEIGHTS)>0
     end % if MeanFitError<LowestError
 end % for k (NumTrials)
-    Rsquared=1-(norm(yy-bestmodel)./norm(yy-mean(yy)));
-    SStot=sum((yy-mean(yy)).^2);
-    SSres=sum((yy-bestmodel).^2);
-    Rsquared=1-(SSres./SStot);
-    GOF=[LowestError Rsquared];
+Rsquared=1-(norm(yy-bestmodel)./norm(yy-mean(yy)));
+SStot=sum((yy-mean(yy)).^2);
+SSres=sum((yy-bestmodel).^2);
+Rsquared=1-(SSres./SStot);
+GOF=[LowestError Rsquared];
 for m=1:NumPeaks,
     area(m)=trapz(xx+xoffset,height(m)*A(m,:)); % Compute the area of each component peak using trapezoidal method
 end
@@ -3936,7 +3936,7 @@ switch peakshape(1),
                 FitResults=[FitResults ; [round(m) FitParameters(m)+xoffset height(m) FIXEDPARAMETERS(m) area(m)]];
             end
         end
-
+        
     case {16,17}, % Fixed-position shapes only
         for m=1:NumPeaks,
             if m==1,
@@ -3979,17 +3979,17 @@ switch peakshape(1),
         end % for m=1:NumPeaks,
 end % switch peakshape(1)
 if peakshape==34,
-        DW=2*(0.5346*a*1.2772 + sqrt(0.2166*a*1.2772.^2 + 1.2772.^2))
+    DW=2*(0.5346*a*1.2772 + sqrt(0.2166*a*1.2772.^2 + 1.2772.^2))
 end
 % ----------------------------------------------------------------------
 function start=calcstart(xx,NumPeaks,xoffset)
-  n=max(xx)-min(xx);
-  start=[];
-  startpos=[n/(NumPeaks+1):n/(NumPeaks+1):n-(n/(NumPeaks+1))]+min(xx);
-  for marker=1:NumPeaks,
-      markx=startpos(marker);
-      start=[start markx n/ (3.*NumPeaks)];
-  end % for marker
+n=max(xx)-min(xx);
+start=[];
+startpos=[n/(NumPeaks+1):n/(NumPeaks+1):n-(n/(NumPeaks+1))]+min(xx);
+for marker=1:NumPeaks,
+    markx=startpos(marker);
+    start=[start markx n/ (3.*NumPeaks)];
+end % for marker
 % ----------------------------------------------------------------------
 function err = fitgaussian(lambda,t,y)
 % Fitting function for a Gaussian band signal.
@@ -3997,9 +3997,9 @@ global PEAKHEIGHTS AUTOZERO BIPOLAR LOGPLOT
 numpeaks=round(length(lambda)/2);
 A = zeros(length(t),numpeaks);
 for j = 1:numpeaks,
-%    if lambda(2*j)<MINWIDTH,lambda(2*j)=MINWIDTH;end
+    %    if lambda(2*j)<MINWIDTH,lambda(2*j)=MINWIDTH;end
     A(:,j) = gaussian(t,lambda(2*j-1),lambda(2*j))';
-end 
+end
 if AUTOZERO==3,A=[ones(size(y))' A];end
 if BIPOLAR,PEAKHEIGHTS=A\y';else PEAKHEIGHTS=abs(A\y');end
 z = A*PEAKHEIGHTS;
@@ -4109,7 +4109,7 @@ end
 % ----------------------------------------------------------------------
 function err = fitlorentzian(lambda,t,y)
 %	Fitting function for single lorentzian, lambda(1)=position, lambda(2)=width
-%	Fitgauss assumes a lorentzian function 
+%	Fitgauss assumes a lorentzian function
 global PEAKHEIGHTS AUTOZERO BIPOLAR LOGPLOT
 A = zeros(length(t),round(length(lambda)/2));
 for j = 1:length(lambda)/2,
@@ -4135,7 +4135,7 @@ g=ones(size(x))./(1+((x-position)./(0.5.*width)).^2);
 function err = fitlogistic(lambda,t,y)
 %	Fitting function for logistic, lambda(1)=position, lambda(2)=width
 %	between the data and the values computed by the current
-%	function of lambda.  Fitlogistic assumes a logistic function 
+%	function of lambda.  Fitlogistic assumes a logistic function
 %  T. C. O'Haver, May 2006
 global PEAKHEIGHTS AUTOZERO BIPOLAR LOGPLOT
 A = zeros(length(t),round(length(lambda)/2));
@@ -4155,14 +4155,14 @@ function g = logistic(x,pos,wid)
 % logistic function.  pos=position; wid=half-width (both scalar)
 % logistic(x,pos,wid), where x may be scalar, vector, or matrix
 % pos=position; wid=half-width (both scalar)
-% T. C. O'Haver, 1991 
+% T. C. O'Haver, 1991
 n = exp(-((x-pos)/(.477.*wid)) .^2);
 g = (2.*n)./(1+n);
 % ----------------------------------------------------------------------
 function err = fittriangular(lambda,t,y)
 %	Fitting function for triangular, lambda(1)=position, lambda(2)=width
 %	between the data and the values computed by the current
-%	function of lambda.  Fittriangular assumes a triangular function 
+%	function of lambda.  Fittriangular assumes a triangular function
 %  T. C. O'Haver, May 2006
 global PEAKHEIGHTS AUTOZERO BIPOLAR LOGPLOT
 A = zeros(length(t),round(length(lambda)/2));
@@ -4186,8 +4186,8 @@ function g = triangular(x,pos,wid)
 % Example
 % x=[0:.1:10];plot(x,trianglar(x,5.5,2.3),'.')
 g=1-(1./wid) .*abs(x-pos);
-for i=1:length(x),  
-if g(i)<0,g(i)=0;end
+for i=1:length(x),
+    if g(i)<0,g(i)=0;end
 end
 % ----------------------------------------------------------------------
 function err = fitpearson(lambda,t,y,shapeconstant)
@@ -4243,11 +4243,11 @@ else
 end
 % ----------------------------------------------------------------------
 function g = pearson(x,pos,wid,m)
-% Pearson VII function. 
+% Pearson VII function.
 % g = pearson(x,pos,wid,m) where x may be scalar, vector, or matrix
 % pos=position; wid=half-width (both scalar)
 % m=some number
-%  T. C. O'Haver, 1990  
+%  T. C. O'Haver, 1990
 g=ones(size(x))./(1+((x-pos)./((0.5.^(2/m)).*wid)).^2).^m;
 % ----------------------------------------------------------------------
 function err = fitexpgaussian(lambda,t,y,timeconstant)
@@ -4382,7 +4382,7 @@ else
 end
 % ----------------------------------------------------------------------
 function g = exppulse(x,t1,t2)
-% Exponential pulse of the form 
+% Exponential pulse of the form
 % g = (x-spoint)./pos.*exp(1-(x-spoint)./pos);
 e=(x-t1)./t2;
 p = 4*exp(-e).*(1-exp(-e));
@@ -4410,13 +4410,13 @@ function g = alphafunction(x,pos,spoint)
 % alpha function.  pos=position; wid=half-width (both scalar)
 % alphafunction(x,pos,wid), where x may be scalar, vector, or matrix
 % pos=position; wid=half-width (both scalar)
-% Taekyung Kwon, July 2013  
+% Taekyung Kwon, July 2013
 g = (x-spoint)./pos.*exp(1-(x-spoint)./pos);
 for m=1:length(x);if g(m)<0;g(m)=0;end;end
 % ----------------------------------------------------------------------
 function err = fitdownsigmoid(tau,x,y)
 % Fitting function for iterative fit to the sum of
-% downward moving sigmiods 
+% downward moving sigmiods
 global PEAKHEIGHTS AUTOZERO BIPOLAR LOGPLOT
 A = zeros(length(x),round(length(tau)/2));
 for j = 1:length(tau)/2,
@@ -4449,12 +4449,12 @@ else
 end
 % ----------------------------------------------------------------------
 function g=downsigmoid(x,t1,t2)
- % down step sigmoid
+% down step sigmoid
 g=.5-.5*erf(real((x-t1)/sqrt(2*t2)));
 % ----------------------------------------------------------------------
 function g=upsigmoid(x,t1,t2)
 % up step sigmoid
-g=1/2 + 1/2* erf(real((x-t1)/sqrt(2*t2))); 
+g=1/2 + 1/2* erf(real((x-t1)/sqrt(2*t2)));
 % ----------------------------------------------------------------------
 function err = fitGL(lambda,t,y,shapeconstant)
 %   Fitting functions for Gaussian/Lorentzian blend.
@@ -4575,7 +4575,7 @@ function g=voigt(xx,pos,gD,alpha)
 % Voigt profile function. xx is the independent variable (energy,
 % wavelength, etc), gD is the Doppler (Gaussian) width, and alpha is the
 % shape constant (ratio of the Lorentzian width gL to the Doppler width gD.
-% Based on Chong Tao's "Voigt lineshape spectrum simulation", 
+% Based on Chong Tao's "Voigt lineshape spectrum simulation",
 % File ID: #26707
 % alpha=alpha
 gL=alpha.*gD;
@@ -4604,7 +4604,7 @@ end
 % ----------------------------------------------------------------------
 function g = BiGaussian(x,pos,wid,m)
 % BiGaussian (different widths on leading edge and trailing edge).
-% pos=position; wid=width 
+% pos=position; wid=width
 % m determines shape; symmetrical if m=50.
 %  T. C. O'Haver, 2012
 lx=length(x);
@@ -4677,7 +4677,7 @@ function g = lognormal(x,pos,wid)
 % lognormal function.  pos=position; wid=half-width (both scalar)
 % lognormal(x,pos,wid), where x may be scalar, vector, or matrix
 % pos=position; wid=half-width (both scalar)
-% T. C. O'Haver, 1991  
+% T. C. O'Haver, 1991
 g = exp(-(log(x/pos)/(0.01.*wid)) .^2);
 % ----------------------------------------------------------------------
 function err = fitsine(tau,x,y)
@@ -4697,7 +4697,7 @@ else
     err = norm(z-y');
 end
 % ----------------------------------------------------------------------
-function g=sine(x,f,phase) 
+function g=sine(x,f,phase)
 % Sine wave (alpha test)
 g=sin(2*pi*f*(x+phase));
 % ----------------------------------------------------------------------
@@ -4744,8 +4744,8 @@ function yi=segmented(x,y,segs)
 global PEAKHEIGHTS
 clear yy
 for n=1:length(segs)
-  yind=val2ind(x,segs(n));
-  yy(n)=y(yind(1));
+    yind=val2ind(x,segs(n));
+    yy(n)=y(yind(1));
 end
 yi=INTERP1(segs,yy,x);
 PEAKHEIGHTS=segs;
@@ -4863,7 +4863,7 @@ switch shape,
     case 20
         p=voigt(x,pos,wid,m);
     case 21
-        p=triangular(x,pos,wid);    
+        p=triangular(x,pos,wid);
     case 23
         p=downsigmoid(x,pos,wid);
     case 25
@@ -4912,7 +4912,7 @@ function P=findpeaksG(x,y,SlopeThreshold,AmpThreshold,smoothwidth,peakgroup,smoo
 %   If smoothtype=3, pseudo-Gaussian (3 passes of sliding-average)
 % See http://terpconnect.umd.edu/~toh/spectrum/Smoothing.html and
 % http://terpconnect.umd.edu/~toh/spectrum/PeakFindingandMeasurement.htm
-% (c) T.C. O'Haver, 1995, 2014.  Version 5, Last revised January, 2016  
+% (c) T.C. O'Haver, 1995, 2014.  Version 5, Last revised January, 2016
 %
 %
 % Examples:
@@ -4973,7 +4973,7 @@ for j=2*round(smoothwidth/2)-1:length(y)-smoothwidth-1,
     if sign(d(j)) > sign (d(j+1)), % Detects zero-crossing
         if d(j)-d(j+1) > SlopeThreshold*y(j), % if slope of derivative is larger than SlopeThreshold
             if or(y(j) > AmpTest, y(j+1) > AmpTest),  % if height of peak is larger than AmpThreshold (new version by Anthony Willey)
-          % if y(j) > AmpTest,  % if height of peak is larger than AmpThreshold (old version)
+                % if y(j) > AmpTest,  % if height of peak is larger than AmpThreshold (old version)
                 xx=zeros(size(peakgroup));yy=zeros(size(peakgroup));
                 for k=1:peakgroup, % Create sub-group of points near peak
                     groupindex=j+k-n+2;
@@ -5020,12 +5020,12 @@ function [Height, Position, Width]=gaussfit(x,y)
 % peak) and if there are no zeros or negative values in y.
 %
 % Example 1: Simplest Gaussian data set
-% [Height, Position, Width]=gaussfit([1 2 3],[1 2 1]) 
+% [Height, Position, Width]=gaussfit([1 2 3],[1 2 1])
 %    returns Height = 2, Position = 2, Width = 2
 %
 % Example 2: best fit to synthetic noisy Gaussian
 % x=50:150;y=100.*gaussian(x,100,100)+10.*randn(size(x));
-% [Height,Position,Width]=gaussfit(x,y) 
+% [Height,Position,Width]=gaussfit(x,y)
 %   returns [Height,Position,Width] clustered around 100,100,100.
 %
 % Example 3: plots data set as points and best-fit Gaussian as line
@@ -5034,17 +5034,17 @@ function [Height, Position, Width]=gaussfit(x,y)
 % plot(x,y,'o',linspace(0,8),Height.*gaussian(linspace(0,8),Position,Width))
 
 % Copyright (c) 2012, Thomas C. O'Haver
-% 
+%
 % Permission is hereby granted, free of charge, to any person obtaining a copy
 % of this software and associated documentation files (the "Software"), to deal
 % in the Software without restriction, including without limitation the rights
 % to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 % copies of the Software, and to permit persons to whom the Software is
 % furnished to do so, subject to the following conditions:
-% 
+%
 % The above copyright notice and this permission notice shall be included in
 % all copies or substantial portions of the Software.
-% 
+%
 % THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 % IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 % FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE

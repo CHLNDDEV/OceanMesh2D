@@ -1,4 +1,4 @@
-function H=tricontour(tri,x,y,z,v,levels,color)
+function H=tricontour2(tri,x,y,z,v,levels,color)
 %TRICONTOUR Contour plot for triangulated data.
 %   TRICONTOUR(TRI,X,Y,Z,Levels) displays the contour plot based on
 %   triangles defined in the M-by-3 face matrix TRI as a surface. A

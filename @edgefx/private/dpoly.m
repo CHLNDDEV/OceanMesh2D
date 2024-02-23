@@ -1,10 +1,10 @@
 function d = dpoly(obj,feat,varargin)
-% INPUTS: 
+% INPUTS:
 % obj contains the mesh points and the outer, mainland, inner polygons,
 % bbox (the bounding box)
 % feat contains inpoly_flip to check whether to flip the inpoly result or not
 %
-% OUTPUTS: 
+% OUTPUTS:
 % d is the distance from point, p to closest point on polygon
 % (d is  negative if inside the bounded polygon, pv and positive if outside)
 % by Keith Roberts and William Pringle 2017-2018.
@@ -34,7 +34,7 @@ disp(['Memory management: number of loops in dpoly = ' num2str(noblks)])
 tic
 for blks = 1:noblks
     if blks == noblks
-        ne = length(p); 
+        ne = length(p);
     else
         ne = ns + blklen - 1;
     end

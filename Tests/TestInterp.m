@@ -4,22 +4,17 @@
 % ii)  constant dx ~= constant dy 
 % iii) varying dx ~= varying dy
 
-clearvars; clc;
-
-addpath('..')
-addpath(genpath('../utilities/'))
-addpath(genpath('../datasets/'))
-addpath(genpath('../m_map/'))
+clearvars; clc; close all
 
 % add the geospatial data filenames
 coastline = 'GSHHS_f_L1';
 DEMS = ["CUDEM_equal.nc" "CUDEM_unequal.nc" "CUDEM_varying.nc"];
 
 % meshing parameters
-min_el    = 40;          % minimum resolution in meters.
-max_el    = 500;         % maximum resolution in meters. 
-grade     = 0.25;        % mesh grade in decimal percent. 
-dis       = grade; 	 % increasing resolution with distance from shoreline.
+min_el = 40;    % minimum resolution in meters.
+max_el = 500;   % maximum resolution in meters. 
+grade = 0.25;   % mesh grade in decimal percent. 
+dis = grade;    % increasing resolution with distance from shoreline.
 
 volumes = [];
 % loop over the different DEMs
@@ -65,8 +60,8 @@ disp('Maximum relative volume difference:')
 disp(volume_diff)
 
 if volume_diff > 0.005
-    error('Mesh volumes are too disparate with different dems')
     disp('Not Passed: Interp');
+    error('Mesh volumes are too disparate with different dems')
 else
     disp('Mesh volumes are within 0.5% of each other')
     disp('Passed: Interp');

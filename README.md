@@ -167,9 +167,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Unreleased (on current HEAD of the Projection branch)
 ## Added
-- Added ability to generate constrainsts for shorelines automatically using the new high-fidelity method. https://github.com/CHLNDDEV/OceanMesh2D/pull/264
-- Added new function in `msh` called `remesh_patch` to remesh within specified polygonal domains and insert back into parent mesh.
-- Read and write to 2dm format.
+- auxiliary file reader function that can be used standalone e.g., m = m.read({'fort.13','fort.15'})), as well as called from within msh() function. https://github.com/CHLNDDEV/OceanMesh2D/pull/287
+- swanoutput namelist for SWAN model outputs. https://github.com/CHLNDDEV/OceanMesh2D/pull/287
+- Added new function in `msh` called `remesh_patch` to remesh within specified polygonal domains and insert back into parent mesh. https://github.com/CHLNDDEV/OceanMesh2D/pull/301
+- Read and write to 2dm format. https://github.com/CHLNDDEV/OceanMesh2D/pull/300
 - `namelist` and `RSTIMNC` input arguments for `Make_f15.m` fort.15 generator. updated the help message for all input argumebts to `Make_f15`. https://github.com/CHLNDDEV/OceanMesh2D/pull/283
 - New stability namelist options to `Make_f15.m` fort.15 generator. https://github.com/CHLNDDEV/OceanMesh2D/pull/283
 - Optionality for mesh2dgen to choose the method of mesh generation `kind`, and the maximum iteration count `iter`. https://github.com/CHLNDDEV/OceanMesh2D/pull/272
@@ -179,6 +180,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Support for writing Self Attraction and Loading (SAL) files in NetCDF for the ADCIRC model. https://github.com/CHLNDDEV/OceanMesh2D/pull/231
 - Added 'high-fidelity' option for automatically forming and constraining edges into the mesh. https://github.com/CHLNDDEV/OceanMesh2D/pull/264
 ## Changed
+- treating logicals in namelists as a logicals type within MATLAB but ouput as a string. https://github.com/CHLNDDEV/OceanMesh2D/pull/287
+- `Calc_Sponge.m` to allow for sponge in polygon region and coefficents based on spatially varying depth. https://github.com/CHLNDDEV/OceanMesh2D/pull/287
 - removed namelists from default setup in `Make_f15.m` fort.15 generator to be invoked by user as an input argument instead. https://github.com/CHLNDDEV/OceanMesh2D/pull/283
 - Use implicit smoother (`ds=1`) in `msh.clean` when fix points are present. https://github.com/CHLNDDEV/OceanMesh2D/pull/283
 - Default filename for the dynamicWaterLevelCorrection is now `null` so that it is not evoked by default. https://github.com/CHLNDDEV/OceanMesh2D/pull/272
@@ -186,7 +189,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Retrieve boundary indices in `msh.get_boundary_of_mesh` method. https://github.com/CHLNDDEV/OceanMesh2D/pull/259
 - `msh.offset63` struct and associated write/make routines for dynamicwaterlevel offset functionality. https://github.com/CHLNDDEV/OceanMesh2D/pull/259
 - dynamicWaterLevelCorrection to fort.15 namelist, and PRBCKGRND option to met fort.15 namelist. https://github.com/CHLNDDEV/OceanMesh2D/pull/261
+- Improved code readability by auto-indenting core functions and reworking 'setup' and 'Examples' functions, including adding necessary files for separation from core functions. https://github.com/CHLNDDEV/OceanMesh2D/pull/308
+- Renamed functions for clarity and fixed multiple small bugs; changes are compatible with OpenEarthTools but distinct. https://github.com/CHLNDDEV/OceanMesh2D/pull/308
 ## Fixed
+- catch for offset_nodes of int type in writeoffset63.m. https://github.com/CHLNDDEV/OceanMesh2D/pull/287
 - writing out the wave coupling timestep `RSTIMNC` on the `WTIMNC` line of fort.15 when `NWS > 300`. https://github.com/CHLNDDEV/OceanMesh2D/pull/283
 - `make_bc` call with empty varargin, e.g., when calling inner. https://github.com/CHLNDDEV/OceanMesh2D/pull/283
 - `Make_offset63` call with constant offset (length 1 `time_vector`). https://github.com/CHLNDDEV/OceanMesh2D/pull/283

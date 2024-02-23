@@ -1,9 +1,9 @@
 function varargout = EarthGradient(f,varargin)
 %GRADIENT Approximate gradient.
 %   [FX,FY] = GRADIENT(F) returns the numerical gradient of the
-%   matrix F. FX corresponds to dF/dx, the differences in x (horizontal) 
-%   direction. FY corresponds to dF/dy, the differences in y (vertical) 
-%   direction. The spacing between points in each direction is assumed to 
+%   matrix F. FX corresponds to dF/dx, the differences in x (horizontal)
+%   direction. FY corresponds to dF/dy, the differences in y (vertical)
+%   direction. The spacing between points in each direction is assumed to
 %   be one. When F is a vector, DF = GRADIENT(F) is the 1-D gradient.
 %
 %   [FX,FY] = GRADIENT(F,H), where H is a scalar, uses H as the
@@ -17,11 +17,11 @@ function varargout = EarthGradient(f,varargin)
 %
 %   [FX,FY,FZ] = GRADIENT(F), when F is a 3-D array, returns the
 %   numerical gradient of F. FZ corresponds to dF/dz, the differences
-%   in the z direction. GRADIENT(F,H), where H is a scalar, 
+%   in the z direction. GRADIENT(F,H), where H is a scalar,
 %   uses H as the spacing between points in each direction.
 %
 %   [FX,FY,FZ] = GRADIENT(F,HX,HY,HZ) uses the spacing given by
-%   HX, HY, HZ. 
+%   HX, HY, HZ.
 %
 %   [FX,FY,FZ,...] = GRADIENT(F,...) extends similarly when F is N-D
 %   and must be invoked with N outputs and either 2 or N+1 inputs.
@@ -48,26 +48,26 @@ function varargout = EarthGradient(f,varargin)
 [f,ndim,loc,rflag] = parse_inputs(f,varargin);
 nargoutchk(0,ndim);
 
-% Loop over each dimension. 
+% Loop over each dimension.
 
 varargout = cell(1,ndim);
 siz = size(f);
-% first dimension 
+% first dimension
 g  = zeros(size(f),class(f)); % case of singleton dimension
-h = loc{1}; 
+h = loc{1};
 n = siz(1);
 % Take forward differences on left and right edges
 if n > 1
-   g(1,:) = (f(2,:) - f(1,:))./h;
-   g(n,:) = (f(n,:) - f(n-1,:))./h;
+    g(1,:) = (f(2,:) - f(1,:))./h;
+    g(n,:) = (f(n,:) - f(n-1,:))./h;
 end
 
 % Take centered differences on interior points
 if n > 2
-   h = 2*h;
-   for nn = 2:n-1
-       g(nn,:) = (f(nn+1,:)-f(nn-1,:)) ./ h;
-   end
+    h = 2*h;
+    for nn = 2:n-1
+        g(nn,:) = (f(nn+1,:)-f(nn-1,:)) ./ h;
+    end
 end
 
 varargout{1} = g;
@@ -132,7 +132,7 @@ function [f,ndim,loc,rflag] = parse_inputs(f,v)
 %PARSE_INPUTS
 %   [ERR,F,LOC,RFLAG] = PARSE_INPUTS(F,V) returns the spacing
 %   LOC along the x,y,z,... directions and a row vector
-%   flag RFLAG. 
+%   flag RFLAG.
 
 loc = {};
 

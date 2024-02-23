@@ -41,7 +41,11 @@ p = 0;
 exceed = 50e3; %100e3;
 
 [rt,~] = find(v_start==bnde);
-if isempty(rt), disp('v_start does not exist on boundary, check numbering'); return; end
+if isempty(rt)
+    [poly,poly_idx,opendat,boudat] = deal([]);
+    disp('v_start does not exist on boundary, check numbering');
+    return
+end
 r  = rt(order+1); % change this only here to from 1 to 2 or 2 to 1 to go left or right
 tsel = bnde(r,:);
 sel  = tsel(tsel~=v_start);

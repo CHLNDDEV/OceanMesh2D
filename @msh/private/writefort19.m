@@ -2,15 +2,15 @@ function [] = writefort19( fort19dat, finame )
 %
 %
 
-if ( nargin == 1 ) 
-  finputname = 'fort.19_1' ;
+if ( nargin == 1 )
+    finputname = 'fort.19_1' ;
 else
-  finputname = finame ;   
+    finputname = finame ;
 end
 
 fid = fopen(finputname,'w') ;
 
-fprintf( fid, '%d\n', fort19dat.ETIMINC ) ; 
+fprintf( fid, '%d\n', fort19dat.ETIMINC ) ;
 
 valpernode = size( fort19dat.Val,2 ) ;
 str = [];
@@ -20,7 +20,7 @@ end
 str = [str '\n' ] ;
 
 fprintf( fid, str, fort19dat.Val' ) ;
-    
-fclose(fid) ; 
+
+fclose(fid) ;
 %EOF
 end
