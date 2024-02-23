@@ -59,7 +59,7 @@ function obj = Make_f15( obj, ts, te, dt, varargin )
 %                https://wiki.adcirc.org/Supplemental_meteorological/wave/ice_parameters
 %    
 %               'namelist' : cell/string list of namelists to add from the following:
-%                {'met', 'dynamicWaterLevelCorrection', 'limit', 'velwd'}
+%                {'met', 'dynamicWaterLevelCorrection', 'limit', 'velwd','swanoutput'}
 %                https://wiki.adcirc.org/Fort.15_file_format#Namelists
 %
 %  Outputs:  1) msh class obj with f15 struct populated
@@ -371,9 +371,9 @@ if ~isempty(namelists)
        obj.f15.controllist(ci).var(3).name = 'DragLawString';
        obj.f15.controllist(ci).var(3).val = 'default'; 
        obj.f15.controllist(ci).var(4).name = 'outputWindDrag';
-       obj.f15.controllist(ci).var(4).val = 'F'; 
+       obj.f15.controllist(ci).var(4).val = false; 
        obj.f15.controllist(ci).var(5).name = 'invertedBarometerOnElevationBoundary';
-       obj.f15.controllist(ci).var(5).val = 'F'; 
+       obj.f15.controllist(ci).var(5).val = false; 
     end
     if find(contains(namelists,'dynamicWaterLevelCorrection','IgnoreCase',true),1)
        % dynamicwaterlevelcorrection control
@@ -399,14 +399,24 @@ if ~isempty(namelists)
        obj.f15.controllist(ci).var(1).name = 'slim';
        obj.f15.controllist(ci).var(1).val = 4e-4;
        obj.f15.controllist(ci).var(2).name = 'windlim';
-       obj.f15.controllist(ci).var(2).val = 'T';
+       obj.f15.controllist(ci).var(2).val = true;
     end
     if find(contains(namelists,'velwd'),1)
        ci = ci + 1;
        % wetdry velocity control
        obj.f15.controllist(ci).type = 'velwd';
        obj.f15.controllist(ci).var(1).name = 'directvelWD';
-       obj.f15.controllist(ci).var(1).val = 'T';
+       obj.f15.controllist(ci).var(1).val = true;
+    end
+    if find(contains(namelists,'swanoutput'),1)
+       % SWAN output
+       ci = ci + 1;
+       obj.f15.controllist(ci).type = 'SWANOutput';
+       vars = ["HS" "TPS" "DIR" "TMM10" "TM01" "TM02" "WIND"];
+       for vv = 1:length(vars)
+           obj.f15.controllist(ci).var(vv).name = ['SWAN_Output' vars{vv}];
+           obj.f15.controllist(ci).var(vv).val = vv <= 3;
+       end
     end
 end
 

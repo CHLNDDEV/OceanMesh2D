@@ -148,28 +148,41 @@ classdef msh
                 % for now only handling fort.14 mesh type
                 error('Please specify filename with suffix (e.g., fname.14)');
             end
-            % loop over all extra files passed
-            for f = 1 : length(aux)
-                fname = aux{f};
-                if any(contains(fname,'.13'))
+            % read auxiliary files into msh object
+            obj = read(obj, aux);
+        end
+        
+        function obj = read(obj,fnames)
+            % Read auxiliary files into existing msh object
+            % - supports fort.13, fort.15, and fort.24 only
+            % Usage:
+            % read(obj,fnames)
+            % 
+            % Examples:
+            % read(obj,{fort.15, fort.13, fort.24}); % reads fort.15, fort.13 and fort.24 files into obj
+            % read(obj,{fort.15}); % reads fort.15 file into obj
+            % read(obj,{tide.15, mannings.13}); % reads tide.15 (fort.15) and mannings.13 (fort.13) file into obj
+            for f = 1 : length(fnames)
+                fname = fnames{f};
+                if contains(fname,'.13')
                     disp('INFO: ADCIRC fort.13 file will be read...')
                     obj.f13 = readfort13(fname);
                 end
-                if any(contains(fname,'.15'))
+                if contains(fname,'.15')
                     disp('INFO: ADCIRC fort.15 file will be read...')
                     if isempty(obj.op) ||  isempty(obj.bd)
                         error('Boundary data required to read f15...also read in f14.')
                     end
                     obj.f15 = readfort15(fname,obj.op,obj.bd);
                 end
-                if any(contains(fname,'.24'))
+                if contains(fname,'.24')
                     if isempty(obj.p)
                         error('No vertices present to readfort24')
                     end
                     if isempty(obj.f15)
                         error(['No f15 present to readfort24.' ...
                             ' (make sure fort.15 is listed before' ...
-                            ' fort.24 in aux cell array)'])
+                            ' fort.24 in aux/fnames cell array)'])
                     end
                     if obj.f15.ntif == 0
                         error('No constituents in f15 to readfort24')
@@ -179,7 +192,6 @@ classdef msh
                         length(obj.p), {obj.f15.tipotag.name} );
                 end
             end
-
         end
 
         % write mesh to disk
