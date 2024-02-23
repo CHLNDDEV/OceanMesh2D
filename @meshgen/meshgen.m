@@ -40,7 +40,6 @@ classdef meshgen
     %         enforceWeirs  % whether or not to enforce weirs in meshgen
     %         enforceMin    % whether or not to enfore minimum edgelength for all edgefxs
     % delaunay_elim_on_exit % whether or not to run delaunay_elim on exit of meshgen
-    % delaunay_elim_on_exit % whether or not to run delaunay_elim on exit of meshgen
     % improve_with_reduced_quality % whether or not to allow mesh improvements with decreases in mesh quality
     %      improve_boundary % run a gradient desc. to improve the boundary conformity
     %       high_fidelity   % flag to form pfix and egfix for this domain
@@ -79,7 +78,6 @@ classdef meshgen
         enforceMin    % whether or not to enfore minimum edgelength for all edgefxs
         improve_boundary  % improve the boundary representation
         high_fidelity     % flag to form pfix and egfix for this domain
-        
         delaunay_elim_on_exit % whether or not to run delaunay_elim on exit of meshgen
         improve_with_reduced_quality % whether or not to allow mesh improvements with decreases in mesh quality
     end
@@ -146,10 +144,8 @@ classdef meshgen
             M_MAP_EXISTS=0;
             if exist('m_proj','file')==2
                 M_MAP_EXISTS=1 ;
-                M_MAP_EXISTS=1 ;
             end
             if M_MAP_EXISTS~=1
-                error('Where''s m_map? Chief, you need to read the user guide')
                 error('Where''s m_map? Chief, you need to read the user guide')
             end
             
@@ -158,10 +154,8 @@ classdef meshgen
             UTIL_DIR_EXISTS=0 ;
             if exist('inpoly.m','file')
                 UTIL_DIR_EXISTS=1;
-                UTIL_DIR_EXISTS=1;
             end
             if UTIL_DIR_EXISTS~=1
-                error('Where''s the utilities directory? Chief, you need to read the user guide')
                 error('Where''s the utilities directory? Chief, you need to read the user guide')
             end
             
@@ -298,14 +292,11 @@ classdef meshgen
                         % got it from user arg
                         if obj.outer~=0, continue; end
                         
-                        
                         obj.outer = {} ;
                         obj.inner = {} ;
                         obj.mainland = {} ;
                         
-                        
                         obj.bou = inp.(fields{i});
-                        
                         
                         % handle when not a cell
                         if ~iscell(obj.bou)
@@ -313,7 +304,6 @@ classdef meshgen
                             obj.bou = cell(1);
                             obj.bou{1} = boutemp;
                         end
-                        
                         
                         % then the geodata class was provide, unpack
                         for ee = 1:length(obj.bou)
@@ -323,20 +313,18 @@ classdef meshgen
                                 arg = obj.bou;
                             end
                             if isa(arg,'geodata')
+                                
                                 obj.high_fidelity{ee} = obj.bou{ee}.high_fidelity;
+                                                                
                                 obj.outer{ee} = obj.bou{ee}.outer;
                                 obj.inner{ee} = obj.bou{ee}.inner;
-                                
                                 
                                 % save bathy interpolant to meshgen
                                 if ~isempty(obj.bou{ee}.Fb)
                                     obj.Fb{ee} = obj.bou{ee}.Fb ;
-                                    obj.Fb{ee} = obj.bou{ee}.Fb ;
                                 end
                                 
-                                
                                 if ~isempty(obj.inner{ee}) && ...
-                                        obj.inner{ee}(1)~= 0
                                         obj.inner{ee}(1)~= 0
                                     obj.outer{ee} = [obj.outer{ee};
                                         obj.inner{ee}];
@@ -344,6 +332,7 @@ classdef meshgen
                                 obj.mainland{ee} = obj.bou{ee}.mainland;
                                 obj.boubox{ee} = obj.bou{ee}.boubox;
                                 obj.inpoly_flip{ee} = obj.bou{ee}.inpoly_flip;
+
                             end
                         end
                         
@@ -371,7 +360,6 @@ classdef meshgen
                             end
                         end
                         
-                        % checking bbox extents
                         
                         % checking bbox extents
                         if iscell(obj.bbox)
@@ -515,10 +503,6 @@ classdef meshgen
                     obj.bbox(1,2) obj.bbox(2,2);
                     obj.bbox(1,2) obj.bbox(2,1); ...
                     obj.bbox(1,1) obj.bbox(2,1); NaN NaN];
-                    obj.bbox(1,1) obj.bbox(2,2); ...
-                    obj.bbox(1,2) obj.bbox(2,2);
-                    obj.bbox(1,2) obj.bbox(2,1); ...
-                    obj.bbox(1,1) obj.bbox(2,1); NaN NaN];
             end
             if any(obj.h0==0), error('h0 was not correctly specified!'), end
             if isempty(obj.outer), error('no outer boundary specified!'), end
@@ -542,7 +526,6 @@ classdef meshgen
                 il = obj.inner{box_num};
                 polys = {};
                 if ~isempty(ml), polys{end+1} = ml; end
-                if ~isempty(il), polys{end+1} = il; end
                 
                 % High fidelity - formation of point & edge constraints
                 if obj.high_fidelity{box_num}
@@ -692,7 +675,6 @@ classdef meshgen
                     % Lets estimate the num_points the distribution will be
                     num_points = ceil(2/sqrt(3)*prod(abs(diff(bbox_l)))...
                         /(h0_l/111e3)^2);
-                        /(h0_l/111e3)^2);
                     noblks = ceil(num_points*2*8/obj.memory_gb*1e-9);
                     len = abs(bbox_l(1,1)-bbox_l(2,1));
                     blklen = len/noblks;
@@ -706,7 +688,6 @@ classdef meshgen
                         ys = bbox_l(1,2);
                         ny = floor(1e3*m_lldist(repmat(0.5*(st+ed),2,1),...
                             [ys;bbox_l(2,2)])/h0_l);
-                            [ys;bbox_l(2,2)])/h0_l);
                         dy = diff(bbox_l(:,2))/ny;
                         ns = 1;
                         % start at lower left and make grid going up to
@@ -717,12 +698,9 @@ classdef meshgen
                                     [ys;ys])/(2/sqrt(3)*h0_l)) + ...
                                     floor(1e3*m_lldist([0;ed],...
                                     [ys;ys])/(2/sqrt(3)*h0_l));
-                                    [ys;ys])/(2/sqrt(3)*h0_l)) + ...
-                                    floor(1e3*m_lldist([0;ed],...
-                                    [ys;ys])/(2/sqrt(3)*h0_l));
+                                   
                             else
                                 nx = floor(1e3*m_lldist([st;ed],...
-                                    [ys;ys])/(2/sqrt(3)*h0_l));
                                     [ys;ys])/(2/sqrt(3)*h0_l));
                             end
                             ne = ns+nx-1;
@@ -807,8 +785,6 @@ classdef meshgen
                     if isempty(t)
                         disp('Exiting')
                         return
-                        disp('Exiting')
-                        return
                     end
                     % Getting element quality and check "goodness"
                     if exist('pt','var'); clear pt; end
@@ -819,8 +795,6 @@ classdef meshgen
                     mq_s = std(tq.qm);
                     mq_l3sig = mq_m - 3*mq_s;
                     obj.qual(it,:) = [mq_m,mq_l3sig,mq_l];
-                    % If mesh quality went down "significantly" since last iteration
-                    % ..or..
                     % If not allowing improvements with reduction in quality
                     % ..or..
                     % If not allowing improvements with reduction in quality
@@ -829,13 +803,10 @@ classdef meshgen
                     if ~mod(it,imp+1) && ((obj.qual(it,1) - obj.qual(it-1,1) < -0.10)  || ...
                             (~obj.improve_with_reduced_quality && ...
                             (N - length(p_before_improve))/length(p_before_improve) < -0.10))
-                            (~obj.improve_with_reduced_quality && ...
-                            (N - length(p_before_improve))/length(p_before_improve) < -0.10))
+              
                         disp('Mesh improvement was unsuccessful...rewinding...');
                         p = p_before_improve;
-                        p = p_before_improve;
                         N = size(p,1);                                     % Number of points changed
-                        pold = inf;
                         pold = inf;
                         it = it + 1;
                         continue
@@ -852,7 +823,6 @@ classdef meshgen
                         title(['Iteration = ',num2str(it)]);
                         if negfix > 0
                             m_plot(reshape(obj.pfix(obj.egfix,1),[],2)',...
-                                reshape(obj.pfix(obj.egfix,2),[],2)','r-')
                                 reshape(obj.pfix(obj.egfix,2),[],2)','r-')
                         end
                         if nfix > 0
@@ -942,7 +912,6 @@ classdef meshgen
                 if ~mod(it,imp) % && ~HIGH_FIDELITY_MODE
                     nn = []; pst = [];
                     if abs(qual_diff) < imp*obj.qual_tol && ...
-                            (obj.improve_with_reduced_quality || qual_diff > 0)
                             (obj.improve_with_reduced_quality || qual_diff > 0)
                         % Remove elements with small connectivity
                         nn = get_small_connectivity(p,t);
@@ -1060,8 +1029,6 @@ classdef meshgen
                 % Put the mesh class into the grd part of meshgen and clean
                 obj.grd.p = p; obj.grd.t = t;
                 [obj.grd,qout] = clean(obj.grd,obj.cleanup,...
-                    'nscreen',obj.nscreen,'djc',obj.dj_cutoff,...
-                    'pfix',obj.pfix);
                     'nscreen',obj.nscreen,'djc',obj.dj_cutoff,...
                     'pfix',obj.pfix);
                 obj.grd.pfix = obj.pfix ;
