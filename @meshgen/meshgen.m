@@ -648,7 +648,7 @@ classdef meshgen
             geps = 1e-12*min(obj.h0)/Re;
             deps = sqrt(eps);
             ttol=0.1; Fscale = 1.2; deltat = 0.1;
-            delIT = 0 ;
+            delIT = 0 ; delImp = 2;
             imp = 10; % number of iterations to do mesh improvements (delete/add)
             EXIT_QUALITY = 0.30; % minimum quality necessary to terminate if iter < itmax
             
@@ -758,6 +758,16 @@ classdef meshgen
                 Fscale=1.1;
                 deltat=0.10;
             end
+
+            % Check if any boxes are set to high-fidelity 
+            % If so turn off heal_fixed_edges 
+            HIGH_FIDELITY_MODE = 0;
+            for i = 1 : length(obj.h0)
+                if obj.high_fidelity{i}
+                    HIGH_FIDELITY_MODE = 1;
+                end
+            end
+     
             N = size(p,1); % Number of points N
             disp(['Number of initial points after rejection is ',num2str(N)]);
             %% Iterate
@@ -795,6 +805,7 @@ classdef meshgen
                     mq_s = std(tq.qm);
                     mq_l3sig = mq_m - 3*mq_s;
                     obj.qual(it,:) = [mq_m,mq_l3sig,mq_l];
+
                     % If not allowing improvements with reduction in quality
                     % ..or..
                     % If not allowing improvements with reduction in quality
@@ -842,6 +853,29 @@ classdef meshgen
                 mq_s = std(tq.qm);
                 mq_l3sig = mq_m - 3*mq_s;
                 obj.qual(it,:) = [mq_m,mq_l3sig,mq_l];
+
+                % Improve the quality of triangles next to fixed edges by
+                % deleting the point part of thin triangles without the fixed
+                % point in it. Thin triangles have poor geometric quality <
+                % 10%.
+                if ~isempty(obj.egfix) && ~mod(it,delImp) && ~HIGH_FIDELITY_MODE
+                    del = heal_fixed_edges(p,t,obj.egfix) ;
+                    if ~isempty(del)
+                        delIT = delIT + 1 ;
+                        if delIT < 5
+                            p(del,:)= [];
+                            pold = inf;
+                            disp(['Deleting ',num2str(length(del)),...
+                                ' points close to fixed edges']);
+                            continue;
+                        else
+                            % Abandon strategy..if it will not terminate
+                            disp('Moving to next iteration');
+                        end
+                    end
+                    delIT = 0 ;
+                end
+
                 % Termination quality, mesh quality reached is copacetic.
                 qual_diff = mq_l3sig - obj.qual(max(1,it-imp),2);
                 if ~mod(it,imp)
@@ -909,10 +943,11 @@ classdef meshgen
                 
                 % Mesh improvements (deleting and addition)
                 p_before_improve = p;
-                if ~mod(it,imp) % && ~HIGH_FIDELITY_MODE
+                if ~mod(it,imp) %
                     nn = []; pst = [];
                     if abs(qual_diff) < imp*obj.qual_tol && ...
                             (obj.improve_with_reduced_quality || qual_diff > 0)
+
                         % Remove elements with small connectivity
                         nn = get_small_connectivity(p,t);
                         disp(['Deleting ' num2str(length(nn)) ' due to small connectivity'])
@@ -968,11 +1003,7 @@ classdef meshgen
                 
                 Ftot = full(sparse(bars(:,[1,1,2,2]),ones(size(F))*[1,2,1,2],[Fvec,-Fvec],N,2));
                 Ftot(1:nfix,:) = 0;                                        % Force = 0 at fixed points
-                % find nodes on the boundary
-                %if it > 30
-                %     bnde = extdom_edges2(t,p);
-                %    Ftot(bnde(:))=0.0; % boundary nodes don't move
-                %end
+   
                 pt = pt + deltat*Ftot;                                     % Update node positions
                 
                 
@@ -983,7 +1014,7 @@ classdef meshgen
                 d = feval(obj.fd,p,obj,[],1); ix = d > 0;                  % Find points outside (d>0)
                 ix(1:nfix) = 0;
                 alpha = 1.0;
-                for ib = 1 : 1  %length(obj.improve_boundary)
+                for ib = 1 : 1 % length(obj.improve_boundary)
                     if sum(ix) > 0
                         pn = p(ix,:) + deps;
                         dgradx = (feval(obj.fd,[pn(:,1),p(ix,2)],obj,[])...%,1)...
@@ -1114,6 +1145,23 @@ classdef meshgen
                 nn = setdiff(I',[(1:nfix)';bdnodes]);                      % and don't destroy pfix or egfix!
                 return;
             end
+
+             function del = heal_fixed_edges(p,t,egfix)
+                % kjr april2019
+                % if there's a triangle with a low geometric quality that
+                % contains a fixed edge, remove the non-fixed vertex
+                % perform this on every other iteration to allow non-fixed
+                % points to create equilateral triangles nearby the locked
+                % edge.
+                % returns points IDs that should be deleted.
+                TR = triangulation(t,p) ;
+                elock = edgeAttachments(TR,egfix) ;
+                tq = gettrimeshquan(p,t);
+                elock = unique(cell2mat(elock'));
+                dmy = elock(tq.qm(elock) < 0.25);
+                badtria = t(dmy,:);
+                del     = badtria(badtria > nfix) ;
+            end
             
         end % end mesh generator
         
@@ -1122,3 +1170,4 @@ classdef meshgen
     
     
 end % end class
+
