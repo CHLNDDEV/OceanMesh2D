@@ -4,14 +4,9 @@
 % or coastlines. Such areas require precise representation in the mesh connectivity to ensure accurate simulation outcomes.
 % This approach enables detailed analysis and modeling of geophysical processes near these critical features, enhancing the
 % reliability of simulations in coastal engineering, environmental assessment, and resource management applications.
-clearvars; clc;
-clearvars; clc;
+clearvars; clc; close all
 
-% Adding directories to the MATLAB path for utilities, datasets, and mapping tools.
-addpath('..');
-addpath(genpath('../utilities/'));
-addpath(genpath('../datasets/'));
-addpath(genpath('../m_map/'));
+PREFIX = '13_NZ_highfidelity';
 
 %% STEP 1: Define mesh boundaries and resolution parameters.
 % Bounding box coordinates (longitude and latitude) define the area of interest.
@@ -35,7 +30,7 @@ fh{1} = edgefx('geodata', gdat{1}, 'fs', R1, 'max_el_ns', max_el_ns1, 'max_el', 
 % Additional bounding box for targeted refinement (e.g., a specific bay or coastal region).
 % In this case Christchurch Bay with a more detailed shoreline vector
 % file that contains hardened shoreline features.
-coastline2 = 'coastline_epsg4326';
+coastline2 = 'Coastline_epsg4326';
 
 
 bbox2= [172.61348324,172.85932924;
@@ -65,9 +60,10 @@ mshopts = mshopts.build(); % Execute mesh building with specified options.
 % Extract and visualize the generated mesh, highlighting refined areas.
 m = mshopts.grd;
 m.plot('type', 'tri', 'proj', 'lamb'); % Plot entire mesh.
+hold on; m_plot(m.pfix(:,1),m.pfix(:,2),'r.')
 
 m.plot('type', 'tri', 'proj', 'none', 'subdomain', bbox2); % Highlight refined area.
 hold on; drawedge2(pfix, egfix, 'r'); % Overlay edge constraints.
 
 % Optional: Export mesh to a .2dm file for editing connectivity in GIS software like QGIS.
-write(m, 'South_Island_NZ_w_constraints.2dm', '2dm');
+write(m,sprintf('%s_mesh.2dm',PREFIX),'2dm');
