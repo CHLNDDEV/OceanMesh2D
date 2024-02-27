@@ -1,4 +1,5 @@
 % run all examples
+run('../setup_oceanmesh2d.m')
 
 Example_1_NZ
 Example_2_NY
