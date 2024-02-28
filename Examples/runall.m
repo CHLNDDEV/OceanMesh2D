@@ -1,4 +1,5 @@
 % run all examples
+run('../setup_oceanmesh2d.m')
 
 Example_1_NZ
 Example_2_NY
@@ -14,3 +15,4 @@ Example_9_TBAY
 Example_10_Multiscale_Smoother
 Example_11_Remeshing_Patches
 Example_12_Riverine_flow
+Example_13_New_Zealand_High_Fidelity

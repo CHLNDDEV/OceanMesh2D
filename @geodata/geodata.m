@@ -17,6 +17,7 @@ classdef geodata
     %     addOptional(p,'pslg',defval);
     %     addOptional(p,'boubox',defval);
     %     addOptional(p,'window',defval);
+    %     addOptional(p,'high_fidelity',defval);
     %
     %   This program is free software: you can redistribute it and/or modify
     %   it under the terms of the GNU General Public License as published by
@@ -58,6 +59,8 @@ classdef geodata
         spacing = 2.0 ; %Relative spacing along polygon, large effect on computational efficiency of signed distance.
         gridspace
         shapefile_3d % if the shapefile has a height attribute
+        high_fidelity % performs a 1D mesh generation step to form pfix and egfix prior to 2D meshing
+
     end
     
     methods
@@ -120,6 +123,8 @@ classdef geodata
             addOptional(p,'boubox',defval);
             addOptional(p,'window',defval);
             addOptional(p,'shapefile_3d',defval);
+            addOptional(p,'high_fidelity',defval);
+
             
             % parse the inputs
             parse(p,varargin{:});
@@ -204,7 +209,9 @@ classdef geodata
                             obj.window = 5;
                         end
                     case('shapefile_3d')
-                        obj.shapefile_3d = inp.(fields{i}) ;
+                         obj.shapefile_3d = inp.(fields{i}) ;
+                    case('high_fidelity')
+                        obj.high_fidelity = inp.(fields{i});
                     case('weirs')
                         if ~iscell(inp.(fields{i})) && ~isstruct(inp.(fields{i})) && inp.(fields{i})==0, continue; end
                         if ~iscell(inp.(fields{i})) && ~isstruct(inp.(fields{i}))
@@ -861,4 +868,3 @@ classdef geodata
     end
     
 end
-
