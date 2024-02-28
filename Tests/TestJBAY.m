@@ -8,18 +8,18 @@ ERR_TOL = 0.05;
 ERR2_TOL = 0.01;
 QUAL_TOL = 0.25;
 Re2 = 111^2;
-% p: [23957×2 double]
-% t: [42853×3 double]
-% Area = 211.19 km^2
-% Volume = 2.0782 km^3
-TARGET = 23957;
+% p: [25190x2 double]
+% t: [45270x3 double]
+% Area = 211 km^2
+% Volume = 2.075 km^3
+TARGET = 25190;
 VALUE = length(m.p);
 if abs(VALUE - TARGET)/TARGET > ERR_TOL
     error(['Incorrect number of points for %s. ',...
         'Got %i, expecting %i +- %4.2f%%.'],...
         PREFIX,VALUE,TARGET,ERR_TOL*100);
 end
-TARGET = 42853;
+TARGET = 45270;
 VALUE = length(m.t); 
 if abs(VALUE - TARGET)/TARGET > ERR_TOL
     error(['Incorrect number of triangles for %s. ',...
@@ -27,7 +27,7 @@ if abs(VALUE - TARGET)/TARGET > ERR_TOL
         PREFIX,VALUE,TARGET,ERR_TOL*100);
 end
 
-TARGET = 211.19;
+TARGET = 211;
 X = m.p(:,1); Y = m.p(:,2);
 Area = sum(polyarea(X(m.t)',Y(m.t)').*cosd(mean(Y(m.t)')))*Re2;
 if abs(Area - TARGET)/TARGET > ERR2_TOL
@@ -36,7 +36,7 @@ if abs(Area - TARGET)/TARGET > ERR2_TOL
         PREFIX,Area,TARGET,ERR2_TOL*100);
 end
 
-TARGET = 2.0782;
+TARGET = 2.075;
 bc = (m.b(m.t(:,1))+m.b(m.t(:,2))+m.b(m.t(:,3)))/3;
 bc = bc/1e3; % convert to km
 Volume = sum(polyarea(X(m.t)',Y(m.t)').*cosd(mean(Y(m.t)')).*bc')*Re2;
