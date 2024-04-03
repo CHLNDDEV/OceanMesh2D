@@ -1,5 +1,5 @@
 function polygon_struct = Read_shapefile( finputname, polygon, bbox, ...
-                                          h0, boubox, plot_on, shapefile_3d)
+    h0, boubox, plot_on, shapefile_3d)
 % Read_shapefile: Reads a shapefile or a NaN-delimited vector
 % containing polygons and/or segments in the the desired region
 % of interest. Classifies the vector data as either a
@@ -19,7 +19,7 @@ function polygon_struct = Read_shapefile( finputname, polygon, bbox, ...
 % polygon_struct    : a structure containing the vector features identified as
 %              either islands, mainland, or outer.
 % Written by William Pringle and Keith Roberts, CHL,UND, 2017
-% Edits by Keith Roberts, July 2018. 
+% Edits by Keith Roberts, July 2018.
 %% Loop over all the filenames and get the shapefile within bbox
 SG = [];
 if bbox(1,2) > 180 && bbox(1,1) < 180
@@ -42,11 +42,11 @@ if (size(finputname,1)~=0)
                     bboxt(1,1) = -180; bboxt(2,1) = bboxt(2,1) - 360;
                 end
             end
-            if minus 
-               bboxt(:,1) = bboxt(:,1) - 360; 
-            end          
+            if minus
+                bboxt(:,1) = bboxt(:,1) - 360;
+            end
             % Read the structure
-            try 
+            try
                 % The shaperead is faster if it is available
                 S = shaperead(fname{1},'BoundingBox',bboxt);
                 % Get rid of unwanted components;
@@ -77,22 +77,22 @@ if (size(finputname,1)~=0)
         end
     end
 else
-    sr = 1 ; 
-    % convert NaN-delimited vector to struct 
+    sr = 1 ;
+    % convert NaN-delimited vector to struct
     count = 1; j=1;
     for i = 1 : length(polygon)
-        % the end of the segment 
+        % the end of the segment
         
         if(isnan(polygon(i,1))==1)
-            % put NaN at end 
-            SG(count,1).X(:,j) =NaN; 
-            SG(count,1).Y(:,j) =NaN; 
-            % reset 
+            % put NaN at end
+            SG(count,1).X(:,j) =NaN;
+            SG(count,1).Y(:,j) =NaN;
+            % reset
             j = 1 ; count = count + 1;
-
+            
             continue
         else
-            % keep going             
+            % keep going
             SG(count,1).X(:,j) = polygon(i,1);
             SG(count,1).Y(:,j) = polygon(i,2);
             j=j+1;
@@ -103,7 +103,7 @@ end
 polygon_struct.outer = boubox;
 % Densify the outer polygon (fills gaps larger than half min edgelength).
 [latout,lonout] = my_interpm(polygon_struct.outer(:,2),...
-                             polygon_struct.outer(:,1),h0/2);
+    polygon_struct.outer(:,1),h0/2);
 polygon_struct.outer = [];
 polygon_struct.outer(:,1) = lonout;
 polygon_struct.outer(:,2) = latout;
@@ -122,40 +122,40 @@ edges = Get_poly_edges( polygon_struct.outer );
 if isempty(SG); return; end
 
 if sr
-    tmpM = [[SG.X]',[SG.Y]'] ; % MAT 
+    tmpM = [[SG.X]',[SG.Y]'] ; % MAT
     if bbox(1,2) > 180
         tmpM(tmpM(:,1) < 0,1) =  tmpM(tmpM(:,1) < 0,1) + 360;
     end
-    for i = 1 : length(SG) 
-       dims(i) = length(SG(i).X) ; 
+    for i = 1 : length(SG)
+        dims(i) = length(SG(i).X) ;
     end
-    tmpC = mat2cell(tmpM,dims); % TO CELL 
+    tmpC = mat2cell(tmpM,dims); % TO CELL
 else
     tmpC =  struct2cell(SG)';
     tmpCC = []; nn = 0;
     for ii = 1:size(tmpC,1)
-       % may have NaNs inside 
-       isnan1 = find(isnan(tmpC{ii,1}(:,1)));
-       if isempty(isnan1)
-           isnan1 = length(tmpC{ii,1})+1; 
-       elseif isnan1(end) ~= length(tmpC{ii,1})
-           isnan1(end+1) = length(tmpC{ii,1})+1;
-       end
-       is = 1;
-       for jj = 1:length(isnan1)
-           nn = nn + 1;
-           ie = isnan1(jj)-1;
-           tmpCC{nn,1} = tmpC{ii,1}(is:ie,:);
-           tmpCC{nn,2} = tmpC{ii,2};
-           is = isnan1(jj)+1;
-       end
+        % may have NaNs inside
+        isnan1 = find(isnan(tmpC{ii,1}(:,1)));
+        if isempty(isnan1)
+            isnan1 = length(tmpC{ii,1})+1;
+        elseif isnan1(end) ~= length(tmpC{ii,1})
+            isnan1(end+1) = length(tmpC{ii,1})+1;
+        end
+        is = 1;
+        for jj = 1:length(isnan1)
+            nn = nn + 1;
+            ie = isnan1(jj)-1;
+            tmpCC{nn,1} = tmpC{ii,1}(is:ie,:);
+            tmpCC{nn,2} = tmpC{ii,2};
+            is = isnan1(jj)+1;
+        end
     end
     if ~isempty(tmpCC)
         tmpC = tmpCC;
-    end  
-    tmpM =  cell2mat(tmpC(:,1)); 
+    end
+    tmpM =  cell2mat(tmpC(:,1));
     if size(tmpM,2) == 3
-       tmpM = tmpM(:,1:2); 
+        tmpM = tmpM(:,1:2);
     end
 end
 % Get current polygon
@@ -178,26 +178,26 @@ for i = 1 : size(tmpC,1)
         end
         if shapefile_3d
             % if 3-D shapefile
-            height = points(:,3); 
-            points = points(:,1:2); 
+            height = points(:,3);
+            points = points(:,1:2);
             type   = tmpC{i,2};
             if strcmp(type,'BA040')
                 type = 'ocean';
             elseif strcmp(type,'BH080')
-                type = 'lake'; 
+                type = 'lake';
             elseif strcmp(type,'BH140')
                 type = 'river';
-            end    
+            end
         else
             height = [];
         end
         In     = tmpInC{i,1}(1:end) ;
     end
     if bbox(1,2) > 180
-       lond = abs(diff(points(:,1)));
-       if any(lond > 350)
-           points(points(:,1) > 180,1) = 0;
-       end
+        lond = abs(diff(points(:,1)));
+        if any(lond > 350)
+            points(points(:,1) > 180,1) = 0;
+        end
     end
     % lets calculate the area of the
     % feature using the shoelace algorithm and decided whether to keep or
@@ -213,7 +213,7 @@ for i = 1 : size(tmpC,1)
             continue;
         end
         % Set as island (with NaN delimiter)
-        k = k + 1 ; 
+        k = k + 1 ;
         new_island{k} = [points; NaN NaN];
         if ~isempty(height)
             new_islandb{k} = [points height; NaN NaN NaN];
@@ -225,7 +225,7 @@ for i = 1 : size(tmpC,1)
             continue;
         end
         % Set as mainland
-        j = j + 1 ; 
+        j = j + 1 ;
         new_main{j} = [points; NaN NaN];
         if ~isempty(height)
             new_mainb{j} = [points height; NaN NaN NaN];
@@ -252,15 +252,15 @@ if exist('polybool','file') || exist('polyshape','file')
             polyi = new_island{kk};
             IA = find(ismembertol(polym,polyi,1e-5,'ByRows',true));
             if length(IA) > 2
-               if exist('polyshape','file')
-                  polyout = union(polyshape(polym),polyshape(polyi));
-                  polym = polyout.Vertices;
-               else
-                  [x,y] = polybool('union',polym(:,1),polym(:,2),...
-                                   polyi(:,1),polyi(:,2));
-                  polym = [x,y];
-               end
-               mergei(kk) = 1;
+                if exist('polyshape','file')
+                    polyout = union(polyshape(polym),polyshape(polyi));
+                    polym = polyout.Vertices;
+                else
+                    [x,y] = polybool('union',polym(:,1),polym(:,2),...
+                        polyi(:,1),polyi(:,2));
+                    polym = [x,y];
+                end
+                mergei(kk) = 1;
             end
         end
         if ~isnan(polym(end,1)); polym(end+1,:) = NaN; end
@@ -270,9 +270,9 @@ if exist('polybool','file') || exist('polyshape','file')
     end
 else
     warning(['no polyshape or polybool available to merge possible ' ...
-             'overlapping of mainland and inner'])
+        'overlapping of mainland and inner'])
 end
-% Remove parts of inner and mainland overlapping with outer 
+% Remove parts of inner and mainland overlapping with outer
 polygon_struct.outer = [polygon_struct.outer; polygon_struct.mainland];
 %% Plot the map
 if plot_on >= 1 && ~isempty(polygon_struct)

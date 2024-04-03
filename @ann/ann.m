@@ -1,7 +1,7 @@
 function anno = ann(data)
 %
-% ANN class 
-% 
+% ANN class
+%
 % Usage:
 %   anno = ann(pts)
 %
@@ -15,7 +15,7 @@ function anno = ann(data)
 %   ksearch:
 %       k-nn search
 %       [idx dst] = ksearch(anno, pt, k, eps, [asm])
-%       
+%
 %       idx - indices of matching points:  (k)x(#points)
 %       dst - square distance of the points
 %
@@ -42,11 +42,11 @@ function anno = ann(data)
 %       anno - active ann object handle
 %       pt   - query point (only one this time, (d)x1 vector)
 %       r    - search radius (_not_ squared)
-%       k    - required k aprox. nearest neighbors. Will return at most k nieghbors 
+%       k    - required k aprox. nearest neighbors. Will return at most k nieghbors
 %              of distance at most r.
 %       eps  - accuracy multiplicative factor
 %       asm  - allow self match flag (optional, default: true)
-%       
+%
 %       note that numel(idx) and numel(dst) = min(k, inr)
 %       inr might be larger than k reflecting how many points are actually
 %       in the search radius.
@@ -86,10 +86,10 @@ function anno = ann(data)
 %				algorithm for approximate nearest neighbor searching,''
 %				5th Ann. ACM-SIAM Symposium on Discrete Algorithms,
 %				1994, 573-582.
-% 
-%   This software is provided under the provisions of the 
+%
+%   This software is provided under the provisions of the
 %   Lesser GNU Public License (LGPL).
-%   This software can be used only for research purposes, you should cite 
+%   This software can be used only for research purposes, you should cite
 %   the aforementioned papers in any resulting publication.
 %
 %

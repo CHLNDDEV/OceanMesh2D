@@ -1,24 +1,23 @@
 % Test size bounds with varying mesh gradation rates.
-clearvars; clc;
 
-addpath('..')
-addpath(genpath('../utilities/'))
-addpath(genpath('../datasets/'))
-addpath(genpath('../m_map/'))
+clearvars; clc; close all
 
 RESO_TOL = 95; %percentage of resolution in bounds
 
-bbox = [166 176;		% lon_min lon_max
-    -48 -40]; 		% lat_min lat_max
-min_el    = 1e3;  		% minimum resolution in meters.
-max_el    = 100e3; 		% maximum resolution in meters.
-max_el_ns = 5e3;        % maximum resolution nearshore in meters.
-grade     = [0.15; 0.25; 0.35]; 		% mesh grade in decimal percent.
-R         = 3;    		% number of elements to resolve feature width.
+bbox = [
+    166 176;    % lon_min lon_max
+    -48 -40     % lat_min lat_max
+    ];
+min_el = 1e3;   % minimum resolution in meters.
+max_el = 100e3; % maximum resolution in meters.
+max_el_ns = 5e3;    % maximum resolution nearshore in meters.
+grade = [0.15; 0.25; 0.35]; % mesh grade in decimal percent.
+R = 3;          % number of elements to resolve feature width.
+
 coastline = 'GSHHS_f_L1';
 gdat = geodata('shp',coastline,'bbox',bbox,'h0',min_el);
 
-for i = 1 : 3 % for each grade
+for i = 1:3 % for each grade
     fh = edgefx('geodata',gdat,...
         'fs',R,'max_el_ns',max_el_ns,...
         'max_el',max_el,'g',grade(i));
@@ -36,13 +35,14 @@ for i = 1 : 3 % for each grade
     d1 = NaN*m1.p(:,1); d2 = NaN*m1.p(:,1);
     d1(B1) = barlen(IB); d2(B2) = barlen(IC);
     reso = min(d1,d2);
-   
-    reso_in_bounds = 100*sum(reso > min_el & reso < max_el)/length(reso); 
+    
+    reso_in_bounds = 100*sum(reso > min_el & reso < max_el)/length(reso);
     if reso_in_bounds < RESO_TOL
-        error(['Resolution bounds does not match for grade ' num2str(grade(i)) ...
-               '. Got ' num2str(reso_in_bounds) '% of vertices with resolution in bounds']); 
+        error(['Resolution bounds does not match for grade %4.2f. '...
+            'Got %4.2f%% of vertices with resolution in bounds.'],...
+            grade(i),reso_in_bounds);
         exit(1)
     end
-    disp(['Passed for ' num2str(grade(i)) '. ' ...
-          num2str(reso_in_bounds) '% of vertices have resolution in bounds']); 
+    fprintf('Passed for %4.2f: %4.2f%% of vertices have resolution in bounds.\n',...
+        grade(i),reso_in_bounds);
 end

@@ -82,7 +82,7 @@ function [vert,conn,tria,tnum] = refine2_om(varargin)
 %   such cases, HFUN must adopt a signature [HH] = HFUN(PP,
 %   A1,A2,...,AN). HFUN must return positive values.
 %
-%   See also SMOOTH2, TRIDIV2, TRICOST, TRIDEMO
+%   See also SMOOTH2D, TRIDIV2, TRICOST, TRIDEMO
 
 %   This routine implements a "multi-refinement" variant of
 %   Delaunay-refinement type mesh-generation. Both standard

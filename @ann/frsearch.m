@@ -1,5 +1,5 @@
 function [idx dst inr] = frsearch(ann, query, r, k, epsl, asm)
-% 
+%
 % kNN FR search
 %   Usage:
 %     [idx dst inr] = frsearch(ann, query, rad, k, asm, eps)
@@ -9,8 +9,8 @@ function [idx dst inr] = frsearch(ann, query, r, k, epsl, asm)
 %   query - (d)x(N) query points
 %   k - number of nearest nieghbors (if points in ann < k than less than k
 %                                    points are returned)
-%   epsl - epsilon search precision 
-%   asm - allow self match flag, if false points with dst = 0 are ignored 
+%   epsl - epsilon search precision
+%   asm - allow self match flag, if false points with dst = 0 are ignored
 %         (defualt is true)
 %
 if nargin == 5
@@ -27,7 +27,7 @@ end
 
 [idx dst inr] = annmex(ann.modes.FRSEARCH, ann.kd_ptr, query, k, epsl, r);
 
-if ~asm 
+if ~asm
     if dst(1) == 0
         dst(1) = [];
         idx(1) = [];

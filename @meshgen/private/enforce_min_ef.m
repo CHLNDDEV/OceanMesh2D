@@ -1,13 +1,13 @@
 function fh = enforce_min_ef(fh)
-% Ensures that the minimum mesh sizing value is always used in the case 
+% Ensures that the minimum mesh sizing value is always used in the case
 % of many edgefxs (e.g., multiscale meshing technique).
 %
-% Loop through edgefunctions to check if they overlap. 
-% If they overlap, find the points that lie within the 
+% Loop through edgefunctions to check if they overlap.
+% If they overlap, find the points that lie within the
 % upper edgefunction and compare them to the ones below.
 %
 % By Coleman Blakely UND, 2020.
-%   Modifications by Keith Roberts USP, 2020. 
+%   Modifications by Keith Roberts USP, 2020.
 
 for kk = length(fh):-1:2
     fh_test = fh{kk};
@@ -50,7 +50,4 @@ for kk = length(fh):-1:2
     end
     % put the new points back in the edgefunction
     fh{kk}.F = griddedInterpolant(X_test,Y_test,test_vals);
-    
-    
-    
 end

@@ -1,12 +1,27 @@
-function obj = Make_f5354( obj, tidalele, tidalvel )
-% obj = Make_f5354( obj, tidalele, tidalvel )
+function obj = Make_f5354( obj, tidalele, tidalvel, min_depth )
+% obj = Make_f5354( obj, tidalele, tidalvel, min_depth )
 % Takes a msh object and interpolates the TPXO solutions into the sponge
 % tidalele and tidalvel are the filenames of TPXO ele and vel solutions
 % respectively. Puts the result into the f5354 struct of the msh obj.   
 %
+%    min_depth [optional]: minimum depth to use for dividing the TPXO
+%                          transport values by to get the velocity. 
+%                          25-m by default.
+% 
+% Examples:
+% 
+% All constituents in one file for TPXO coarse solutions:
+% m = Make_f5354( m, 'h_tpxo9.v1.nc', 'u_tpxo9.v1.nc' );
+%
+% Using ** wildcard for constituent name for the TPXO atlas: 
+% m = Make_f5343( m, 'h_**_tpxo9_atlas_30_v5.nc', ...
+%                    'u_**_tpxo9_atlas_30_v5.nc');
+%
 % Requires: m_map for projection 
 %
 % Created by William Pringle July 11 2018
+% Updated by William Pringle June 20, 2023 for min_depth choice and update
+% to the help with examples
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % check entry
@@ -17,6 +32,10 @@ end
 if isempty(obj.f15)
    error(['The msh object must have the f15 struct populated '...
           'with tidal boundary information']) 
+end
+
+if nargin < 4
+    min_depth = 25;
 end
 
 % if we are using wildcard for each constituent in list of files 
@@ -74,7 +93,7 @@ end
 if min(Ly) == 1
     [lonv,latv] = meshgrid(lonv,latv); 
 end
-if max(obj.p(:,1)) <= 180
+if min(obj.p(:,1)) < 0
     % change longitude to -180-180 format if msh is in that format
     lon(lon > 180) = lon(lon > 180) - 360;
     lonu(lonu > 180) = lonu(lonu > 180) - 360;
@@ -154,11 +173,10 @@ for j = 1:obj.f5354.nfreq
         elseif loop == 2
             [amp_u, phs_u, amp_v, phs_v] = interp_u(tidalvel,k,Lx,Ly,...
                                        Iu,Iv,Kdu,Kdv,b_x,b_y,xu,xv,yu,yv);
-            % make amp into m/s by dividing by depth (limited to 50 m to
-            % avoid issues with nearshore velocities that could cause
-            % instabilities
-            amp_u = amp_u./max(50,obj.b(nodes'));
-            amp_v = amp_v./max(50,obj.b(nodes'));
+            % make amp into m/s by dividing by depth (limited to avoid high
+            % values in nearshore depths)
+            amp_u = amp_u./max(min_depth,obj.b(nodes'));
+            amp_v = amp_v./max(min_depth,obj.b(nodes'));
             obj.f5354.vel(j,:,:) = [amp_u'; phs_u'; amp_v'; phs_v']; 
         end
     end

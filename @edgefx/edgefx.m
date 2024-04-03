@@ -26,16 +26,16 @@ classdef edgefx
     %      [defval = 0; % placeholder value if arg is not passed.]
     %
     %      The 'wl','slp','max_el','g' options inputs can be scalars to apply
-    %      the parameter globally or they can be arrays to bound each parameter 
+    %      the parameter globally or they can be arrays to bound each parameter
     %      value within topographic elevation bounds, using the following stucture:
     %      [parameter_value1 z_min1 z_max1;
     %       parameter_value2 z_min2 z_max2;
     %       ...
     %       parameter_valuen z_minn z_maxn];
     %
-    %       where, z_min is the minimum elevation bound and z_max is the maximum elevation bound. 
+    %       where, z_min is the minimum elevation bound and z_max is the maximum elevation bound.
     %        - similar to axis bounds on matlab plots such as caxis, xlim, ylim, ...
-    %        - z is oriented same as the DEM, i.e., +ve value of z is above datum (overland) 
+    %        - z is oriented same as the DEM, i.e., +ve value of z is above datum (overland)
     %
     %   This program is free software: you can redistribute it and/or modify
     %   it under the terms of the GNU General Public License as published by
@@ -53,13 +53,13 @@ classdef edgefx
         nx % number of x coords
         ny % number of y coords
         x0y0 % 2-tuple of bot. left of domain
-
+        
         lmsl % lmsl boundary as a geodata class
-
+        
         bbox
         boubox
         used % edge function keywords
-
+        
         dis  % percent the edgelength changes in space
         fd   % distance function
         hhd  % matrix containing distance fx values.
@@ -75,44 +75,44 @@ classdef edgefx
         AngOfRe % Angle of reslope
         g    % max allowable grade of mesh.
         dt   % theoretical simulateable timestep
-
+        
         F    % edge function in gridded interpolant format.
-
+        
         h0    % min. resolution of edgelength function in meters
         gridspace % edgelength function resolution in WGS84 degrees.
         max_el % max. resolution in domain
         max_el_ns % max. resolution +-<0.01 from shoreline
         boudist % distance in WGS84 degrees to boundary of mesh
-
+        
         min_el_ch % min. element size along the channel
         Channels % cell array of streams.
-
+        
     end
-
+    
     methods
-
+        
         %% Class constructor/pass it a shape class and edgefx params.
         function obj = edgefx(varargin)
             % Check for m_map dir
             M_MAP_EXISTS=0 ;
             if exist('m_proj','file')==2
-              M_MAP_EXISTS=1 ;
+                M_MAP_EXISTS=1 ;
             end
             if M_MAP_EXISTS~=1
-              error('Where''s m_map? Chief, you need to read the user guide')
+                error('Where''s m_map? Chief, you need to read the user guide')
             end
-
+            
             % Check for utilties dir
             UTIL_DIR_EXISTS=0 ;
             if exist('inpoly.m','file')
-              UTIL_DIR_EXISTS=1 ;
+                UTIL_DIR_EXISTS=1 ;
             end
             if UTIL_DIR_EXISTS~=1
-              error('Where''s the utilities directory? Chief, you need to read the user guide')
+                error('Where''s the utilities directory? Chief, you need to read the user guide')
             end
-
+            
             p = inputParser;
-
+            
             defval = 0; % placeholder value if arg is not passed.
             % add name/value pairs
             addOptional(p,'dis',defval);
@@ -131,7 +131,7 @@ classdef edgefx
             addOptional(p,'fl',defval);
             addOptional(p,'Channels',defval);
             addOptional(p,'h0',defval);
-
+            
             % parse the inputs
             parse(p,varargin{:});
             % store the inputs as a struct
@@ -144,7 +144,7 @@ classdef edgefx
             fields = fieldnames(inp);
             % loop through and determine which args were passed.
             % also, assign reasonable default values if some options were
-
+            
             % not assigned.
             for i = 1 : numel(fields)
                 type = fields{i};
@@ -208,7 +208,7 @@ classdef edgefx
                         end
                 end
             end
-
+            
             % kjr april 28, 2018-form mesh size grid on-the-fly
             obj.fd       = @dpoly;
             obj.x0y0     = feat.x0y0 + sqrt(eps);
@@ -217,7 +217,7 @@ classdef edgefx
             obj.ny       = ceil(abs(feat.x0y0(2)-feat.bbox(2,2))/obj.gridspace);
             obj.bbox     = feat.bbox;
             obj.boubox   = feat.boubox;
-
+            
             % WJP: Do Mercator projection for calculating
             % distances from shoreline
             if feat.bbox(1,2) > 180
@@ -280,7 +280,7 @@ classdef edgefx
                 end
             end
         end
-
+        
         %% Traditional distance function, linear distance from coastline.
         function obj = distfx(obj,feat)
             [d,obj] = get_dis(obj,feat);
@@ -301,7 +301,7 @@ classdef edgefx
             % distance function!
             [d,obj] = get_dis(obj,feat);
             obj.boudist = d ;
-
+            
             [xg,yg] = CreateStructGrid(obj);
             % use a harvestine assumption
             dx = obj.h0*cosd(yg(1,:)); % for gradient function
@@ -353,7 +353,7 @@ classdef edgefx
                 x_kp( prune ) = [];
                 y_kp( prune ) = [];
             end
-
+            
             % Now get the feature size along the coastline
             if length(x_kp) > 12
                 % Use KD-tree
@@ -397,30 +397,30 @@ classdef edgefx
             end
             clear x_kp y_kp d d_fs dPOS xg yg
         end
-
+        
         function [d,obj] = get_dis(obj,feat)
             % Function used by distfx and featfx to return distance
             % and make the Fdis interpolant
             d = feval(obj.fd,obj,feat);
             d = reshape(d,obj.nx,[]);
         end
-
+        
         %% Wavelength edge function.
         function obj = wlfx(obj,feat)
-
+            
             % interpolate DEM's bathy linearly onto our edgefunction grid.
             [xg,yg] = CreateStructGrid(obj);
             tmpz    = feat.Fb(xg,yg);
             if ~isempty(feat.Fb2)
-               tmpz2 = feat.Fb2(xg,yg);
-               tmpz(isnan(tmpz)) = tmpz2(isnan(tmpz));
-               clear tmpz2
+                tmpz2 = feat.Fb2(xg,yg);
+                tmpz(isnan(tmpz)) = tmpz2(isnan(tmpz));
+                clear tmpz2
             end
             % Initialise wld
             obj.wld = NaN([obj.nx,obj.ny]);
             grav    = 9.807;
             period  = 12.42*3600; % M2 period in seconds
-
+            
             for param = obj.wl'
                 if numel(param)==1
                     % no bounds specified.
@@ -441,17 +441,17 @@ classdef edgefx
             end
             clearvars tmpz xg yg;
         end
-
-      %% Topographic length scale/slope edge function.
+        
+        %% Topographic length scale/slope edge function.
         function obj = slpfx(obj,feat)
-
+            
             [xg,yg] = CreateStructGrid(obj);
-
+            
             tmpz    = feat.Fb(xg,yg);
             if ~isempty(feat.Fb2)
-               tmpz2 = feat.Fb2(xg,yg);
-               tmpz(isnan(tmpz)) = tmpz2(isnan(tmpz));
-               clear tmpz2
+                tmpz2 = feat.Fb2(xg,yg);
+                tmpz(isnan(tmpz)) = tmpz2(isnan(tmpz));
+                clear tmpz2
             end
             tmpz(tmpz > 50) = 50; % ensure no larger than 50 m above land
             % use a Harvestine assumption
@@ -500,7 +500,7 @@ classdef edgefx
                     tmpz_f = tmpz_f + tmpz_ft;
                 end
             end
-
+            
             % Rossby radius of deformation filter
             if filtit == 1
                 tic
@@ -560,10 +560,10 @@ classdef edgefx
                             end
                             if mult == 2
                                 tmpz_ft = filt2(tmpz(xr,yr),...
-                                           [dxx dy],dy*2.01,'lp');
+                                    [dxx dy],dy*2.01,'lp');
                             else
                                 tmpz_ft = filt2(tmpz(xr,yr),...
-                                           [dxx dy],dy*mult,'lp');
+                                    [dxx dy],dy*mult,'lp');
                             end
                             % delete the padded region
                             tmpz_ft(1:find(xr == 1,1,'first')-1,:) = [];
@@ -616,7 +616,7 @@ classdef edgefx
                 bs      = sqrt(bx.^2 + by.^2); % get overall slope
             end
             clear bx by tmpz_f tmpz_ft
-
+            
             % Allow user to specify depth ranges for slope parameter.
             obj.slpd = NaN([obj.nx,obj.ny]);
             for param = obj.slp'
@@ -640,12 +640,12 @@ classdef edgefx
             end
             clearvars tmpz xg yg
         end
-
+        
         %% Channel edgefunction
         function obj = chfx(obj,feat)
-
+            
             ang_of_reslope=obj.AngOfRe ;      % Estimate width of channel using tangent of this angle times depth.
-
+            
             % STEP 1: Calculate the width of each channel using a v-shape approx to
             % channel's cross sectional area.
             for jj = 1:length(obj.Channels)
@@ -655,9 +655,9 @@ classdef edgefx
                 radii{jj}=(tand(ang_of_reslope)*max(1,-dp{jj}));         % estimate of channel's width in degrees at x,y locations ASSUMING angle of reslope
                 tempbb{jj} = feat.boubox;
             end
-
+            
             [xg,yg] = CreateStructGrid(obj);
-
+            
             % STEP 2: For each channel point, set the resolution around a
             % neighborhood of points as |h|/ch where ch is non-dim # between 0.5-1.5
             obj.chd = NaN([obj.nx,obj.ny]);
@@ -665,7 +665,7 @@ classdef edgefx
             % partially enclosed in boubox
             isin = cellfun(@inpolysum,pts,tempbb);
             pts(isin==0) = []; radii(isin==0)= [];
-
+            
             %figure; plot(xg,yg,'k.');
             tic
             tidx = [];
@@ -692,23 +692,23 @@ classdef edgefx
             toc
             tmpz = feat.Fb(xg(tidx),yg(tidx));
             if ~isempty(feat.Fb2)
-               tmpz2 = feat.Fb2(xg(tidx),yg(tidx));
-               tmpz(isnan(tmpz)) = tmpz2(isnan(tmpz));
-               clear tmpz2
+                tmpz2 = feat.Fb2(xg(tidx),yg(tidx));
+                tmpz(isnan(tmpz)) = tmpz2(isnan(tmpz));
+                clear tmpz2
             end
             dp = max(1,-tmpz);
             obj.chd(tidx) = dp/obj.ch;
             obj.chd(obj.chd < obj.min_el_ch) = obj.min_el_ch;
             clearvars Fb pts dp radii tempbb xg yg
         end
-
-
+        
+        
         %% General function to plot
         function plot(obj,type)
             % form grid here.
             % working out plottable size
             [xgrid,ygrid] = CreateStructGrid(obj);
-
+            
             if nargin == 2
                 switch type
                     case('dis')
@@ -733,7 +733,7 @@ classdef edgefx
                 val = obj.F.Values;
                 tt = 'Total EdgeLength Function';
             end
-
+            
             % working out stride
             mem = inf; stride = obj.gridspace;
             while mem > 1
@@ -746,7 +746,7 @@ classdef edgefx
             stride = ceil(stride/obj.gridspace);
             I = [1:stride:size(xgrid,1)];
             J = [1:stride:size(xgrid,2)];
-
+            
             figure;
             m_proj('merc',...
                 'long',[obj.bbox(1,1) obj.bbox(1,2)],...
@@ -758,7 +758,7 @@ classdef edgefx
             % 'yaxislocation','left','fontsize',7);
             title(tt);
         end
-
+        
         %% Finalize edge function
         % Add grading, cfl limiting and bound enforcement.
         function obj = finalize(obj,feat)
@@ -792,12 +792,12 @@ classdef edgefx
                         error('FATAL:  Could not finalize edge function');
                 end
             end
-
+            
             [hh_m] = min(hh,[],3);
             clearvars hh
-
+            
             [xg,yg] = CreateStructGrid(obj);
-
+            
             % Before grading, ensure edgefx reflects the spacing in
             % proximity to constraints.
             if ~isempty(feat.weirs)
@@ -805,7 +805,7 @@ classdef edgefx
                 % if spacing is negative -999 then it will use the mesh
                 % size function to determine the spacing.
                 %Ftmp = griddedInterpolant(xg,yg,hh_m,'linear','nearest');
-
+                
                 for i =1:length(feat.weirs)
                     if iscell(feat.weirs)
                         % get spacing in meters along the face of the weir
@@ -833,43 +833,43 @@ classdef edgefx
                     end
                 end
             end
-
-
+            
+            
             % enforce all mesh resolution bounds,grade and enforce the CFL in planar metres
             if ~isinf(obj.max_el_ns) && ~isempty(obj.boudist)
                 nearshore = abs(obj.boudist) < 2/3*obj.h0;
                 hh_m(nearshore & hh_m > obj.max_el_ns) = obj.max_el_ns;
             end
             hh_m(hh_m < obj.h0 ) = obj.h0;
-
+            
             % Compute tmpz if necessary
             if length(obj.max_el) > 1 || length(obj.g) > 1 || obj.dt(1) >= 0
                 tmpz    = feat.Fb(xg,yg);
                 if ~isempty(feat.Fb2)
-                   tmpz2 = feat.Fb2(xg,yg);
-                   tmpz(isnan(tmpz)) = tmpz2(isnan(tmpz));
-                   clear tmpz2
+                    tmpz2 = feat.Fb2(xg,yg);
+                    tmpz(isnan(tmpz)) = tmpz2(isnan(tmpz));
+                    clear tmpz2
                 end
             end
-
+            
             for param = obj.max_el'
                 if numel(param)==1 && param~=0
                     mx   = obj.max_el(1);
                     limidx = hh_m > mx | isnan(hh_m);
-
+                    
                     hh_m( limidx ) = mx;
                 else
                     mx  = param(1);
                     z_min = param(2);
                     z_max = param(3);
-
+                    
                     limidx = (tmpz >= z_min & tmpz < z_max) & ...
-                             (hh_m > mx | isnan(hh_m));
-
+                        (hh_m > mx | isnan(hh_m));
+                    
                     hh_m( limidx ) = mx;
                 end
             end
-
+            
             % Make sure this is called before releasing memory...
             if obj.dt(1) == 0
                 % Find min allowable dt based on dis or fs function
@@ -879,22 +879,22 @@ classdef edgefx
                     hh_d = obj.fsd;
                 else
                     error(['FATAL: cannot use automatic timestep ' ...
-                           'limiter without specifying dis or fs option']);
+                        'limiter without specifying dis or fs option']);
                 end
             end
-
+            
             obj = release_memory(obj) ;
-
+            
             disp('Relaxing the mesh size gradient');
             if all(abs(obj.bbox(1,:)) == 180)
                 % for global mesh make it cyclical
                 hh_m = [hh_m(end,:); hh_m; hh_m(1,:)];
             end
             hfun = reshape(hh_m',[numel(hh_m),1]);
-
+            
             dx = obj.h0*cosd(min(yg(1,:),85)); % for gradient function
             dy = obj.h0;                       % for gradient function
-
+            
             % make g a function of space
             dmy     = xg*0 ;
             for param = obj.g'
@@ -905,9 +905,9 @@ classdef edgefx
                     lim  = param(1);
                     z_min  = param(2);
                     z_max  = param(3);
-
+                    
                     limidx = (tmpz >= z_min & tmpz < z_max) ;
-
+                    
                     dmy( limidx ) = lim;
                 end
             end
@@ -917,7 +917,7 @@ classdef edgefx
             end
             fdfdx = reshape(dmy',[numel(dmy),1]);
             clearvars dmy;
-
+            
             [hfun,flag] = limgradStruct(obj.ny,dx,dy,hfun,...
                 fdfdx,sqrt(length(hfun)));
             if flag == 1
@@ -934,7 +934,7 @@ classdef edgefx
                 hh_m = hh_m(2:end-1,:);
                 hh_m(end,:) = hh_m(1,:);
             end
-
+            
             % Limit CFL if dt >= 0, dt = 0 finds dt automatically.
             if obj.dt(1) >= 0
                 if isempty(feat.Fb)
@@ -946,13 +946,13 @@ classdef edgefx
                 % Limit the minimum depth to 1 m (ignore overland)
                 tmpz(tmpz > - 1) = -1;
                 u = sqrt(grav*abs(tmpz)) + sqrt(grav./abs(tmpz));
-
+                
                 % Desired timestep to bound edgefx
                 desDt = obj.dt(1);
                 if isnan(desDt)
                     disp('No timestep enforcement due to no distance function')
                 end
-
+                
                 % Determine Courant min. and max. bounds
                 if length(obj.dt) < 2
                     % default behavior if no bounds are passed
@@ -974,53 +974,53 @@ classdef edgefx
                 else
                     error('Length of dt name-value pair should be <=3')
                 end
-
+                
                 if minCr > maxCr
                     error('MinCr is > MaxCr, please switch order in dt name value call')
                 end
-
+                
                 % Automatic timestep selection option (for ADCIRC models)
                 if desDt == 0
                     hh_d(hh_d < obj.h0) = obj.h0;
                     obj.dt = min(min(maxCr*hh_d./u));
                     desDt  = obj.dt;
                 end
-
+                
                 % Enforcement of Courant bounds in mesh size function
                 fprintf(1, [ ...
                     'Enforcing timestep of ',num2str(desDt),' seconds ', ...
                     'with Courant number bounds of ',num2str(minCr),' to ',num2str(maxCr),'\n', ...
                     ] ) ;
-
-
+                
+                
                 Cr = (desDt*u)./hh_m; % Courant number for given desDt for mesh size variations
-
+                
                 % resolution that meets max. Cr. criteria for desDt
                 dxn_min = u*desDt/maxCr;
                 % resolution that meets min. Cr. criteria for desDt
                 dxn_max = u*desDt/minCr;
-
+                
                 % resolve min. Cr violations
                 hh_m( Cr <= minCr) = dxn_max( Cr <= minCr); %--in planar metres
-
+                
                 % resolve max. Cr violations
                 hh_m( Cr > maxCr) = dxn_min( Cr > maxCr);   %--in planar metres
-
+                
                 clear dxn_min dxn_max Cr
                 clear u hh_d tmpz
             end
-
-
+            
+            
             obj.F = griddedInterpolant(xg,yg,hh_m,'linear','nearest');
-
+            
             clearvars xg yg
         end
-
+        
         function [xg,yg] = CreateStructGrid(obj)
             [xg,yg] = ndgrid(obj.x0y0(1) + (0:obj.nx-1)'*obj.gridspace, ...
                 obj.x0y0(2) + (0:obj.ny-1)'*obj.gridspace);
         end
-
+        
         function obj = release_memory(obj)
             % releases heavy components from data structures
             if isa(obj,'edgefx')
@@ -1030,46 +1030,46 @@ classdef edgefx
                 if ~isempty(obj.fsd)
                     obj.fsd = [];
                 end
-
+                
                 if ~isempty(obj.wld)
                     obj.wld = [];
                 end
-
+                
                 if ~isempty(obj.slpd)
                     obj.slpd = [];
                 end
-
+                
                 if ~isempty(obj.chd)
                     obj.chd = [];
                 end
-
+                
                 if ~isempty(obj.ch)
                     obj.ch = [];
                 end
-
+                
                 if ~isempty(obj.hhd)
                     obj.hhd = [];
                 end
-
+                
                 if ~isempty(obj.boudist)
                     obj.boudist = [];
                 end
-
+                
                 if ~isempty(obj.Channels)
                     obj.Channels = [];
                 end
-
+                
                 if ~isempty(obj.ch)
-                   obj.ch = [];
+                    obj.ch = [];
                 end
-
+                
                 if ~isempty(obj.boudist)
-                   obj.boudist = [];
+                    obj.boudist = [];
                 end
             end
         end
-
-
+        
+        
     end
-
+    
 end

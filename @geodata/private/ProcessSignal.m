@@ -4,31 +4,31 @@ function Processed=ProcessSignal(x,y,DerivativeMode,w,type,ends,Sharpen,factor1,
 % has the same shape as x, regardless of the shape of y.
 % Version 1.0, April, 2013.  Tom O'Haver (toh@umd.edu)
 %
-% 'DerivativeMode' determines the derivative order (O, 1, 2, 3, 4, 5); 
+% 'DerivativeMode' determines the derivative order (O, 1, 2, 3, 4, 5);
 %    See http://terpconnect.umd.edu/~toh/spectrum/Differentiation.html
 %
-% 'w' is the smooth width; 
+% 'w' is the smooth width;
 % 'type' determines the smooth mode:
 %        If type=0, the signal is not smoothed.
-%        If type=1, rectangular (sliding-average or boxcar) 
+%        If type=1, rectangular (sliding-average or boxcar)
 %        If type=2, triangular (2 passes of sliding-average)
 %        If type=3, pseudo-Gaussian (3 passes of sliding-average)
-%        If type=4, Savitzky-Golay smooth 
+%        If type=4, Savitzky-Golay smooth
 % 'ends' controls how the "ends" of the signal (the first w/2 points and the last w/2 points) are handled.
 %        If ends=0, the ends are zeroed
-%        If ends=1, the ends are smoothed with progressively 
+%        If ends=1, the ends are smoothed with progressively
 %        smaller smooths the closer to the end.
 % See http://terpconnect.umd.edu/~toh/spectrum/Smoothing.html
 %
 % 'Sharpen' controls peak sharpening (resolution enhancement). 0=off; 1=on.
 %   The sharpening str5ength is controled by the factor1 and factor2 The
 %   optimum values depend on the peak shape and width. For details, see
-%   http://terpconnect.umd.edu/~toh/spectrum/InteractiveResEnhance.htm). 
-%  
+%   http://terpconnect.umd.edu/~toh/spectrum/InteractiveResEnhance.htm).
+%
 % 'SlewRate' sets the maximum slew rate (maximum rate of change of the
-%    signal when it is non-zero (useful for reducing the effect of large 
+%    signal when it is non-zero (useful for reducing the effect of large
 %    steps in the background).
-% 
+%
 % 'MedianWidth' implements a median filter when it is non-zero, which
 %    replaces each point in the signal with the median (rather than the
 %    average) of MedianWidth adjacent points, cuseful for dealing with narrow
@@ -70,12 +70,12 @@ if type==4,
     if w<2,w=3;end
     if DerivativeMode>4,
         if w<5,w=5;end
-    end 
+    end
     % The polynomial order, 2+DerivativeMode, must be less than the
-    % frame size, 2*w+1, and 2*w+1 must be odd.  
-        Processed=savitzkyGolayFilt(y,2+DerivativeMode,DerivativeMode,2*w+1);
-        if DerivativeMode==1,Processed=-Processed;end
-        if DerivativeMode==3,Processed=-Processed;end;
+    % frame size, 2*w+1, and 2*w+1 must be odd.
+    Processed=savitzkyGolayFilt(y,2+DerivativeMode,DerivativeMode,2*w+1);
+    if DerivativeMode==1,Processed=-Processed;end
+    if DerivativeMode==3,Processed=-Processed;end;
 else
     switch DerivativeMode
         case 0
@@ -103,7 +103,7 @@ else
     end
 end
 if Sharpen,
-    type=4; 
+    type=4;
     if w<3;w=3;end
     Processed=enhance(x,Processed,factor1,factor2,w,type);
 end
@@ -112,10 +112,10 @@ Processed=reshape(Processed,size(x));
 function Enhancedsignal=enhance(x,signal,factor1,factor2,SmoothWidth,type)
 % Resolution enhancement function by even derivative method. The
 % arguments factor1 and factor 2 are 2nd and 4th derivative weighting
-% factors. Larger values of factor1 and factor2 will reduce the 
-% peak width but will cause artifacts in the baseline near 
-% the peak.  Adjust the factors for the the best compromise. 
-% Use minimum smooth width needed to reduce excess noise. 
+% factors. Larger values of factor1 and factor2 will reduce the
+% peak width but will cause artifacts in the baseline near
+% the peak.  Adjust the factors for the the best compromise.
+% Use minimum smooth width needed to reduce excess noise.
 datasize=size(signal);
 if datasize(1)>datasize(2),signal=signal';end
 if type==4,
@@ -135,8 +135,8 @@ function d=secderiv(x,a)
 n=length(a);
 d=zeros(size(a));
 for j = 2:n-2;
-  x1=x(j-1);x2=x(j);x3=x(j+1);
-  d(j)=((a(j+1)-a(j))./(x3-x2) - (a(j)-a(j-1))./(x2-x1))./((x3-x1)/2);
+    x1=x(j-1);x2=x(j);x3=x(j+1);
+    d(j)=((a(j+1)-a(j))./(x3-x2) - (a(j)-a(j-1))./(x2-x1))./((x3-x1)/2);
 end
 d(1)=d(2);
 d(n)=d(n-1);
@@ -149,22 +149,22 @@ d=zeros(size(y));
 d(1)=(y(2)-y(1))./(x(2)-x(1));
 d(n)=(y(n)-y(n-1))./(x(n)-x(n-1));
 for j = 2:n-1;
-  d(j)=(y(j+1)-y(j-1)) ./ (1.*(x(j+1)-x(j-1)));
+    d(j)=(y(j+1)-y(j-1)) ./ (1.*(x(j+1)-x(j-1)));
 end
 % ----------------------------------------------------------------------
 function SmoothY=fastsmooth(Y,w,type,ends)
-% fastbsmooth(Y,w,type,ends) smooths vector Y with smooth 
+% fastbsmooth(Y,w,type,ends) smooths vector Y with smooth
 %  of width w. Version 2.0, May 2008.
 % The argument "type" determines the smooth type:
-%   If type=1, rectangular (sliding-average or boxcar) 
+%   If type=1, rectangular (sliding-average or boxcar)
 %   If type=2, triangular (2 passes of sliding-average)
 %   If type=3, pseudo-Gaussian (3 passes of sliding-average)
-% The argument "ends" controls how the "ends" of the signal 
+% The argument "ends" controls how the "ends" of the signal
 % (the first w/2 points and the last w/2 points) are handled.
-%   If ends=0, the ends are zero.  (In this mode the elapsed 
+%   If ends=0, the ends are zero.  (In this mode the elapsed
 %     time is independent of the smooth width). The fastest.
-%   If ends=1, the ends are smoothed with progressively 
-%     smaller smooths the closer to the end. (In this mode the  
+%   If ends=1, the ends are smoothed with progressively
+%     smaller smooths the closer to the end. (In this mode the
 %     elapsed time increases with increasing smooth widths).
 % fastsmooth(Y,w,type) smooths with ends=0.
 % fastsmooth(Y,w) smooths with type=1 and ends=0.
@@ -174,16 +174,16 @@ function SmoothY=fastsmooth(Y,w,type,ends)
 %  T. C. O'Haver, May, 2008.
 if nargin==2, ends=0; type=1; end
 if nargin==3, ends=0; end
-  switch type
+switch type
     case 0
-       SmoothY=sa(Y,w,ends);  
+        SmoothY=sa(Y,w,ends);
     case 1
-       SmoothY=sa(Y,w,ends);
-    case 2   
-       SmoothY=sa(sa(Y,w,ends),w,ends);
+        SmoothY=sa(Y,w,ends);
+    case 2
+        SmoothY=sa(sa(Y,w,ends),w,ends);
     case 3
-       SmoothY=sa(sa(sa(Y,w,ends),w,ends),w,ends);
-  end
+        SmoothY=sa(sa(sa(Y,w,ends),w,ends),w,ends);
+end
 function SmoothY=sa(Y,smoothwidth,ends)
 w=round(smoothwidth);
 SumPoints=sum(Y(1:w));
@@ -191,25 +191,25 @@ s=zeros(size(Y));
 halfw=round(w/2);
 L=length(Y);
 for k=1:L-w,
-   s(k+halfw-1)=SumPoints;
-   SumPoints=SumPoints-Y(k);
-   SumPoints=SumPoints+Y(k+w);
+    s(k+halfw-1)=SumPoints;
+    SumPoints=SumPoints-Y(k);
+    SumPoints=SumPoints+Y(k+w);
 end
 s(k+halfw)=sum(Y(L-w+1:L));
 SmoothY=s./w;
 % Taper the ends of the signal if ends=1.
-  if ends==1,
+if ends==1,
     startpoint=(smoothwidth + 1)/2;
     SmoothY(1)=(Y(1)+Y(2))./2;
     for k=2:startpoint,
-       SmoothY(k)=mean(Y(1:(2*k-1)));
-       SmoothY(L-k+1)=mean(Y(L-2*k+2:L));
+        SmoothY(k)=mean(Y(1:(2*k-1)));
+        SmoothY(L-k+1)=mean(Y(L-2*k+2:L));
     end
     SmoothY(L)=(Y(L)+Y(L-1))./2;
-  end% ----------------------------------------------------------------------
+end% ----------------------------------------------------------------------
 function y=savitzkyGolayFilt(x,N,DN,F,W,DIM)
 %savitzkyGolayFilt Savitzky-Golay Filtering.
-%   savitzkyGolayFilt(X,N,DN,F) filters the signal X using a Savitzky-Golay 
+%   savitzkyGolayFilt(X,N,DN,F) filters the signal X using a Savitzky-Golay
 %   (polynomial) filter.  The polynomial order, N, must be less than the
 %   frame size, F, and F must be odd.  DN specifies the differentiation
 %   order (DN=0 is smoothing). For a DN higher than zero, you'll have to
@@ -249,13 +249,13 @@ if N > F-1, error(generatemsgid('InvalidRange'),'The Polynomial order must be le
 if DN > N, error(generatemsgid('InvalidRange'),'The Differentiation order must be less than or equal to the Polynomial order.'), end
 
 if nargin < 5 || isempty(W)
-   % No weighting matrix, make W an identity
-   W = ones(F,1);
+    % No weighting matrix, make W an identity
+    W = ones(F,1);
 else
-   % Check for right length of W
-   if length(W) ~= F, error(generatemsgid('InvalidDimensions'),'The weight vector must be of the same length as the frame length.'),end
-   % Check to see if all elements are positive
-   if min(W) <= 0, error(generatemsgid('InvalidRange'),'All the elements of the weight vector must be greater than zero.'), end
+    % Check for right length of W
+    if length(W) ~= F, error(generatemsgid('InvalidDimensions'),'The weight vector must be of the same length as the frame length.'),end
+    % Check to see if all elements are positive
+    if min(W) <= 0, error(generatemsgid('InvalidRange'),'All the elements of the weight vector must be greater than zero.'), end
 end
 
 if nargin < 6, DIM = []; end
@@ -265,18 +265,18 @@ pp = fix(-F./2):fix(F./2);
 B = savitzkyGolay(pp,N,DN,pp,W);
 
 if ~isempty(DIM) && DIM > ndims(x)
-	error(generatemsgid('InvalidDimensions'),'Dimension specified exceeds the dimensions of X.')
+    error(generatemsgid('InvalidDimensions'),'Dimension specified exceeds the dimensions of X.')
 end
 
 % Reshape X into the right dimension.
 if isempty(DIM)
-	% Work along the first non-singleton dimension
-	[x, nshifts] = shiftdim(x);
+    % Work along the first non-singleton dimension
+    [x, nshifts] = shiftdim(x);
 else
-	% Put DIM in the first dimension (this matches the order 
-	% that the built-in filter function uses)
-	perm = [DIM,1:DIM-1,DIM+1:ndims(x)];
-	x = permute(x,perm);
+    % Put DIM in the first dimension (this matches the order
+    % that the built-in filter function uses)
+    perm = [DIM,1:DIM-1,DIM+1:ndims(x)];
+    x = permute(x,perm);
 end
 
 if size(x,1) < F, error(generatemsgid('InvalidDimensions'),'The length of the input must be >= frame length.'), end
@@ -298,9 +298,9 @@ y(end-(F+1)/2+2:end,:) = fliplr(B(:,1:(F-1)/2)).'*flipud(x(end-(F-1):end,:));
 
 % Convert Y to the original shape of X
 if isempty(DIM)
-	y = shiftdim(y, -nshifts);
+    y = shiftdim(y, -nshifts);
 else
-	y = ipermute(y,perm);
+    y = ipermute(y,perm);
 end
 % ----------------------------------------------------------------------
 function [fc, df] = savitzkyGolay(x,n,dn,x0,W,flag)
@@ -310,7 +310,7 @@ function [fc, df] = savitzkyGolay(x,n,dn,x0,W,flag)
 %       The Savitzky-Golay smoothing/differentiation filter (i.e., the
 %       polynomial smoothing/differentiation filter, or  the least-squares
 %       smoothing/differentiation filters) optimally fit a set of data
-%       points to polynomials of different degrees. 
+%       points to polynomials of different degrees.
 %       See for details in Matlab Documents (help sgolay). The sgolay
 %       function in Matlab can deal with only symmetrical and uniformly
 %       spaced data of even number.
@@ -325,11 +325,11 @@ function [fc, df] = savitzkyGolay(x,n,dn,x0,W,flag)
 % Usage:
 %       [fc,df] = savitzkyGolay(x,n,dn,x0,flag)
 %   input:
-%       x    = the original data point, e.g., -5:5 
+%       x    = the original data point, e.g., -5:5
 %       n    = polynomial order
 %       dn   = differentation order (0=smoothing),  default=0
 %       x0   = estimation point, can be a vector    default=0
-%       W    = weight vector, can be empty          
+%       W    = weight vector, can be empty
 %              must have same length as x0          default=identity
 %       flag = numerical(0) or symbolical(1),       default=0
 %
@@ -338,7 +338,7 @@ function [fc, df] = savitzkyGolay(x,n,dn,x0,W,flag)
 %       df   = differentiation filters (G output of sgolay).
 % Notes:
 % 1.    x can be arbitrary, e.g., odd number or even number, symmetrical or
-%       nonsymmetrical, uniformly spaced or nonuniformly spaced, etc.       
+%       nonsymmetrical, uniformly spaced or nonuniformly spaced, etc.
 % 2.    x0 can be arbitrary, e.g., the initial point, the end point, etc.
 % 3.    Either numerical results or symbolical results can be obtained.
 % Example:
@@ -347,7 +347,7 @@ function [fc, df] = savitzkyGolay(x,n,dn,x0,W,flag)
 %       sgsdf([-3:3],2,0,-3,[],1)
 %       sgsdf([-3:3],2,1,2,[],1)
 %       sgsdf([-2:3],2,1,1/2,[],1)
-%       sgsdf([-5:2:5],2,1,0,[],1)     
+%       sgsdf([-5:2:5],2,1,0,[],1)
 %       sgsdf([-1:1 2:2:8],2,0,0,[],1)
 % Author:
 %       Diederick C. Niehorster <dcniehorster@hku.hk> 2011-02-05
@@ -362,7 +362,7 @@ function [fc, df] = savitzkyGolay(x,n,dn,x0,W,flag)
 %       remains.
 %       Jianwen Luo <luojw@bme.tsinghua.edu.cn, luojw@ieee.org> 2003-10-05
 %       Department of Biomedical Engineering, Department of Electrical Engineering
-%       Tsinghua University, Beijing 100084, P. R. China  
+%       Tsinghua University, Beijing 100084, P. R. China
 % Reference
 %[1]A. Savitzky and M. J. E. Golay, "Smoothing and Differentiation of Data
 %   by Simplified Least Squares Procedures," Analytical Chemistry, vol. 36,
@@ -401,17 +401,17 @@ if nargin<6
     flag=false;
 end
 if nargin < 5 || isempty(W)
-   % No weighting matrix, make W an identity
-   W = eye(length(x0));
+    % No weighting matrix, make W an identity
+    W = eye(length(x0));
 else
-   % Check W is real.
-   if ~isreal(W), error(generatemsgid('NotReal'),'The weight vector must be real.'),end
-   % Check for right length of W
-   if length(W) ~= length(x0), error(generatemsgid('InvalidDimensions'),'The weight vector must be of the same length as the frame length.'),end
-   % Check to see if all elements are positive
-   if min(W) <= 0, error(generatemsgid('InvalidRange'),'All the elements of the weight vector must be greater than zero.'), end
-   % Diagonalize the vector to form the weighting matrix
-   W = diag(W);
+    % Check W is real.
+    if ~isreal(W), error(generatemsgid('NotReal'),'The weight vector must be real.'),end
+    % Check for right length of W
+    if length(W) ~= length(x0), error(generatemsgid('InvalidDimensions'),'The weight vector must be of the same length as the frame length.'),end
+    % Check to see if all elements are positive
+    if min(W) <= 0, error(generatemsgid('InvalidRange'),'All the elements of the weight vector must be greater than zero.'), end
+    % Diagonalize the vector to form the weighting matrix
+    W = diag(W);
 end
 if nargin<4
     x0=0;

@@ -1,9 +1,9 @@
-function varargout = plot_google_map(varargin)
-% function h = plot_google_map(varargin)
+function varargout = plot_google_map2(varargin)
+% function h = plot_google_map2(varargin)
 % Plots a google map on the current axes using the Google Static Maps API
 %
 % USAGE:
-% h = plot_google_map(Property, Value,...)
+% h = plot_google_map2(Property, Value,...)
 % Plots the map on the given axes. Used also if no output is specified
 %
 % Or:

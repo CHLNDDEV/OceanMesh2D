@@ -25,7 +25,7 @@ function [vert,conn,tria,tnum] = tridiv2(varargin)
 %   mesh. Such triangles are refined using a two-way bisect-
 %   ion type scheme. 
 
-%   See also REFINE2, SMOOTH2
+%   See also REFINE2, SMOOTH2D
 
 %   Darren Engwirda : 2017 --
 %   Email           : de2363@columbia.edu

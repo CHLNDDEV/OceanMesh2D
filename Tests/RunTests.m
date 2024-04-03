@@ -1,14 +1,12 @@
-addpath(genpath('Tests'));
-addpath(genpath('../datasets/'));
+run('../setup_oceanmesh2d.m')
 
-if ~exist('../m_map/') || ~exist('GSHHS_f_L1.shp')
+if ~(exist('m_proj','file')==2)
+    
+    error('OceanMesh2D requires m_map package! Run setup.sh/setup.bat')
+    
+elseif ~(exist('GSHHS_f_L1.shp','file')==2)
 
-   if ~exist('../m_map/')
-      error('OceanMesh2D requires m_map package! Run setup.sh')
-   end
-   if ~exist('GSHHS_f_L1.shp')
-      error('Need GSHHS global shoreline to run tests. Run setup.sh')
-   end
+    error('Need GSHHS global shoreline to run tests. Run setup.sh/setup.bat')
 
 else
 
@@ -18,23 +16,23 @@ else
    
    TestInterp
 
-   if exist('SRTM15+.nc')
+   if exist('SRTM15+.nc','file')==2
    
       TestECGC 
 
    else
    
-      warning('Need to download SRTM15+.nc to run TestECGC. Run setup.sh') 
+      warning('Need to download SRTM15+.nc to run TestECGC. Run setup.sh/setup.bat') 
 
    end
 
-   if exist('PostSandyNCEI.nc') && exist('PostSandyNCEI.shp')
+   if exist('PostSandyNCEI.nc','file')==2 && exist('PostSandyNCEI.shp','file')==2
 
       TestJBAY
 
    else
 
-      warning('Need to download PostSandyNCEI data to run TestJBAY. Available from the google drive referenced on the README page') 
+      warning('Need to download PostSandyNCEI data to run TestJBAY. Available from the google drive referenced on the README page')
 
    end
 

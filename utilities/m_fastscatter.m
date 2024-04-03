@@ -1,5 +1,5 @@
 function [h]=m_fastscatter(long,lat,z)
-% m_fastscatter uses fastscatter to plot
+% m_fastscatter uses fastscatter2 to plot
 %
 global MAP_PROJECTION
 
@@ -11,5 +11,5 @@ if isempty(MAP_PROJECTION)
 end
 
 [X,Y]=m_ll2xy(long,lat,'clip','on');
-hold on; h=fastscatter(X,Y,z); 
+hold on; h=fastscatter2(X,Y,z); 
 end

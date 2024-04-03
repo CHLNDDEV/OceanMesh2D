@@ -2,10 +2,10 @@ function [] = writefort13( fort13dat, finame )
 %
 %
 
-if ( nargin == 1 ) 
-  finputname = 'fort.13_1' ;
+if ( nargin == 1 )
+    finputname = 'fort.13_1' ;
 else
-  finputname = finame ;   
+    finputname = finame ;
 end
 
 fid = fopen(finputname,'w') ;
@@ -14,9 +14,9 @@ fid = fopen(finputname,'w') ;
 % agrid = fgetl(fid) ;
 % disp(agrid) ;
 
-fprintf( fid, '%s\n', fort13dat.AGRID ) ; 
+fprintf( fid, '%s\n', fort13dat.AGRID ) ;
 
-fprintf( fid, '%d\n', fort13dat.NumOfNodes ) ; 
+fprintf( fid, '%d\n', fort13dat.NumOfNodes ) ;
 fprintf( fid, '%d\n', fort13dat.nAttr ) ;
 
 % Get Default value
@@ -25,16 +25,16 @@ for i = 1: nAttr
     % Name
     fprintf( fid, '%s\n', fort13dat.defval.Atr(i).AttrName ) ;
     
-    % unit  
+    % unit
     fprintf( fid, '%s\n', fort13dat.defval.Atr(i).Unit ) ;
     
-    % values/node 
+    % values/node
     fprintf( fid, '%d\n', fort13dat.defval.Atr(i).ValuesPerNode ) ;
     
-    % val = fscanf( fid, '%g ', valpernode ) ; 
+    % val = fscanf( fid, '%g ', valpernode ) ;
     
     fprintf( fid, '%15.9e ', fort13dat.defval.Atr(i).Val ) ;
-    fprintf( fid, '\n' ) ; 
+    fprintf( fid, '\n' ) ;
 end
 
 % Get user-defined value
@@ -63,4 +63,4 @@ for i = 1: nAttr
     end
 end
 
-fclose(fid) ; 
+fclose(fid) ;

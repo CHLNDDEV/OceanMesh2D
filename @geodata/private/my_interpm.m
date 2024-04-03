@@ -1,5 +1,5 @@
 function [latout,lonout] = my_interpm(lat,lon,maxdiff)
-% This function  fills in any gaps in latitude (lat) or longitude (lon) data vectors 
+% This function  fills in any gaps in latitude (lat) or longitude (lon) data vectors
 % that are greater than a defined tolerance maxdiff apart in either dimension.
 % lat and lon should be row vectors.
 %
@@ -52,4 +52,4 @@ for i=1:nx-1;
 end
 latout(end)=lat(end);
 lonout(end)=lon(end);
-        
+

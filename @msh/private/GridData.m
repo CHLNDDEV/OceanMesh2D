@@ -1,7 +1,7 @@
 function obj = GridData(geodata,obj,varargin)
 % obj = GridData(geodata,obj,varargin);
 % GridData: Uses the cell-averaged approach to interpolate the nodes
-%           on the unstructured grid to the DEM.          
+%           on the unstructured grid to the DEM.
 %       Input : geodata - either a geodata class or a filename of the netcdf DEM
 %                   obj - A msh class object containing:
 %                     p - A vector of the locations of all the vertices
@@ -9,38 +9,38 @@ function obj = GridData(geodata,obj,varargin)
 %                     t - Matrix size ne x 3 of the element table of the mesh
 %
 %          K (optional) - vector of relevant nodes to search. This can
-%                         significantly speed up the calculation by either 
-%                         only interpolating part of the mesh or 
+%                         significantly speed up the calculation by either
+%                         only interpolating part of the mesh or
 %                         intepolating whole mesh but in segments. Function
 %                         automatically removes uncessary portions of DEM
-%                         Example to call: 
+%                         Example to call:
 %                         K = find( obj.p(:,1) >= lon_min & ...
 %                                   obj.p(:,2) <= lon_max);
 %                         obj = GridData(fname,obj,'K',K);
 %       type (optional) - type is either 'depth', 'slope' or 'all'
-%                         'all' is the default (both slope and depth). 
+%                         'all' is the default (both slope and depth).
 %                         'slope' to gets the gradients of DEM
 %
 %     interp (optional) - interp is either the normal griddedInterpolant
 %                         options in MATLAB or is 'CA' (default). Note: 'CA'
 %                         applies linear griddedInterpolant when the DEM
-%                         and grid sizes are similar. 
+%                         and grid sizes are similar.
 %
-%          N (optional) - enlarge cell-averaging stencil by factor N (only 
-%                         relevant for CA interpolation method). 
-%                         default value N=1. 
+%          N (optional) - enlarge cell-averaging stencil by factor N (only
+%                         relevant for CA interpolation method).
+%                         default value N=1.
 %
 %        nan (optional) - 'fill' to fill in any NaNs everywhere
 %                       - 'fillinside' to fill NaNs only in DEM extents
 %
-%   mindepth (optional) - ensure the minimum depth is bounded in the 
-%                         interpolated region 
+%   mindepth (optional) - ensure the minimum depth is bounded in the
+%                         interpolated region
 %
-%   maxdepth (optional) - ensure the maximum depth is bounded in the 
-%                         interpolated region 
+%   maxdepth (optional) - ensure the maximum depth is bounded in the
+%                         interpolated region
 %
 %   ignoreOL (optional) - NaN overland data for more accurate seabed interpolation
-%   
+%
 %   lut (optional)      - A look up table (lut). See nlcd and ccap in
 %                         datasets/ for examples
 %
@@ -59,7 +59,7 @@ function obj = GridData(geodata,obj,varargin)
 %	Created: 2018-03-12
 %
 %   Edits by Keith Roberts, 2018-02-22 to avoid FillValue contaimation and
-%   to only interpolate data inside extent of DEM. 
+%   to only interpolate data inside extent of DEM.
 %
 %   Edits by Keith Roberts, 2018-10-18 to bound depth in interpolated
 %   regions
@@ -74,23 +74,23 @@ type = 'all';
 interp = 'CA';
 NaNs = 'ignore'; nanfill = false;
 ignoreOL = 0 ;
-N    = 1 ; 
-mindepth = -inf ; 
-maxdepth = +inf ; 
+N    = 1 ;
+mindepth = -inf ;
+maxdepth = +inf ;
 rms_slope_calc = true;
 slope_calc = 'rms';
-lut = [] ; 
+lut = [] ;
 if ~isempty(varargin)
-    varargin=varargin{1} ; 
+    varargin=varargin{1} ;
     names = {'K','type','interp','nan','N','mindepth','maxdepth','ignoreOL','slope_calc','lut'};
     for ii = 1:length(names)
         ind = find(~cellfun(@isempty,strfind(varargin(1:2:end),names{ii})));
         if ~isempty(ind)
             if ii == 1
-                K = varargin{ind*2}; 
+                K = varargin{ind*2};
                 nn = length(K);
                 if nn == 0
-                   error('K index entry is empty!')
+                    error('K index entry is empty!')
                 end
             elseif ii == 2
                 type = varargin{ind*2};
@@ -98,56 +98,56 @@ if ~isempty(varargin)
                 interp = varargin{ind*2};
             elseif ii == 4
                 NaNs = varargin{ind*2};
-            elseif ii == 5 
-                N = varargin{ind*2} ; 
-            elseif ii ==6 
-                mindepth = varargin{ind*2} ; 
-            elseif ii ==7 
-                maxdepth = varargin{ind*2}  ; 
+            elseif ii == 5
+                N = varargin{ind*2} ;
+            elseif ii ==6
+                mindepth = varargin{ind*2} ;
+            elseif ii ==7
+                maxdepth = varargin{ind*2}  ;
             elseif ii ==8
-                ignoreOL = varargin{ind*2} ; 
+                ignoreOL = varargin{ind*2} ;
             elseif ii ==9
                 slope_calc = varargin{ind*2};
                 if strcmp(slope_calc,'rms')
-                   rms_slope_calc = true;
+                    rms_slope_calc = true;
                 elseif strcmp(slope_calc,'abs')
-                   rms_slope_calc = false;
+                    rms_slope_calc = false;
                 else
-                   error(['Invalid entry, ' temp ', for slope_calc'])
+                    error(['Invalid entry, ' temp ', for slope_calc'])
                 end
             elseif ii == 10
                 lut = varargin{ind*2};
             end
-        end    
+        end
     end
 end
 
-if ignoreOL 
-    disp('NaNing overland data before interpolating') 
+if ignoreOL
+    disp('NaNing overland data before interpolating')
 end
-if N > 1 
-    disp(['Enlarging CA stencil by factor ',num2str(N)]) ;  
+if N > 1
+    disp(['Enlarging CA stencil by factor ',num2str(N)]) ;
 end
-if mindepth > -inf 
-    disp(['Bounding minimum depth to ',num2str(mindepth), ' meters.']) ;  
+if mindepth > -inf
+    disp(['Bounding minimum depth to ',num2str(mindepth), ' meters.']) ;
 end
-if maxdepth < inf 
-    disp(['Bounding maximum depth to ',num2str(maxdepth), ' meters.']) ;  
+if maxdepth < inf
+    disp(['Bounding maximum depth to ',num2str(maxdepth), ' meters.']) ;
 end
 
-if strcmp(type,'slope') 
+if strcmp(type,'slope')
     disp(['Computing cell-averaged slope using the ' slope_calc ' method'])
-    if isempty(obj.b) || all(obj.b == 0) 
+    if isempty(obj.b) || all(obj.b == 0)
         error(['You must have the bathymetry on the mesh before ' ...
-               'calculating the slopes'])
+            'calculating the slopes'])
     elseif sum(isnan(obj.b)) > 0
         warning(['There are some NaNs in the bathymetry that could ' ...
-                 'affect the computation of the slopes'])
+            'affect the computation of the slopes'])
     end
 end
 if length(K) == 1
     if strcmp(type,'slope') || strcmp(type,'all')
-        error('Cannot compute slopes on bathymetry with K of length 1')      
+        error('Cannot compute slopes on bathymetry with K of length 1')
     end
 end
 
@@ -156,13 +156,13 @@ if strcmp(NaNs,'fill') || strcmp(NaNs,'fillinside')
     nanfill = true;
 end
 if strcmp(NaNs,'fill')
-   warning(['Note that nan "fill" option will try and put values everywhere ' ...
-            'on mesh even outside of gdat/dem extents unless K logical is ' ...
-            'set. Change nan to "fillinside" to avoid this.'])
+    warning(['Note that nan "fill" option will try and put values everywhere ' ...
+        'on mesh even outside of gdat/dem extents unless K logical is ' ...
+        'set. Change nan to "fillinside" to avoid this.'])
 end
 
 if ~isempty(lut)
-    disp('Using look up table...'); 
+    disp('Using look up table...');
 end
 
 %% Let's read the LON LAT of DEM if not already geodata
@@ -174,15 +174,15 @@ if ~isa(geodata,'geodata')
     DELTA_X = mean(diff(DEM_XA));
     DELTA_Y = mean(diff(DEM_YA));
     if DELTA_Y < 0
-       flipUD = 1;
-       DELTA_Y = -DELTA_Y;
+        flipUD = 1;
+        DELTA_Y = -DELTA_Y;
     end
 else
     DEM_XA = geodata.Fb.GridVectors{1};
     DEM_YA = geodata.Fb.GridVectors{2};
     DEM_Z  = -geodata.Fb.Values;
     if ignoreOL
-       DEM_Z(DEM_Z <= 0) = NaN ;
+        DEM_Z(DEM_Z <= 0) = NaN ;
     end
     DELTA_X = mean(diff(DEM_XA));
     DELTA_Y = mean(diff(DEM_YA));
@@ -190,11 +190,11 @@ else
 end
 
 if max(DEM_XA) > 180
-   lon_change = obj.p(:,1) < 0; lon_dir = 1;
+    lon_change = obj.p(:,1) < 0; lon_dir = 1;
 elseif max(obj.p(:,1)) > 180
-   lon_change = obj.p(:,1) > 180; lon_dir = -1;
+    lon_change = obj.p(:,1) > 180; lon_dir = -1;
 else
-   lon_change = false(length(obj.p),1); lon_dir = 0;
+    lon_change = false(length(obj.p),1); lon_dir = 0;
 end
 obj.p(lon_change,1) = obj.p(lon_change,1) + lon_dir*360;
 
@@ -203,13 +203,13 @@ if length(K) == length(obj.p)
     % msh class may not have populated b, if this case populate with NaN to
     % detect issues
     if isempty(obj.b)
-        obj.b = obj.p(:,1)*NaN; 
+        obj.b = obj.p(:,1)*NaN;
     end
     if ~strcmp(NaNs,'fill')
         outside = obj.p(:,1) < min(DEM_XA)-DELTA_X | ...
-                  obj.p(:,1) > max(DEM_XA)+DELTA_X | ...
-                  obj.p(:,2) < min(DEM_YA)-DELTA_Y | ...
-                  obj.p(:,2) > max(DEM_YA)+DELTA_Y;
+            obj.p(:,1) > max(DEM_XA)+DELTA_X | ...
+            obj.p(:,2) < min(DEM_YA)-DELTA_Y | ...
+            obj.p(:,2) > max(DEM_YA)+DELTA_Y;
         K(outside) = [];
         if isempty(K)
             warning('no mesh vertices contained within DEM bounds'); return;
@@ -218,8 +218,8 @@ if length(K) == length(obj.p)
 end
 
 % If the length of DEM_X and DEM_Y is too large then let's break it up by
-% using K 
-% test 
+% using K
+% test
 lon_min = min(obj.p(K,1));
 lon_max = max(obj.p(K,1));
 lat_min = min(obj.p(K,2));
@@ -245,9 +245,9 @@ else
     times = 1;
     KK{1} = K;
 end
-% This deletes any elements straddling the -180/180 boundary 
+% This deletes any elements straddling the -180/180 boundary
 xt = [obj.p(obj.t(:,1),1) obj.p(obj.t(:,2),1) ...
-      obj.p(obj.t(:,3),1) obj.p(obj.t(:,1),1)];
+    obj.p(obj.t(:,3),1) obj.p(obj.t(:,1),1)];
 dxt = diff(xt,[],2);
 tt = obj.t;
 tt(abs(dxt(:,1)) > 180 | abs(dxt(:,2)) > 180 |  abs(dxt(:,3)) > 180,:) = [];
@@ -260,215 +260,215 @@ pmid(end+1,:) = NaN;
 K_o = K; % save the original K
 disp(['Looping over the DEM ' num2str(times) ' time(s)'])
 for t = 1:times
-K = KK{t};
-%% Get the grid size for each node
-% Get the subset 
-vtoe = vtoe_o(:,K);
-% make sure when vtoe is zero we just return a NaN
-vtoe(vtoe == 0) = length(tt) + 1;
-% the connecting element centers
-pcon = reshape(pmid(vtoe,:),size(vtoe,1),[],2);
-
-% delta is max and min bounds of the connecting element centers (or if only
-% one connecting element then do difference with the vertex itself
-if length(K) == 1
-    pcon_max = max(max(squeeze(pcon)),2*obj.p(K,:)-max(squeeze(pcon)));
-    pcon_min = min(min(squeeze(pcon)),2*obj.p(K,:)-min(squeeze(pcon)));
-else
-    pcon_max = max(squeeze(max(pcon,[],1)),2*obj.p(K,:)-squeeze(min(pcon,[],1)));
-    pcon_min = min(squeeze(min(pcon,[],1)),2*obj.p(K,:)-squeeze(max(pcon,[],1)));
-end
-delta = pcon_max - pcon_min;
-
-% kjr 10/17/2018 enlarge the cell-averaging stencil by a factor N 
-pcon_max = N*pcon_max+(1-N)*obj.p(K,:) ;
-pcon_min = N*pcon_min+(1-N)*obj.p(K,:) ;
-                
-%% Now read the bathy (only what we need)
-if ~isa(geodata,'geodata')
-    BufferL = max(delta,[],1); 
-    lon_min = min(obj.p(K,1)) - BufferL(1);
-    lon_max = max(obj.p(K,1)) + BufferL(1);
-    lat_min = min(obj.p(K,2)) - BufferL(2);
-    lat_max = max(obj.p(K,2)) + BufferL(2);
-    I = find(DEM_XA > lon_min & DEM_XA < lon_max);
-    J = find(DEM_YA > lat_min & DEM_YA < lat_max);
-    if exist('DEM_X','var')
-        clear DEM_X DEM_Y DEM_Z
-    end
-    [DEM_X,DEM_Y] = ndgrid(DEM_XA(I),DEM_YA(J));  
-    DEM_Z = single(ncread(geodata,zvn,...
-                   [I(1) J(1)],[length(I) length(J)]));
-    if flipUD
-       % handle DEMS from packed starting from the bottom left
-       DEM_YA = flipud(DEM_YA) ;
-       DEM_Y = fliplr(DEM_Y);
-       DEM_Z = fliplr(DEM_Z);
-    end
-               
-    % make into depths (ADCIRC compliant) 
-    DEM_Z = -DEM_Z;
+    K = KK{t};
+    %% Get the grid size for each node
+    % Get the subset
+    vtoe = vtoe_o(:,K);
+    % make sure when vtoe is zero we just return a NaN
+    vtoe(vtoe == 0) = length(tt) + 1;
+    % the connecting element centers
+    pcon = reshape(pmid(vtoe,:),size(vtoe,1),[],2);
     
-    if ignoreOL
-       DEM_Z(DEM_Z <= 0) = NaN ;
+    % delta is max and min bounds of the connecting element centers (or if only
+    % one connecting element then do difference with the vertex itself
+    if length(K) == 1
+        pcon_max = max(max(squeeze(pcon)),2*obj.p(K,:)-max(squeeze(pcon)));
+        pcon_min = min(min(squeeze(pcon)),2*obj.p(K,:)-min(squeeze(pcon)));
+    else
+        pcon_max = max(squeeze(max(pcon,[],1)),2*obj.p(K,:)-squeeze(min(pcon,[],1)));
+        pcon_min = min(squeeze(min(pcon,[],1)),2*obj.p(K,:)-squeeze(max(pcon,[],1)));
     end
-end
-
-% bound all depths below mindepth 
-DEM_Z(DEM_Z < mindepth) = mindepth ; 
-
-% bound all depths above maxdepth 
-DEM_Z(DEM_Z > maxdepth) = maxdepth ; 
-
-% if look up table is passed
-if ~isempty(lut)
-    DEM_Z(isnan(DEM_Z) | DEM_Z == 0)=length(lut); % <--default value to NaN
-    % Convert to Mannings
-    DEM_Z = lut(abs(round(DEM_Z)));
-end
-%% Make the new bx, by, b and calculate gradients if necessary
-if strcmp(type,'slope') || strcmp(type,'all')
-    bx = NaN(length(K),1); 
-    by = NaN(length(K),1); 
-    % Get the dx and dy of the dem in meters
-    DELTA_X1 = DELTA_X*111e3;
-    DELTA_X1 = DELTA_X1*cosd(DEM_Y(1,:)); % for gradient function   
-    DELTA_Y1 = DELTA_Y*111e3;
-    if exist('DEM_ZY','var')
-        clear DEM_ZY DEM_ZX
-    end
-    % Calculate the gradient of the distance function.
-    [DEM_ZY,DEM_ZX] = EarthGradient(DEM_Z,DELTA_Y1,DELTA_X1);
-    % New method of averaging the absolute values 
-    DEM_ZY = abs(DEM_ZY); DEM_ZX = abs(DEM_ZX);
-end
-if strcmp(type,'depth') || strcmp(type,'all')
-    b = NaN(length(K),1); 
-end
-
-%% Calculate N - number of DEM grids to average - for each node
-if strcmp(interp,'CA')
-    [~,IDXX,IDXY] = FindLinearIdx(obj.p(K,1),obj.p(K,2),DEM_X,DEM_Y);
-    [~,IDXR,IDXT] = FindLinearIdx(pcon_max(:,1),pcon_max(:,2),DEM_X,DEM_Y);
-    [~,IDXL,IDXB] = FindLinearIdx(pcon_min(:,1),pcon_min(:,2),DEM_X,DEM_Y);
-    % make sure inside box
-    % y
-    high = DEM_Y(IDXR(1),IDXT)' > pcon_max(:,2);
-    IDXT(high) = max(1,IDXT(high) - 1);
-    low = DEM_Y(IDXL(1),IDXB)' < pcon_min(:,2);
-    IDXB(low) = min(size(DEM_Y,2),IDXB(low) + 1);
-    % x
-    high = DEM_X(IDXR,IDXT(1)) > pcon_max(:,1);
-    IDXR(high) = max(1,IDXR(high) - 1);
-    low = DEM_X(IDXL,IDXB(1)) < pcon_min(:,1);
-    IDXL(low) = min(size(DEM_X,1),IDXL(low) + 1);
-    % Make sure no negative or positive Nx, Ny
-    I = IDXL > IDXR;
-    IDXL(I) = IDXX(I); IDXR(I) = IDXX(I);
-    I = IDXB > IDXT;
-    IDXB(I) = IDXY(I); IDXT(I) = IDXY(I);
-    % The span of x and y
-    Nx = IDXR - IDXL;
-    Ny = IDXT - IDXB;
+    delta = pcon_max - pcon_min;
     
-    disp(['Performing cell-averaging with Ny(max) ' num2str(max(Ny)) ...
-          ' and Nx(max)' num2str(max(Nx))])
-      
-    % Average for the depths    
-    if strcmp(type,'depth') || strcmp(type,'all')
-        for ii = 1:length(K)
-            pts = reshape(DEM_Z(IDXL(ii):IDXR(ii),...
-                                IDXB(ii):IDXT(ii)),[],1);
-            b(ii) = mean(pts,'omitnan');            
+    % kjr 10/17/2018 enlarge the cell-averaging stencil by a factor N
+    pcon_max = N*pcon_max+(1-N)*obj.p(K,:) ;
+    pcon_min = N*pcon_min+(1-N)*obj.p(K,:) ;
+    
+    %% Now read the bathy (only what we need)
+    if ~isa(geodata,'geodata')
+        BufferL = max(delta,[],1);
+        lon_min = min(obj.p(K,1)) - BufferL(1);
+        lon_max = max(obj.p(K,1)) + BufferL(1);
+        lat_min = min(obj.p(K,2)) - BufferL(2);
+        lat_max = max(obj.p(K,2)) + BufferL(2);
+        I = find(DEM_XA > lon_min & DEM_XA < lon_max);
+        J = find(DEM_YA > lat_min & DEM_YA < lat_max);
+        if exist('DEM_X','var')
+            clear DEM_X DEM_Y DEM_Z
         end
-        if sum(~isnan(b)) == 0
-            warning('All depths were NaNs. Doing nothing and returning'); 
-            return
+        [DEM_X,DEM_Y] = ndgrid(DEM_XA(I),DEM_YA(J));
+        DEM_Z = single(ncread(geodata,zvn,...
+            [I(1) J(1)],[length(I) length(J)]));
+        if flipUD
+            % handle DEMS from packed starting from the bottom left
+            DEM_YA = flipud(DEM_YA) ;
+            DEM_Y = fliplr(DEM_Y);
+            DEM_Z = fliplr(DEM_Z);
         end
-        % Try and fill in the NaNs
-        if nanfill
-            if sum(isnan(b)) > 0
-                localcoord = obj.p(K,:);
-                [KI, ~] = ourKNNsearch(localcoord(~isnan(b),:)',localcoord(isnan(b),:)',1); 
-                bb = b(~isnan(b));
-                b(isnan(b)) = bb(KI); clear bb localcoord
-            end
-        end
-    end
         
-    % RMS for the slopes
-    if strcmp(type,'slope') || strcmp(type,'all')
-        for ii = 1:length(K)
-            pts = reshape(DEM_ZX(IDXL(ii):IDXR(ii),...
-                                 IDXB(ii):IDXT(ii)),[],1);
-            if rms_slope_calc 
-               bx(ii) = sqrt(mean(pts.^2,'omitnan'));
-            else
-               bx(ii) = mean(abs(pts),'omitnan');
-            end
-            pts = reshape(DEM_ZY(IDXL(ii):IDXR(ii),...
-                                 IDXB(ii):IDXT(ii)),[],1);
-            if rms_slope_calc 
-               by(ii) = sqrt(mean(pts.^2,'omitnan'));
-            else
-               by(ii) = mean(abs(pts),'omitnan');
-            end
-        end
-        if nanfill
-            % Try and fill in the NaNs
-            if ~isempty(find(isnan(bx),1))
-                localcoord = obj.p(K,:);
-                [KI, ~] = ourKNNsearch(localcoord(~isnan(bx),:)',localcoord(isnan(bx),:)',1); 
-                bb = bx(~isnan(bx));
-                bx(isnan(bx)) = bb(KI); clear bb localcoord
-            end
-            if ~isempty(find(isnan(by),1))
-                localcoord = obj.p(K,:);
-                [KI, ~] = ourKNNsearch(localcoord(~isnan(by),:)',localcoord(isnan(by),:)',1); 
-                bb = by(~isnan(by));
-                by(isnan(by)) = bb(KI); clear bb localcoord
-            end
+        % make into depths (ADCIRC compliant)
+        DEM_Z = -DEM_Z;
+        
+        if ignoreOL
+            DEM_Z(DEM_Z <= 0) = NaN ;
         end
     end
-else
-    %% Get gridded interpolant for non-CA interp
-    disp(['Using griddedInterpolant with ' interp 'interp option'])
+    
+    % bound all depths below mindepth
+    DEM_Z(DEM_Z < mindepth) = mindepth ;
+    
+    % bound all depths above maxdepth
+    DEM_Z(DEM_Z > maxdepth) = maxdepth ;
+    
+    % if look up table is passed
+    if ~isempty(lut)
+        DEM_Z(isnan(DEM_Z) | DEM_Z == 0)=length(lut); % <--default value to NaN
+        % Convert to Mannings
+        DEM_Z = lut(abs(round(DEM_Z)));
+    end
+    %% Make the new bx, by, b and calculate gradients if necessary
     if strcmp(type,'slope') || strcmp(type,'all')
-        Fx = griddedInterpolant(DEM_X,DEM_Y,DEM_ZX,interp);
-        Fy = griddedInterpolant(DEM_X,DEM_Y,DEM_ZY,interp);
-        bx = Fx(obj.p(K,1),obj.p(K,2));
-        by = Fy(obj.p(K,1),obj.p(K,2));
+        bx = NaN(length(K),1);
+        by = NaN(length(K),1);
+        % Get the dx and dy of the dem in meters
+        DELTA_X1 = DELTA_X*111e3;
+        DELTA_X1 = DELTA_X1*cosd(DEM_Y(1,:)); % for gradient function
+        DELTA_Y1 = DELTA_Y*111e3;
+        if exist('DEM_ZY','var')
+            clear DEM_ZY DEM_ZX
+        end
+        % Calculate the gradient of the distance function.
+        [DEM_ZY,DEM_ZX] = EarthGradient(DEM_Z,DELTA_Y1,DELTA_X1);
+        % New method of averaging the absolute values
+        DEM_ZY = abs(DEM_ZY); DEM_ZX = abs(DEM_ZX);
     end
     if strcmp(type,'depth') || strcmp(type,'all')
-        F = griddedInterpolant(DEM_X,DEM_Y,DEM_Z,interp,'none');
-        b = F(obj.p(K,1),obj.p(K,2));
+        b = NaN(length(K),1);
     end
-end
-%% Put in the global msh class
-if strcmp(type,'depth') || strcmp(type,'all')
-    if isempty(obj.b)
-        obj.b = zeros(length(obj.p),1);
+    
+    %% Calculate N - number of DEM grids to average - for each node
+    if strcmp(interp,'CA')
+        [~,IDXX,IDXY] = FindLinearIdx(obj.p(K,1),obj.p(K,2),DEM_X,DEM_Y);
+        [~,IDXR,IDXT] = FindLinearIdx(pcon_max(:,1),pcon_max(:,2),DEM_X,DEM_Y);
+        [~,IDXL,IDXB] = FindLinearIdx(pcon_min(:,1),pcon_min(:,2),DEM_X,DEM_Y);
+        % make sure inside box
+        % y
+        high = DEM_Y(IDXR(1),IDXT)' > pcon_max(:,2);
+        IDXT(high) = max(1,IDXT(high) - 1);
+        low = DEM_Y(IDXL(1),IDXB)' < pcon_min(:,2);
+        IDXB(low) = min(size(DEM_Y,2),IDXB(low) + 1);
+        % x
+        high = DEM_X(IDXR,IDXT(1)) > pcon_max(:,1);
+        IDXR(high) = max(1,IDXR(high) - 1);
+        low = DEM_X(IDXL,IDXB(1)) < pcon_min(:,1);
+        IDXL(low) = min(size(DEM_X,1),IDXL(low) + 1);
+        % Make sure no negative or positive Nx, Ny
+        I = IDXL > IDXR;
+        IDXL(I) = IDXX(I); IDXR(I) = IDXX(I);
+        I = IDXB > IDXT;
+        IDXB(I) = IDXY(I); IDXT(I) = IDXY(I);
+        % The span of x and y
+        Nx = IDXR - IDXL;
+        Ny = IDXT - IDXB;
+        
+        disp(['Performing cell-averaging with Ny(max) ' num2str(max(Ny)) ...
+            ' and Nx(max)' num2str(max(Nx))])
+        
+        % Average for the depths
+        if strcmp(type,'depth') || strcmp(type,'all')
+            for ii = 1:length(K)
+                pts = reshape(DEM_Z(IDXL(ii):IDXR(ii),...
+                    IDXB(ii):IDXT(ii)),[],1);
+                b(ii) = mean(pts,'omitnan');
+            end
+            if sum(~isnan(b)) == 0
+                warning('All depths were NaNs. Doing nothing and returning');
+                return
+            end
+            % Try and fill in the NaNs
+            if nanfill
+                if sum(isnan(b)) > 0
+                    localcoord = obj.p(K,:);
+                    [KI, ~] = ourKNNsearch(localcoord(~isnan(b),:)',localcoord(isnan(b),:)',1);
+                    bb = b(~isnan(b));
+                    b(isnan(b)) = bb(KI); clear bb localcoord
+                end
+            end
+        end
+        
+        % RMS for the slopes
+        if strcmp(type,'slope') || strcmp(type,'all')
+            for ii = 1:length(K)
+                pts = reshape(DEM_ZX(IDXL(ii):IDXR(ii),...
+                    IDXB(ii):IDXT(ii)),[],1);
+                if rms_slope_calc
+                    bx(ii) = sqrt(mean(pts.^2,'omitnan'));
+                else
+                    bx(ii) = mean(abs(pts),'omitnan');
+                end
+                pts = reshape(DEM_ZY(IDXL(ii):IDXR(ii),...
+                    IDXB(ii):IDXT(ii)),[],1);
+                if rms_slope_calc
+                    by(ii) = sqrt(mean(pts.^2,'omitnan'));
+                else
+                    by(ii) = mean(abs(pts),'omitnan');
+                end
+            end
+            if nanfill
+                % Try and fill in the NaNs
+                if ~isempty(find(isnan(bx),1))
+                    localcoord = obj.p(K,:);
+                    [KI, ~] = ourKNNsearch(localcoord(~isnan(bx),:)',localcoord(isnan(bx),:)',1);
+                    bb = bx(~isnan(bx));
+                    bx(isnan(bx)) = bb(KI); clear bb localcoord
+                end
+                if ~isempty(find(isnan(by),1))
+                    localcoord = obj.p(K,:);
+                    [KI, ~] = ourKNNsearch(localcoord(~isnan(by),:)',localcoord(isnan(by),:)',1);
+                    bb = by(~isnan(by));
+                    by(isnan(by)) = bb(KI); clear bb localcoord
+                end
+            end
+        end
+    else
+        %% Get gridded interpolant for non-CA interp
+        disp(['Using griddedInterpolant with ' interp 'interp option'])
+        if strcmp(type,'slope') || strcmp(type,'all')
+            Fx = griddedInterpolant(DEM_X,DEM_Y,DEM_ZX,interp);
+            Fy = griddedInterpolant(DEM_X,DEM_Y,DEM_ZY,interp);
+            bx = Fx(obj.p(K,1),obj.p(K,2));
+            by = Fy(obj.p(K,1),obj.p(K,2));
+        end
+        if strcmp(type,'depth') || strcmp(type,'all')
+            F = griddedInterpolant(DEM_X,DEM_Y,DEM_Z,interp,'none');
+            b = F(obj.p(K,1),obj.p(K,2));
+        end
     end
-    % Only overwrite non-nan values
-    obj.b(K(~isnan(b))) = b(~isnan(b));
-end
-if strcmp(type,'slope') || strcmp(type,'all')
-    if isempty(obj.bx)
-        obj.bx = zeros(length(obj.p),1);
-    end 
-    obj.bx(K(~isnan(bx))) = bx(~isnan(bx));
-    % Put in the global array
-    if isempty(obj.by)
-        obj.by = zeros(length(obj.p),1);
+    %% Put in the global msh class
+    if strcmp(type,'depth') || strcmp(type,'all')
+        if isempty(obj.b)
+            obj.b = zeros(length(obj.p),1);
+        end
+        % Only overwrite non-nan values
+        obj.b(K(~isnan(b))) = b(~isnan(b));
     end
-    obj.by(K(~isnan(by))) = by(~isnan(by));
-end
+    if strcmp(type,'slope') || strcmp(type,'all')
+        if isempty(obj.bx)
+            obj.bx = zeros(length(obj.p),1);
+        end
+        obj.bx(K(~isnan(bx))) = bx(~isnan(bx));
+        % Put in the global array
+        if isempty(obj.by)
+            obj.by = zeros(length(obj.p),1);
+        end
+        obj.by(K(~isnan(by))) = by(~isnan(by));
+    end
 end
 % New method of averaging asbolute values of slope before multiplying
 % by the sign of the slope on unstructured grid
 if strcmp(type,'slope') || strcmp(type,'all')
     [Hx,Hy] = Unstruc_Bath_Slope( tt,obj.p(:,1),obj.p(:,2),obj.b);
-    obj.bx(K_o) = sign(Hx(K_o)).*obj.bx(K_o); 
+    obj.bx(K_o) = sign(Hx(K_o)).*obj.bx(K_o);
     obj.by(K_o) = sign(Hy(K_o)).*obj.by(K_o);
 end
 obj.p(lon_change,1) = obj.p(lon_change,1) - lon_dir*360;
@@ -476,37 +476,37 @@ obj.p(lon_change,1) = obj.p(lon_change,1) - lon_dir*360;
 end
 
 function [xvn, yvn, zvn] = getdemvarnames(fname)
-    % Define well-known variables for longitude and latitude
-    % coordinates in Digital Elevation Model NetCDF file (CF
-    % compliant).
-    xvn = []; yvn = []; zvn = [];
-    wkv_x = {'x','Longitude','longitude','lon','lon_z'} ;
-    wkv_y = {'y','Latitude', 'latitude','lat','lat_z'} ;
-    finfo = ncinfo(fname);
-    for ii = 1:length(finfo.Variables)
-        if ~isempty(xvn) && ~isempty(yvn) && ~isempty(zvn); break; end
-        if length(finfo.Variables(ii).Size) == 1
-            if isempty(xvn) && ...
-                    any(strcmp(finfo.Variables(ii).Name,wkv_x))
-                xvn = finfo.Variables(ii).Name;
-            end
-            if isempty(yvn) && ...
-                    any(strcmp(finfo.Variables(ii).Name,wkv_y))
-                yvn = finfo.Variables(ii).Name;
-            end
-        elseif length(finfo.Variables(ii).Size) == 2
-            if isempty(zvn)
-                zvn = finfo.Variables(ii).Name;
-            end
+% Define well-known variables for longitude and latitude
+% coordinates in Digital Elevation Model NetCDF file (CF
+% compliant).
+xvn = []; yvn = []; zvn = [];
+wkv_x = {'x','Longitude','longitude','lon','lon_z'} ;
+wkv_y = {'y','Latitude', 'latitude','lat','lat_z'} ;
+finfo = ncinfo(fname);
+for ii = 1:length(finfo.Variables)
+    if ~isempty(xvn) && ~isempty(yvn) && ~isempty(zvn); break; end
+    if length(finfo.Variables(ii).Size) == 1
+        if isempty(xvn) && ...
+                any(strcmp(finfo.Variables(ii).Name,wkv_x))
+            xvn = finfo.Variables(ii).Name;
+        end
+        if isempty(yvn) && ...
+                any(strcmp(finfo.Variables(ii).Name,wkv_y))
+            yvn = finfo.Variables(ii).Name;
+        end
+    elseif length(finfo.Variables(ii).Size) == 2
+        if isempty(zvn)
+            zvn = finfo.Variables(ii).Name;
         end
     end
-    if isempty(xvn)
-        error('Could not locate x coordinate in DEM') ;
-    end
-    if isempty(yvn)
-        error('Could not locate y coordinate in DEM') ;
-    end
-    if isempty(zvn)
-        error('Could not locate z coordinate in DEM') ;
-    end
+end
+if isempty(xvn)
+    error('Could not locate x coordinate in DEM') ;
+end
+if isempty(yvn)
+    error('Could not locate y coordinate in DEM') ;
+end
+if isempty(zvn)
+    error('Could not locate z coordinate in DEM') ;
+end
 end

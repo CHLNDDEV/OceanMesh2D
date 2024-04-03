@@ -26,7 +26,7 @@ if nargin < 4
     project = 1;
 end
 
-% If box_vec is not passed, construct it. 
+% If box_vec is not passed, construct it.
 if nargin == 2
     box_vec = 1:length(obj.bbox);
     % If box_vec is not passed and a projection switch is passed (for
@@ -79,7 +79,7 @@ for box_num = box_vec
     %% Doing the signed calculation
     % The meshing domain is defined as the intersection of two areas:
     %
-    % in_boubox are the points inside the bounding box 
+    % in_boubox are the points inside the bounding box
     % in_outer are the points inside the outer meshing domain.
     %
     % "in" is defined as the intersection of the in = in_boubox && in_outer
@@ -101,7 +101,7 @@ for box_num = box_vec
     
     % d is signed negative if inside and vice versa.
     d_l = (-1).^( in_outer & in_boubox).*d_l;
-   
+    
     d(inside) = d_l;
 end
 % EOF

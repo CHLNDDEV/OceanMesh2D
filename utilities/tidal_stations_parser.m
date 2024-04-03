@@ -44,7 +44,7 @@ for sta_database = sta_databases
     elseif strcmp(sta_database,'CO-OPS')
         xml = 'https://opendap.co-ops.nos.noaa.gov/stations/stationsXML.jsp';
         DOMnode = xmlread(xml);
-        S = xml2struct(DOMnode);
+        S = xml2struct2(DOMnode);
         Sta_num = length(S.stations.station);
         Sta_lon = zeros(Sta_num,1); Sta_lat = zeros(Sta_num,1);
         Sta_type = zeros(Sta_num,3);
