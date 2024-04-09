@@ -1,11 +1,10 @@
 # `OceanMesh2D:`
+
 ## `Precise distance-based two-dimensional automated mesh generation toolbox intended for coast ocean/shallow water flow models`
 
-## IMPORTANT NOTE:
-This is the legacy `MASTER` branch, and is not recommended unless for example you want to reproduce the results from the GMD paper referenced at the bottom here. Otherwise, it is recommended to use the default `PROJECTION` branch.
+> **IMPORTANT NOTE:** This is the default and recommended `PROJECTION` branch. Please use it unless you otherwise require legacy (`MASTER` branch) or the absolute newest features (`DEV` branch).
 
-## `DISCLAIMER: `
-The boundary of the meshing domain must be a polygon (first point equals the last and non-self intersecting) but it does not need to be simplified. Read the user guide for more information about the inputs.
+> **DISCLAIMER:** The boundary of the meshing domain must be a polygon (first point equals the last and non-self intersecting) but it does not need to be simplified. Read the user guide for more information about the inputs.
 
 <p align="center">
   <a href="https://github.com/CHLNDDEV/OceanMesh2D"><img alt="OceanMesh2D" src="imgs/Oceanmesh_logo_white.png" width="95%"></a>
@@ -16,32 +15,30 @@ Table of contents
 =================
 
 <!--ts-->
-   * [OceanMesh2D](#oceanmesh2d)
-   * [Table of contents](#table-of-contents)
-   * [Getting help](#getting-help)
-   * [Contributing](#contributing)
-   * [Code framework](#code-framework)
-   * [Starting out](#starting-out)
-   * [Testing](#testing)
-   * [References](#references)
-   * [Gallery](#gallery)
-   * [Changelog](#changelog)
+* [OceanMesh2D](#oceanmesh2d)
+* [Table of contents](#table-of-contents)
+* [Getting help](#getting-help)
+* [Contributing](#contributing)
+* [Code framework](#code-framework)
+* [Starting out](#starting-out)
+* [Testing](#testing)
+* [References](#references)
+* [Gallery](#gallery)
+* [Changelog](#changelog)
 <!--te-->
-
-## IMPORTANT NOTE:
-This is the default and recommended `PROJECTION` branch. Please use it unless you otherwise require legacy (`MASTER` branch) or the absolute newest features (`DEV` branch).
 
 OceanMesh2D is a set of user-friendly MATLAB functions to generate two-dimensional (2D) unstructured meshes for coastal ocean circulation problems. These meshes are based on a variety of feature driven geometric and bathymetric mesh size functions, which are generated according to user-defined parameters. Mesh generation is achieved through a force-balance algorithm combined with a number of topological improvement strategies aimed at improving the worst case triangle quality. The software embeds the mesh generation process into an object-orientated framework that contains pre- and post-processing workflows, which makes mesh generation flexible, reproducible, and script-able.
 
 Getting help
 ==============
 
+> **PLEASE READ THE USER GUIDE!** A recent pdf of the user guide is located in this branch. For a continually updated version click [here](https://www.overleaf.com/read/hsqjhvtbkgvj#/54715995/) (wait for compilation and then click download PDF)
+
 Besides posting [issues](https://github.com/CHLNDDEV/OceanMesh2D/issues) with the code on Github, you can also ask questions via our Slack channel [here](https://join.slack.com/t/oceanmesh2d/shared_invite/zt-1b96mhvhw-sHUhP2emepHlGtw0~fWmAg).
 
 Note: If the slack link invite isn't working, please send either one of us and an email and we'll fix it. By default, the invite link expires every 30 days.
 
 Otherwise please reach out to either Dr. William Pringle (wpringle@anl.gov) or Dr. Keith Roberts (keithrbt0@gmail.com) with questions or concerns or feel free to start an Issue in the issues tab above.
-
 
 Contributing
 ============
@@ -68,29 +65,46 @@ Code framework
     ├── geodata -- process geospatial data.
     ├── edgefx  -- build mesh size functions.
     ├── meshgen -- generate mesh based on mesh size functions and boundaries.
-    └── msh     -- store, write, read, inspect, and visualize meshes and their axuillary components for numerical simulation.
+    └── msh     -- store, write, read, inspect, and visualize meshes and their
+                   axuillary components for numerical simulation.
 
 Starting Out
 ============
 
-Clone or download and unzip the current [repository](https://github.com/CHLNDDEV/OceanMesh2D/archive/Projection.zip)
+1. Clone or download and unzip the current [repository](https://github.com/CHLNDDEV/OceanMesh2D/archive/Projection.zip).
+1. Run the `setup.sh` bash script or `setup.bat` batch script to download the required `m_map` package and the base datasets:
+      * GSHHG global shoreline
+      * SRTM15_PLUS global topobathy DEM
+1. Create or modify `startup.m` file located under your home folder by executing command in MATLAB:
+      ```
+      edit(fullfile(userpath,'startup.m'))
+      ```
+      And add the line:
+      ```
+      run(<PATH_TO_OCEANMESH2D>/setup_oceanmesh2d.m)
+      ```
+      Replace `<PATH_TO_OCEANMESH2D>` with the folder name where you cloned/unzipped the repository.
 
-PLEASE READ THE USER GUIDE!
-A recent pdf of the user guide is located in this branch. For a continually updated version click [here](https://www.overleaf.com/read/hsqjhvtbkgvj#/54715995/) (wait for compilation and then click download PDF)
-
-Run the "setup.sh" bash script to download the required m_map package and the base datasets:
-- GSHHG global shoreline
-- SRTM15_PLUS global topobathy DEM
+1. Restart MATLAB to get paths added.
 
 Additional data required for some of the following examples must be downloaded manually from [here](https://drive.google.com/open?id=1LeQJFKaVCM2K59pKO9jDcB02yjTmJPmL). Specifically, Examples 2, 3, 4, 5 and 5b require additional datasets from the google drive folder while base datasets are sufficient for the other examples.
-```
-Featured in  ┌╼ Examples/Example_1_NZ.m   %<- A simple mesh around South Island New Zealand that uses GSHHS shoreline.
-user guide   ├── Examples/Example_2_NY.m   %<- A high-resolution mesh around the New York/Manhattan area that uses a DEM created from LiDAR data.
-             └── Examples/Example_3_ECGC.m %<- Builds a mesh for the western North Atlantic with a local high-resolution nest around New York
-Featured in         ┌╼ Examples/Example_4_PRVI.m %<- Builds a mesh for the western North Atlantic with three high-resolution nests around Peurto Rico and US Virgin Islands
-Geoscientific Model ├── Examples/Example_5_JBAY.m %<- An extremely high-fidelity (15-m) mesh from LiDAR data around Jamaica Bay with CFL-limiting.
-Development paper[1]└── Examples/Example_6_GBAY.m %<- An example of the polyline/thalweg mesh size function along the Houston Ship Channel.
 
+```
+Featured in  ┌── Examples/Example_1_NZ.m   -- A simple mesh around South Island
+             |                                New Zealand that uses GSHHS shoreline.
+user guide   ├── Examples/Example_2_NY.m   -- A high-resolution mesh around
+             |                                the New York/Manhattan area that uses a DEM
+             |                                created from LiDAR data.
+             └── Examples/Example_3_ECGC.m -- Builds a mesh for the western North Atlantic
+                                              with a local high-resolution nest around New York
+
+Featured in         ┌── Examples/Example_4_PRVI.m -- Builds a mesh for the western North Atlantic
+                    |                                with three high-resolution nests around
+Geoscientific Model |                                Puerto Rico and US Virgin Islands
+                    ├── Examples/Example_5_JBAY.m -- An extremely high-fidelity (15-m) mesh from
+Development paper[1]|                                LiDAR data around Jamaica Bay with CFL-limiting.
+                    └── Examples/Example_6_GBAY.m -- An example of the polyline/thalweg mesh size
+                                                     function along the Houston Ship Channel.
 ```
 
 See [Testing](#testing) to test OceanMesh2D on your system.
@@ -98,7 +112,7 @@ See [Testing](#testing) to test OceanMesh2D on your system.
 Testing
 ==========
 
-To ensure the software is fully functional on your system before building some crazy meshes it is strongly recommended to run the tests (RunTests.m) in the Tests/ directory.
+To ensure the software is fully functional on your system before building some crazy meshes it is strongly recommended to run the tests (`RunTests.m`) in the Tests/ directory.
 
 We test all pull requests using this test suite on a local host before accepting. For substantial pull requests we will also test the Examples from the Examples/ directory.
 
@@ -137,9 +151,6 @@ We would also like to acknowledge various scripts and algorithms from [`mesh2d`]
       Geoscientific Model Development, 10(6), 2117–2140. https://doi.org/10.5194/gmd-10-2117-2017.
 ```
 
-## `DISCLAIMER: `
-The boundary of the meshing domain must be a polygon (first point equals the last and non-self intersecting) but it does not need to be simplified. Read the user guide for more information about the inputs.
-
 GALLERY:
 =========
 * These images can be made by running the [examples](https://github.com/CHLNDDEV/OceanMesh2D/tree/Projection/Examples)
@@ -151,7 +162,6 @@ GALLERY:
   <img src = "imgs/Globalocean.jpg"> &nbsp &nbsp &nbsp &nbsp
   <img src = "imgs/multiscale_nz_ex_13.png"> &nbsp &nbsp &nbsp &nbsp
 </p>
-
 
 * The following images are provided from happy users. Please send us your meshes.
 

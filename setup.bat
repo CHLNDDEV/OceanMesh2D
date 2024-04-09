@@ -4,7 +4,7 @@
 :: # This script downloads m_map and some required    #
 :: # datasets for the examples                        #
 :: #                                                  #
-:: # Requires wget and unzip                          #
+:: # Uses curl and tar from Windows                   #
 :: ####################################################
 
 :: Can toggle parameters if desired but the script
@@ -29,7 +29,7 @@ if "%m_map%" == "true" (
         echo "m_map" directory already exists
     ) else (
         echo Setting up m_map
-        if NOT EXIST "m_map.zip" wget --no-check-certificate --no-hsts "https://www.eoas.ubc.ca/~rich/m_map1.4.zip" -O m_map.zip
+        if NOT EXIST "m_map.zip" curl "https://www.eoas.ubc.ca/~rich/m_map1.4.zip" -o m_map.zip
         tar -xf m_map.zip 
         if NOT "%keepzip%" == "true" del m_map.zip > nul
     )
@@ -48,7 +48,7 @@ if "%gshhs%" == "true" (
         echo "datasets/GSHHS_shp" directory ^(global shoreline^) already exists
     ) else (
         echo Setting up GSHHS shoreline
-        if NOT EXIST "gshhs.zip" wget --no-check-certificate --no-hsts "http://www.soest.hawaii.edu/pwessel/gshhg/gshhg-shp-2.3.7.zip" -O gshhs.zip
+        if NOT EXIST "gshhs.zip" curl "http://www.soest.hawaii.edu/pwessel/gshhg/gshhg-shp-2.3.7.zip" -o gshhs.zip
         tar -xf gshhs.zip GSHHS_shp
         if NOT "%keepzip%" == "true" del gshhs.zip > nul
     )
@@ -62,7 +62,7 @@ if "%srtm%" == "true" (
         echo "datasets/SRTM15+.nc" global bathymetry file already exists
     ) else (
         echo Setting up SRTM15+ bathymetry
-        wget --no-check-certificate --no-hsts "https://topex.ucsd.edu/pub/srtm15_plus/SRTM15_V2.4.nc" -O SRTM15+.nc
+        curl "https://topex.ucsd.edu/pub/srtm15_plus/SRTM15_V2.4.nc" -o SRTM15+.nc
     )
 ) else (
     echo Skipping SRTM15+ bathymetry
@@ -74,7 +74,7 @@ if "%gebco%" == "true" (
         echo "datasets/GEBCO_2020.nc" global bathymetry file already exists
     ) else (
         echo Setting up GEBCO_2020 bathymetry
-        wget --no-check-certificate --no-hsts "https://www.bodc.ac.uk/data/open_download/gebco/gebco_2021/zip/" -O GEBCO_2020.nc
+        curl "https://www.bodc.ac.uk/data/open_download/gebco/gebco_2021/zip/" -o GEBCO_2020.nc
     )
 ) else (
     echo Skipping GEBCO_2020 bathymetry
