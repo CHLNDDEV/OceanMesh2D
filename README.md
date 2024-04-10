@@ -1,22 +1,20 @@
-# `OceanMesh2D:`
-
-## `Precise distance-based two-dimensional automated mesh generation toolbox intended for coast ocean/shallow water flow models`
-
-> **IMPORTANT NOTE:** This is the default and recommended `PROJECTION` branch. Please use it unless you otherwise require legacy (`MASTER` branch) or the absolute newest features (`DEV` branch).
-
-> **DISCLAIMER:** The boundary of the meshing domain must be a polygon (first point equals the last and non-self intersecting) but it does not need to be simplified. Read the user guide for more information about the inputs.
-
 <p align="center">
-  <a href="https://github.com/CHLNDDEV/OceanMesh2D"><img alt="OceanMesh2D" src="imgs/Oceanmesh_logo_white.png" width="95%"></a>
-  <p align="center">Precise distance-based two-dimensional automated mesh generation toolbox intended for coastal ocean/shallow water flow models.</p>
+      <a href="https://github.com/CHLNDDEV/OceanMesh2D"><img alt="OceanMesh2D" src="imgs/Oceanmesh_logo_white.png" width="95%"></a>
+      <br><br>
 </p>
+
+## Precise distance-based two-dimensional automated mesh generation toolbox intended for coastal ocean/shallow water flow models
+
+> [!NOTE]
+> This is the default and recommended `PROJECTION` branch. Please use it unless you otherwise require legacy (`MASTER` branch) or the absolute newest features (`DEV` branch).
+
+> [!WARNING]
+> The boundary of the meshing domain must be a polygon (first point equals the last and non-self intersecting) but it does not need to be simplified. Read the user guide for more information about the inputs.
 
 Table of contents
 =================
 
 <!--ts-->
-* [OceanMesh2D](#oceanmesh2d)
-* [Table of contents](#table-of-contents)
 * [Getting help](#getting-help)
 * [Contributing](#contributing)
 * [Code framework](#code-framework)
@@ -32,7 +30,8 @@ OceanMesh2D is a set of user-friendly MATLAB functions to generate two-dimension
 Getting help
 ==============
 
-> **PLEASE READ THE USER GUIDE!** A recent pdf of the user guide is located in this branch. For a continually updated version click [here](https://www.overleaf.com/read/hsqjhvtbkgvj#/54715995/) (wait for compilation and then click download PDF)
+> [!TIP]
+> PLEASE READ THE USER GUIDE! A recent pdf of the user guide is located in this branch. For a continually updated version click [here](https://www.overleaf.com/read/hsqjhvtbkgvj#/54715995/) (wait for compilation and then click download PDF)
 
 Besides posting [issues](https://github.com/CHLNDDEV/OceanMesh2D/issues) with the code on Github, you can also ask questions via our Slack channel [here](https://join.slack.com/t/oceanmesh2d/shared_invite/zt-1b96mhvhw-sHUhP2emepHlGtw0~fWmAg).
 
