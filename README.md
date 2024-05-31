@@ -175,6 +175,8 @@ Changelog
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Unreleased (on current HEAD of the Projection branch)
+## Fixed 
+- User inputted edge constraints are now saved when no weirs are being constrained during mesh generation.
 
 ### [6.0.0] - 2024-02-28
 ## Added
