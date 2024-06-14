@@ -59,7 +59,7 @@ function obj = Make_f15( obj, ts, te, dt, varargin )
 %                https://wiki.adcirc.org/Supplemental_meteorological/wave/ice_parameters
 %    
 %               'namelist' : cell/string list of namelists to add from the following:
-%                {'met', 'dynamicWaterLevelCorrection', 'limit', 'velwd','swanoutput'}
+%                {'met', 'dynamicWaterLevelCorrection', 'limit', 'velwd','swanoutput','nws8'}
 %                https://wiki.adcirc.org/Fort.15_file_format#Namelists
 %
 %  Outputs:  1) msh class obj with f15 struct populated
@@ -417,6 +417,29 @@ if ~isempty(namelists)
            obj.f15.controllist(ci).var(vv).name = ['SWAN_Output' vars{vv}];
            obj.f15.controllist(ci).var(vv).val = vv <= 3;
        end
+    end
+    if find(contains(namelists,'nws8'),1)
+       % NWS8
+       ci = ci + 1;
+       obj.f15.controllist(ci).type = 'nws8';
+       obj.f15.controllist(ci).var(1).name = 'vortexModel';
+       obj.f15.controllist(ci).var(1).val = 'Holland';
+       obj.f15.controllist(ci).var(2).name = 'backgroundWindModel';
+       obj.f15.controllist(ci).var(2).val = 'radialVelocityWeighted';
+       obj.f15.controllist(ci).var(3).name = 'BCalc';
+       obj.f15.controllist(ci).var(3).val = 'limited'; 
+       obj.f15.controllist(ci).var(4).name = 'thetaLatDep';
+       obj.f15.controllist(ci).var(4).val = false; 
+       obj.f15.controllist(ci).var(5).name = 'useInflow';
+       obj.f15.controllist(ci).var(5).val = false;
+       obj.f15.controllist(ci).var(6).name = 'windspeed_averaging_minute';
+       obj.f15.controllist(ci).var(6).val = 1;
+       obj.f15.controllist(ci).var(7).name = 'w_cool';
+       obj.f15.controllist(ci).var(7).val = 2.0;
+       obj.f15.controllist(ci).var(8).name = 'CkCd_calc';
+       obj.f15.controllist(ci).var(8).val = false;
+       obj.f15.controllist(ci).var(9).name = 'CkCd';
+       obj.f15.controllist(ci).var(9).val = 1.0;
     end
 end
 
