@@ -132,6 +132,13 @@ if sr
     tmpC = mat2cell(tmpM,dims); % TO CELL
 else
     tmpC =  struct2cell(SG)';
+    
+    % Remove empty cells from shapefile
+    if any(cellfun(@isempty,tmpC(:,1)))
+        warning('Empty objects in shapefile have been removed')
+        tmpC = tmpC(~cellfun(@isempty,tmpC(:,1)),:);
+    end
+
     tmpCC = []; nn = 0;
     for ii = 1:size(tmpC,1)
         % may have NaNs inside
