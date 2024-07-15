@@ -525,6 +525,7 @@ classdef meshgen
                 ml = obj.mainland{box_num};
                 il = obj.inner{box_num};
                 polys = {};
+                if ~isempty(il), polys{end+1} = il; end
                 if ~isempty(ml), polys{end+1} = ml; end
                 
                 % High fidelity - formation of point & edge constraints
