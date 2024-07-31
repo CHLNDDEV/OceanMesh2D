@@ -521,15 +521,18 @@ classdef meshgen
             tpfix = [];
             tegfix = [];
             for box_num = 1:length(obj.h0)
-                % Define polygons based on available geometry data
-                ml = obj.mainland{box_num};
-                il = obj.inner{box_num};
-                polys = {};
-                if ~isempty(il), polys{end+1} = il; end
-                if ~isempty(ml), polys{end+1} = ml; end
+
                 
                 % High fidelity - formation of point & edge constraints
                 if obj.high_fidelity{box_num}
+
+                    % Define polygons based on available geometry data
+                    ml = obj.mainland{box_num};
+                    il = obj.inner{box_num};
+                    polys = {};
+                    if ~isempty(il), polys{end+1} = il; end
+                    if ~isempty(ml), polys{end+1} = ml; end
+                    
                     if obj.cleanup == 1
                         warning('Setting cleanup to 0 since high_fidelity mode is on');
                         obj.cleanup = 0;
