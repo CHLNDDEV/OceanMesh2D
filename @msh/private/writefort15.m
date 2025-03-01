@@ -344,6 +344,7 @@ for k = 1: length(f15dat.controllist)
            fprintf( fid, '%s = "%s",\n',f15dat.controllist(k).var(m).name,val);
         end
     end
+    fprintf( fid, '/ ! -- End %s Control Namelist -- \n', f15dat.controllist(k).type ) ;
 end
 
 fclose(fid) ;

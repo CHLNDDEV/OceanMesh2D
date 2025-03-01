@@ -178,7 +178,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## Fixed 
 - User inputted edge constraints are now saved when no weirs are being constrained during mesh generation.
 ## Added
-- Added a check in `Read_shapefile.m` to handle, warn, and correct cases where there are empty objects in a shapefile. https://github.com/CHLNDDEV/OceanMesh2D/pull/315
+- Check in `Read_shapefile.m` to handle, warn, and correct cases where there are empty objects in a shapefile. https://github.com/CHLNDDEV/OceanMesh2D/pull/315
+- `nws8` namelist for switching to CLE15 vortex model and option vortex model options implemented into a developement branch (https://github.com/adcirc/adcirc/pull/393) of ADCIRC. https://github.com/CHLNDDEV/OceanMesh2D/pull/317
+## Changed
+- Combine `limit` and `velwd` namelists into `wetdry` namelist to match ADCIRC release code. https://github.com/CHLNDDEV/OceanMesh2D/pull/317
 
 ### [6.0.0] - 2024-02-28
 ## Added
