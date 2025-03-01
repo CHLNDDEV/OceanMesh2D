@@ -64,6 +64,32 @@ classdef geodata
 
     end
 
+    %% **✅ Static Method: Handles NaN-Separated Segments**
+    methods (Static)
+        function plotStartEnd(vector, startColor, endColor)
+            if isempty(vector) || size(vector,2) < 2
+                return; % Skip if invalid
+            end
+
+            % Find NaN delimiters
+            nanIndices = [find(isnan(vector(:,1))); size(vector,1) + 1];
+            startIndices = [1; nanIndices(1:end-1) + 1];
+            endIndices = nanIndices - 1;
+
+            % Remove invalid indices (e.g., NaNs at start or end)
+            validMask = (startIndices <= endIndices) & (startIndices > 0) & (endIndices > 0);
+            startIndices = startIndices(validMask);
+            endIndices = endIndices(validMask);
+
+            % Plot markers at start and end of each segment
+            if ~isempty(startIndices) && ~isempty(endIndices)
+                m_plot(vector(startIndices,1), vector(startIndices,2), 'go', 'MarkerFaceColor', startColor, 'MarkerSize', 6);
+                m_plot(vector(endIndices,1), vector(endIndices,2), 'rx', 'MarkerFaceColor', endColor, 'MarkerSize', 6);
+            end
+        end
+    end
+
+
     methods
 
         function obj = geodata(varargin)
@@ -753,8 +779,8 @@ classdef geodata
         end
 
         function plot(obj, type, projection, holdon)
-            % plot(obj,type,projection,holdon)
-            % Plot geodata class info
+            % plot(obj, type, projection, holdon)
+            % Plot geodata class info with start/end markers
             %
             % Inputs:
             % obj  : geodata class object [required input]
@@ -832,23 +858,15 @@ classdef geodata
             h1 = []; h2 = []; h3 = []; h4 = [];
             if ~isempty(obj.mainland) && obj.mainland(1) ~= 0
                 h1 = m_plot(obj.mainland(:,1), obj.mainland(:,2), colorm, 'linewi', 1);
+                geodata.plotStartEnd(obj.mainland, 'g', 'r'); % Mark start (green) and end (red)
             end
             if ~isempty(obj.inner) && obj.inner(1) ~= 0
                 h2 = m_plot(obj.inner(:,1), obj.inner(:,2), colori, 'linewi', 1);
-            end
-            if ~isempty(obj.weirs)
-                if isstruct(obj.weirs)
-                    for ii = 1:length(obj.weirs)
-                        h3 = [h3; m_plot(obj.weirs.X, obj.weirs.Y, 'm-', 'linewi', 1)];
-                    end
-                else
-                    for ii = 1:length(obj.weirs)
-                        h3 = [h3; m_plot(obj.weirs{ii}(:,1), obj.weirs{ii}(:,2), 'm-', 'linewi', 1)];
-                    end
-                end
+                geodata.plotStartEnd(obj.inner, 'g', 'r');
             end
             if ~isempty(obj.linestrings)
                 h4 = m_plot(obj.linestrings(:,1), obj.linestrings(:,2), 'c--', 'linewi', 1);
+                geodata.plotStartEnd(obj.linestrings, 'g', 'r'); % Mark start (green) and end (red)
             end
 
             % Plot the outer boundary hatch (dashed line)
@@ -858,32 +876,8 @@ classdef geodata
             if ~holdon
                 m_grid('xtick', 10, 'tickdir', 'out', 'yaxislocation', 'left', 'fontsize', 10);
             end
-
-            % Build legend based on available plot handles
-            legend_entries = {};
-            legend_handles = [];
-            if ~isempty(h1)
-                legend_handles(end+1) = h1;
-                legend_entries{end+1} = 'mainland';
-            end
-            if ~isempty(h2)
-                legend_handles(end+1) = h2;
-                legend_entries{end+1} = 'inner';
-            end
-            if ~isempty(h3)
-                legend_handles(end+1) = h3(1);  % use first weir for legend entry
-                legend_entries{end+1} = 'weirs';
-            end
-            if ~isempty(h4)
-                legend_handles(end+1) = h4;
-                legend_entries{end+1} = 'linestrings';
-            end
-            if ~isempty(legend_handles)
-                legend(legend_handles, legend_entries, 'Location', 'NorthWest');
-            end
         end
 
     end
-
 
 end
