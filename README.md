@@ -86,7 +86,7 @@ Starting Out
 
 1. Restart MATLAB to get paths added.
 
-Additional data required for some of the following examples must be downloaded manually from [here](https://drive.google.com/open?id=1LeQJFKaVCM2K59pKO9jDcB02yjTmJPmL). Specifically, Examples 2, 3, 4, 5 and 5b require additional datasets from the google drive folder while base datasets are sufficient for the other examples.
+Additional data required for some of the following examples must be downloaded manually from [Zenodo](https://doi.org/10.5281/zenodo.2605388). Specifically, Examples 2, 3, 4, 5 and 5b require additional datasets from the google drive folder while base datasets are sufficient for the other examples.
 
 ```
 Featured in  ┌── Examples/Example_1_NZ.m   -- A simple mesh around South Island
@@ -182,6 +182,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - `nws8` namelist for switching to CLE15 vortex model and option vortex model options implemented into a developement branch (https://github.com/adcirc/adcirc/pull/393) of ADCIRC. https://github.com/CHLNDDEV/OceanMesh2D/pull/317
 ## Changed
 - Combine `limit` and `velwd` namelists into `wetdry` namelist to match ADCIRC release code. https://github.com/CHLNDDEV/OceanMesh2D/pull/317
+- Defunct Google drive link to Zenodo one in the README. 
 
 ### [6.0.0] - 2024-02-28
 ## Added
