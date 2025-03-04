@@ -5,7 +5,7 @@ classdef CleanPSLG
         Tolerance = 0.001;
         AngleThreshold = 10;
     end
-    
+
     methods
         function obj = CleanPSLG(vertices, segments, tol, angle_thresh)
             obj.Vertices = vertices;
@@ -13,19 +13,19 @@ classdef CleanPSLG
             if nargin > 2, obj.Tolerance = tol; end
             if nargin > 3, obj.AngleThreshold = angle_thresh; end
         end
-        
+
         function obj = mergeVertices(obj)
             [obj.Vertices, obj.Segments] = obj.fix_geo(obj.Vertices, obj.Segments, obj.Tolerance);
         end
-        
+
         function obj = dropIntersectingEdges(obj)
             obj.Segments = obj.drop_intersecting_edges(obj.Vertices, obj.Segments);
         end
-        
+
         function obj = pruneEncroachingEdges(obj)
             obj.Segments = obj.drop_encroaching_edges(obj.Vertices, obj.Segments, obj.AngleThreshold, obj.Tolerance);
         end
-        
+
         function plotPSLG(obj)
             figure;
             subplot(1,2,1);
@@ -36,9 +36,9 @@ classdef CleanPSLG
             end
             title('Processed PSLG'); xlabel('Longitude'); ylabel('Latitude'); axis equal;
         end
-    
+
     end
-    
+
     methods (Static)
         function [newVertices, newSegments] = fix_geo(vertices, segments, tol)
             % Merge close vertices
@@ -66,7 +66,7 @@ classdef CleanPSLG
             newSegments = arrayfun(@(x) newMapping(x), segments);
             newSegments = unique(sort(newSegments, 2), 'rows');
         end
-        
+
         function newSegments = drop_intersecting_edges(vertices, segments)
             % Drop intersecting edges
             nseg = size(segments,1);
@@ -87,7 +87,7 @@ classdef CleanPSLG
             end
             newSegments = segments(~drop,:);
         end
-        
+
         function flag = segments_intersect(p, r, q, s)
             o1 = CleanPSLG.orientation(p, r, q);
             o2 = CleanPSLG.orientation(p, r, s);
@@ -95,12 +95,12 @@ classdef CleanPSLG
             o4 = CleanPSLG.orientation(q, s, r);
             flag = (o1 ~= o2) && (o3 ~= o4);
         end
-        
+
         function o = orientation(p, q, r)
             val = (q(2)-p(2))*(r(1)-q(1)) - (q(1)-p(1))*(r(2)-q(2));
             o = (val > 0) - (val < 0);
         end
-        
+
         function newSegments = drop_encroaching_edges(vertices, segments, angle_thresh_deg, tol)
             nseg = size(segments,1);
             drop = false(nseg,1);
