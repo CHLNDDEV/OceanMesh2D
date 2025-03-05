@@ -303,50 +303,25 @@ classdef meshgen
                 disp('     Pruning breakline connectivity due to high-fidelity mode 3...');
 
                 % Set tolerance and angle threshold
-                tol = (obj.h0(end)) / 111e3 ;
-                angle_thresh = 30;
+                tol = (obj.h0(end)) / 111e3  ;
+
+                maxChainLengthKm  = 2.5; 
 
                 % Apply CleanPSLG processing with timing
                 disp('     Starting PSLG cleaning process...');
 
-                % **Step 1: Merge Close Vertices**
-                tic;
-                pslg = CleanPSLG(tpfix, tegfix, tol, angle_thresh);
-                pslg = pslg.mergeVertices();
-                mergeTime = toc;
-                fprintf('    Merged "too close" vertices in %.2f seconds\n', mergeTime);
-
-                %figure;
-                %pslg.plotPSLG();
-                %title('After merge...');
-
-                % **Step 2: Drop Intersecting Edges**
-                tic;
-                pslg = pslg.dropIntersectingEdges();
-                dropTime = toc;
-                fprintf('    Dropped intersecting edges in %.2f seconds\n', dropTime);
-                % 
-                % figure;
-                % pslg.plotPSLG();
-                % title('After drop intersect');
-
-                % **Step 3: Prune Encroaching Edges**
-                tic;
-                pslg = pslg.pruneEncroachingEdges();
-                pruneTime = toc;
-                fprintf('    Pruned encroaching edges in %.2f seconds\n', pruneTime);
-
-                % figure;
-                % pslg.plotPSLG();
-                % title('After prune encroach...');
-
-                % **Total time**
-                totalTime = mergeTime + dropTime + pruneTime;
-                fprintf('   Total PSLG processing time: %.2f seconds\n', totalTime);
+                % Apply the filtering pipeline
+                pslg = CleanPSLG(tpfix, tegfix, tol, 0, tol);
+                pslg = pslg.dropNearbyEdges();
+                pslg = pslg.deleteShortChains(maxChainLengthKm);
+                pslg = pslg.cleanUnusedVertices();
+               
 
                 % Update points and edges
                 tpfix = pslg.Vertices;
                 tegfix = pslg.Segments;
+
+                [tpfix, tegfix] = fixgeo2(tpfix, tegfix);
             end
 
             % Check for duplicate fixed points.
