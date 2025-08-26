@@ -180,6 +180,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## Added
 - Check in `Read_shapefile.m` to handle, warn, and correct cases where there are empty objects in a shapefile. https://github.com/CHLNDDEV/OceanMesh2D/pull/315
 - `nws8` namelist for switching to CLE15 vortex model and option vortex model options implemented into a developement branch (https://github.com/adcirc/adcirc/pull/393) of ADCIRC. https://github.com/CHLNDDEV/OceanMesh2D/pull/317
+- Added in support for using ANN with Apple Silicon
 ## Changed
 - Combine `limit` and `velwd` namelists into `wetdry` namelist to match ADCIRC release code. https://github.com/CHLNDDEV/OceanMesh2D/pull/317
 - Defunct Google drive link to Zenodo one in the README. 
