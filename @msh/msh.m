@@ -566,7 +566,7 @@ classdef msh
                     if cmap == 1
                         cmap = '-topo';
                     end
-                    plotter(cmap,1,'depth below datum [m]',true);
+                    plotter(cmap,3,'depth below datum [m]',true);
                     title('mesh topo-bathy');
                 case('slp')
                     slp = hypot(obj.bx,obj.by);
@@ -619,7 +619,7 @@ classdef msh
                     if cmap == 1
                         cmap = 'thermal';
                     end
-                    plotter(cmap,0,yylabel,false);
+                    plotter(cmap,3,yylabel,false);
                     title('mesh resolution');
                 case('resodx')
                     TR = triangulation(obj.t,obj.p(:,1),obj.p(:,2));
@@ -729,23 +729,12 @@ classdef msh
                         if logaxis
                             q = abs(q);
                             q(q == 0) = min(q(q > 0));
-                            if length(cmap_int) >= 3
-                                rd = ceil(-log10(cmap_int(2)));
-                            else
-                                rd = ceil(-log10(min(q)));
-                            end
                             q = log10(q);
-                        else
-                            if length(cmap_int) >= 3
-                                rd = ceil(-log10((cmap_int(3)-cmap_int(2))/cmap_int(1)));
-                            else
-                                rd = ceil(-log10((max(q) - min(q))/cmap_int(1)));
-                            end
                         end
                         if cmap == 1
                             cmap = lansey(cmap_int(1));
                         end
-                        plotter(cmap,rd+1,'',false);
+                        plotter(cmap,3,'',false);
                         ax = gca;
                         ax.Title.String = obj.f13.defval.Atr(ii).AttrName;
                         ax.Title.Interpreter = 'none';
@@ -764,7 +753,7 @@ classdef msh
                 legend(h(leg_ind),legend_names(leg_ind),'location','best')
             end
             
-            function plotter(cmap,round_dec,yylabel,apply_pivot)
+            function plotter(cmap,round_sig,yylabel,apply_pivot)
                 % applies the plot for the quantiy 'q' and specific
                 % colormap/colorbar inputs
                 if proj
@@ -788,10 +777,12 @@ classdef msh
                     if length(cmap_int) >= 3
                         desiredTicks = round(10.^(linspace(...
                             log10(cmap_int(2)),...
-                            log10(cmap_int(3)),numticks)),round_dec);
+                            log10(cmap_int(3)),numticks)), ...
+                            round_sig,'significant');
                     else
                         desiredTicks = round(10.^(linspace(min(q),...
-                            max(q),numticks)),round_dec);
+                            max(q),numticks)), ...
+                            round_sig,'significant');
                     end
                     caxis([log10(min(desiredTicks)) log10(max(desiredTicks))]);
                     cb.Ticks     = log10(desiredTicks);
@@ -801,10 +792,12 @@ classdef msh
                 else
                     if length(cmap_int) >= 3
                         desiredTicks = round(linspace(cmap_int(2),...
-                            cmap_int(3),numticks),round_dec);
+                            cmap_int(3),numticks), ...
+                            round_sig,'significant');
                     else
                         desiredTicks = round(linspace(min(q),...
-                            max(q),numticks),round_dec);
+                            max(q),numticks), ...
+                            round_sig,'significant');
                     end
                     caxis([min(desiredTicks) max(desiredTicks)]);
                     cb.Ticks = desiredTicks;
