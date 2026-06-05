@@ -86,7 +86,7 @@ Starting Out
 
 1. Restart MATLAB to get paths added.
 
-Additional data required for some of the following examples must be downloaded manually from [Zenodo](https://doi.org/10.5281/zenodo.2605388). Specifically, Examples 2, 3, 4, 5 and 5b require additional datasets from the google drive folder while base datasets are sufficient for the other examples.
+Additional data required for some of the following examples must be downloaded manually from [Zenodo](https://doi.org/10.5281/zenodo.12784708). Specifically, Examples 2, 3, 4, 5(b), and 6(b) require additional datasets from the google drive folder while base datasets are sufficient for the other examples.
 
 ```
 Featured in  ┌── Examples/Example_1_NZ.m   -- A simple mesh around South Island
@@ -104,6 +104,10 @@ Geoscientific Model |                                Puerto Rico and US Virgin I
 Development paper[1]|                                LiDAR data around Jamaica Bay with CFL-limiting.
                     └── Examples/Example_6_GBAY.m -- An example of the polyline/thalweg mesh size
                                                      function along the Houston Ship Channel.
+            ┌── Examples/Example_5_JBAY_w_weirs.m       -- Continue from Example 5 and add two thin
+Additional  |                                              weirs at the mouth of the estuary.
+            └── Examples/Example_6b_GBAY_w_floodplain.m -- Continue from Example 6 and build a
+                                                           floodplain onto the mesh.
 ```
 
 See [Testing](#testing) to test OceanMesh2D on your system.
