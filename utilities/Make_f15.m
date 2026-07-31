@@ -247,7 +247,7 @@ sta_database = [];
 namelists = [];
 if ~isempty(varargin)
     names = {'const','tidal_database','NWS','WTIMNC','tau0','tau0minmax',...
-             'sta_database','RSTIMNC','namelist'};
+             'sta_database','RSTIMNC','owiWindNetcdf','namelist'};
     for ii = 1:length(names)
         ind = find(~cellfun(@isempty,strfind(varargin(1:2:end),names{ii})));
         if ~isempty(ind)
@@ -267,7 +267,9 @@ if ~isempty(varargin)
                 sta_database = varargin{ind*2};
             elseif ii == 8
                 obj.f15.rstimnc = varargin{ind*2};
-            elseif ii == 9
+            elseif ii == 9 
+                obj.f15.owiWindNetcDF = varargin{ind*2};
+            elseif ii == 10
                 namelists = varargin{ind*2};
             end
         end    
@@ -407,9 +409,10 @@ if ~isempty(namelists)
        obj.f15.controllist(ci).var(5).name = 'How2FixStatPartWet';
        obj.f15.controllist(ci).var(5).val = 0;
        obj.f15.controllist(ci).var(6).name = 'slim';
-       obj.f15.controllist(ci).var(6).val = 1e9;
+       %&wetDryControl slim = 0.0004 windlim = .true. directvelWD = .false. /
+       obj.f15.controllist(ci).var(6).val = 4e-4;
        obj.f15.controllist(ci).var(7).name = 'windLim';
-       obj.f15.controllist(ci).var(7).val = false;
+       obj.f15.controllist(ci).var(7).val = true;
        obj.f15.controllist(ci).var(8).name = 'directvelWD';
        obj.f15.controllist(ci).var(8).val = false;
        obj.f15.controllist(ci).var(9).name = 'useHF';
@@ -447,6 +450,17 @@ if ~isempty(namelists)
        obj.f15.controllist(ci).var(8).val = false;
        obj.f15.controllist(ci).var(9).name = 'CkCd';
        obj.f15.controllist(ci).var(9).val = 1.0;
+    end
+    if find(contains(namelists,'owiWindNetcdf'),1)
+       % NWS13
+       ci = ci + 1;
+       obj.f15.controllist(ci).type = 'owiWindNetCDF';
+       obj.f15.controllist(ci).var(1).name = 'NWS13File';
+       obj.f15.controllist(ci).var(1).val = 'fort.22.nc';
+       obj.f15.controllist(ci).var(2).name = 'NWS13ColdStartString';
+       % Format start_time for NWS13ColdStartString (YYYYMMDD.HHMMSS format)
+       start_time_str = datestr(ts, 'yyyymmdd.HHMMSS');
+       obj.f15.controllist(ci).var(2).val = start_time_str;
     end
 end
 
