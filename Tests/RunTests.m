@@ -12,6 +12,8 @@ else
 
    TestSanity 
 
+   TestWW3Export
+
    TestEleSizes
    
    TestInterp

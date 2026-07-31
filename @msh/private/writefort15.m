@@ -330,7 +330,12 @@ if find(strcmp(fieldnames(f15dat),'controllist'),1)
 
 for k = 1: length(f15dat.controllist)
     fprintf( fid, '! -- Begin %s Control Namelist -- \n', f15dat.controllist(k).type ) ;
-    fprintf( fid, '&%sControl\n', f15dat.controllist(k).type ) ;
+    % Check if this is an OWI namelist type that shouldn't have 'Control' added
+    if strcmpi(f15dat.controllist(k).type, 'owiWindNetcdf')
+        fprintf( fid, '&%s\n', f15dat.controllist(k).type ) ;
+    else
+        fprintf( fid, '&%sControl\n', f15dat.controllist(k).type ) ;
+    end
     for m = 1:length(f15dat.controllist(k).var)
         val = f15dat.controllist(k).var(m).val;
         if ~ischar(val); 
