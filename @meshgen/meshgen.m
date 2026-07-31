@@ -16,156 +16,51 @@ classdef meshgen
     %
     %   You should have received a copy of the GNU General Public License
     %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-    %
-    %   Available options:
-    %         ef            % edgefx class
-    %         bou           % geodata class
-    %         h0            % minimum edge length (optional if bou exists)
-    %         bbox          % bounding box [xmin,ymin; xmax,ymax] (manual specification, no bou)
-    %         proj          % structure containing the m_map projection info
-    %         plot_on       % flag to plot (def: 1) or not (0)
-    %         nscreen       % how many it to plot and write temp files (def: 5)
-    %         itmax         % maximum number of iterations.
-    %         pfix          % fixed node positions (nfix x 2 )
-    %         egfix         % edge constraints
-    %         outer         % meshing boundary (manual specification, no bou)
-    %         inner         % island boundaries (manual specification, no bou)
-    %         mainland      % the shoreline boundary (manual specification, no bou)
-    %         fixboxes      % a flag that indicates which boxes will use fixed constraints
-    %         memory_gb     % memory in GB allowed to use for initial rejector
-    %         cleanup       % logical flag or string to trigger cleaning of topology (default is on).
-    %         direc_smooth  % logical flag to trigger direct smoothing of mesh in the cleanup
-    %         dj_cutoff     % the cutoff area fraction for disjoint portions to delete
-    %         qual_tol      % tolerance for the accepted negligible change in quality
-    %         enforceWeirs  % whether or not to enforce weirs in meshgen
-    %         enforceMin    % whether or not to enfore minimum edgelength for all edgefxs
-    % delaunay_elim_on_exit % whether or not to run delaunay_elim on exit of meshgen
-    % improve_with_reduced_quality % whether or not to allow mesh improvements with decreases in mesh quality
-    %      improve_boundary % run a gradient desc. to improve the boundary conformity
-    %       high_fidelity   % flag to form pfix and egfix for this domain
-    %
+
     properties
-        fd            % handle to distance function
-        fh            % handle to edge function
-        h0            % minimum edge length
-        edgefx        % edgefx class
-        bbox          % bounding box [xmin,ymin; xmax,ymax]
-        pfix          % fixed node positions (nfix x 2 )
-        egfix         % edge constraints
-        fixboxes      % a flag that indicates which boxes will use fixed constraints
-        plot_on       % flag to plot (def: 1) or not (0)
-        nscreen       % how many it to plot and write temp files (def: 5)
-        bou           % geodata class
-        ef            % edgefx class
-        itmax         % maximum number of iterations.
-        outer         % meshing boundary (manual specification, no bou)
-        inner         % island boundaries (manual specification, no bou)
-        mainland      % the shoreline boundary (manual specification, no bou)
-        boubox        % the bbox as a polygon 2-tuple
-        inpoly_flip   % used to flip the inpoly test to determine the signed distance.
-        memory_gb     % memory in GB allowed to use for initial rejector
-        cleanup       % logical flag or string to trigger cleaning of topology (default is on).
-        direc_smooth  % logical flag to trigger direct smoothing of mesh in the cleanup
-        dj_cutoff     % the cutoff area fraction for disjoint portions to delete
-        grd = msh();  % create empty mesh class to return p and t in.
-        qual          % mean, lower 3rd sigma, and the minimum element quality.
-        qual_tol      % tolerance for the accepted negligible change in quality
-        proj          % structure containing the m_map projection info
-        anno          % Approx. Nearest Neighbor search object.
-        annData       % datat contained with KD-tree in anno
-        Fb            % bathymetry data interpolant
-        enforceWeirs  % whether or not to enforce weirs in meshgen
-        enforceMin    % whether or not to enfore minimum edgelength for all edgefxs
-        improve_boundary  % improve the boundary representation
-        high_fidelity     % flag to form pfix and egfix for this domain
-        delaunay_elim_on_exit % whether or not to run delaunay_elim on exit of meshgen
-        improve_with_reduced_quality % whether or not to allow mesh improvements with decreases in mesh quality
+        % User-defined inputs and internal parameters
+        fd            % Handle to distance function
+        fh            % Handle to edge function(s)
+        h0            % Minimum edge length (scalar or array)
+        bbox          % Bounding box [xmin,ymin; xmax,ymax] (or cell array)
+        pfix          % Fixed node positions (nfix x 2)
+        egfix         % Fixed edge constraints (indices into pfix)
+        fixboxes      % Flag indicating which boxes use fixed constraints
+        plot_on       % Plotting flag (1 = on, 0 = off)
+        nscreen       % Frequency of plotting and writing temp files
+        bou           % Geodata object(s)
+        ef            % Edgefx class instance(s)
+        itmax         % Maximum number of iterations for mesh improvement
+        outer         % Outer boundary (cell array if multiple boxes)
+        inner         % Island boundaries (cell array)
+        mainland      % Shoreline boundary (cell array)
+        boubox        % Bounding box as a polygon (cell array)
+        inpoly_flip   % Flag to flip the inpoly test for signed distances
+        memory_gb     % Memory in GB for initial rejection method
+        cleanup       % Flag/string to trigger mesh cleanup (default 'default')
+        direc_smooth  % Flag to trigger direct smoothing during cleanup
+        dj_cutoff     % Cutoff area fraction for deleting disjoint portions
+        grd = msh();  % Mesh container (of type msh) for nodes p and triangles t
+        qual          % Quality metrics for mesh elements
+        qual_tol      % Tolerance for negligible mesh quality change
+        proj          % Projection structure for m_map
+        anno          % Approximate Nearest Neighbor search object(s)
+        annData       % Data contained in the KD-tree(s)
+        Fb            % Bathymetry data interpolant(s)
+        enforceWeirs  % Flag to enforce weirs in mesh generation
+        enforceMin    % Flag to enforce minimum edge length for all ef's
+        improve_boundary  % Flag to improve the boundary representation
+        high_fidelity     % Cell array or scalar flag for high-fidelity mesh
+        delaunay_elim_on_exit % Flag to run delaunay_elim on exit
+        improve_with_reduced_quality % Allow improvements with reduced quality
     end
-    
-    
-    
-    
+
     methods
-        
-        
-        function obj = plot(obj)
-            if ~isempty(obj.pfix) && ~isempty(obj.egfix)
-                figure; hold on; % Initialize figure and hold for multiple plots
-                
-                % Plot the bounding boxes for visual aid
-                for box_number = 1:length(obj.boubox)
-                    iboubox = obj.boubox{box_number};
-                    plot(iboubox(:,1),iboubox(:,2), 'g-', 'LineWidth', 2, 'DisplayName', 'Bounding Box');
-                    
-                    % Plot outer boundaries
-                    touter = obj.outer(box_number);
-                    if ~isempty(touter)
-                        tedges = Get_poly_edges(touter{1}); % Assuming Get_poly_edges is defined elsewhere
-                        [touter, ~] = filter_polygon_constraints(touter{1}, tedges, obj.boubox, box_number);
-                        plot(touter(:,1), touter(:,2), 'bx', 'DisplayName', 'Outer Boundary');
-                    end
-                    
-                    % Plot inner boundaries
-                    tinner = obj.inner(box_number);
-                    if ~isempty(tinner) && ~isempty(tinner{1})
-                        tedges = Get_poly_edges(tinner{1}); % Assuming Get_poly_edges is defined elsewhere
-                        [tinner, ~] = filter_polygon_constraints(tinner{1}, tedges, obj.boubox, box_number);
-                        plot(tinner(:,1), tinner(:,2), 'rx', 'DisplayName', 'Inner Boundary');
-                    end
-                end
-                
-                % Plot the fixed constraints as squares and edges in black
-                if exist('drawedge2', 'file') == 2 % Check if drawedge2 exists
-                    drawedge2(obj.pfix, obj.egfix, [0,0,0]); % Assuming drawedge2 is a custom function
-                else
-                    % Alternative plotting if drawedge2 is not available
-                    plot(obj.pfix(:,1), obj.pfix(:,2), 'ks', 'MarkerSize', 8, 'MarkerFaceColor', 'k', 'DisplayName', 'Fixed Points');
-                    for i = 1:size(obj.egfix, 1)
-                        plot(obj.pfix(obj.egfix(i,:), 1), obj.pfix(obj.egfix(i,:), 2), 'k-', 'LineWidth', 2, 'DisplayName', 'Fixed Edges');
-                    end
-                end
-                
-                axis equal;
-                title('Mesh Generation Constraints are black lines');
-                xlabel('Longitude');
-                ylabel('Latitude');
-                legend('show', 'Location', 'bestoutside');
-            else
-                disp('No constraints to plot!');
-            end
-        end
-        
-        
-        
-        
-        % class constructor/default grd generation options
+        %% Constructor
         function obj = meshgen(varargin)
-            % Check for m_map dir
-            M_MAP_EXISTS=0;
-            if exist('m_proj','file')==2
-                M_MAP_EXISTS=1 ;
-            end
-            if M_MAP_EXISTS~=1
-                error('Where''s m_map? Chief, you need to read the user guide')
-            end
-            
-            
-            % Check for utilties dir
-            UTIL_DIR_EXISTS=0 ;
-            if exist('inpoly.m','file')
-                UTIL_DIR_EXISTS=1;
-            end
-            if UTIL_DIR_EXISTS~=1
-                error('Where''s the utilities directory? Chief, you need to read the user guide')
-            end
-            
-            
+            % Parse input arguments and set defaults.
             p = inputParser;
-            % unpack options and set default ones, catch errors.
-            
-            
-            defval = 0; % placeholder value if arg is not passed.
-            % add name/value pairs
+            defval = 0; % placeholder for unspecified args
             addOptional(p,'h0',defval);
             addOptional(p,'bbox',defval);
             addOptional(p,'fh',defval);
@@ -187,392 +82,388 @@ classdef meshgen
             addOptional(p,'big_mesh',defval);
             addOptional(p,'proj',defval);
             addOptional(p,'qual_tol',defval);
-            addOptional(p,'enforceWeirs',1);
+            addOptional(p,'enforceWeirs',0);
             addOptional(p,'enforceMin',1);
             addOptional(p,'delaunay_elim_on_exit',1);
             addOptional(p,'improve_with_reduced_quality',0);
-            
-            
-            % parse the inputs
             parse(p,varargin{:});
-            
-            
-            %if isempty(varargin); return; end
-            % store the inputs as a struct
-            inp = p.Results;
-     
-            
-            % kjr...order these argument so they are processed in a predictable
-            % manner. Process the general opts first, then the OceanMesh
-            % classes...then basic non-critical options.
-            inp = orderfields(inp,{'h0','bbox','enforceWeirs','enforceMin',...
+            inp = orderfields(p.Results,{'h0','bbox','enforceWeirs','enforceMin',...
                 'delaunay_elim_on_exit','improve_with_reduced_quality',...
-                'fh',...
-                'inner','outer','mainland',...
-                'bou','ef',... %<--OceanMesh classes come after
-                'egfix','pfix','fixboxes',...
+                'fh','inner','outer','mainland',...
+                'bou','ef','egfix','pfix','fixboxes',...
                 'plot_on','nscreen','itmax',...
                 'memory_gb','qual_tol','cleanup',...
                 'direc_smooth','dj_cutoff',...
                 'big_mesh','proj'});
-            % get the fieldnames of the edge functions
+
+            % Loop through options and assign to object properties.
             fields = fieldnames(inp);
-            % loop through and determine which args were passed.
-            % also, assign reasonable default values if some options were
-            % not assigned.
-            for i = 1 : numel(fields)
-                type = fields{i};
-                switch type
-                    % parse aux options first
-                    case('h0')
-                        % Provide in meters
-                        obj.h0 = inp.(fields{i});
-                    case('fh')
-                        if isa(inp.(fields{i}),'function_handle')
-                            obj.fh = inp.(fields{i});
+            for i = 1:numel(fields)
+                switch fields{i}
+                    case 'h0'
+                        obj.h0 = inp.h0;
+                    case 'fh'
+                        if isa(inp.fh, 'function_handle')
+                            obj.fh = inp.fh;
                         end
-                        % can't check for errors here yet.
-                    case('bbox')
-                        obj.bbox= inp.(fields{i});
+                    case 'bbox'
+                        obj.bbox = inp.bbox;
                         if iscell(obj.bbox)
-                            % checking bbox extents
                             ob_min = obj.bbox{1}(:,1);
                             ob_max = obj.bbox{1}(:,2);
                             for ii = 2:length(obj.bbox)
-                                if any(obj.bbox{ii}(:,1) < ob_min) || ...
-                                        any(obj.bbox{ii}(:,2) > ob_max)
-                                    error(['Outer bbox must contain all ' ...
-                                        'inner bboxes: inner box #' ...
-                                        num2str(ii) ' violates this'])
+                                if any(obj.bbox{ii}(:,1) < ob_min) || any(obj.bbox{ii}(:,2) > ob_max)
+                                    error(['Outer bbox must contain all inner bboxes: inner box #' num2str(ii) ' violates this'])
                                 end
                             end
                         end
-                        
-                        
-                        % if user didn't pass anything explicitly for
-                        % bounding box make it empty so it can be populated
-                        % from ef as a cell-array
-                        if obj.bbox(1)==0
-                            obj.bbox = [];
-                        end
-                    case('pfix')
-                        obj.pfix= inp.(fields{i});
-                        if obj.pfix(1)~=0
-                            obj.pfix(:,:) = inp.(fields{i});
-                        else
-                            obj.pfix = [];
-                        end
+                        if obj.bbox(1)==0, obj.bbox = []; end
+                    case 'pfix'
+                        obj.pfix = inp.pfix;
+                        if ~isempty(obj.pfix) && obj.pfix(1) == 0, obj.pfix = []; end
                         if obj.enforceWeirs
-                            for j = 1 : length(obj.bou)
-                                if  ~isempty(obj.bou{j}.weirPfix)
-                                    obj.pfix = [obj.pfix ; obj.bou{j}.weirPfix];
+                            for j = 1:length(obj.bou)
+                                if ~isempty(obj.bou{j}.weirPfix)
+                                    obj.pfix = [obj.pfix; obj.bou{j}.weirPfix];
                                 end
                             end
                         end
-                    case('egfix')
-                        obj.egfix= inp.(fields{i});
-                        if ~isempty(obj.egfix) && obj.egfix(1)~=0
-                            obj.egfix = inp.(fields{i});
-                        else
-                            obj.egfix = [];
-                        end
+                    case 'egfix'
+                        obj.egfix = inp.egfix;
+                        if ~isempty(obj.egfix) && obj.egfix(1)==0, obj.egfix = []; end
                         if obj.enforceWeirs
-                            for j = 1 : length(obj.bou)
+                            for j = 1:length(obj.bou)
                                 if ~isempty(obj.bou{j}.weirEgfix) && ~isempty(obj.egfix)
-                                    obj.egfix = [obj.egfix ; obj.bou{j}.weirEgfix+max(obj.egfix(:))];
-                                elseif isempty(obj.egfix)
-                                    obj.egfix =  obj.bou{j}.weirEgfix;
+                                    obj.egfix = [obj.egfix; obj.bou{j}.weirEgfix + max(obj.egfix(:))];
+                                else
+                                    obj.egfix = obj.bou{j}.weirEgfix;
                                 end
                             end
                         end
-                        obj.egfix = renumberEdges(obj.egfix);
-                    case('fixboxes')
-                        obj.fixboxes= inp.(fields{i});
-                    case('bou')
-                        % got it from user arg
-                        if obj.outer~=0, continue; end
-                        
-                        obj.outer = {} ;
-                        obj.inner = {} ;
-                        obj.mainland = {} ;
-                        
-                        obj.bou = inp.(fields{i});
-                        
-                        % handle when not a cell
+                        %obj.egfix = renumberEdges(obj.egfix);
+                    case 'fixboxes'
+                        obj.fixboxes = inp.fixboxes;
+                    case 'bou'
+                        if obj.outer ~= 0, continue; end
+                        obj.outer = {}; obj.inner = {}; obj.mainland = {};
+                        obj.bou = inp.bou;
                         if ~iscell(obj.bou)
-                            boutemp = obj.bou;
-                            obj.bou = cell(1);
-                            obj.bou{1} = boutemp;
+                            obj.bou = {obj.bou};
                         end
-                        
-                        % then the geodata class was provide, unpack
                         for ee = 1:length(obj.bou)
-                            try
-                                arg = obj.bou{ee} ;
-                            catch
-                                arg = obj.bou;
-                            end
-                            if isa(arg,'geodata')
-                                
+                            arg = obj.bou{ee};
+                            if isa(arg, 'geodata')
                                 obj.high_fidelity{ee} = obj.bou{ee}.high_fidelity;
-                                                                
                                 obj.outer{ee} = obj.bou{ee}.outer;
                                 obj.inner{ee} = obj.bou{ee}.inner;
-                                
-                                % save bathy interpolant to meshgen
                                 if ~isempty(obj.bou{ee}.Fb)
-                                    obj.Fb{ee} = obj.bou{ee}.Fb ;
+                                    obj.Fb{ee} = obj.bou{ee}.Fb;
                                 end
-                                
-                                if ~isempty(obj.inner{ee}) && ...
-                                        obj.inner{ee}(1)~= 0
-                                    obj.outer{ee} = [obj.outer{ee};
-                                        obj.inner{ee}];
+                                if ~isempty(obj.inner{ee}) && obj.inner{ee}(1) ~= 0
+                                    obj.outer{ee} = [obj.outer{ee}; obj.inner{ee}];
                                 end
                                 obj.mainland{ee} = obj.bou{ee}.mainland;
                                 obj.boubox{ee} = obj.bou{ee}.boubox;
                                 obj.inpoly_flip{ee} = obj.bou{ee}.inpoly_flip;
-
                             end
                         end
-                        
-                        
-                    case('ef')
-                        tmp = inp.(fields{i});
+                    case 'ef'
+                        tmp = inp.ef;
                         if isa(tmp, 'function_handle')
-                            error('Please specify your edge function handle through the name/value pair fh');
+                            error('Please specify your edge function handle via the name/value pair fh');
                         end
                         obj.ef = tmp;
-                        
-                        
-                        % handle when not a cell
                         if ~iscell(obj.ef)
-                            eftemp = obj.ef;
-                            obj.ef = cell(1);
-                            obj.ef{1} = eftemp;
+                            obj.ef = {obj.ef};
                         end
-                        
-                        
-                        % Gather boxes from ef class.
-                        for ee = 1 : length(obj.ef)
-                            if isa(obj.ef{ee},'edgefx')
+                        for ee = 1:length(obj.ef)
+                            if isa(obj.ef{ee}, 'edgefx')
                                 obj.bbox{ee} = obj.ef{ee}.bbox;
                             end
                         end
-                        
-                        
-                        % checking bbox extents
                         if iscell(obj.bbox)
                             ob_min = obj.bbox{1}(:,1);
                             ob_max = obj.bbox{1}(:,2);
                             for ii = 2:length(obj.bbox)
-                                if any(obj.bbox{ii}(:,1) < ob_min) || ...
-                                        any(obj.bbox{ii}(:,2) > ob_max)
-                                    error(['Outer bbox must contain all ' ...
-                                        'inner bboxes: inner box #' ...
-                                        num2str(ii) ' violates this'])
+                                if any(obj.bbox{ii}(:,1) < ob_min) || any(obj.bbox{ii}(:,2) > ob_max)
+                                    error(['Outer bbox must contain all inner bboxes: inner box #' num2str(ii) ' violates this'])
                                 end
                             end
                         end
-                        
-                        
-                        % kjr 2018 June: get h0 from edge functions
                         for ee = 1:length(obj.ef)
-                            if isa(obj.ef{ee},'edgefx')
+                            if isa(obj.ef{ee}, 'edgefx')
                                 obj.h0(ee) = obj.ef{ee}.h0;
                             end
                         end
-                        
-                        
-                        % kjr 2018 smooth the outer automatically
-                        if length(obj.ef) > 1
-                            % kjr 2020, ensure the min. sizing func is
-                            % used
-                            if obj.enforceMin
-                                obj.ef = enforce_min_ef(obj.ef);
-                            end
-                            obj.ef = smooth_outer(obj.ef,obj.Fb);
+                        if length(obj.ef) > 1 && obj.enforceMin
+                            obj.ef = enforce_min_ef(obj.ef);
                         end
-                        
-                        
-                        % Save the ef interpolants into the edgefx
+                        obj.ef = smooth_outer(obj.ef, obj.Fb);
                         for ee = 1:length(obj.ef)
-                            if isa(obj.ef{ee},'edgefx')
-                                obj.fh{ee} = @(p)obj.ef{ee}.F(p);
+                            if isa(obj.ef{ee}, 'edgefx')
+                                obj.fh{ee} = @(p) obj.ef{ee}.F(p);
                             end
                         end
-                        
-                        
-                    case('plot_on')
-                        obj.plot_on= inp.(fields{i});
-                    case('nscreen')
-                        obj.nscreen= inp.(fields{i});
-                        if obj.nscreen ~=0
-                            obj.nscreen = inp.(fields{i});
+                    case 'plot_on'
+                        obj.plot_on = inp.plot_on;
+                    case 'nscreen'
+                        obj.nscreen = inp.nscreen;
+                        if obj.nscreen ~= 0
                             obj.plot_on = 1;
                         else
-                            obj.nscreen = 5; % default
+                            obj.nscreen = 5;
                         end
-                    case('itmax')
-                        obj.itmax= inp.(fields{i});
-                        if obj.itmax ~=0
-                            obj.itmax = inp.(fields{i});
-                        else
+                    case 'itmax'
+                        obj.itmax = inp.itmax;
+                        if obj.itmax == 0
                             obj.itmax = 100;
-                            warning('No itmax specified, itmax set to 100');
+                            warning('No itmax specified; defaulting to 100');
                         end
-                    case('qual_tol')
-                        obj.qual_tol = inp.(fields{i});
-                        if obj.qual_tol ~=0
-                            obj.qual_tol = inp.(fields{i});
-                        else
-                            obj.qual_tol = 0.01;
+                    case 'qual_tol'
+                        obj.qual_tol = inp.qual_tol;
+                        if obj.qual_tol == 0, obj.qual_tol = 0.01; end
+                    case 'inner'
+                        if ~isa(obj.bou, 'geodata')
+                            obj.inner = inp.inner;
                         end
-                    case('inner')
-                        if ~isa(obj.bou,'geodata')
-                            obj.inner = inp.(fields{i});
-                        end
-                    case('outer')
-                        if ~isa(obj.bou,'geodata')
-                            obj.outer = inp.(fields{i});
-                            if obj.inner(1)~=0
+                    case 'outer'
+                        if ~isa(obj.bou, 'geodata')
+                            obj.outer = inp.outer;
+                            if obj.inner(1) ~= 0
                                 obj.outer = [obj.outer; obj.inner];
                             end
                         end
-                    case('mainland')
-                        if ~isa(obj.bou,'geodata')
-                            obj.mainland = inp.(fields{i});
+                    case 'mainland'
+                        if ~isa(obj.bou, 'geodata')
+                            obj.mainland = inp.mainland;
                         end
-                    case('memory_gb')
-                        if ~isa(obj.bou,'memory_gb')
-                            obj.memory_gb = inp.(fields{i});
-                        end
-                    case('cleanup')
-                        obj.cleanup = inp.(fields{i});
+                    case 'memory_gb'
+                        obj.memory_gb = inp.memory_gb;
+                    case 'cleanup'
+                        obj.cleanup = inp.cleanup;
                         if isempty(obj.cleanup) || obj.cleanup == 0
                             obj.cleanup = 'none';
                         elseif obj.cleanup == 1
                             obj.cleanup = 'default';
                         end
-                    case('dj_cutoff')
-                        obj.dj_cutoff = inp.(fields{i});
-                    case('direc_smooth')
-                        obj.direc_smooth = inp.(fields{i});
-                    case('proj')
-                        obj.proj = inp.(fields{i});
-                        % default CPP
-                        if obj.proj == 0; obj.proj = 'equi'; end
+                    case 'dj_cutoff'
+                        obj.dj_cutoff = inp.dj_cutoff;
+                    case 'direc_smooth'
+                        obj.direc_smooth = inp.direc_smooth;
+                    case 'proj'
+                        obj.proj = inp.proj;
+                        if obj.proj == 0, obj.proj = 'equi'; end
                         if ~isempty(obj.bbox)
-                            % kjr Oct 2018 use outer coarsest box for
-                            % multiscale meshing
-                            lon_mi = obj.bbox{1}(1,1)-obj.h0(1)/1110;
-                            lon_ma = obj.bbox{1}(1,2)+obj.h0(1)/1110;
-                            lat_mi = obj.bbox{1}(2,1)-obj.h0(1)/1110;
-                            lat_ma = obj.bbox{1}(2,2)+obj.h0(1)/1110;
+                            lon_mi = obj.bbox{1}(1,1) - 10*obj.h0(1)/1110;
+                            lon_ma = obj.bbox{1}(1,2) + 10*obj.h0(1)/1110;
+                            lat_mi = obj.bbox{1}(2,1) - 10*obj.h0(1)/1110;
+                            lat_ma = obj.bbox{1}(2,2) + 10*obj.h0(1)/1110;
                         else
-                            lon_mi = -180; lon_ma = 180;
-                            lat_mi = -90; lat_ma = 90;
+                            lon_mi = -180; lon_ma = 180; lat_mi = -90; lat_ma = 90;
                         end
-                        % Set up projected space
-                        dmy = msh() ;
+                        dmy = msh();
                         dmy.p(:,1) = [lon_mi; lon_ma];
                         dmy.p(:,2) = [lat_mi; lat_ma];
-                        del = setProj(dmy,1,obj.proj) ;
-                    case('enforceWeirs')
-                        obj.enforceWeirs = inp.(fields{i});
-                    case('enforceMin')
-                        obj.enforceMin = inp.(fields{i});
-                    case('delaunay_elim_on_exit')
-                        obj.delaunay_elim_on_exit = inp.(fields{i});
-                    case('improve_with_reduced_quality')
-                        obj.improve_with_reduced_quality = inp.(fields{i});
+                        setProj(dmy,1,obj.proj);
+                    case 'enforceWeirs'
+                        obj.enforceWeirs = inp.enforceWeirs;
+                    case 'enforceMin'
+                        obj.enforceMin = inp.enforceMin;
+                    case 'delaunay_elim_on_exit'
+                        obj.delaunay_elim_on_exit = inp.delaunay_elim_on_exit;
+                    case 'improve_with_reduced_quality'
+                        obj.improve_with_reduced_quality = inp.improve_with_reduced_quality;
                 end
             end
-            
-            
-            if isempty(varargin); return; end
-            
-            
-            % error checking
-            if isempty(obj.boubox) && ~isempty(obj.bbox)
-                % Make the bounding box 5 x 2 matrix in clockwise order if
-                % it isn't present. This case must be when the user is
-                % manually specifying the PSLG.
-                obj.boubox{1} = [obj.bbox(1,1) obj.bbox(2,1);
-                    obj.bbox(1,1) obj.bbox(2,2); ...
-                    obj.bbox(1,2) obj.bbox(2,2);
-                    obj.bbox(1,2) obj.bbox(2,1); ...
-                    obj.bbox(1,1) obj.bbox(2,1); NaN NaN];
+
+            % Essential input checks.
+            if any(obj.h0 == 0)
+                error('h0 (minimum edge length) was not correctly specified!');
             end
-            if any(obj.h0==0), error('h0 was not correctly specified!'), end
-            if isempty(obj.outer), error('no outer boundary specified!'), end
-            if isempty(obj.bbox), error('no bounding box specified!'), end
-            obj.fd = @dpoly;  % <-default distance fx accepts p and pv (outer polygon).
-            % kjr build ANN object into meshgen
-            obj = createANN(obj) ;
-            
-            
+            if isempty(obj.outer)
+                error('No outer boundary specified!');
+            end
+            if isempty(obj.bbox)
+                error('No bounding box specified!');
+            end
+
+            % Set default distance function and build ANN.
+            obj.fd = @dpoly;
+            obj = createANN(obj);
             global MAP_PROJECTION MAP_COORDS MAP_VAR_LIST
-            obj.grd.proj    = MAP_PROJECTION ;
-            obj.grd.coord   = MAP_COORDS ;
-            obj.grd.mapvar  = MAP_VAR_LIST ;
-            
-            % Check and update geometry for high fidelity option
+            obj.grd.proj    = MAP_PROJECTION;
+            obj.grd.coord   = MAP_COORDS;
+            obj.grd.mapvar  = MAP_VAR_LIST;
+
+            % Generate breakline constraints from shoreline and island boundaries.
+            [tpfix, tegfix] = obj.generateBreaklineConstraints();
+
+            % Check if any entry in high_fidelity is 3
+            if any(cellfun(@(x) isscalar(x) && x == 3, obj.high_fidelity))
+                disp('     Pruning breakline connectivity due to high-fidelity mode 3...');
+
+                % Set tolerance and angle threshold
+                tol = (obj.h0(end)) / 111e3 / 1.5  ;
+
+                maxChainLengthKm  = 2.5; 
+
+                % Apply CleanPSLG processing with timing
+                disp('     Starting PSLG cleaning process...');
+
+                % Apply the filtering pipeline
+                pslg = CleanPSLG(tpfix, tegfix, tol, 0, tol);
+                % 1) Protect long contiguous chains so pruning won't break them
+                pslg = pslg.preserveLongChains(maxChainLengthKm);
+                % 2) Prune nearby/parallel edges (respects PreservedSegments)
+                pslg = pslg.dropNearbyEdges();
+                % 3) Remove any remaining short chains and clean vertices
+                pslg = pslg.deleteShortChains(maxChainLengthKm);
+                pslg = pslg.cleanUnusedVertices();
+               
+
+                % Update points and edges
+                tpfix = pslg.Vertices;
+                tegfix = pslg.Segments;
+
+                %[tpfix, tegfix] = fixgeo2(tpfix, tegfix);
+            end
+
+            % Check for duplicate fixed points.
+            if ~isempty(tpfix)
+                checkfixp = setdiff(tpfix, fixmesh(tpfix), 'rows');
+                if ~isempty(checkfixp)
+                    error('Duplicate fixed points detected, cannot proceed');
+                end
+            end
+
+            % Update object with user-supplied and generated constraints.
+            obj.pfix = [obj.pfix; tpfix];
+            if isempty(obj.egfix)
+                obj.egfix = tegfix;
+            else
+                obj.egfix = [obj.egfix; tegfix + max(obj.egfix(:))];
+            end
+
+            if ~isempty(obj.pfix)
+                disp(['Using ', num2str(size(obj.pfix,1)), ' fixed points.']);
+            end
+            if ~isempty(obj.egfix)
+                if max(obj.egfix(:)) > size(obj.pfix,1)
+                    error('FATAL: egfix indices exceed the number of fixed points.');
+                end
+                disp(['Using ', num2str(size(obj.egfix,1)), ' fixed edges.']);
+                warning('Please verify fixed constraints using plot.');
+            end
+        end
+
+
+
+        %% Private method: generateBreaklineConstraints
+        function [tpfix, tegfix] = generateBreaklineConstraints(obj)
+            % Generates breakline constraints (fixed points and edges) from the
+            % provided mainland, inner (island) boundaries, and line strings.
+            %
+            % Outputs:
+            %   tpfix  - Accumulated fixed points from polygon boundaries and line strings.
+            %   tegfix - Corresponding fixed edge constraints.
+
             tpfix = [];
             tegfix = [];
+
             for box_num = 1:length(obj.h0)
+                % Collect polygon data from mainland and inner boundaries.
+                polys = {};
+                if ~isempty(obj.mainland{box_num})
+                    polys{end+1} = obj.mainland{box_num};
+                end
+                if ~isempty(obj.inner{box_num}) && obj.inner{box_num}(1) ~= 0
+                    polys{end+1} = obj.inner{box_num};
+                end
 
-                
-                % High fidelity - formation of point & edge constraints
+                % Collect NaN-separated line strings
+                lineStrings = {};
+                if ~isempty(obj.bou{box_num}.linestrings)
+                    lineStrings{end+1} = obj.bou{box_num}.linestrings; % Store line strings
+                end
+
+                % Process only if high-fidelity is enabled for this box.
                 if obj.high_fidelity{box_num}
-
-                    % Define polygons based on available geometry data
-                    ml = obj.mainland{box_num};
-                    il = obj.inner{box_num};
-                    polys = {};
-                    if ~isempty(il), polys{end+1} = il; end
-                    if ~isempty(ml), polys{end+1} = ml; end
-                    
-                    if obj.cleanup == 1
-                        warning('Setting cleanup to 0 since high_fidelity mode is on');
+                    if isequal(obj.cleanup, 1)
+                        warning('Disabling cleanup since high-fidelity mode is active.');
                         obj.cleanup = 0;
                     end
-                    disp(['Redistributing vertices for box #' num2str(box_num)]);
-                    
-                    % Convert polygon data, removing NaNs and duplicates
-                    poly = cell2mat(polys');
-                    D = nandelim_to_cell(poly); % Custom function to handle NaN-delimited cells
-                    D = D(~cellfun(@(p) all(isnan(p(:))), D)); % Remove cells with all NaNs
-                    areas = cellfun(@(d) polyarea(d(:, 1), d(:, 2)), D);
-                    [~, uniqueIdx] = uniquetol(areas, 1e-12); % Remove duplicate polygons
+                    disp(['Redistributing vertices for box #', num2str(box_num)]);
+
+                    % Process Polygons: Concatenate and remove NaNs
+                    poly_all = cell2mat(polys');
+                    D = nandelim_to_cell(poly_all);  % Split polygons at NaNs.
+                    D = D(~cellfun(@(p) all(isnan(p(:))), D));  % Remove empty segments
+                    areas = cellfun(@(d) polyarea(d(:,1), d(:,2)), D);
+                    [~, uniqueIdx] = uniquetol(areas, 1e-12);
                     D = D(uniqueIdx);
-                    
-                    % Process each polygon
+
+                    % Process each polygon separately
                     for i = 1:length(D)
-                        my_poly = D{i};
-                        if size(my_poly, 1) > 2
-                            tedges = Get_line_edges(my_poly);
-                            [pts, bnde] = filter_polygon_constraints(my_poly, tedges, obj.boubox, box_num);
+                        current_poly = D{i};
+                        if size(current_poly,1) > 2
+                            polyEdges = Get_line_edges(current_poly);
+                            [pts, bnde] = filter_polygon_constraints(current_poly, polyEdges, obj.boubox, box_num);
                             if isempty(bnde), continue; end
-                            poly_split = extdom_polygon(bnde, pts, 0, 1);
-                            
-                            for ii = 1:length(poly_split)
-                                points = unique(poly_split{ii}, 'rows', 'stable');
-                                % Option 2 simply constrains the vector as
-                                % it is in the file.
+
+                            % Split polygon if necessary.
+                            polySplits = extdom_polygon(bnde, pts, 0, 1);
+                            for j = 1:length(polySplits)
+                                points = unique(polySplits{j}, 'rows', 'stable');
+
+                                % Generate fixed constraints based on high_fidelity option.
                                 if obj.high_fidelity{box_num} == 2
                                     tmp_pfix = points;
-                                    tmp_egfix = Get_poly_edges([points; NaN,NaN]);
-                                % Option 1: resamples based on the local
-                                % mesh resolution
-                                elseif obj.high_fidelity{box_num} == 1
-                                    [tmp_pfix, tmp_egfix] = mesh1d(points, obj.fh, obj.h0./111e3,...
-                                        [], obj.boubox, box_num, []);
+                                    tmp_egfix = Get_poly_edges([points; NaN, NaN]);
+                                elseif obj.high_fidelity{box_num} == 1 || obj.high_fidelity{box_num} == 3
+                                    [tmp_pfix, tmp_egfix] = mesh1d(points, obj.fh, obj.h0./111e3, [], obj.boubox, box_num, []);
+                                else
+                                    continue;
                                 end
-                                
-                                if size(tmp_pfix, 1) > 2
+
+                                if size(tmp_pfix,1) > 2
                                     [tmp_pfix, tmp_egfix] = fixgeo2(tmp_pfix, tmp_egfix);
-                                    if max(tmp_egfix(:)) ~= size(tmp_pfix, 1), continue; end
+                                    if max(tmp_egfix(:)) ~= size(tmp_pfix,1), continue; end
+                                    tpfix = [tpfix; tmp_pfix];
+                                    if isempty(tegfix)
+                                        tegfix = tmp_egfix;
+                                    else
+                                        tegfix = [tegfix; tmp_egfix + max(tegfix(:))];
+                                    end
+                                end
+                            end
+                        end
+                    end
+
+                    % Process NaN-separated Line Strings
+                    for i = 1:length(lineStrings)
+                        current_lines = lineStrings{i};
+                        if size(current_lines,1) > 1
+                            % Convert NaN-separated line strings into individual segments
+                            lineSegments = nandelim_to_cell(current_lines); % Split at NaNs
+                            lineSegments = lineSegments(~cellfun(@isempty, lineSegments)); % Remove empty segments
+
+                            for j = 1:length(lineSegments)
+                                lineSeg = unique(lineSegments{j}, 'rows', 'stable');
+                                if size(lineSeg,1) < 2, continue; end % Ensure it's valid
+
+                                % Generate fixed constraints
+                                if obj.high_fidelity{box_num} == 2
+                                    tmp_pfix = lineSeg;
+                                    tmp_egfix = Get_poly_edges([lineSeg; NaN, NaN]);
+                                elseif obj.high_fidelity{box_num} == 1 || obj.high_fidelity{box_num} == 3
+                                    [tmp_pfix, tmp_egfix] = mesh1d(lineSeg, obj.fh, (3*obj.h0)./111e3, [], obj.boubox, box_num, []);
+                                else
+                                    continue;
+                                end
+
+                                if size(tmp_pfix,1) > 1
+                                    [tmp_pfix, tmp_egfix] = fixgeo2(tmp_pfix, tmp_egfix);
+                                    if max(tmp_egfix(:)) ~= size(tmp_pfix,1), continue; end
                                     tpfix = [tpfix; tmp_pfix];
                                     if isempty(tegfix)
                                         tegfix = tmp_egfix;
@@ -585,37 +476,80 @@ classdef meshgen
                     end
                 end
             end
-                        
-            % Final geometry check and update
-            [tpfix, tegfix] = fixgeo2(tpfix, tegfix);
-            checkfixp = setdiff(tpfix, fixmesh(tpfix), 'rows');
-            if ~isempty(checkfixp), error('Duplicate fixed points detected, cannot proceed'); end
             
-            % Update object with user-passed fixed points
-            obj.pfix = [obj.pfix; tpfix];
-            
-            if isempty(obj.egfix)
-                obj.egfix = tegfix;
-            else
-                obj.egfix = [obj.egfix; tegfix + max(obj.egfix(:))];
-            end
-            
-            if ~isempty(obj.pfix)
-                disp(['Using ', num2str(length(obj.pfix)), ' fixed points.']);
-            end
-            
-            if ~isempty(obj.egfix)
-                if max(obj.egfix(:)) > length(obj.pfix)
-                    error('FATAL: egfix does not index correctly into pfix.');
+            % Final adjustment: re-index and remove duplicate fixed constraints.
+            %[tpfix, tegfix] = fixgeo2(tpfix, tegfix);
+        end
+
+
+        function obj = plot(obj)
+            if ~isempty(obj.pfix) && ~isempty(obj.egfix)
+                figure; hold on; grid on;
+
+                % Set colors and styles
+                bboxColor = [0, 0.7, 0];    % Green for bounding boxes
+                outerColor = [0, 0, 1];      % Blue for outer boundaries
+                innerColor = [1, 0, 0];      % Red for inner boundaries
+                edgeColor = [0, 0, 0];       % Black for fixed edges
+                fixedPointColor = [0, 0, 0]; % Black for fixed points
+
+                % Loop over bounding boxes and plot constraints
+                for box_number = 1:length(obj.boubox)
+                    iboubox = obj.boubox{box_number};
+
+                    % Plot bounding box with slight transparency
+                    plot(iboubox(:,1), iboubox(:,2), '-', 'Color', bboxColor, 'LineWidth', 2, ...
+                        'DisplayName', 'Bounding Box', 'HandleVisibility', 'off');
+
+                    % Plot outer boundary (if available)
+                    touter = obj.outer(box_number);
+                    if ~isempty(touter)
+                        tedges = Get_poly_edges(touter{1});
+                        [touter, ~] = filter_polygon_constraints(touter{1}, tedges, obj.boubox, box_number);
+                        plot(touter(:,1), touter(:,2), 'o', 'Color', outerColor, 'MarkerSize', 5, ...
+                            'DisplayName', 'Outer Boundary');
+                    end
+
+                    % Plot inner boundary (if available)
+                    tinner = obj.inner(box_number);
+                    if ~isempty(tinner) && ~isempty(tinner{1})
+                        tedges = Get_poly_edges(tinner{1});
+                        [tinner, ~] = filter_polygon_constraints(tinner{1}, tedges, obj.boubox, box_number);
+                        plot(tinner(:,1), tinner(:,2), 'x', 'Color', innerColor, 'MarkerSize', 5, ...
+                            'DisplayName', 'Inner Boundary');
+                    end
                 end
-                disp(['Using ', num2str(length(obj.egfix)), ' fixed edges.']);
-                warning('Please check fixed constraints: plot(mshopts)');
+
+                % Plot fixed edges and points
+                if exist('drawedge2', 'file') == 2
+                    drawedge2(obj.pfix, obj.egfix, edgeColor);
+                else
+                    % Plot fixed points
+                    scatter(obj.pfix(:,1), obj.pfix(:,2), 40, fixedPointColor, 'filled', ...
+                        'DisplayName', 'Fixed Points');
+
+                    % Plot fixed edges with a thicker line
+                    for i = 1:size(obj.egfix, 1)
+                        plot(obj.pfix(obj.egfix(i,:), 1), obj.pfix(obj.egfix(i,:), 2), '-', ...
+                            'Color', edgeColor, 'LineWidth', 2.5, 'DisplayName', 'Fixed Edges');
+                    end
+                end
+
+                % Improve plot formatting
+                axis equal;
+                title('Constrained Breaklines and Mesh Constraints', 'FontWeight', 'bold');
+                xlabel('Longitude', 'FontSize', 12);
+                ylabel('Latitude', 'FontSize', 12);
+
+                % Remove duplicate legend entries
+                legendEntries = findobj(gca, '-property', 'DisplayName');
+            else
+                disp('No constraints to plot!');
             end
         end
-        
-        
-        % Creates Approximate nearest neighbor objects on start-up
-        function  obj = createANN(obj)
+
+
+        function obj = createANN(obj)
             box_vec = 1:length(obj.bbox);
             for box_num = box_vec
                 if ~iscell(obj.outer)
@@ -626,8 +560,6 @@ classdef meshgen
                     dataset(isnan(obj.outer{box_num}(:,1)),:) = [];
                 end
                 if all(abs(obj.bbox{box_num}(1,:)) == 180)
-                    % This line removes the line that can appear in the
-                    % center for a global mesh
                     dataset(abs(dataset(:,1)) > 180-1e-6,:) = [];
                     dataset(abs(dataset(:,1)) < 1e-6,:) = [];
                 end
@@ -635,11 +567,60 @@ classdef meshgen
                 dataset(isnan(dataset(:,1)),:) = [];
                 dmy = ann(dataset');
                 obj.anno{box_num} = dmy;
-                obj.annData{box_num}=dataset;
+                obj.annData{box_num} = dataset;
             end
         end
-        
-        
+
+        function mesh_out = collapse_thin_triangles(obj, aspect_ratio_threshold)
+            % Identify and collapse thin triangles in the mesh
+            % aspect_ratio_threshold: Defines what is considered "thin"
+
+            tri = obj.t; % Get triangle connectivity
+            nodes = obj.p; % Get node coordinates
+
+            num_tri = size(tri, 1);
+
+            for i = 1:num_tri
+                % Get triangle node indices
+                n1 = tri(i, 1);
+                n2 = tri(i, 2);
+                n3 = tri(i, 3);
+
+                % Compute edge lengths
+                e1 = norm(nodes(n2, :) - nodes(n1, :)); % Edge 1-2
+                e2 = norm(nodes(n3, :) - nodes(n2, :)); % Edge 2-3
+                e3 = norm(nodes(n1, :) - nodes(n3, :)); % Edge 3-1
+
+                % Find longest edge
+                [longest_edge, idx] = max([e1, e2, e3]);
+
+                % Compute aspect ratio (shortest to longest)
+                shortest_edge = min([e1, e2, e3]);
+                aspect_ratio = shortest_edge / longest_edge;
+
+                % If the triangle is too thin, collapse it
+                if aspect_ratio < aspect_ratio_threshold
+                    % Find the node opposite the longest edge
+                    switch idx
+                        case 1, opposite_node = n3; edge_nodes = [n1, n2];
+                        case 2, opposite_node = n1; edge_nodes = [n2, n3];
+                        case 3, opposite_node = n2; edge_nodes = [n3, n1];
+                    end
+
+                    % Compute midpoint of longest edge
+                    midpoint = mean(nodes(edge_nodes, :), 1);
+
+                    % Move the opposite node to the midpoint (collapsing the triangle)
+                    nodes(opposite_node, :) = midpoint;
+                end
+            end
+
+            % Update mesh with modified nodes
+            mesh_out = obj;
+            mesh_out.p = nodes;
+        end
+
+
         function  obj = build(obj)
             % 2-D Mesh Generator using Distance Functions.
             % Checking existence of major inputs
@@ -653,9 +634,9 @@ classdef meshgen
             deps = sqrt(eps);
             ttol=0.1; Fscale = 1.2; deltat = 0.1;
             delIT = 0 ; delImp = 2;
-            imp = 10; % number of iterations to do mesh improvements (delete/add)
+            imp = 9999; % number of iterations to do mesh improvements (delete/add)
             EXIT_QUALITY = 0.30; % minimum quality necessary to terminate if iter < itmax
-            
+
             % unpack initial points.
             p = obj.grd.p;
             if isempty(p)
@@ -702,7 +683,7 @@ classdef meshgen
                                     [ys;ys])/(2/sqrt(3)*h0_l)) + ...
                                     floor(1e3*m_lldist([0;ed],...
                                     [ys;ys])/(2/sqrt(3)*h0_l));
-                                   
+
                             else
                                 nx = floor(1e3*m_lldist([st;ed],...
                                     [ys;ys])/(2/sqrt(3)*h0_l));
@@ -723,14 +704,14 @@ classdef meshgen
                                 y(ns:ne) = ys;
                             end
                             ns = ne+1; ys = ys + dy;
-                            
+
                         end
-                        
+
                         st = ed;
                         ed = st + blklen;
                         p1 = [x(:) y(:)]; clear x y
-                        
-                        
+
+
                         %% 2. Remove points outside the region, apply the rejection method
                         p1 = p1(feval(obj.fd,p1,obj,box_num) < geps,:);     % Keep only d<0 points
                         r0 = 1./feval(fh_l,p1).^2;                          % Probability to keep point
@@ -754,24 +735,25 @@ classdef meshgen
                 obj.grd.b = [];
                 h0_l = obj.h0(end); % finest h0 (in case of a restart of meshgen.build).
             end
-            
+
             nfix = length(obj.pfix); negfix = length(obj.egfix);
             if ~isempty(obj.pfix); p = [obj.pfix; p]; end
             % kjr July 2023, set to these values for better convg.
             if nfix > 0
                 Fscale=1.1;
                 deltat=0.10;
+                HIGH_FIDELITY_MODE = 1;
             end
 
-            % Check if any boxes are set to high-fidelity 
-            % If so turn off heal_fixed_edges 
-            HIGH_FIDELITY_MODE = 0;
-            for i = 1 : length(obj.h0)
-                if obj.high_fidelity{i}
-                    HIGH_FIDELITY_MODE = 1;
-                end
-            end
-     
+            % Check if any boxes are set to high-fidelity
+            % If so turn off heal_fixed_edges
+            %HIGH_FIDELITY_MODE = 0;
+            % for i = 1 : length(obj.h0)
+            %     if obj.high_fidelity{i} 
+            %         HIGH_FIDELITY_MODE = 1;
+            %     end
+            % end
+
             N = size(p,1); % Number of points N
             disp(['Number of initial points after rejection is ',num2str(N)]);
             %% Iterate
@@ -818,7 +800,7 @@ classdef meshgen
                     if ~mod(it,imp+1) && ((obj.qual(it,1) - obj.qual(it-1,1) < -0.10)  || ...
                             (~obj.improve_with_reduced_quality && ...
                             (N - length(p_before_improve))/length(p_before_improve) < -0.10))
-              
+
                         disp('Mesh improvement was unsuccessful...rewinding...');
                         p = p_before_improve;
                         N = size(p,1);                                     % Number of points changed
@@ -921,8 +903,8 @@ classdef meshgen
                 [ideal_bars(:,1),ideal_bars(:,2)] = ...                    % needs to be in non-projected
                     m_xy2ll(ideal_bars(:,1),ideal_bars(:,2));              % coordinates
                 hbars = 0*ideal_bars(:,1);
-                
-                
+
+
                 for box_num = 1:length(obj.h0)                             % For each bbox, find the bars that are in and calculate
                     if ~iscell(obj.fh)                                     % their ideal lengths.
                         fh_l = obj.fh;
@@ -939,12 +921,12 @@ classdef meshgen
                     end
                     hbars(inside) = feval(fh_l,ideal_bars(inside,:));      % Ideal lengths
                 end
-                
-                
+
+
                 L0 = hbars*Fscale*median(L)/median(hbars);                 % L0 = Desired lengths using ratio of medians scale factor
                 LN = L./L0;                                                % LN = Normalized bar lengths
-                
-                
+
+
                 % Mesh improvements (deleting and addition)
                 p_before_improve = p;
                 if ~mod(it,imp) %
@@ -955,8 +937,8 @@ classdef meshgen
                         % Remove elements with small connectivity
                         nn = get_small_connectivity(p,t);
                         disp(['Deleting ' num2str(length(nn)) ' due to small connectivity'])
-                        
-                        
+
+
                         % Remove points that are too close (< LN = 0.5)
                         if any(LN < 0.5)
                             % Do not delete pfix too close.
@@ -964,8 +946,8 @@ classdef meshgen
                             disp(['Deleting ' num2str(length(nn1)) ' points too close together'])
                             nn = unique([nn; nn1]);
                         end
-                        
-                        
+
+
                         % Split long edges however many times to
                         % better lead to LN of 1
                         if any(LN > 2)
@@ -998,22 +980,22 @@ classdef meshgen
                         continue;
                     end
                 end
-                
-                
+
+
                 F    = (1-LN.^4).*exp(-LN.^4)./LN;                         % Bessens-Heckbert edge force
-                F(isinf(F)) = 0; 
+                F(isinf(F)) = 0;
                 Fvec = F*[1,1].*barvec;
-                
-                
+
+
                 Ftot = full(sparse(bars(:,[1,1,2,2]),ones(size(F))*[1,2,1,2],[Fvec,-Fvec],N,2));
                 Ftot(1:nfix,:) = 0;                                        % Force = 0 at fixed points
-   
+
                 pt = pt + deltat*Ftot;                                     % Update node positions
-                
-                
+
+
                 [p(:,1),p(:,2)] = m_xy2ll(pt(:,1),pt(:,2));
-                
-                
+
+
                 %7. Bring outside points back to the boundary
                 d = feval(obj.fd,p,obj,[],1); ix = d > 0;                  % Find points outside (d>0)
                 ix(1:nfix) = 0;
@@ -1032,12 +1014,12 @@ classdef meshgen
                     end
                     alpha = alpha / 0.5;
                 end
-                
-                
+
+
                 % 8. Termination criterion: Exceed itmax
                 it = it + 1 ;
-                
-                
+
+
                 if ( it > obj.itmax )
                     % Do the final deletion of small connectivity
                     if obj.delaunay_elim_on_exit
@@ -1053,14 +1035,15 @@ classdef meshgen
             %%
             disp('Finished iterating...');
             fprintf(1,' ------------------------------------------------------->\n') ;
-            
-            
+
+
             %% Doing the final cleaning and fixing to the mesh...
             % Always save the mesh!
             save('Precleaned_grid.mat','it','p','t');
-            
+
             % Clean up the mesh if specified
             if ~strcmp(obj.cleanup,'none')
+                disp('Performing cleanup step...')
                 % Put the mesh class into the grd part of meshgen and clean
                 obj.grd.p = p; obj.grd.t = t;
                 [obj.grd,qout] = clean(obj.grd,obj.cleanup,...
@@ -1080,13 +1063,13 @@ classdef meshgen
                 obj.grd.pfix = obj.pfix ;
                 obj.grd.egfix= obj.egfix ;
             end
-            
-            
+
+
             % Check element order, important for the global meshes crossing
             % -180/180 boundary
             obj.grd = CheckElementOrder(obj.grd);
-            
-            
+
+
             if obj.plot_on
                 figure; plot(obj.qual,'linewi',2);
                 hold on
@@ -1103,8 +1086,8 @@ classdef meshgen
             %%%%%%%%%%%%%%%%%%%%%%%%%%
             % Auxiliary subfunctions %
             %%%%%%%%%%%%%%%%%%%%%%%%%%
-            
-            
+
+
             function [t,p] = delaunay_elim(p,fd,geps,final)
                 % Removing mean to reduce the magnitude of the points to
                 % help the convex calc
@@ -1114,8 +1097,42 @@ classdef meshgen
                     p_s  = pt1 - repmat(mean(pt1),[N,1]);
                     TR   = delaunayTriangulation(p_s);
                 else
-                    TR   = delaunayTriangulation(pt1(:,1),pt1(:,2),obj.egfix);
-                    pt1  = TR.Points;
+                    % Build constraint indices relative to current pt1 ordering
+                    % Map fixed points (obj.pfix) to pt1 rows using a tight tolerance
+                    [fixXY(:,1),fixXY(:,2)] = m_ll2xy(obj.pfix(:,1), obj.pfix(:,2));
+                    fixMapTol = 1e-4;
+                    % Vectorized nearest neighbor for all pfix against pt1
+                    [nnIdx, nnDst] = ourKNNsearch(pt1', fixXY', 1);
+                    % Enforce tolerance and unique assignment greedily by nearest first
+                    mapFixIdx = zeros(nfix,1);
+                    used = false(size(pt1,1),1);
+                    [~, order] = sort(nnDst, 'ascend');
+                    for ii = order(:)'
+                        if ~isfinite(nnDst(ii)) || nnDst(ii) > fixMapTol
+                            continue
+                        end
+                        j = nnIdx(ii);
+                        if j>=1 && j<=size(pt1,1) && ~used(j)
+                            mapFixIdx(ii) = j;
+                            used(j) = true;
+                        end
+                    end
+                    % Translate egfix to current point indices and drop invalid edges
+                    E = obj.egfix;
+                    E(any(E<1 | E>nfix,2),:) = []; % safety clamp to pfix range
+                    if ~isempty(E)
+                        E2 = [mapFixIdx(E(:,1)) mapFixIdx(E(:,2))];
+                        validE = all(E2>0,2) & E2(:,1)~=E2(:,2);
+                        E2 = E2(validE,:);
+                        E2 = unique(sort(E2,2),'rows');
+                    else
+                        E2 = [];
+                    end
+                    if isempty(E2)
+                        TR = delaunayTriangulation(pt1(:,1),pt1(:,2));
+                    else
+                        TR = delaunayTriangulation(pt1(:,1),pt1(:,2),E2);
+                    end
                 end
                 for kk = 1:final+1
                     if kk > 1
@@ -1128,17 +1145,53 @@ classdef meshgen
                         pt1(nn,:) = [];
                     end
                     t = TR.ConnectivityList;
-                    pmid = squeeze(mean(reshape(pt1(t,:),[],3,2),2));      % Compute centroids
+                    % Use triangulation's own Points to avoid any mismatch with pt1
+                    Ptri = TR.Points;
+                    pmid = squeeze(mean(reshape(Ptri(t,:),[],3,2),2));      % Compute centroids
                     [pmid(:,1),pmid(:,2)] = m_xy2ll(pmid(:,1),pmid(:,2));  % Change back to lat lon
                     t    = t(feval(fd,pmid,obj,[]) < -geps,:);             % Keep interior trianglesi
                 end
-                if length(pt1) ~= length(p)
-                    clear p
-                    [p(:,1),p(:,2)] = m_xy2ll(pt1(:,1),pt1(:,2));
+                % Sync local point array with triangulation points for consistent indexing
+                pt1 = Ptri;
+                % Enforce: pfix must occupy indices 1:nfix and renumber t accordingly
+                if nfix > 0
+                    % Build mapping from fixed lat/lon (obj.pfix) to current XY points
+                    [fixXY(:,1),fixXY(:,2)] = m_ll2xy(obj.pfix(:,1), obj.pfix(:,2));
+                    fixMapTol = 1e-4; % "exceedingly close" threshold (XY units)
+                    % Vectorized nearest neighbor for all pfix against pt1
+                    [nnIdx, nnDst] = ourKNNsearch(pt1', fixXY', 1);
+                    % Enforce tolerance and unique assignment greedily by nearest first
+                    idxFix = zeros(nfix,1);
+                    used = false(size(pt1,1),1);
+                    [~, order] = sort(nnDst, 'ascend');
+                    for ii = order(:)'
+                        if ~isfinite(nnDst(ii)) || nnDst(ii) > fixMapTol
+                            continue
+                        end
+                        j = nnIdx(ii);
+                        if j>=1 && j<=size(pt1,1) && ~used(j)
+                            idxFix(ii) = j;
+                            used(j) = true;
+                        end
+                    end
+                    % Only move those fixed points we actually matched within tolerance
+                    idxFixValid = idxFix(idxFix > 0);
+                    if ~isempty(idxFixValid)
+                        allIdx = (1:size(pt1,1)).';
+                        rest = setdiff(allIdx, idxFixValid, 'stable');
+                        perm = [idxFixValid; rest];
+                        inv_perm = zeros(size(perm));
+                        inv_perm(perm) = (1:numel(perm)).';
+                        pt1 = pt1(perm,:);
+                        t = inv_perm(t);
+                    end
                 end
+                % Return points in lat/lon
+                clear p
+                [p(:,1),p(:,2)] = m_xy2ll(pt1(:,1),pt1(:,2));
             end
-            
-            
+
+
             function nn = get_small_connectivity(p,t)
                 % Get node connectivity (look for 4)
                 [~, enum] = VertToEle(t);
@@ -1150,7 +1203,8 @@ classdef meshgen
                 return;
             end
 
-             function del = heal_fixed_edges(p,t,egfix)
+            
+            function del = heal_fixed_edges(p,t,egfix)
                 % kjr april2019
                 % if there's a triangle with a low geometric quality that
                 % contains a fixed edge, remove the non-fixed vertex
@@ -1166,12 +1220,11 @@ classdef meshgen
                 badtria = t(dmy,:);
                 del     = badtria(badtria > nfix) ;
             end
-            
-        end % end mesh generator
-        
-        
-    end % end methods
-    
-    
-end % end class
 
+        end % end mesh generator
+
+
+    end % end methods
+
+
+end % end class
