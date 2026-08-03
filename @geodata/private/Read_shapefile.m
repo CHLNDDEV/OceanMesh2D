@@ -1,12 +1,23 @@
-function polygon_struct = Read_shapefile(finputname, ~, bbox, h0, boubox, plot_on, ~)
+function polygon_struct = Read_shapefile(finputname, ~, bbox, h0, boubox, plot_on, ~, densify_outer)
 %% ============================
 %  Initialize Data Structures
 % ============================
-SG = []; 
+if nargin < 8 || isempty(densify_outer)
+    densify_outer = 0;
+end
+SG = [];
 loop = 1; minus = 0;
-tolerance = 1e-5;  
-min_area_inner = 4 * h0^2;  
-min_area_mainland = 100 * h0^2;  
+tolerance = 1e-5;
+min_area_inner = 4 * h0^2;
+min_area_mainland = 100 * h0^2;
+
+if densify_outer
+    % Densify the outer (bounding-box) polygon so gaps larger than half
+    % the minimum edge length are filled in. Off by default: unnecessary
+    % for most meshes and slower on large bounding boxes.
+    [latout, lonout] = my_interpm(boubox(:,2), boubox(:,1), h0/2);
+    boubox = [lonout, latout];
+end
 
 if bbox(1,2) > 180 && bbox(1,1) < 180, loop = 2; end
 if all(bbox(1,:) > 180), minus = 1; end

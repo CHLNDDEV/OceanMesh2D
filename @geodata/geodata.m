@@ -61,6 +61,7 @@ classdef geodata
         gridspace
         shapefile_3d % if the shapefile has a height attribute
         high_fidelity % performs a 1D mesh generation step to form pfix and egfix prior to 2D meshing
+        densify_outer % densify the outer (bounding-box) boundary to h0/2 spacing before classifying shapefile features (default off: faster, and unnecessary for most meshes)
 
     end
 
@@ -151,6 +152,7 @@ classdef geodata
             addOptional(p,'window',defval);
             addOptional(p,'shapefile_3d',defval);
             addOptional(p,'high_fidelity',defval);
+            addOptional(p,'densify_outer',defval);
 
 
             % parse the inputs
@@ -239,6 +241,8 @@ classdef geodata
                         obj.shapefile_3d = inp.(fields{i}) ;
                     case('high_fidelity')
                         obj.high_fidelity = inp.(fields{i});
+                    case('densify_outer')
+                        obj.densify_outer = inp.(fields{i});
                     case('weirs')
                         if ~iscell(inp.(fields{i})) && ~isstruct(inp.(fields{i})) && inp.(fields{i})==0, continue; end
                         if ~iscell(inp.(fields{i})) && ~isstruct(inp.(fields{i}))
@@ -354,7 +358,8 @@ classdef geodata
                 end
 
                 polygon_struct = Read_shapefile( obj.contourfile, [], ...
-                    obj.bbox, obj.gridspace, obj.boubox, 0, obj.shapefile_3d);
+                    obj.bbox, obj.gridspace, obj.boubox, 0, obj.shapefile_3d, ...
+                    obj.densify_outer);
 
                 % Unpack data from function Read_Shapefile()s
                 obj.outer     = polygon_struct.outer;
@@ -373,7 +378,8 @@ classdef geodata
 
                 % Handle the case for user defined mesh boundary information
                 polygon_struct = Read_shapefile( [], obj.pslg, ...
-                    obj.bbox, obj.gridspace, obj.boubox, 0, obj.shapefile_3d);
+                    obj.bbox, obj.gridspace, obj.boubox, 0, obj.shapefile_3d, ...
+                    obj.densify_outer);
 
                 % Unpack data from function Read_Shapefile()s
                 obj.outer     = polygon_struct.outer;
