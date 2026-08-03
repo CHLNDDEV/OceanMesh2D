@@ -1316,7 +1316,7 @@ classdef msh
                 if ~isempty(ii)
                     varargino{ii+1} = pfixV;
                 end
-                obj = clean(obj,varargino(:));
+                [obj,qual] = clean(obj,varargino(:));
             elseif opt.nscreen
                 disp(['number of nodes is ' num2str(length(obj.p))])
                 disp(['mean quality is ' num2str(mq_m)])
