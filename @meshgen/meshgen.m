@@ -31,6 +31,7 @@ classdef meshgen
         bou           % Geodata object(s)
         ef            % Edgefx class instance(s)
         itmax         % Maximum number of iterations for mesh improvement
+        imp           % Iterations between periodic mesh-improvement passes (delete/add). Defaults to 10, or 9999 (disabled) when fixed points are present
         outer         % Outer boundary (cell array if multiple boxes)
         inner         % Island boundaries (cell array)
         mainland      % Shoreline boundary (cell array)
@@ -75,6 +76,7 @@ classdef meshgen
             addOptional(p,'plot_on',defval);
             addOptional(p,'nscreen',defval);
             addOptional(p,'itmax',defval);
+            addOptional(p,'imp',defval);
             addOptional(p,'memory_gb',1);
             addOptional(p,'cleanup',1);
             addOptional(p,'direc_smooth',1);
@@ -91,7 +93,7 @@ classdef meshgen
                 'delaunay_elim_on_exit','improve_with_reduced_quality',...
                 'fh','inner','outer','mainland',...
                 'bou','ef','egfix','pfix','fixboxes',...
-                'plot_on','nscreen','itmax',...
+                'plot_on','nscreen','itmax','imp',...
                 'memory_gb','qual_tol','cleanup',...
                 'direc_smooth','dj_cutoff',...
                 'big_mesh','proj'});
@@ -219,6 +221,10 @@ classdef meshgen
                             obj.itmax = 100;
                             warning('No itmax specified; defaulting to 100');
                         end
+                    case 'imp'
+                        % 0 (unspecified) resolved in build(): defaults to
+                        % 10, or 9999 (disabled) when fixed points exist.
+                        obj.imp = inp.imp;
                     case 'qual_tol'
                         obj.qual_tol = inp.qual_tol;
                         if obj.qual_tol == 0, obj.qual_tol = 0.01; end
@@ -634,7 +640,8 @@ classdef meshgen
             deps = sqrt(eps);
             ttol=0.1; Fscale = 1.2; deltat = 0.1;
             delIT = 0 ; delImp = 2;
-            imp = 10; % number of iterations to do mesh improvements (delete/add)
+            % imp (iterations between periodic mesh-improvement passes) is
+            % resolved below, once nfix is known.
             EXIT_QUALITY = 0.30; % minimum quality necessary to terminate if iter < itmax
 
             % unpack initial points.
@@ -744,18 +751,25 @@ classdef meshgen
             end
 
             % Check if any boxes are set to high-fidelity.
-            % If so, turn off heal_fixed_edges and disable the periodic
-            % mesh improvement step (imp), since deleting/splitting points
-            % during iteration can disturb carefully-placed high-fidelity
-            % breakline constraints.
+            % If so, turn off heal_fixed_edges.
             HIGH_FIDELITY_MODE = 0;
             for i = 1 : length(obj.h0)
                 if obj.high_fidelity{i}
                     HIGH_FIDELITY_MODE = 1;
                 end
             end
-            if HIGH_FIDELITY_MODE
+
+            % Number of iterations between periodic mesh-improvement
+            % passes (delete/add). Defaults to 10, or 9999 (effectively
+            % disabled) when fixed points are present, since
+            % deleting/splitting points during iteration can disturb
+            % them. Overridable via the 'imp' constructor option.
+            if obj.imp > 0
+                imp = obj.imp;
+            elseif nfix > 0
                 imp = 9999;
+            else
+                imp = 10;
             end
 
             N = size(p,1); % Number of points N
@@ -867,9 +881,9 @@ classdef meshgen
                 end
 
                 % Termination quality, mesh quality reached is copacetic.
-                % NOTE: this check is also gated by imp, which is forced to
-                % 9999 in high-fidelity mode (see HIGH_FIDELITY_MODE above)
-                % -- so in high-fidelity mode this never triggers and the
+                % NOTE: this check is also gated by imp, which defaults to
+                % 9999 (effectively disabled) whenever fixed points are
+                % present -- so in that case this never triggers and the
                 % loop always runs to itmax.
                 qual_diff = mq_l3sig - obj.qual(max(1,it-imp),2);
                 if ~mod(it,imp)
