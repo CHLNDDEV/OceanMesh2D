@@ -634,7 +634,7 @@ classdef meshgen
             deps = sqrt(eps);
             ttol=0.1; Fscale = 1.2; deltat = 0.1;
             delIT = 0 ; delImp = 2;
-            imp = 9999; % number of iterations to do mesh improvements (delete/add)
+            imp = 10; % number of iterations to do mesh improvements (delete/add)
             EXIT_QUALITY = 0.30; % minimum quality necessary to terminate if iter < itmax
 
             % unpack initial points.
@@ -742,17 +742,22 @@ classdef meshgen
             if nfix > 0
                 Fscale=1.1;
                 deltat=0.10;
-                HIGH_FIDELITY_MODE = 1;
             end
 
-            % Check if any boxes are set to high-fidelity
-            % If so turn off heal_fixed_edges
-            %HIGH_FIDELITY_MODE = 0;
-            % for i = 1 : length(obj.h0)
-            %     if obj.high_fidelity{i} 
-            %         HIGH_FIDELITY_MODE = 1;
-            %     end
-            % end
+            % Check if any boxes are set to high-fidelity.
+            % If so, turn off heal_fixed_edges and disable the periodic
+            % mesh improvement step (imp), since deleting/splitting points
+            % during iteration can disturb carefully-placed high-fidelity
+            % breakline constraints.
+            HIGH_FIDELITY_MODE = 0;
+            for i = 1 : length(obj.h0)
+                if obj.high_fidelity{i}
+                    HIGH_FIDELITY_MODE = 1;
+                end
+            end
+            if HIGH_FIDELITY_MODE
+                imp = 9999;
+            end
 
             N = size(p,1); % Number of points N
             disp(['Number of initial points after rejection is ',num2str(N)]);
@@ -1094,9 +1099,11 @@ classdef meshgen
                 if exist('pt1','var'); clear pt1; end
                 [pt1(:,1),pt1(:,2)] = m_ll2xy(p(:,1),p(:,2));
                 if isempty(obj.egfix)
-                    p_s  = pt1 - repmat(mean(pt1),[N,1]);
+                    mean_pt1 = mean(pt1);
+                    p_s  = pt1 - repmat(mean_pt1,[N,1]);
                     TR   = delaunayTriangulation(p_s);
                 else
+                    mean_pt1 = [0 0];
                     % Build constraint indices relative to current pt1 ordering
                     % Map fixed points (obj.pfix) to pt1 rows using a tight tolerance
                     [fixXY(:,1),fixXY(:,2)] = m_ll2xy(obj.pfix(:,1), obj.pfix(:,2));
@@ -1145,8 +1152,9 @@ classdef meshgen
                         pt1(nn,:) = [];
                     end
                     t = TR.ConnectivityList;
-                    % Use triangulation's own Points to avoid any mismatch with pt1
-                    Ptri = TR.Points;
+                    % Use triangulation's own Points to avoid any mismatch with pt1.
+                    % Add back the mean removed above so coordinates aren't displaced.
+                    Ptri = TR.Points + repmat(mean_pt1,[size(TR.Points,1),1]);
                     pmid = squeeze(mean(reshape(Ptri(t,:),[],3,2),2));      % Compute centroids
                     [pmid(:,1),pmid(:,2)] = m_xy2ll(pmid(:,1),pmid(:,2));  % Change back to lat lon
                     t    = t(feval(fd,pmid,obj,[]) < -geps,:);             % Keep interior trianglesi
