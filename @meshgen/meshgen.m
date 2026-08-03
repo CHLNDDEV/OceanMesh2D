@@ -868,6 +868,10 @@ classdef meshgen
                 end
 
                 % Termination quality, mesh quality reached is copacetic.
+                % NOTE: this check is also gated by imp, which is forced to
+                % 9999 in high-fidelity mode (see HIGH_FIDELITY_MODE above)
+                % -- so in high-fidelity mode this never triggers and the
+                % loop always runs to itmax.
                 qual_diff = mq_l3sig - obj.qual(max(1,it-imp),2);
                 if ~mod(it,imp)
                     if mq_l > EXIT_QUALITY
