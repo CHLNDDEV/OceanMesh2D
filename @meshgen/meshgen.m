@@ -741,7 +741,6 @@ classdef meshgen
             % kjr July 2023, set to these values for better convg.
             if nfix > 0
                 Fscale=1.1;
-                deltat=0.10;
             end
 
             % Check if any boxes are set to high-fidelity.
