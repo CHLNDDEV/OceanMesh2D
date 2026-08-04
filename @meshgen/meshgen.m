@@ -155,6 +155,11 @@ classdef meshgen
                         for ee = 1:length(obj.bou)
                             arg = obj.bou{ee};
                             if isa(arg, 'geodata')
+                                if ~isempty(obj.bou{ee}.weirs) && ~obj.enforceWeirs
+                                    warning(['geodata box #' num2str(ee) ...
+                                        ' has weirs specified but enforceWeirs is not set to 1; ' ...
+                                        'the weirs will not be enforced as constraints during meshing.']);
+                                end
                                 obj.high_fidelity{ee} = obj.bou{ee}.high_fidelity;
                                 obj.outer{ee} = obj.bou{ee}.outer;
                                 obj.inner{ee} = obj.bou{ee}.inner;
