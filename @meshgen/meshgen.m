@@ -1256,5 +1256,14 @@ classdef meshgen
 
     end % end methods
 
+    methods (Static)
+        function [pout,t,converged] = call_mesh1d(poly,fh0,h,fix,varargin)
+            % Test/debugging hook exposing the private mesh1d resampler,
+            % so it can be exercised without duplicating it outside
+            % @meshgen/private.
+            [pout,t,converged] = mesh1d(poly,fh0,h,fix,varargin{:});
+        end
+    end
+
 
 end % end class

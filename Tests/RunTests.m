@@ -10,7 +10,9 @@ elseif ~(exist('GSHHS_f_L1.shp','file')==2)
 
 else
 
-   TestSanity 
+   test_1d_original
+
+   TestSanity
 
    TestWW3Export
 
