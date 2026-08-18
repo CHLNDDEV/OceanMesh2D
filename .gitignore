@@ -4,7 +4,7 @@ fort.*
 Examples/*
 !Examples/Example_*
 !Examples/runall.m
-*/*.mat
+*.mat
 *.15
 *.14
 *.13

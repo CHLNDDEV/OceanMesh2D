@@ -28,8 +28,8 @@ load weirs_struct.mat
 
 % Weirs is an array of
 %  structs each with fields:
-%              X: [N—1 double] % x georgraphic coordinates of crestline
-%              Y: [N—1 double] % y geographic coordinates of crestline
+%              X: [Nï¿½1 double] % x georgraphic coordinates of crestline
+%              Y: [Nï¿½1 double] % y geographic coordinates of crestline
 %          width: 5 % seperation of front and back face in meters
 %        min_ele: 20 % minimum resolution along faces of weir in meters
 %    crestheight: 5 % in meters
@@ -67,7 +67,8 @@ fh = edgefx(...
 
 %% STEP 4: Pass your edgefx class object along with some meshing options and
 % build the mesh...
-mshopts = meshgen('ef',fh,'bou',gdat,'plot_on',1,'proj','trans');
+mshopts = meshgen('ef',fh,'bou',gdat,'enforceWeirs',1,...
+    'plot_on',1,'proj','trans');
 % now build the mesh with your options and the edge function.
 mshopts = mshopts.build;
 

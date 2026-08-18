@@ -21,6 +21,8 @@ node(:,2)=VX(:,1);
 node(:,3)=VX(:,2);
 node(:,4)=B;
 
+[open_boundary_nodes, nb_open_boundary_nodes] = normalize_open_boundary_nodes(opedat);
+
 fid = fopen(outfiname,'w');
 outname = outfiname ;
 disp( title )  ;
@@ -35,13 +37,14 @@ for i=1:length(node(:,1))
 end
 fprintf(fid,'%s\n', '$EndNodes');
 fprintf(fid,'%s\n', '$Elements');
-fprintf(fid,'%d\n', length(EToV(:,1))+opedat.neta);
+fprintf(fid,'%d\n', length(EToV(:,1))+nb_open_boundary_nodes);
 m=0;
-for i=1:opedat.nope
-    for j=1:opedat.nvdll(i)
+for i=1:length(open_boundary_nodes)
+    boundary_nodes = open_boundary_nodes{i};
+    for j=1:length(boundary_nodes)
         m=m+1;
         fprintf(fid,'%d %s %d %s %d %s %d %s %d %s %d\n',...
-            m,'',15,'',2,'',0,'',0,'',opedat.nbdv(j,i));
+            m,'',15,'',2,'',0,'',0,'',boundary_nodes(j));
     end
 end
 for i=1:length(EToV(:,1))
@@ -52,3 +55,60 @@ end
 fprintf(fid,'%s', '$EndElements');
 fclose(fid) ;
 return
+
+function [open_boundary_nodes, nb_open_boundary_nodes] = normalize_open_boundary_nodes(opedat)
+
+open_boundary_nodes = {};
+nb_open_boundary_nodes = 0;
+
+if nargin == 0 || isempty(opedat) || ~isstruct(opedat)
+    return
+end
+
+if ~isfield(opedat,'nvdll') || ~isfield(opedat,'nbdv') || isempty(opedat.nvdll) || isempty(opedat.nbdv)
+    return
+end
+
+nvdll = full(opedat.nvdll(:)');
+nbdv = opedat.nbdv;
+
+if isempty(nvdll)
+    return
+end
+
+if issparse(nbdv)
+    nbdv = full(nbdv);
+end
+
+if isvector(nbdv)
+    nbdv = nbdv(:);
+end
+
+nboundaries = min(length(nvdll), size(nbdv,2));
+if nboundaries == 0
+    return
+end
+
+open_boundary_nodes = cell(1, nboundaries);
+for i = 1:nboundaries
+    n_nodes = max(0, floor(nvdll(i)));
+    if n_nodes == 0
+        open_boundary_nodes{i} = zeros(0,1);
+        continue
+    end
+
+    n_available = min(n_nodes, size(nbdv,1));
+    if n_available == 0
+        open_boundary_nodes{i} = zeros(0,1);
+        continue
+    end
+
+    boundary_nodes = full(nbdv(1:n_available,i));
+    boundary_nodes = boundary_nodes(:);
+    boundary_nodes = boundary_nodes(boundary_nodes > 0);
+    open_boundary_nodes{i} = boundary_nodes;
+    nb_open_boundary_nodes = nb_open_boundary_nodes + length(boundary_nodes);
+end
+
+zero_boundaries = cellfun(@isempty, open_boundary_nodes);
+open_boundary_nodes(zero_boundaries) = [];

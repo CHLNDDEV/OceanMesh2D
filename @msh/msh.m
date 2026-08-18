@@ -503,10 +503,10 @@ classdef msh
                                 else
                                     % plot front facing
                                     plot(obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),1),...
-                                        obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'g-','linewi',1.2);
+                                        obj.p(obj.bd.nbvv(1:obj.bd.nvell(nb),nb),2),'g-x','linewi',1.2);
                                     % plot back facing
                                     h(4) = plot(obj.p(obj.bd.ibconn(1:obj.bd.nvell(nb),nb),1),...
-                                        obj.p(obj.bd.ibconn(1:obj.bd.nvell(nb),nb),2),'y-','linewi',1.2);
+                                        obj.p(obj.bd.ibconn(1:obj.bd.nvell(nb),nb),2),'y-x','linewi',1.2);
                                 end
                             elseif obj.bd.ibtype(nb)  == 20
                                 if sum(leg_ind == 2) == 0
@@ -1050,6 +1050,9 @@ classdef msh
                 end
             end
         end
+
+
+
         
         function [obj,qual] = clean(obj,varargin)
             % [obj,qual] = clean(obj,varargin)
@@ -1068,6 +1071,8 @@ classdef msh
             %         elements ( >= 0, if set to 0 operation not performed)
             % 'mqa' - allowable minimum element quality (0 - 1); setting
             %         this too value high may prevent convergence
+            % 'collapse' - number of iterations to collapse triangles with
+            %              small angles (< 10 deg) into neighboring connectivity 
             % 'nscreen' - print info to screen? (default = 1)
             % 'pfix' - fixed points to keep (default empty)
             % 'proj' -to project or not (default = 1)
@@ -1080,6 +1085,8 @@ classdef msh
             
             % Fixing up the mesh automatically
             disp('Beginning mesh cleaning and smoothing operations...');
+            
+            opt.collapse = 0; 
             
             %process categorical cleaning options
             if any(strcmp(varargin,'passive'))
@@ -1103,7 +1110,7 @@ classdef msh
             opt.nscreen = 1; opt.projL = 1; pfixV = [];
             % process user-defined individual cleaning options
             optstring = {'nscreen','pfix','proj','con','djc','db','ds',...
-                'sc_maxit','mqa','renum'};
+                'sc_maxit','mqa','renum','collapse'};
             for ii = 1:2:length(varargin)
                 jj = find(strcmp(varargin{ii},optstring));
                 if isempty(jj)
@@ -1128,6 +1135,8 @@ classdef msh
                     opt.mqa  = varargin{ii + 1};
                 elseif jj == 10
                     obj.renum = varargin{ii + 1};
+                elseif jj == 11 
+                    opt.collapse = varargin{ii+1};
                 end
             end
             if ~isempty(pfixV)
@@ -1182,9 +1191,70 @@ classdef msh
                     disp(['Deleted ' num2str(LT-size(obj.t,1)) ...
                         ' bad boundary elements'])
                 end
-                % kjr, collapse small triangles together
-                [obj.p,obj.t] = ...
-                    collapse_thin_triangles(obj.p,obj.t,opt.db);
+            end
+
+   
+            function [indices] = findFixedPointIndices(pfix,points,tolerance)
+                %disp('    Remapping fixed point indices...')
+                indices = [];
+                % For each fixed point
+                for i = 1:size(pfix, 1)
+                    % Calculate distance from this fixed point to all points
+                    dists = sqrt(sum((points - pfix(i,:)).^2, 2));
+
+                    % Find indices of points within tolerance
+                    matchIdx = find(dists < tolerance);
+
+                    % Add to collection
+                    indices = [indices; matchIdx];
+                end
+            end
+
+
+            if opt.collapse
+
+                % function to relocate pfix indices in mesh after collapse
+                angleThreshold = 10; % Note fixed for now
+
+                p_pr = obj.p; 
+                t_pr = obj.t;
+                
+                num_its = 1;
+                max_iters = 30; % failsafe if not converging.
+
+                if ~isempty(obj.pfix)
+                    [pfixV(:,1),pfixV(:,2)] = m_ll2xy(obj.pfix(:,1),obj.pfix(:,2));
+                end
+
+                while 1
+
+                    [p2, t2] = collapseMinAngleTriangles(p_pr, t_pr, angleThreshold);
+
+                    if ~isempty(obj.pfix)
+                        pfix_indices = findFixedPointIndices(pfixV, p2, 1e-6);
+                        [p2,t2] = smoothmesh(p2,t2,pfix_indices,20,0.01);
+                    else
+                        [p2,t2] = smoothmesh(p2,t2,[],20,0.01);
+                    end
+
+                    number_collapsed = length(t_pr) - length(t2);
+                    disp(['    Collapsed ',num2str(number_collapsed),' thin element(s) on iter# ',num2str(num_its)]);
+                    p_pr = p2;
+                    t_pr = t2;
+
+                    num_its = num_its + 1;
+                    if num_its >= opt.collapse
+                        disp('Exhausted collapse min. angle iter...')
+                        break
+                    elseif number_collapsed == 0
+                        disp(['No more elements to collapse after ',num2str(num_its),'...exiting'])
+                        break
+                    elseif num_its > max_iters 
+                        disp('Max. iterations exceeded...something is wrong...')
+                    end
+                end
+                obj.p = p_pr;
+                obj.t = t_pr;
             end
             
             % Make mesh traversable
@@ -1212,7 +1282,8 @@ classdef msh
             if opt.ds
                 if opt.ds == 2
                     % Perform the hill-climbing smoothing
-                    [obj.p,~,obj.t,~] = smooth2d(obj.p,[],obj.t);
+                    opts.vtol=0.10; opts.iter=4; opts.dbug=false;
+                    [obj.p,~,obj.t,~] = smooth2d(obj.p,[],obj.t,[],opts);
                 else
                     % Perform the direct smoothing
                     [obj.p,obj.t] = direct_smoother_lur(obj.p,obj.t,...
@@ -1245,7 +1316,7 @@ classdef msh
                 if ~isempty(ii)
                     varargino{ii+1} = pfixV;
                 end
-                obj = clean(obj,varargino(:));
+                [obj,qual] = clean(obj,varargino(:));
             elseif opt.nscreen
                 disp(['number of nodes is ' num2str(length(obj.p))])
                 disp(['mean quality is ' num2str(mq_m)])
@@ -1312,7 +1383,7 @@ classdef msh
             % that refer to the boundary condition type.
             %
             % obj: msh class obj
-            % type: 'auto', 'outer', 'inner', 'delete', or 'weirs'
+            % type: 'auto', 'outer', 'inner', 'delete', 'weirs', or 'weirs_set_elev'
             %
             % ---------
             % 'auto' - automatically applies elevation and no-flux bcs to mesh based on geodata class
@@ -1358,14 +1429,19 @@ classdef msh
             % 'weirs' - applies weir bcs to all weirs passed in your gdat.
             % varargins:
             % varargin{1}: geodata class that had crestlines passed.
+            % Optional ways to set weir crest heights (barinht):
+            %   a) Interactive prompts (default)
+            %   b) Positional args: set ar~=0 and pass hts as either a scalar (apply to all)
+            %      or a vector of per-weir heights: make_bc(obj,'weirs',gdat,1,hts)
+            %   c) Name/value: 'weir_height', H to bulk-assign height H to all weirs
             %
             % ---------
             % 'delete' - deletes a user-clicked land/mainland boundary condition from a msh.
             % varargins:
-            % index of land/mainland boundary to delete
+            % index of land/mainland/ocean boundary to delete
             
             if nargin < 2
-                error('Needs type: one of "auto", "outer", "inner", "delete", or "weirs"')
+                error('Needs type: one of "auto", "outer", "inner", "delete", "weirs", or "weirs_set_elev"')
             end
             
             if ~isempty(varargin) && iscell(varargin{1})
@@ -1582,10 +1658,11 @@ classdef msh
                                     nbvv(1:nvell(nbou),nbou) = idv_t';
                                 end
                             end
-                            if outer_only
-                                break;
-                            end
+
                         else
+                            if outer_only
+                                continue;
+                            end
                             % % polygon is an island
                             nbou = nbou + 1;
                             nvell(nbou) = length(idv);
@@ -1597,21 +1674,53 @@ classdef msh
                     
                     % enter our results in the msh op and bd fields
                     if nope > 0
-                        % ocean boundary
-                        obj.op.nope = nope ;
-                        obj.op.neta = neta ;
-                        obj.op.nvdll = nvdll ;
-                        obj.op.ibtype = ibtype ;
-                        obj.op.nbdv = nbdv;
+                        % ocean boundary - preserve existing boundaries
+                        if isempty(obj.op) || obj.op.nope==0
+                            obj.op.nope = nope ;
+                            obj.op.neta = neta ;
+                            obj.op.nvdll = nvdll ;
+                            obj.op.ibtype = ibtype ;
+                            obj.op.nbdv = nbdv;
+                        else
+                            obj.op.nope = obj.op.nope + nope ;
+                            obj.op.neta = obj.op.neta + neta ;
+                            obj.op.nvdll = [obj.op.nvdll nvdll] ;
+                            obj.op.ibtype = [obj.op.ibtype ibtype] ;
+                            % Handle different sizes of nbdv arrays
+                            maxold = size(obj.op.nbdv, 1);
+                            maxnew = size(nbdv, 1);
+                            if maxold < maxnew
+                                obj.op.nbdv(end+1:end+maxnew-maxold,:) = 0;
+                            elseif maxold > maxnew
+                                nbdv(end+1:end+maxold-maxnew,:) = 0;
+                            end
+                            obj.op.nbdv = [obj.op.nbdv nbdv];
+                        end
                     end
                     
                     if nbou > 0
-                        % land boundary
-                        obj.bd.nbou = nbou ;
-                        obj.bd.nvel = nvel ;
-                        obj.bd.nvell = nvell ;
-                        obj.bd.ibtype = ibtype ;
-                        obj.bd.nbvv = nbvv ;
+                        % land boundary - preserve existing boundaries
+                        if isempty(obj.bd) || obj.bd.nbou==0
+                            obj.bd.nbou = nbou ;
+                            obj.bd.nvel = nvel ;
+                            obj.bd.nvell = nvell ;
+                            obj.bd.ibtype = ibtype ;
+                            obj.bd.nbvv = nbvv ;
+                        else
+                            obj.bd.nbou = obj.bd.nbou + nbou ;
+                            obj.bd.nvel = obj.bd.nvel + nvel ;
+                            % Handle different sizes of nbvv arrays
+                            maxold = size(obj.bd.nbvv, 1);
+                            maxnew = size(nbvv, 1);
+                            if maxold < maxnew
+                                obj.bd.nbvv(end+1:end+maxnew-maxold,:) = 0;
+                            elseif maxold > maxnew
+                                nbvv(end+1:end+maxold-maxnew,:) = 0;
+                            end
+                            obj.bd.nvell = [obj.bd.nvell nvell];
+                            obj.bd.ibtype = [obj.bd.ibtype ibtype];
+                            obj.bd.nbvv = [obj.bd.nbvv nbvv];
+                        end
                     end
                     
                 case('auto_old')
@@ -1781,21 +1890,53 @@ classdef msh
                     end
                     
                     if nope > 0
-                        % ocean boundary
-                        obj.op.nope = nope ;
-                        obj.op.neta = neta ;
-                        obj.op.nvdll = nvdll ;
-                        obj.op.ibtype = ibtype ;
-                        obj.op.nbdv = nbdv;
+                        % ocean boundary - preserve existing boundaries
+                        if isempty(obj.op)
+                            obj.op.nope = nope ;
+                            obj.op.neta = neta ;
+                            obj.op.nvdll = nvdll ;
+                            obj.op.ibtype = ibtype ;
+                            obj.op.nbdv = nbdv;
+                        else
+                            obj.op.nope = obj.op.nope + nope ;
+                            obj.op.neta = obj.op.neta + neta ;
+                            obj.op.nvdll = [obj.op.nvdll nvdll] ;
+                            obj.op.ibtype = [obj.op.ibtype ibtype] ;
+                            % Handle different sizes of nbdv arrays
+                            maxold = size(obj.op.nbdv, 1);
+                            maxnew = size(nbdv, 1);
+                            if maxold < maxnew
+                                obj.op.nbdv(end+1:end+maxnew-maxold,:) = 0;
+                            elseif maxold > maxnew
+                                nbdv(end+1:end+maxold-maxnew,:) = 0;
+                            end
+                            obj.op.nbdv = [obj.op.nbdv nbdv];
+                        end
                     end
                     
                     if nbou > 0
-                        % land boundary
-                        obj.bd.nbou = nbou ;
-                        obj.bd.nvel = nvel ;
-                        obj.bd.nvell = nvell ;
-                        obj.bd.ibtype = ibtype ;
-                        obj.bd.nbvv = nbvv ;
+                        % land boundary - preserve existing boundaries
+                        if isempty(obj.bd)
+                            obj.bd.nbou = nbou ;
+                            obj.bd.nvel = nvel ;
+                            obj.bd.nvell = nvell ;
+                            obj.bd.ibtype = ibtype ;
+                            obj.bd.nbvv = nbvv ;
+                        else
+                            obj.bd.nbou = obj.bd.nbou + nbou ;
+                            obj.bd.nvel = obj.bd.nvel + nvel ;
+                            % Handle different sizes of nbvv arrays
+                            maxold = size(obj.bd.nbvv, 1);
+                            maxnew = size(nbvv, 1);
+                            if maxold < maxnew
+                                obj.bd.nbvv(end+1:end+maxnew-maxold,:) = 0;
+                            elseif maxold > maxnew
+                                nbvv(end+1:end+maxold-maxnew,:) = 0;
+                            end
+                            obj.bd.nvell = [obj.bd.nvell nvell];
+                            obj.bd.ibtype = [obj.bd.ibtype ibtype];
+                            obj.bd.nbvv = [obj.bd.nbvv nbvv];
+                        end
                     end
                     
                 case{'inner','islands'}
@@ -1961,25 +2102,202 @@ classdef msh
                         error('The third input must be a geodata class object you used create the mesh with.')
                     end
                     ar = 0; hts = 0; count = 0;
-                    if length(varargin) > 1 && ~isempty(varargin{2})
+                    noPrompt = 0; % when 1, do not block for user input; auto-continue
+                    % tolerance (in mesh coordinate units, i.e. degrees) for
+                    % mapping gdat.ibconn_pts front/back coordinates onto
+                    % nearest mesh nodes. Weir crestline points are pinned
+                    % as fixed (unmoved) mesh vertices when enforceWeirs is
+                    % on, so they should coincide with mesh nodes almost
+                    % exactly -- default is a small fraction of the mesh's
+                    % minimum edge length (gdat.h0, in meters), converted to
+                    % degrees, tight enough to reject any other nearby node
+                    % while tolerating floating-point/reprojection noise.
+                    % Use
+                    %   make_bc(obj,'weirs',gdat,'weir_height',5.0,'tolerance',0.005)
+                    % for looser matching, or
+                    %   make_bc(obj,'weirs',gdat,'weir_height',5.0,'tolerance',0.0001)
+                    % for stricter matching.
+                    tol_weir = gdat.h0/111e3;
+
+                    % Exclude positional gdat and identify string-like name tokens
+                    nvArgs  = varargin(2:end);
+                    isStr   = cellfun(@(x) ischar(x) || isstring(x), nvArgs);
+                    strArgs = nvArgs(isStr);
+                    strIdx  = find(isStr); % positions in nvArgs corresponding to strArgs
+
+                    % Legacy positional arguments (only if present and numeric)
+                    if length(varargin) > 1 && isnumeric(varargin{2}) && ~isempty(varargin{2})
                         ar = varargin{2};
                     end
-                    if length(varargin) > 2 && ~isempty(varargin{3})
+                    if length(varargin) > 2 && isnumeric(varargin{3}) && ~isempty(varargin{3})
                         hts = varargin{3};
+                    end
+
+                    % Parse 'weir_height' from name/value pairs (overrides positional hts)
+                    tI_str = find(strcmp(strArgs,'weir_height'),1);
+                    if ~isempty(tI_str)
+                        nvI  = strIdx(tI_str);   % index into nvArgs for the name
+                        valI = nvI + 1;          % index into nvArgs for the value
+                        if valI <= length(nvArgs) && isnumeric(nvArgs{valI}) && isscalar(nvArgs{valI})
+                            hts = nvArgs{valI};
+                            ar  = 1;      % force non-interactive
+                            noPrompt = 1; % also imply no prompt behavior
+                        else
+                            error('Name/value "weir_height" must be followed by a numeric scalar height in meters.');
+                        end
+                    end
+
+                    % Parse 'tolerance' from name/value pairs
+                    tT_str = find(strcmp(strArgs,'tolerance'),1);
+                    if ~isempty(tT_str)
+                        nvI  = strIdx(tT_str);
+                        valI = nvI + 1;
+                        if valI <= length(nvArgs) && isnumeric(nvArgs{valI}) && isscalar(nvArgs{valI}) && nvArgs{valI} > 0
+                            tol_weir = nvArgs{valI};
+                            if tol_weir > 0.1
+                                warning('make_bc:weirs:toleranceHigh', ...
+                                    'Specified tolerance (%.3g) is large; check units (degrees vs meters).', tol_weir);
+                            end
+                        else
+                            error('Name/value "tolerance" must be followed by a positive numeric scalar');
+                        end
+                    end
+
+                    % Parse no-prompt flags ('noprompt','noninteractive','silent') from string args
+                    if ~isempty(strArgs)
+                        noPrompt = any(strcmpi(strArgs,'noprompt') | strcmpi(strArgs,'noninteractive') | strcmpi(strArgs,'silent'));
                     end
                     
                     % identifying and adding internal weir type boundaries (ibtype=24)
                     for ii = 1 : length(gdat.ibconn_pts) % for each weir
-                        [front_nn, d1] = ourKNNsearch(obj.p',gdat.ibconn_pts{ii}(:,1:2)',1);
-                        [back_nn,  d2] = ourKNNsearch(obj.p',gdat.ibconn_pts{ii}(:,3:4)',1);
-                        rm = d1 > 1e-9 & d2 > 1e-9;
-                        front_nn(rm) = []; back_nn(rm) = [];
-                        nn = [front_nn,back_nn];
-                        for iii = 1 : length(nn)
-                            rm2(iii,1)=length(unique(nn(iii,:)))~=2 ;
+                        % Validate input pairs for this weir
+                        if isempty(gdat.ibconn_pts{ii})
+                            if ~noPrompt
+                                disp(['Skipping weir #',num2str(ii),': empty ibconn_pts entry']);
+                            end
+                            continue
                         end
-                        front_nn(rm2) = []; back_nn(rm2) = [];
+                        if size(gdat.ibconn_pts{ii},2) < 4 || size(gdat.ibconn_pts{ii},1) == 0
+                            if ~noPrompt
+                                disp(['Skipping weir #',num2str(ii),': invalid ibconn_pts size (need Nx4).']);
+                            end
+                            continue
+                        end
+                        % Remove rows with NaNs to prevent ANN errors
+                        ibpts = gdat.ibconn_pts{ii};
+                        nanrows = any(isnan(ibpts),2) | any(~isfinite(ibpts),2);
+                        if any(nanrows)
+                            ibpts(nanrows,:) = [];
+                        end
+                        if isempty(ibpts)
+                            if ~noPrompt
+                                disp(['Skipping weir #',num2str(ii),': all candidate pairs invalid after NaN filtering.']);
+                            end
+                            continue
+                        end
+                        % Are all weir pairs in the mesh connectivity?
+                        if isempty(obj.p)
+                            error('Mesh has no vertices (obj.p is empty); cannot place weirs.');
+                        end
+                        [front_nn, d1] = ourKNNsearch(obj.p',ibpts(:,1:2)',1);
+
+                        % For back faces, request the two nearest nodes so we can
+                        % potentially recover pairs whose nearest nodes collide
+                        % with front faces.
+                        k_back = 2;
+                        if size(obj.p,1) < 2
+                            % Degenerate mesh: fall back to k=1 behavior.
+                            [back_all, d2_all] = ourKNNsearch(obj.p',ibpts(:,3:4)',1);
+                            back_nn   = back_all(:);
+                            back_nn2  = [];
+                            d2        = d2_all(:);
+                            d2_second = inf(size(d2));
+                        else
+                            [back_all, d2_all] = ourKNNsearch(obj.p',ibpts(:,3:4)',k_back);
+                            % Ensure we have two columns for indexing; if fewer
+                            % were returned, pad conservatively.
+                            if size(back_all,2) == 1
+                                back_all = [back_all, back_all];
+                                d2_all   = [d2_all,   inf(size(d2_all))];
+                            end
+                            back_nn   = back_all(:,1);
+                            back_nn2  = back_all(:,2);
+                            d2        = d2_all(:,1);
+                            d2_second = d2_all(:,2);
+                        end
+
+                        front_pts = ibpts(:,1:2); 
+                        back_pts = ibpts(:,3:4);
+
+                        % figure; plot(obj.p(:,1),obj.p(:,2),'rs');
+                        % hold on; 
+                        % plot(front_pts(:,1),front_pts(:,2),'gx')
+                        % plot(back_pts(:,1),back_pts(:,2),'m.')
+
+                        % Tolerance filtering: drop pairs where the front node is
+                        % beyond tol AND both back candidates are beyond tol.
+                        rm = d1 > tol_weir & d2 > tol_weir & d2_second > tol_weir;
+                        front_nn(rm) = [];
+                        back_nn(rm)  = [];
+                        if ~isempty(back_nn2)
+                            back_nn2(rm) = [];
+                        end
+                        d1(rm)        = [];
+                        d2(rm)        = [];
+                        d2_second(rm) = [];
+
+                        if ~noPrompt
+                            nFiltered = sum(rm);
+                            if nFiltered > 0
+                                fprintf(['Weir #%d: filtered %d pairs by tolerance (tol = %.3g; ' ...
+                                         'max d1 = %.3g, max d2 = %.3g, max d2_2 = %.3g).\n'], ...
+                                        ii, nFiltered, tol_weir, max(d1,[],"omitnan"), max(d2,[],"omitnan"), max(d2_second,[],"omitnan"));
+                            end
+                        end
+
+                        % Collision resolution: try to recover pairs by using the
+                        % second-nearest back node when front/back collide.
+                        recovered = 0;
+                        if ~isempty(back_nn2)
+                            coll = (front_nn == back_nn);
+                            can_recover = coll & (d2_second <= tol_weir);
+                            if any(can_recover)
+                                back_nn(can_recover) = back_nn2(can_recover);
+                                recovered = sum(can_recover);
+                            end
+                        else
+                            coll = (front_nn == back_nn);
+                        end
+
+                        % After reassignment, perform a secondary collision
+                        % check. Any remaining collisions are unresolvable and
+                        % will be dropped.
+                        rm2 = (front_nn == back_nn);
+                        dropped_collisions = sum(rm2);
+                        if any(rm2)
+                            front_nn(rm2) = [];
+                            back_nn(rm2)  = [];
+                        end
+
+                        if ~noPrompt
+                            if recovered > 0 || dropped_collisions > 0
+                                fprintf(['Weir #%d: recovered %d pairs by using second-nearest back nodes; ' ...
+                                         'dropped %d pairs with unresolvable collisions.\n'], ...
+                                        ii, recovered, dropped_collisions);
+                            end
+                        end
+
+                        % If nothing valid remains for this weir, skip it
+                        if isempty(front_nn) || isempty(back_nn)
+                            if ~noPrompt
+                                disp(['Skipping weir #',num2str(ii),': no valid front/back pairs after filtering.']);
+                            end
+                            clear rm2
+                            continue
+                        end
+
                         clearvars rm2 ;
+
                         %                         % visualize node pairs
                         %                         plot(obj,'tri',0);
                         %                         hold on; plot(obj.p(front_nn,1),obj.p(front_nn,2),'r.');
@@ -2042,19 +2360,27 @@ classdef msh
                             % Opt 1) ask the user for a dataset to give the
                             % crestline (barinht);
                             if ar == 0
-                                ar = input('Type 1 to enter weir crest height or type 2 to specify dataset...');
-                                if ar==1
+                                ar_inq = input('Type 1 to enter weir crest height or type 2 to specify dataset...');
+                                if ar_inq==1
                                     % fixed value for weir crests
                                     ht = input('Enter value in meters ABOVE the geoid for the height of the weir...');
                                     disp('-----------------------------------------------------------');
-                                elseif ar==2
+                                elseif ar_inq==2
                                     % working on it !
                                     %
                                     error('NOT WORKING YET')
                                 end
                             else
                                 count = count + 1;
-                                ht = hts(count);
+                                if isscalar(hts)
+                                    ht = hts;
+                                else
+                                    if count <= numel(hts)
+                                        ht = hts(count);
+                                    else
+                                        ht = hts(end);
+                                    end
+                                end
                             end
                             barinht(1:nvell(nbou),nbou) =  ht ;
                             barincfsb(1:nvell(nbou),nbou) = 1 ; % these are standard values
@@ -2069,8 +2395,8 @@ classdef msh
                             % Opt 1) ask the user for a dataset to give the crestline
                             % height (barinht)
                             if ar == 0
-                                ar = input('Type 1 to enter weir crest height or type 2 to specify dataset...');
-                                if ar==1
+                                ar_inq = input('Type 1 to enter weir crest height or type 2 to specify dataset...');
+                                if ar_inq==1
                                     % fixed value for weir crests
                                     ht = input('Enter value in meters ABOVE the geoid for the height of the weir...');
                                     disp('-----------------------------------------------------------');
@@ -2081,7 +2407,15 @@ classdef msh
                                 end
                             else
                                 count = count + 1;
-                                ht = hts(count);
+                                if isscalar(hts)
+                                    ht = hts;
+                                else
+                                    if count <= numel(hts)
+                                        ht = hts(count);
+                                    else
+                                        ht = hts(end);
+                                    end
+                                end
                             end
                             barinht(1:nvell(nbou),nbou)   = ht ;
                             barincfsb(1:nvell(nbou),nbou) = 1 ; % these are standard values
@@ -2092,6 +2426,49 @@ classdef msh
                         obj.bd.barinht   = barinht ;
                         obj.bd.barincfsb = barincfsb ;
                         obj.bd.barincfsp = barincfsp ;
+                    end
+                case('weirs_set_elev')
+                    % Bulk-assign a single crest height (barinht) to all existing
+                    % weir boundaries (ibtype == 24). Usage:
+                    %   make_bc(obj,'weirs_set_elev', H)
+                    % or name/value: make_bc(obj,'weirs_set_elev','height',H)
+                    if isempty(varargin)
+                        error('Please provide a height in meters (ABOVE the geoid) for all weirs.')
+                    end
+                    % Accept positional numeric or name/value 'height'
+                    if isnumeric(varargin{1}) && isscalar(varargin{1})
+                        H = varargin{1};
+                    else
+                        tI = find(strcmp(varargin,'height'),1);
+                        if isempty(tI) || tI+1>length(varargin) || ~isscalar(varargin{tI+1}) || ~isnumeric(varargin{tI+1})
+                            error('Please provide height H as a numeric scalar (positional or name/value pair).')
+                        end
+                        H = varargin{tI+1};
+                    end
+                    if isempty(obj.bd) || ~isfield(obj.bd,'ibtype') || ~any(obj.bd.ibtype == 24)
+                        warning('No existing weir boundaries (ibtype==24) found. Nothing to update.');
+                        return;
+                    end
+                    if ~isfield(obj.bd,'nvell') || ~isfield(obj.bd,'barinht')
+                        error('Boundary struct missing required fields (nvell/barinht). Cannot set weir elevations.');
+                    end
+                    weirCols = find(obj.bd.ibtype == 24);
+                    for jj = weirCols
+                        nv = obj.bd.nvell(jj);
+                        if size(obj.bd.barinht,1) < nv
+                            % ensure barinht has enough rows (sparse by convention)
+                            obj.bd.barinht(nv,jj) = obj.bd.barinht(nv,jj); %#ok<AGROW>
+                        end
+                        obj.bd.barinht(1:nv,jj) = H;
+                        % keep standard values for coefficients if present
+                        if isfield(obj.bd,'barincfsb') && ~isempty(obj.bd.barincfsb)
+                            if size(obj.bd.barincfsb,1) < nv; obj.bd.barincfsb(nv,jj) = obj.bd.barincfsb(nv,jj); end %#ok<AGROW>
+                            obj.bd.barincfsb(1:nv,jj) = 1;
+                        end
+                        if isfield(obj.bd,'barincfsp') && ~isempty(obj.bd.barincfsp)
+                            if size(obj.bd.barincfsp,1) < nv; obj.bd.barincfsp(nv,jj) = obj.bd.barincfsp(nv,jj); end %#ok<AGROW>
+                            obj.bd.barincfsp(1:nv,jj) = 1;
+                        end
                     end
                 otherwise
                     error(['unrecognized type = ',type])
@@ -2107,41 +2484,100 @@ classdef msh
         end
         
         
-        function [p1,t1,pw,tw]=extractWeirs(p1,t1,obj)
-            % Return the points and elements associated with the weirs
-            % while removing these elements and nodes from the obj.
+        function [p1_out,t1_out,pw,tw]=extractWeirs(p1_in,t1_in,obj,levels)
+            % Return two disjoint meshes:
+            %  - pw,tw: submesh containing only weir-connected elements and nodes
+            %  - p1_out,t1_out: the complement submesh (all other elements and nodes)
+            %
+            % Optional input:
+            %   levels (default 0) - include element neighbors up to this
+            %   many levels (by shared-edge adjacency) around the initial
+            %   weir-connected elements. levels=0 selects only elements
+            %   touching weir nodes; levels=1 also includes their
+            %   neighbors; levels=2 includes neighbors-of-neighbors, etc.
+
+            if nargin < 4 || isempty(levels)
+                levels = 0;
+            end
+
+            % Gather all nodes that belong to weir boundaries (ibtype==24)
             weir_nodes = [];
             for ii = 1:obj.bd.nbou
                 if obj.bd.ibtype(ii) ~= 24; continue; end
                 nodes = full(obj.bd.nbvv(1:obj.bd.nvell(ii),ii));
                 nodes2 = full(obj.bd.ibconn(1:obj.bd.nvell(ii),ii));
-                weir_nodes = [weir_nodes; nodes; nodes2];
+                weir_nodes = [weir_nodes; nodes; nodes2]; %#ok<AGROW>
             end
-            %  retrieve elements connected to weir nodes
-            vtoe = VertToEle(t1);
+            weir_nodes = unique(weir_nodes);
+
+            % If there are no weir nodes, return empty weir mesh and the original as complement
+            if isempty(weir_nodes)
+                pw = [];
+                tw = zeros(0,3);
+                p1_out = p1_in;
+                t1_out = t1_in;
+                return;
+            end
+
+            % Retrieve elements connected to any weir node (level 0)
+            vtoe = VertToEle(t1_in); % columns correspond to node indices
+            weir_nodes = weir_nodes(weir_nodes >= 1 & weir_nodes <= size(vtoe,2));
             connec_eles = vtoe(:,weir_nodes);
             connec_eles(connec_eles == 0) = [];
-            connec_eles = unique(connec_eles)';
-            tw = t1(connec_eles,:);
-            % retrieve all other elements
-            unconnec_eles = setdiff([1:length(t1)]',connec_eles);
-            tn = t1(unconnec_eles,:);
-            p1o = p1;
-            [p1,t1] = fixmesh(p1,tn);
-            % ensure that the new obj1 is traversable
-            objn = msh(); objn.t = t1; objn.p = p1;
-            objn = Make_Mesh_Boundaries_Traversable(objn,0,1);
-            % add the deleted elements into the weir triangulation
-            twadd = setdiff(t1,objn.t,'rows');
-            [~,~,I] = intersect(p1(twadd,:),p1o,'rows','stable');
-            if ~isempty(I)
-                twadd = reshape(I,[length(I)/3 3]);
+            connec_eles = unique(connec_eles(:));
+
+            % If levels > 0, expand selected elements by element adjacency (shared edge)
+            if levels > 0 && ~isempty(connec_eles)
+                ne = size(t1_in,1);
+                sel = false(ne,1);
+                sel(connec_eles) = true;
+                current = connec_eles(:);
+                [etoe, idx] = EleToEle(t1_in);
+                for d = 1:levels
+                    if isempty(current), break; end
+                    nbrs = [];
+                    % Gather neighbors of current frontier
+                    for k = 1:numel(current)
+                        ie = current(k);
+                        ia = idx(ie); ib = idx(ie+1)-1;
+                        if ia <= ib
+                            nbrs = [nbrs; etoe(ia:ib,2)]; %#ok<AGROW>
+                        end
+                    end
+                    if isempty(nbrs)
+                        break;
+                    end
+                    nbrs = unique(nbrs);
+                    % Exclude already selected
+                    new = nbrs(~sel(nbrs));
+                    if isempty(new)
+                        break;
+                    end
+                    sel(new) = true;
+                    current = new;
+                end
+                connec_eles = find(sel);
             end
-            % finalize the weir mesh and the obj1 mesh
-            [pw,tw] = fixmesh(p1o,[tw; twadd]);
-            p1 = objn.p; t1 = objn.t;
-            % clear unnecessary vars from memory
-            clear vtoe unconnec_eles connec_eles objn p1o
+
+            % Partition triangles into weir-connected and complement sets
+            all_elems = (1:size(t1_in,1))';
+            keep_weir = intersect(all_elems, connec_eles);
+            keep_other = setdiff(all_elems, keep_weir);
+
+            % Build submeshes via fixmesh to relabel node indices locally
+            if isempty(keep_weir)
+                pw = [];
+                tw = zeros(0,3);
+            else
+                [pw,tw] = fixmesh(p1_in, t1_in(keep_weir,:));
+            end
+
+            if isempty(keep_other)
+                p1_out = [];
+                t1_out = zeros(0,3);
+            else
+                [p1_out,t1_out] = fixmesh(p1_in, t1_in(keep_other,:));
+            end
         end
         
         
@@ -2306,7 +2742,18 @@ classdef msh
                 else
                     projname = 'trans';
                 end
-                setProj(obj2,1,projname);
+                % determine bbox as the maximum extent given obj1 and obj2
+                % TODO:
+                % bbox =         
+                % lon_mi = bbox(1,1); lon_ma = bbox(1,2);
+                % lat_mi = bbox(2,1); lat_ma = bbox(2,2);
+                lon_mi = min([obj1.p(:,1);obj2.p(:,1)]);
+                lon_ma = max([obj1.p(:,1);obj2.p(:,1)]);
+                lat_mi = min([obj1.p(:,2);obj2.p(:,2)]);
+                lat_ma = max([obj1.p(:,2);obj2.p(:,2)]);
+                bbox = [lon_mi, lon_ma; 
+                        lat_mi, lat_ma];
+                setProj(obj2,1,projname,1,bbox);
             end
             
             % check to see if we can do the trivial merge
@@ -2366,7 +2813,7 @@ classdef msh
                     % checking for weirs in obj1 to keep
                     if ~isempty(obj1.bd) && any(obj1.bd.ibtype == 24)
                         disp('Weirs found in obj1, extracting to ensure they are preserved')
-                        [p1,t1,pwin1,twin1] = extractWeirs(p1,t1,obj1);
+                        [p1,t1,pwin1,twin1] = extractWeirs(p1,t1,obj1,20);
                     end
                     
                     % checking for weirs in obj2 to keep
@@ -2386,7 +2833,11 @@ classdef msh
                     
                     disp('Forming outer boundary for inset...')
                     try
-                        [cell1] = extdom_polygon(extdom_edges2(t1,p1),p1,-1,0);
+                        [cell1,~,max_index1,~] = extdom_polygon(extdom_edges2(t1,p1),p1,-1,0);
+
+                        largest_poly1 = cell1{max_index1};
+                        largest_edges1 = Get_poly_edges(largest_poly1);
+
                         poly_vec1 = cell2mat(cell1');
                         [edges1] = Get_poly_edges(poly_vec1);
                     catch
@@ -2446,9 +2897,18 @@ classdef msh
                         %in2 is inside the global boundary polygon
                         in2 = inpoly(pmid,poly_vec2,edges2);
                         
-                        % remove triangles that aren't in the global mesh or
-                        % aren't in the inset mesh
+                        % remove triangles that aren't in the global mesh 
+                        % and aren't in the inset mesh
                         del = (~in1 & ~in2);
+
+                        in3 = inpoly(pmid,largest_poly1,largest_edges1);
+
+                        % Delete elements outside the inset that are in the
+                        % global mesh 
+                        del2 = (~in1 & in2 & in3);
+
+                        del = del2 | del;
+
                         tm(del,:) = [];
                     end
                     
@@ -2669,7 +3129,7 @@ classdef msh
         end
         
         function obj = carryoverweirs(obj,obj1)
-            idx1 = nearest_neighbor_map(obj, obj1,'precise');
+            idx1 = nearest_neighbor_map(obj, obj1,'approx');
             if isempty(obj.bd)
                 obj.bd.nbou=0;
                 obj.bd.nvell=[];
@@ -4112,23 +4572,66 @@ classdef msh
                     obj.bd.nbou = length(obj.bd.nvell);
                 end
             end
-            % f13
+            % f13: retain existing attributes on obj (if any) and append
+            % attributes from m_old. Attributes are matched by AttrName;
+            % if an attribute name already exists on obj, its values will
+            % be updated by mapping from m_old, otherwise it will be
+            % appended as a new attribute.
             if ~isempty(m_old.f13)
-                obj.f13 = m_old.f13;
-                obj.f13.NumOfNodes = length(ind);
-                for att = 1:obj.f13.nAttr
+                % Ensure obj.f13 exists and has defval/userval structs
+                if isempty(obj.f13)
+                    obj.f13 = m_old.f13;
+                    obj.f13.NumOfNodes = length(ind);
+                else
+                    % Keep existing metadata on obj.f13 where possible
+                    if ~isfield(obj.f13,'defval') || ~isfield(obj.f13,'userval')
+                        obj.f13.defval = struct('Atr',[]);
+                        obj.f13.userval = struct('Atr',[]);
+                    end
+                end
+
+                % Build name lists for matching/merging
+                existingNames = {};
+                if isfield(obj.f13,'userval') && isfield(obj.f13.userval,'Atr') && ~isempty(obj.f13.userval.Atr)
+                    for att = 1:numel(obj.f13.userval.Atr)
+                        if isfield(obj.f13.userval.Atr(att),'AttrName') && ~isempty(obj.f13.userval.Atr(att).AttrName)
+                            existingNames{att} = obj.f13.userval.Atr(att).AttrName; %#ok<AGROW>
+                        else
+                            existingNames{att} = ''; %#ok<AGROW>
+                        end
+                    end
+                end
+
+                % Loop over attributes in the old model and merge/append
+                for att_old = 1:m_old.f13.nAttr
+                    attrName = m_old.f13.userval.Atr(att_old).AttrName;
+
+                    % Determine target index in obj.f13.userval.Atr
+                    targetIdx = [];
+                    if ~isempty(existingNames)
+                        matchIdx = find(strcmp(existingNames,attrName),1);
+                        if ~isempty(matchIdx)
+                            targetIdx = matchIdx;
+                        end
+                    end
+                    if isempty(targetIdx)
+                        % Append as new attribute
+                        targetIdx = numel(existingNames) + 1;
+                        existingNames{targetIdx} = attrName; %#ok<AGROW>
+                    end
+
                     % Get the old index for this attribute
-                    idx_old = m_old.f13.userval.Atr(att).Val(1,:);
-                    val_old = m_old.f13.userval.Atr(att).Val(2:end,:);
+                    idx_old = m_old.f13.userval.Atr(att_old).Val(1,:);
+                    val_old = m_old.f13.userval.Atr(att_old).Val(2:end,:);
                     % Only keep idx and val that is common to ind and map to ind
                     [~,ind_new,idx_new] = intersect(idx_old,ind);
                     val_new = val_old(:,ind_new);
 
-                    % find indices of new nodes
+                    % find indices of new nodes in obj relative to m_old
                     [~,ind_added] = setdiff(obj.p,m_old.p,'rows');
                     if ~isempty(ind_added)
-                        defval  = m_old.f13.defval.Atr(att).Val;
-                        userval = m_old.f13.userval.Atr(att).Val;
+                        defval  = m_old.f13.defval.Atr(att_old).Val;
+                        userval = m_old.f13.userval.Atr(att_old).Val;
                         defval = reshape(defval,1,[]);
                         values = m_old.p(:,1)*0 + defval;
                         values(userval(1,:),:) = userval(2:end,:)';
@@ -4141,11 +4644,41 @@ classdef msh
                         [idx_new, C] = unique(idx_new);
                         val_new = val_new(:,C);
                     end
-                    % Put the uservalues back into f13 struct
-                    obj.f13.userval.Atr(att).AttrName = m_old.f13.userval.Atr(att).AttrName;
-                    obj.f13.userval.Atr(att).Val = [idx_new'; val_new];
-                    obj.f13.userval.Atr(att).usernumnodes = length(idx_new);
+
+                    % Ensure defval/userval arrays exist up to targetIdx
+                    if ~isfield(obj.f13,'defval') || ~isfield(obj.f13.defval,'Atr') || numel(obj.f13.defval.Atr) < targetIdx
+                        obj.f13.defval.Atr(targetIdx).Val      = m_old.f13.defval.Atr(att_old).Val;
+                        if isfield(m_old.f13.defval.Atr(att_old),'AttrName')
+                            obj.f13.defval.Atr(targetIdx).AttrName = m_old.f13.defval.Atr(att_old).AttrName;
+                        else
+                            obj.f13.defval.Atr(targetIdx).AttrName = attrName;
+                        end
+                    else
+                        % Even if defval already exists, ensure AttrName
+                        % is populated so that defval.Atr.AttrName is
+                        % consistent with userval.
+                        if ~isfield(obj.f13.defval.Atr(targetIdx),'AttrName') || isempty(obj.f13.defval.Atr(targetIdx).AttrName)
+                            if isfield(m_old.f13.defval.Atr(att_old),'AttrName') && ~isempty(m_old.f13.defval.Atr(att_old).AttrName)
+                                obj.f13.defval.Atr(targetIdx).AttrName = m_old.f13.defval.Atr(att_old).AttrName;
+                            else
+                                obj.f13.defval.Atr(targetIdx).AttrName = attrName;
+                            end
+                        end
+                    end
+                    if ~isfield(obj.f13,'userval') || ~isfield(obj.f13.userval,'Atr') || numel(obj.f13.userval.Atr) < targetIdx
+                        obj.f13.userval.Atr(targetIdx).Val = [];
+                        obj.f13.userval.Atr(targetIdx).AttrName = attrName;
+                    end
+
+                    % Put the uservalues back into f13 struct at targetIdx
+                    obj.f13.userval.Atr(targetIdx).AttrName = attrName;
+                    obj.f13.userval.Atr(targetIdx).Val = [idx_new'; val_new];
+                    obj.f13.userval.Atr(targetIdx).usernumnodes = length(idx_new);
                 end
+
+                % Update attribute count and NumOfNodes
+                obj.f13.nAttr = numel(existingNames);
+                obj.f13.NumOfNodes = length(ind);
             end
             % f24
             if ~isempty(obj.f24)
@@ -4397,7 +4930,8 @@ classdef msh
             %
             obj.f13.nAttr = length(obj.f13.defval.Atr);
         end
-        
+
+
     end % end methods
     
 end % end class

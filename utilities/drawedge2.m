@@ -19,6 +19,3 @@ line('xdata',xx(:), ...
 
 
 end
-
-
-

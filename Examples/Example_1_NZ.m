@@ -18,7 +18,7 @@ R = 3;              % number of elements to resolve feature width.
 %% STEP 2: specify geographical datasets and process the geographical data
 % to be used later with other OceanMesh classes...
 coastline = 'GSHHS_f_L1';
-gdat = geodata('shp',coastline,'bbox',bbox,'h0',min_el);
+gdat = geodata('shp',coastline,'bbox',bbox,'h0',min_el,'densify_outer',1);
 
 %% STEP 3: create an edge function class
 fh = edgefx(...

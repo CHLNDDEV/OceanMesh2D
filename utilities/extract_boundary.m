@@ -151,21 +151,21 @@ if ~isempty(opendat)
         nope = opendat.nope;
         nvdll= opendat.nvdll;
         neta = opendat.neta;
-        ibtype=opendat.ibtype;
+        ibtypee=opendat.ibtypee;
         nbdv  = opendat.nbdv;
         
         for ii = 1 : length(poly)
             nope = nope + 1;
             nvdll(nope) = length(poly_idx{ii}(:,1));
             neta = neta + nvdll(nope);
-            ibtype(nope) = 0;
+            ibtypee(nope) = 0;
             nbdv(1:nvdll(nope),nope) = poly_idx{ii}(:,1);
         end
         % ocean boundary
         opendat.nope = nope ;
         opendat.neta = neta ;
         opendat.nvdll = nvdll ;
-        opendat.ibtype = ibtype ;
+        opendat.ibtypee = ibtypee ;
         opendat.nbdv = nbdv ;
         
     end
@@ -183,14 +183,14 @@ if isempty(opendat)
             nope = nope + 1;
             nvdll(nope) = length(poly_idx{ii}(:,1));
             neta = neta + nvdll(nope);
-            ibtype(nope) = 0;
+            ibtypee(nope) = 0;
             nbdv(1:nvdll(nope),nope) = poly_idx{ii}(:,1);
         end
         % ocean boundary
         opendat.nope = nope ;
         opendat.neta = neta ;
         opendat.nvdll = nvdll ;
-        opendat.ibtype = ibtype ;
+        opendat.ibtypee = ibtypee ;
         opendat.nbdv = nbdv ;
     end
 end

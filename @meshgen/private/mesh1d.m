@@ -1,5 +1,5 @@
 
-function [pout,t,converged]=mesh1d(poly,fh0,h,fix,boubox,box_num0,varargin)
+function [pout,t,converged]=mesh1d(poly,fh0,h,fix,varargin)
 % Mesh Generator using Distance Functions.
 %   [P,T]=mesh1d(FDIST,FH,H,BOX,FIX,FDISTPARAMS)
 %
@@ -9,9 +9,33 @@ function [pout,t,converged]=mesh1d(poly,fh0,h,fix,boubox,box_num0,varargin)
 %      FH:          Edge length function
 %      H:           Smallest edge length
 %      FIX:         Indices of Poly Fixed node positions (NFIX X 1)
+% Optional (via varargin, in order):
+%   BOUBOX:         Cell array of nested bounding-box polygons, one per
+%                   box (only needed when FH0/H describe more than one
+%                   nested box; defaults to [] otherwise).
+% BOX_NUM0:         Index of the current box into FH0/H/BOUBOX (defaults
+%                   to 1 for the single-box/original calling style).
+
+% BOUBOX and BOX_NUM0 support the nested-box (high-fidelity) usage where
+% FH0/H are cell arrays/vectors indexed per box. Pulled from varargin and
+% defaulted so the original single-polygon calling style (no nesting)
+% still works.
+if numel(varargin) >= 1 && ~isempty(varargin{1})
+    boubox = varargin{1};
+else
+    boubox = [];
+end
+if numel(varargin) >= 2 && ~isempty(varargin{2})
+    box_num0 = varargin{2};
+else
+    box_num0 = 1;
+end
+if ~iscell(fh0)
+    fh0 = {fh0};
+end
 
 % Preprocessing steps - move into parametric space
-%poly = add_flairs(poly, 50); 
+%poly = add_flairs(poly, 50);
 
 X = poly(:,1);
 Y = poly(:,2);

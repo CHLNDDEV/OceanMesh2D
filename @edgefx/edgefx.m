@@ -829,7 +829,10 @@ classdef edgefx
                         [r,c]  = ind2sub(size(xg),lidx);
                         [cid,rid]=ndgrid((c-nidx:c+nidx)',(r-nidx:r+nidx)');    % grid of nearby points
                         rid = [rid(:);r]; cid=[cid(:);c];
-                        hh_m(rid,cid) = weir_spacing ;
+                        if any(rid < 1) || any(cid  < 1) 
+                            continue
+                        end
+                        hh_m(rid,cid) = weir_spacing*8 ;
                     end
                 end
             end
