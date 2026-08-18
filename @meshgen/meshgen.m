@@ -771,8 +771,8 @@ classdef meshgen
             % them. Overridable via the 'imp' constructor option.
             if obj.imp > 0
                 imp = obj.imp;
-            elseif nfix > 0
-                imp = 9999;
+            %elseif nfix > 0
+            %    imp = 9999;
             else
                 imp = 10;
             end

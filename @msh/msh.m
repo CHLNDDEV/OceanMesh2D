@@ -2103,14 +2103,21 @@ classdef msh
                     end
                     ar = 0; hts = 0; count = 0;
                     noPrompt = 0; % when 1, do not block for user input; auto-continue
-                    % tolerance (in mesh coordinate units) for mapping gdat.ibconn_pts
-                    % front/back coordinates onto nearest mesh nodes. Default is 0.001,
-                    % which is a balance between precision and robustness. Use
+                    % tolerance (in mesh coordinate units, i.e. degrees) for
+                    % mapping gdat.ibconn_pts front/back coordinates onto
+                    % nearest mesh nodes. Weir crestline points are pinned
+                    % as fixed (unmoved) mesh vertices when enforceWeirs is
+                    % on, so they should coincide with mesh nodes almost
+                    % exactly -- default is a small fraction of the mesh's
+                    % minimum edge length (gdat.h0, in meters), converted to
+                    % degrees, tight enough to reject any other nearby node
+                    % while tolerating floating-point/reprojection noise.
+                    % Use
                     %   make_bc(obj,'weirs',gdat,'weir_height',5.0,'tolerance',0.005)
                     % for looser matching, or
                     %   make_bc(obj,'weirs',gdat,'weir_height',5.0,'tolerance',0.0001)
                     % for stricter matching.
-                    tol_weir = 0.001;
+                    tol_weir = gdat.h0/111e3;
 
                     % Exclude positional gdat and identify string-like name tokens
                     nvArgs  = varargin(2:end);

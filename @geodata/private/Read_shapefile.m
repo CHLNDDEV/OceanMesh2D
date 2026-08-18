@@ -64,20 +64,34 @@ tmpC = struct2cell(SG)';
 tmpC = tmpC(~cellfun(@isempty, tmpC(:,1)),:);  
 tmpC = cellfun(@(row) row(:,1:2), tmpC, 'UniformOutput', false);  
 
-valid_polygons = {};  
-line_strings = {};  
+valid_polygons = {};
+is_open_poly = false(0,1);
+line_strings = {};
 
 for i = 1:size(tmpC,1)
     points = tmpC{i,1};
 
     % **Check for Polygon Closure Using Tolerance**
     first_point = points(1, :);
-    distances = sqrt(sum((points(2:end, :) - first_point).^2, 2));  
+    distances = sqrt(sum((points(2:end, :) - first_point).^2, 2));
+    is_closed = any(distances < tolerance);
 
-    if any(distances < tolerance)  
-        valid_polygons{end+1} = points; 
+    if is_closed
+        valid_polygons{end+1} = points; %#ok<AGROW>
+        is_open_poly(end+1,1) = false; %#ok<AGROW>
     else
-        line_strings{end+1} = [points; NaN NaN];  
+        line_strings{end+1} = [points; NaN NaN];  %#ok<AGROW>
+
+        % Also carry not-exactly-closed features (e.g. a barrier
+        % island/spit digitized as an open shoreline trace) through the
+        % mainland/inner classification below as a pseudo-closed
+        % polygon, so they aren't silently dropped from the mesh
+        % boundary when linestrings aren't consumed (i.e. high_fidelity
+        % isn't enabled). Mirrors the previous Read_shapefile's
+        % behavior, which gave non-closed features a placeholder area
+        % that always passed the size thresholds.
+        valid_polygons{end+1} = points; %#ok<AGROW>
+        is_open_poly(end+1,1) = true; %#ok<AGROW>
     end
 end
 
@@ -101,7 +115,15 @@ end
 
 for i = 1:total_polygons
     points = valid_polygons{i};
-    area = shoelace(points(:,1), points(:,2));  
+    if is_open_poly(i)
+        % Not exactly closed: use a placeholder area, large enough to
+        % clear min_area_inner/min_area_mainland regardless of h0, so
+        % the feature is still classified as boundary geometry (see note
+        % above where it was added to valid_polygons).
+        area = 999;
+    else
+        area = shoelace(points(:,1), points(:,2));
+    end
     inside_bbox = all(inpoly(points, polygon_struct.outer, edges));
 
     if inside_bbox && abs(area) >= min_area_inner
